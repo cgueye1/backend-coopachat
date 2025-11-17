@@ -57,7 +57,6 @@ export const routes: Routes = [
     path: 'log/retours',
     loadComponent: () => import('./features/logistique/gestion-retours/gestion-retours.component').then(c => c.GestionRetoursComponent)
   },
-   //path for admin dashboard module
   {
     path: 'admin/dashboardadmin',
     loadComponent: () => import('./features/administrateur/dashboard/dashboard.component').then(c => c.AdminPageComponent)
