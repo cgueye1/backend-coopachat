@@ -5,16 +5,7 @@ import { CommonModule } from '@angular/common';
   selector: 'ui-form-field',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="space-y-1">
-      <label class="block text-sm font-medium text-gray-700">
-        {{ label }}
-        <span *ngIf="required" class="text-red-500">*</span>
-      </label>
-      <ng-content></ng-content>
-      <div *ngIf="error" class="text-sm text-red-600">{{ error }}</div>
-    </div>
-  `
+  templateUrl: './form-field.component.html'
 })
 export class FormFieldComponent {
   @Input() label = '';

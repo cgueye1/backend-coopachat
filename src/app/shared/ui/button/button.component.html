@@ -1,1 +1,9 @@
-<p>button works!</p>
+ <button
+      [type]="type"
+      [disabled]="disabled"
+      (click)="onClick()"
+      [class]="buttonClasses"
+    >
+      <ng-content></ng-content>
+    </button>
+  

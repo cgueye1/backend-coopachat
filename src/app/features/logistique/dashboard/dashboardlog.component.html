@@ -1,0 +1,122 @@
+<app-main-layout [role]="role">
+    <!-- Header Section -->
+    <div class="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-4 2xl:mb-8">
+        <div>
+            <div class="text-sm text-[#707EAE] mb-1">Pages / Tableau de bord</div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-[#2B3674]">Tableau de bord</h1>
+        </div>
+        <div class="flex items-center space-x-3">
+            <select class="px-7 py-4  border border-gray-300 rounded-full text-sm bg-transparent">
+                <option>Période: Cette année</option>
+                <option>Ce mois</option>
+                <option>Cette semaine</option>
+            </select>
+            <select class="px-7 py-4  border border-gray-300 rounded-full text-sm bg-transparent">
+                <option>Fournisseurs: Tous</option>
+            </select>
+            <button
+                class="bg-indigo-900 text-white px-4 py-4 rounded-full text-sm font-medium flex items-center hover:bg-indigo-800 transition-colors">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M6.66699 14.1667L10.0003 17.5M10.0003 17.5L13.3337 14.1667M10.0003 17.5V10M16.667 13.9524C17.6849 13.1117 18.3337 11.8399 18.3337 10.4167C18.3337 7.88536 16.2816 5.83333 13.7503 5.83333C13.5682 5.83333 13.3979 5.73833 13.3054 5.58145C12.2187 3.73736 10.2124 2.5 7.91699 2.5C4.46521 2.5 1.66699 5.29822 1.66699 8.75C1.66699 10.4718 2.3632 12.0309 3.48945 13.1613"
+                        stroke="white" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                &nbsp;
+                Exporter
+            </button>
+        </div>
+    </div>
+
+    <!-- Metrics Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 2xl:mb-8">
+        <div *ngFor="let metric of metricsData" class="bg-white rounded-lg p-4 hover:shadow-sm transition-shadow">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                    <div class="text-xs text-[#6B7280] mb-1">{{ metric.title }}</div>
+                    <div class="text-2xl font-medium text-[#2B3674] mb-2">{{ metric.value }}</div>
+                    <div class="text-xs" [ngClass]="getMetricSubtitleClass(metric.subtitle)">
+                        {{ metric.subtitle }}
+                    </div>
+                </div>
+                <div class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <img [src]="metric.icon" alt="icon" class="w-8 h-8">
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-4 2xl:mb-8">
+        <!-- Commandes vs Livraisons Chart -->
+        <div class="col-span-2 bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Commandes vs Livraisons</h3>
+                <button class="text-sm text-gray-600 hover:text-gray-900 px-3 py-1 border border-gray-300 rounded-full">
+                    Voir détails
+                </button>
+            </div>
+            <div class="relative h-80">
+                <canvas #commandesChart></canvas>
+            </div>
+        </div>
+
+        <!-- Stocks - État global -->
+        <div class="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Stocks - État global</h3>
+                <button class="text-sm text-gray-600 hover:text-gray-900 px-3 py-1 border border-gray-300 rounded-full">
+                    Voir détails
+                </button>
+            </div>
+
+            <div class="flex items-center justify-center h-80">
+                <div class="relative" >
+                    <canvas #stocksChart></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques de statistiques -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-4">
+        <!-- Stocks sous seuil -->
+        <div class="bg-white rounded-lg p-5 border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-semibold text-gray-900">Stocks sous seuil — par catégorie</h3>
+            </div>
+            <div class="relative h-64">
+                <canvas #stockCategoryChart></canvas>
+            </div>
+        </div>
+
+        <!-- Statut des livraisons -->
+        <div class="bg-white rounded-lg p-5 border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-semibold text-gray-900">Statut des livraisons</h3>
+                <button
+                    class="text-xs text-gray-600 px-3 py-1.5 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
+                    Voir détails
+                </button>
+            </div>
+            <div class="flex items-center justify-center h-64" >
+                <div class="relative">
+                    <canvas #deliveryStatusChart></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Taux de retours -->
+        <div class="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-semibold text-gray-900">Taux de retours (%)</h3>
+                <button
+                    class="text-xs text-gray-600 px-3 py-1.5 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
+                    Voir détails
+                </button>
+            </div>
+            <div class="relative h-64">
+                <canvas #returnRateChart></canvas>
+            </div>
+        </div>
+    </div>
+
+</app-main-layout>

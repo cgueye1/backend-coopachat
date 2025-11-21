@@ -7,16 +7,7 @@ type ButtonVariant = 'primary' | 'secondary' | 'danger';
   selector: 'ui-button',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <button
-      [type]="type"
-      [disabled]="disabled"
-      (click)="onClick()"
-      [class]="buttonClasses"
-    >
-      <ng-content></ng-content>
-    </button>
-  `
+  templateUrl: './button.component.html'
 })
 export class ButtonComponent {
   @Input() type: 'button' | 'submit' | 'reset' = 'button';

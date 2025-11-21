@@ -13,16 +13,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
       multi: true
     }
   ],
-  template: `
-    <input
-      [type]="type"
-      [placeholder]="placeholder"
-      [value]="value"
-      [disabled]="disabled"
-      (input)="onInput($event)"
-      [class]="class"
-    />
-  `
+  templateUrl: './input.component.html'
 })
 export class InputComponent implements ControlValueAccessor {
   @Input() type = 'text';

@@ -9,29 +9,7 @@ type Role = 'log' | 'com' | 'admin' | 'commercial';
   selector: 'app-main-layout',
   standalone: true,
   imports: [CommonModule, HeaderComponent, SidebarComponent],
-  template: `
-    <div class="flex flex-col min-h-screen bg-[#F5F5F3]">
-      <!-- Sidebar : on passe le role à la sidebar -->
-      <app-sidebar class="lg:fixed lg:top-0 lg:left-0 lg:h-full" [role]="normalizedRole"></app-sidebar>
-
-      <!-- Main Content Area -->
-      <div class="flex-1 flex flex-col lg:ml-64 transition-all duration-300">
-        <!-- Header : visible uniquement pour le rôle commercial -->
-        <app-header 
-          *ngIf="normalizedRole === 'com'"
-          class="sticky top-0 z-10"
-          [role]="normalizedRole">
-        </app-header>
-
-        <!-- Page Content -->
-        <main class="flex-1 overflow-y-auto">
-          <div class="p-4 sm:p-6">
-            <ng-content></ng-content>
-          </div>
-        </main>
-      </div>
-    </div>
-  `,
+  templateUrl: './main-layout.component.html',
   styles: [`
     :host {
       display: block;
