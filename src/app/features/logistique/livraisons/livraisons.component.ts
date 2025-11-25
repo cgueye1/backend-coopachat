@@ -7,7 +7,7 @@ interface Metric {
   title: string;
   value: string;
   icon: string;
-  
+
 }
 
 interface Livraison {
@@ -43,10 +43,10 @@ export class LivraisonsComponent {
 
   metricsData: Metric[] = [
     { title: 'Planifiées', value: '06', icon: 'box-blue' },
-    { title: 'À confirmer', value: '05', icon: 'warning-yellow',  },
+    { title: 'À confirmer', value: '05', icon: 'warning-yellow', },
     { title: 'Confirmées', value: '05', icon: 'check-blue' },
-    { title: 'Livrées', value: '05', icon: 'check-green'},
-    { title: 'Annulées', value: '01', icon: 'box-red'}
+    { title: 'Livrées', value: '05', icon: 'check-green' },
+    { title: 'Annulées', value: '01', icon: 'box-red' }
   ];
 
   livraisons: Livraison[] = [
@@ -101,6 +101,77 @@ export class LivraisonsComponent {
       statut: 'À confirmer'
     }
   ];
+
+  selectedFournisseur = 'Tous les fournisseurs';
+  selectedTransporteur = 'Tous les transporteurs';
+  selectedStatus = 'Tous les statuts';
+  showFournisseurDropdown = false;
+  showTransporteurDropdown = false;
+  showStatusDropdown = false;
+
+  get uniqueFournisseurs(): string[] {
+    const fournisseurs = new Set(this.livraisons.map(l => l.fournisseur));
+    return ['Tous les fournisseurs', ...Array.from(fournisseurs)];
+  }
+
+  get uniqueTransporteurs(): string[] {
+    const transporteurs = new Set(this.livraisons.map(l => l.transporteur));
+    return ['Tous les transporteurs', ...Array.from(transporteurs)];
+  }
+
+  get uniqueStatuses(): string[] {
+    const statuses = new Set(this.livraisons.map(l => l.statut));
+    return ['Tous les statuts', ...Array.from(statuses)];
+  }
+
+  get filteredLivraisons(): Livraison[] {
+    return this.livraisons.filter(l => {
+      const matchesSearch =
+        l.client.name.toLowerCase().includes(this.searchText.toLowerCase()) ||
+        l.client.id.toLowerCase().includes(this.searchText.toLowerCase()) ||
+        l.fournisseur.toLowerCase().includes(this.searchText.toLowerCase()) ||
+        l.transporteur.toLowerCase().includes(this.searchText.toLowerCase());
+
+      const matchesFournisseur = this.selectedFournisseur === 'Tous les fournisseurs' || l.fournisseur === this.selectedFournisseur;
+      const matchesTransporteur = this.selectedTransporteur === 'Tous les transporteurs' || l.transporteur === this.selectedTransporteur;
+      const matchesStatus = this.selectedStatus === 'Tous les statuts' || l.statut === this.selectedStatus;
+
+      return matchesSearch && matchesFournisseur && matchesTransporteur && matchesStatus;
+    });
+  }
+
+  toggleFournisseurDropdown() {
+    this.showFournisseurDropdown = !this.showFournisseurDropdown;
+    this.showTransporteurDropdown = false;
+    this.showStatusDropdown = false;
+  }
+
+  toggleTransporteurDropdown() {
+    this.showTransporteurDropdown = !this.showTransporteurDropdown;
+    this.showFournisseurDropdown = false;
+    this.showStatusDropdown = false;
+  }
+
+  toggleStatusDropdown() {
+    this.showStatusDropdown = !this.showStatusDropdown;
+    this.showFournisseurDropdown = false;
+    this.showTransporteurDropdown = false;
+  }
+
+  selectFournisseur(val: string) {
+    this.selectedFournisseur = val;
+    this.showFournisseurDropdown = false;
+  }
+
+  selectTransporteur(val: string) {
+    this.selectedTransporteur = val;
+    this.showTransporteurDropdown = false;
+  }
+
+  selectStatus(val: string) {
+    this.selectedStatus = val;
+    this.showStatusDropdown = false;
+  }
 
   getStatusClass(status: string): string {
     switch (status) {

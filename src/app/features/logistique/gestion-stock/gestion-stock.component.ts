@@ -45,11 +45,223 @@ interface SupplierOrder {
 export class GestionStockComponent {
   activeTab = 'suivi';
   searchText = '';
+  selectedCategory = 'Toutes les catégories';
+  selectedStatus = 'Tous les statuts';
+  showCategoryDropdown = false;
+  showStatusDropdown = false;
+
+  selectedSupplier = 'Tous les fournisseurs';
+  selectedOrderStatus = 'Tous les statuts';
+  showSupplierDropdown = false;
+  showOrderStatusDropdown = false;
+
+  get uniqueCategories(): string[] {
+    const categories = new Set(this.stockItems.map(item => item.category));
+    return ['Toutes les catégories', ...Array.from(categories)];
+  }
+
+  get uniqueSuppliers(): string[] {
+    const suppliers = new Set(this.supplierOrders.map(order => order.supplier));
+    return ['Tous les fournisseurs', ...Array.from(suppliers)];
+  }
+
+  get uniqueOrderStatuses(): string[] {
+    const statuses = new Set(this.supplierOrders.map(order => order.status));
+    return ['Tous les statuts', ...Array.from(statuses)];
+  }
+
+  get filteredAlertItems(): StockItem[] {
+    return this.stockItems.filter(item => {
+      const isAlert = item.status === 'Sous seuil' || item.status === 'Rupture';
+      const matchesSearch =
+        item.name.toLowerCase().includes(this.searchText.toLowerCase()) ||
+        item.reference.toLowerCase().includes(this.searchText.toLowerCase());
+
+      const matchesCategory = this.selectedCategory === 'Toutes les catégories' ||
+        item.category === this.selectedCategory;
+
+      return isAlert && matchesSearch && matchesCategory;
+    });
+  }
+
+  get filteredSupplierOrders(): SupplierOrder[] {
+    return this.supplierOrders.filter(order => {
+      const matchesSearch =
+        order.productName.toLowerCase().includes(this.searchText.toLowerCase()) ||
+        order.productReference.toLowerCase().includes(this.searchText.toLowerCase()) ||
+        order.supplier.toLowerCase().includes(this.searchText.toLowerCase());
+
+      const matchesSupplier = this.selectedSupplier === 'Tous les fournisseurs' ||
+        order.supplier === this.selectedSupplier;
+
+      const matchesStatus = this.selectedOrderStatus === 'Tous les statuts' ||
+        order.status === this.selectedOrderStatus;
+
+      return matchesSearch && matchesSupplier && matchesStatus;
+    });
+  }
+
+  toggleSupplierDropdown() {
+    this.showSupplierDropdown = !this.showSupplierDropdown;
+    this.showOrderStatusDropdown = false;
+  }
+
+  toggleOrderStatusDropdown() {
+    this.showOrderStatusDropdown = !this.showOrderStatusDropdown;
+    this.showSupplierDropdown = false;
+  }
+
+  selectSupplier(supplier: string) {
+    this.selectedSupplier = supplier;
+    this.showSupplierDropdown = false;
+  }
+
+  selectOrderStatus(status: string) {
+    this.selectedOrderStatus = status;
+    this.showOrderStatusDropdown = false;
+  }
+
+  get uniqueStatuses(): string[] {
+    const statuses = new Set(this.stockItems.map(item => item.status));
+    return ['Tous les statuts', ...Array.from(statuses)];
+  }
+
+  get filteredStockItems(): StockItem[] {
+    return this.stockItems.filter(item => {
+      const matchesSearch =
+        item.name.toLowerCase().includes(this.searchText.toLowerCase()) ||
+        item.reference.toLowerCase().includes(this.searchText.toLowerCase());
+
+      const matchesCategory = this.selectedCategory === 'Toutes les catégories' ||
+        item.category === this.selectedCategory;
+
+      const matchesStatus = this.selectedStatus === 'Tous les statuts' ||
+        item.status === this.selectedStatus;
+
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+  }
+
+  toggleCategoryDropdown() {
+    this.showCategoryDropdown = !this.showCategoryDropdown;
+    this.showStatusDropdown = false;
+  }
+
+  toggleStatusDropdown() {
+    this.showStatusDropdown = !this.showStatusDropdown;
+    this.showCategoryDropdown = false;
+  }
+
+  selectCategory(category: string) {
+    this.selectedCategory = category;
+    this.showCategoryDropdown = false;
+  }
+
+  selectStatus(status: string) {
+    this.selectedStatus = status;
+    this.showStatusDropdown = false;
+  }
 
   // Modal state
   showStockEntryModal = false;
   selectedStockItem: StockItem | null = null;
   stockEntryQuantity: number = 1;
+
+  // New Order Modal
+  showNewOrderModal = false;
+  newOrder: any = {
+    fournisseur: '',
+    produit: '',
+    quantite: '',
+    eta: '',
+    note: ''
+  };
+
+  errors: any = {
+    fournisseur: '',
+    quantite: '',
+    eta: ''
+  };
+
+  get minDate(): string {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  openNewOrderModal() {
+    this.showNewOrderModal = true;
+    this.newOrder = {
+      fournisseur: '',
+      produit: '',
+      quantite: '',
+      eta: '',
+      note: ''
+    };
+    this.errors = {
+      fournisseur: '',
+      quantite: '',
+      eta: ''
+    };
+  }
+
+  closeNewOrderModal() {
+    this.showNewOrderModal = false;
+  }
+
+  saveNewOrder() {
+    // Reset errors
+    this.errors = {
+      fournisseur: '',
+      quantite: '',
+      eta: ''
+    };
+
+    let isValid = true;
+
+    // Validation Fournisseur
+    if (!this.newOrder.fournisseur || this.newOrder.fournisseur.trim() === '') {
+      this.errors.fournisseur = 'Le fournisseur est obligatoire';
+      isValid = false;
+    }
+
+    // Validation Quantité
+    if (!this.newOrder.quantite) {
+      this.errors.quantite = 'La quantité est obligatoire';
+      isValid = false;
+    } else if (isNaN(Number(this.newOrder.quantite))) {
+      this.errors.quantite = 'La quantité doit être un nombre';
+      isValid = false;
+    }
+
+    // Validation Date (ETA)
+    if (this.newOrder.eta) {
+      const selectedDate = new Date(this.newOrder.eta);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (selectedDate < today) {
+        this.errors.eta = 'La date ne peut pas être dans le passé';
+        isValid = false;
+      }
+    }
+
+    if (!isValid) {
+      return;
+    }
+
+    const newCmd: SupplierOrder = {
+      id: `CMD-${Math.floor(Math.random() * 10000)}`,
+      productName: this.newOrder.produit,
+      productReference: 'REF-' + Math.floor(Math.random() * 1000),
+      supplier: this.newOrder.fournisseur,
+      quantity: parseInt(this.newOrder.quantite) || 0,
+      eta: this.newOrder.eta ? new Date(this.newOrder.eta).toLocaleDateString('fr-FR') : '',
+      status: 'Ouverte',
+      productId: 'PROD-' + Math.floor(Math.random() * 1000)
+    };
+
+    this.supplierOrders.unshift(newCmd);
+    this.closeNewOrderModal();
+  }
 
   constructor(private sanitizer: DomSanitizer) { }
 

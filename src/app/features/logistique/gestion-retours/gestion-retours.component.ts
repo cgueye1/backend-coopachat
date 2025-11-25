@@ -35,6 +35,8 @@ interface Retour {
 })
 export class GestionRetoursComponent {
   searchText: string = '';
+  selectedStatus: string = 'Tous les status';
+  showStatusDropdown: boolean = false;
   currentPage: number = 1;
   totalPages: number = 6;
 
@@ -87,6 +89,33 @@ export class GestionRetoursComponent {
   ];
 
   constructor(private sanitizer: DomSanitizer) { }
+
+  get uniqueStatuses(): string[] {
+    const statuses = new Set(this.retours.map(r => r.status));
+    return ['Tous les status', ...Array.from(statuses)];
+  }
+
+  get filteredRetours(): Retour[] {
+    return this.retours.filter(retour => {
+      const matchesSearch =
+        retour.product.name.toLowerCase().includes(this.searchText.toLowerCase()) ||
+        retour.product.reference.toLowerCase().includes(this.searchText.toLowerCase()) ||
+        retour.client.toLowerCase().includes(this.searchText.toLowerCase());
+
+      const matchesStatus = this.selectedStatus === 'Tous les status' || retour.status === this.selectedStatus;
+
+      return matchesSearch && matchesStatus;
+    });
+  }
+
+  toggleStatusDropdown() {
+    this.showStatusDropdown = !this.showStatusDropdown;
+  }
+
+  selectStatus(status: string) {
+    this.selectedStatus = status;
+    this.showStatusDropdown = false;
+  }
 
   getStatusClass(status: string): string {
     switch (status) {

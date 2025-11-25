@@ -42,118 +42,252 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow mb-4 overflow-x-auto ">
-        <!-- Filters & Actions -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3  flex-wrap px-4 py-4">
-            <div class="relative flex-1 min-w-[250px]">
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" fill="none"
-                    stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.35-4.35" />
-                </svg>
-                <input type="text" placeholder="Rechercher par référence ou produit..." [(ngModel)]="searchText"
-                    class="w-96 pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#2d3561] text-sm">
-            </div>
-            <div class="flex gap-3 flex-wrap">
-                <button
-                    class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:border-[#2d3561] hover:text-[#2d3561] text-xs">
-                    <svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M16.6673 5.16671C16.6673 4.70004 16.6673 4.46671 16.5757 4.28837C16.496 4.13171 16.3688 4.00424 16.2123 3.92421C16.034 3.83337 15.8007 3.83337 15.334 3.83337H4.66732C4.20065 3.83337 3.96732 3.83337 3.78898 3.92421C3.63219 4.0041 3.50471 4.13158 3.42482 4.28837C3.33398 4.46671 3.33398 4.70004 3.33398 5.16671V5.78087C3.33398 5.98504 3.33398 6.08671 3.35732 6.18254C3.37772 6.26786 3.41147 6.34942 3.45732 6.42421C3.50815 6.50754 3.58065 6.58004 3.72398 6.72421L7.94315 10.9425C8.08732 11.0867 8.15982 11.1592 8.21065 11.2425C8.25676 11.3181 8.2901 11.3987 8.31065 11.4842C8.33398 11.5792 8.33398 11.68 8.33398 11.8792V15.8425C8.33398 16.5567 8.33398 16.9142 8.48398 17.1292C8.54906 17.2222 8.63245 17.3009 8.72903 17.3605C8.82562 17.4201 8.93336 17.4594 9.04565 17.4759C9.30482 17.5142 9.62482 17.355 10.2632 17.035L10.9298 16.7017C11.1982 16.5684 11.3315 16.5017 11.429 16.4017C11.5155 16.3134 11.5812 16.2069 11.6215 16.09C11.6673 15.9584 11.6673 15.8084 11.6673 15.5092V11.8859C11.6673 11.6817 11.6673 11.58 11.6907 11.4842C11.7111 11.3989 11.7448 11.3173 11.7907 11.2425C11.8407 11.1592 11.9132 11.0875 12.0548 10.9459L12.0582 10.9425L16.2773 6.72421C16.4207 6.58004 16.4923 6.50754 16.544 6.42421C16.5901 6.34865 16.6234 6.2681 16.644 6.18254C16.6673 6.08837 16.6673 5.98671 16.6673 5.78754V5.16671Z"
-                            stroke="#A3AED0" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round" />
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100">
+            <!-- Filters -->
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4">
+                <div class="relative flex-1 max-w-md">
+                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                    Tous les fournisseurs
-                </button>
-                <button
-                    class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:border-[#2d3561] hover:text-[#2d3561] text-xs">
-                    <svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M16.6673 5.16671C16.6673 4.70004 16.6673 4.46671 16.5757 4.28837C16.496 4.13171 16.3688 4.00424 16.2123 3.92421C16.034 3.83337 15.8007 3.83337 15.334 3.83337H4.66732C4.20065 3.83337 3.96732 3.83337 3.78898 3.92421C3.63219 4.0041 3.50471 4.13158 3.42482 4.28837C3.33398 4.46671 3.33398 4.70004 3.33398 5.16671V5.78087C3.33398 5.98504 3.33398 6.08671 3.35732 6.18254C3.37772 6.26786 3.41147 6.34942 3.45732 6.42421C3.50815 6.50754 3.58065 6.58004 3.72398 6.72421L7.94315 10.9425C8.08732 11.0867 8.15982 11.1592 8.21065 11.2425C8.25676 11.3181 8.2901 11.3987 8.31065 11.4842C8.33398 11.5792 8.33398 11.68 8.33398 11.8792V15.8425C8.33398 16.5567 8.33398 16.9142 8.48398 17.1292C8.54906 17.2222 8.63245 17.3009 8.72903 17.3605C8.82562 17.4201 8.93336 17.4594 9.04565 17.4759C9.30482 17.5142 9.62482 17.355 10.2632 17.035L10.9298 16.7017C11.1982 16.5684 11.3315 16.5017 11.429 16.4017C11.5155 16.3134 11.5812 16.2069 11.6215 16.09C11.6673 15.9584 11.6673 15.8084 11.6673 15.5092V11.8859C11.6673 11.6817 11.6673 11.58 11.6907 11.4842C11.7111 11.3989 11.7448 11.3173 11.7907 11.2425C11.8407 11.1592 11.9132 11.0875 12.0548 10.9459L12.0582 10.9425L16.2773 6.72421C16.4207 6.58004 16.4923 6.50754 16.544 6.42421C16.5901 6.34865 16.6234 6.2681 16.644 6.18254C16.6673 6.08837 16.6673 5.98671 16.6673 5.78754V5.16671Z"
-                            stroke="#A3AED0" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                    Tous les statuts
-                </button>
-                <button
-                    class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:border-[#2d3561] hover:text-[#2d3561] text-xs">
-                    <svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd" clip-rule="evenodd"
-                            d="M3.75 2.375C3.75 2.20924 3.81585 2.05027 3.93306 1.93306C4.05027 1.81585 4.20924 1.75 4.375 1.75H11.25C11.3321 1.74985 11.4135 1.7659 11.4894 1.79721C11.5653 1.82853 11.6344 1.8745 11.6925 1.9325L16.0675 6.3075C16.1255 6.36565 16.1715 6.43466 16.2028 6.51059C16.2341 6.58651 16.2501 6.66787 16.25 6.75V9.875H15V7.375H11.25C11.0842 7.375 10.9253 7.30915 10.8081 7.19194C10.6908 7.07473 10.625 6.91576 10.625 6.75V3H5V18H11.875V19.25H4.375C4.20924 19.25 4.05027 19.1842 3.93306 19.0669C3.81585 18.9497 3.75 18.7908 3.75 18.625V2.375ZM11.875 3.88375L14.1163 6.125H11.875V3.88375ZM15.4425 11.9338L17.9425 14.4338C18.0597 14.551 18.1255 14.7099 18.1255 14.8756C18.1255 15.0414 18.0597 15.2003 17.9425 15.3175L15.4425 17.8175L14.5575 16.9325L15.9913 15.5H10V14.25H15.9913L14.5575 12.8175L15.4425 11.9338Z"
-                            fill="#A3AED0" />
-                    </svg>
-                    Exporter
-                </button>
+                    <input type="text" placeholder="Rechercher par référence ou produit..." [(ngModel)]="searchText"
+                        class="w-full pl-12 pr-4 py-3 border border-[#CBD5E1] rounded-xl focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm bg-white placeholder-gray-400">
+                </div>
 
-            </div>
-        </div>
+                <div class="flex flex-wrap gap-3">
+                    <!-- Fournisseur Filter -->
+                    <div class="relative">
+                        <button (click)="toggleFournisseurDropdown()"
+                            class="px-3 py-2 border border-[#CBD5E1] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
+                            <svg width="20" height="21" viewBox="0 0 20 21" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M16.6673 5.16671C16.6673 4.70004 16.6673 4.46671 16.5757 4.28837C16.496 4.13171 16.3688 4.00424 16.2123 3.92421C16.034 3.83337 15.8007 3.83337 15.334 3.83337H4.66732C4.20065 3.83337 3.96732 3.83337 3.78898 3.92421C3.63219 4.0041 3.50471 4.13158 3.42482 4.28837C3.33398 4.46671 3.33398 4.70004 3.33398 5.16671V5.78087C3.33398 5.98504 3.33398 6.08671 3.35732 6.18254C3.37772 6.26786 3.41147 6.34942 3.45732 6.42421C3.50815 6.50754 3.58065 6.58004 3.72398 6.72421L7.94315 10.9425C8.08732 11.0867 8.15982 11.1592 8.21065 11.2425C8.25676 11.3181 8.2901 11.3987 8.31065 11.4842C8.33398 11.5792 8.33398 11.68 8.33398 11.8792V15.8425C8.33398 16.5567 8.33398 16.9142 8.48398 17.1292C8.54906 17.2222 8.63245 17.3009 8.72903 17.3605C8.82562 17.4201 8.93336 17.4594 9.04565 17.4759C9.30482 17.5142 9.62482 17.355 10.2632 17.035L10.9298 16.7017C11.1982 16.5684 11.3315 16.5017 11.429 16.4017C11.5155 16.3134 11.5812 16.2069 11.6215 16.09C11.6673 15.9584 11.6673 15.8084 11.6673 15.5092V11.8859C11.6673 11.6817 11.6673 11.58 11.6907 11.4842C11.7111 11.3989 11.7448 11.3173 11.7907 11.2425C11.8407 11.1592 11.9132 11.0875 12.0548 10.9459L12.0582 10.9425L16.2773 6.72421C16.4207 6.58004 16.4923 6.50754 16.544 6.42421C16.5901 6.34865 16.6234 6.2681 16.644 6.18254C16.6673 6.08837 16.6673 5.98671 16.6673 5.78754V5.16671Z"
+                                    stroke="#A3AED0" stroke-width="1.66667" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                            {{ selectedFournisseur }}
+                        </button>
+                        <!-- Dropdown Menu -->
+                        <div *ngIf="showFournisseurDropdown"
+                            class="absolute top-full right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10">
+                            <button *ngFor="let fournisseur of uniqueFournisseurs"
+                                (click)="selectFournisseur(fournisseur)"
+                                class="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-[#2B3674] transition-colors">
+                                {{ fournisseur }}
+                            </button>
+                        </div>
+                    </div>
 
-        <!-- Table -->
-        <div class="overflow-x-auto mb-4">
-            <table class="min-w-full border-collapse">
-                <thead class="bg-[#F4F7FE]">
-                    <tr>
-                        <th class="text-left text-xs text-[#2C3E50] p-4">
-                            Référence</th>
-                        <th class="text-left text-xs text-[#2C3E50] p-4">
-                            Fournisseur</th>
-                        <th class="text-left text-xs text-[#2C3E50] p-4">
-                            Date</th>
-                        <th class="text-left text-xs text-[#2C3E50] p-4">
-                            Produits</th>
-                        <th class="text-left text-xs text-[#2C3E50] p-4">
-                            Statut</th>
-                        <th class="text-left text-xs text-[#2C3E50] p-4">
-                            Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr *ngFor="let commande of commandes" class="text-[#4B4848] text-sm hover:bg-gray-100">
-                        <td class="p-4">{{ commande.reference }}</td>
-                        <td class="p-4">{{ commande.fournisseur }}</td>
-                        <td class="p-4">{{ commande.date }}</td>
-                        <td class="p-4">{{ commande.produits }}</td>
-                        <td class="p-4">
-                            <span
-                                [class]="'inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ' + getStatutClass(commande.statut)">
-                                <span class="w-2 h-2 rounded-full bg-current"></span>
-                                {{ commande.statut }}
-                            </span>
-                        </td>
-                        <td class="flex gap-2 p-4">
-                            <button class="p-2 rounded-md hover:bg-gray-100 text-gray-500"
-                                (click)="viewCommande(commande.reference)">
-                                <svg width="22" height="22" viewBox="0 0 22 22" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path
-                                        d="M11.0007 6.19493C12.6072 6.18959 14.1825 6.63768 15.5456 7.48769C16.9087 8.3377 18.0042 9.55512 18.7063 11C17.2648 13.9442 14.3206 15.8051 11.0007 15.8051C7.68089 15.8051 4.7367 13.9442 3.29518 11C3.99726 9.55512 5.09282 8.3377 6.45593 7.48769C7.81903 6.63768 9.39434 6.18959 11.0007 6.19493ZM11.0007 4.44763C6.63251 4.44763 2.90204 7.16468 1.39062 11C2.90204 14.8353 6.63251 17.5523 11.0007 17.5523C15.369 17.5523 19.0995 14.8353 20.6109 11C19.0995 7.16468 15.369 4.44763 11.0007 4.44763ZM11.0007 8.81587C11.58 8.81587 12.1356 9.04598 12.5452 9.45558C12.9548 9.86519 13.1849 10.4207 13.1849 11C13.1849 11.5793 12.9548 12.1348 12.5452 12.5444C12.1356 12.954 11.58 13.1841 11.0007 13.1841C10.4215 13.1841 9.86595 12.954 9.45634 12.5444C9.04674 12.1348 8.81663 11.5793 8.81663 11C8.81663 10.4207 9.04674 9.86519 9.45634 9.45558C9.86595 9.04598 10.4215 8.81587 11.0007 8.81587ZM11.0007 7.06858C8.8341 7.06858 7.06933 8.83334 7.06933 11C7.06933 13.1666 8.8341 14.9314 11.0007 14.9314C13.1674 14.9314 14.9322 13.1666 14.9322 11C14.9322 8.83334 13.1674 7.06858 11.0007 7.06858Z"
-                                        fill="#4B4848" />
-                                </svg>
+                    <!-- Statut Filter -->
+                    <div class="relative">
+                        <button (click)="toggleStatutDropdown()"
+                            class="px-3 py-2 border border-[#CBD5E1] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
+                            <svg width="20" height="21" viewBox="0 0 20 21" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M16.6673 5.16671C16.6673 4.70004 16.6673 4.46671 16.5757 4.28837C16.496 4.13171 16.3688 4.00424 16.2123 3.92421C16.034 3.83337 15.8007 3.83337 15.334 3.83337H4.66732C4.20065 3.83337 3.96732 3.83337 3.78898 3.92421C3.63219 4.0041 3.50471 4.13158 3.42482 4.28837C3.33398 4.46671 3.33398 4.70004 3.33398 5.16671V5.78087C3.33398 5.98504 3.33398 6.08671 3.35732 6.18254C3.37772 6.26786 3.41147 6.34942 3.45732 6.42421C3.50815 6.50754 3.58065 6.58004 3.72398 6.72421L7.94315 10.9425C8.08732 11.0867 8.15982 11.1592 8.21065 11.2425C8.25676 11.3181 8.2901 11.3987 8.31065 11.4842C8.33398 11.5792 8.33398 11.68 8.33398 11.8792V15.8425C8.33398 16.5567 8.33398 16.9142 8.48398 17.1292C8.54906 17.2222 8.63245 17.3009 8.72903 17.3605C8.82562 17.4201 8.93336 17.4594 9.04565 17.4759C9.30482 17.5142 9.62482 17.355 10.2632 17.035L10.9298 16.7017C11.1982 16.5684 11.3315 16.5017 11.429 16.4017C11.5155 16.3134 11.5812 16.2069 11.6215 16.09C11.6673 15.9584 11.6673 15.8084 11.6673 15.5092V11.8859C11.6673 11.6817 11.6673 11.58 11.6907 11.4842C11.7111 11.3989 11.7448 11.3173 11.7907 11.2425C11.8407 11.1592 11.9132 11.0875 12.0548 10.9459L12.0582 10.9425L16.2773 6.72421C16.4207 6.58004 16.4923 6.50754 16.544 6.42421C16.5901 6.34865 16.6234 6.2681 16.644 6.18254C16.6673 6.08837 16.6673 5.98671 16.6673 5.78754V5.16671Z"
+                                    stroke="#A3AED0" stroke-width="1.66667" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                            {{ selectedStatut }}
+                        </button>
+                        <!-- Dropdown Menu -->
+                        <div *ngIf="showStatutDropdown"
+                            class="absolute top-full right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10">
+                            <button *ngFor="let statut of uniqueStatuts" (click)="selectStatut(statut)"
+                                class="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-[#2B3674] transition-colors">
+                                {{ statut }}
                             </button>
-                            <button class="p-2 rounded-md hover:bg-gray-100 text-gray-500"
-                                (click)="editCommande(commande.reference)">
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path
-                                        d="M4.16667 15.8333H5.35417L13.5 7.6875L12.3125 6.5L4.16667 14.6458V15.8333ZM2.5 17.5V13.9583L13.5 2.97917C13.6667 2.82639 13.8508 2.70833 14.0525 2.625C14.2542 2.54167 14.4658 2.5 14.6875 2.5C14.9092 2.5 15.1244 2.54167 15.3333 2.625C15.5422 2.70833 15.7228 2.83333 15.875 3L17.0208 4.16667C17.1875 4.31944 17.3092 4.5 17.3858 4.70833C17.4625 4.91667 17.5006 5.125 17.5 5.33333C17.5 5.55556 17.4619 5.7675 17.3858 5.96917C17.3097 6.17083 17.1881 6.35472 17.0208 6.52083L6.04167 17.5H2.5ZM12.8958 7.10417L12.3125 6.5L13.5 7.6875L12.8958 7.10417Z"
-                                        fill="#F68647" />
-                                </svg>
-                            </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <!-- Pagination -->
-            <div class="bg-white rounded-xl shadow flex flex-col sm:flex-row justify-between items-center p-4 gap-4">
-                <p class="text-gray-500 text-sm">Page {{ currentPage }} sur {{ totalPages }}</p>
-                <div class="flex gap-2">
+                        </div>
+                    </div>
+
                     <button
-                        class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#2d3561] hover:text-[#2d3561]"
-                        [disabled]="currentPage === 1" (click)="previousPage()">Précédent</button>
-                    <button
-                        class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#2d3561] hover:text-[#2d3561]"
-                        [disabled]="currentPage === totalPages" (click)="nextPage()">Suivant</button>
+                        class="px-3 py-2 border border-[#CBD5E1] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
+                        <svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd"
+                                d="M3.75 2.375C3.75 2.20924 3.81585 2.05027 3.93306 1.93306C4.05027 1.81585 4.20924 1.75 4.375 1.75H11.25C11.3321 1.74985 11.4135 1.7659 11.4894 1.79721C11.5653 1.82853 11.6344 1.8745 11.6925 1.9325L16.0675 6.3075C16.1255 6.36565 16.1715 6.43466 16.2028 6.51059C16.2341 6.58651 16.2501 6.66787 16.25 6.75V9.875H15V7.375H11.25C11.0842 7.375 10.9253 7.30915 10.8081 7.19194C10.6908 7.07473 10.625 6.91576 10.625 6.75V3H5V18H11.875V19.25H4.375C4.20924 19.25 4.05027 19.1842 3.93306 19.0669C3.81585 18.9497 3.75 18.7908 3.75 18.625V2.375ZM11.875 3.88375L14.1163 6.125H11.875V3.88375ZM15.4425 11.9338L17.9425 14.4338C18.0597 14.551 18.1255 14.7099 18.1255 14.8756C18.1255 15.0414 18.0597 15.2003 17.9425 15.3175L15.4425 17.8175L14.5575 16.9325L15.9913 15.5H10V14.25H15.9913L14.5575 12.8175L15.4425 11.9338Z"
+                                fill="#A3AED0" />
+                        </svg>
+                        Exporter
+                    </button>
+
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-[#F4F7FE]">
+                        <tr>
+                            <th class="text-left text-xs text-[#2C3E50] p-4">
+                                Référence</th>
+                            <th class="text-left text-xs font-bold text-gray-500 py-4 px-6">
+                                Fournisseur</th>
+                            <th class="text-left text-xs font-bold text-gray-500 py-4 px-6">
+                                Date</th>
+                            <th class="text-left text-xs font-bold text-gray-500 py-4 px-6">
+                                Produits</th>
+                            <th class="text-left text-xs font-bold text-gray-500 py-4 px-6">
+                                Statut</th>
+                            <th class="text-left text-xs font-bold text-gray-500 py-4 px-6">
+                                Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr *ngFor="let commande of filteredCommandes" class="hover:bg-gray-50 transition-colors group">
+                            <td class="py-4 px-6 text-sm text-[#4B4848]">{{ commande.reference }}</td>
+                            <td class="py-4 px-6 text-sm font-medium text-[#4B4848]">{{ commande.fournisseur }}</td>
+                            <td class="py-4 px-6 text-sm font-medium text-[#4B4848]">{{ commande.date }}</td>
+                            <td class="py-4 px-6 text-sm font-medium text-[#4B4848]">{{ commande.produits }}</td>
+                            <td class="py-4 px-6">
+                                <span
+                                    [class]="'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ' + getStatusClass(commande.statut)">
+                                    <span [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(commande.statut)"></span>
+                                    {{ commande.statut }}
+                                </span>
+                            </td>
+                            <td class="py-4 px-6">
+                                <div class="flex items-center gap-2">
+                                    <button
+                                        class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100"
+                                        (click)="viewCommande(commande.reference)">
+                                        <svg width="16" height="11" viewBox="0 0 16 11" fill="none"
+                                            xmlns="http://www.w3.org/2000/svg">
+                                            <path
+                                                d="M16 5.5C16 5.5 13 0 8 0C3 0 0 5.5 0 5.5C0 5.5 3 11 8 11C13 11 16 5.5 16 5.5ZM1.173 5.5C1.65578 4.76459 2.21197 4.08008 2.833 3.457C4.12 2.168 5.88 1 8 1C10.12 1 11.879 2.168 13.168 3.457C13.789 4.08008 14.3452 4.76459 14.828 5.5C14.7707 5.58667 14.7057 5.68267 14.633 5.788C14.298 6.268 13.803 6.908 13.168 7.543C11.879 8.832 10.119 10 8 10C5.881 10 4.121 8.832 2.832 7.543C2.21097 6.91992 1.65578 6.23541 1.173 5.5Z"
+                                                fill="#4B4848" />
+                                            <path
+                                                d="M8 3C7.33696 3 6.70107 3.26339 6.23223 3.73223C5.76339 4.20107 5.5 4.83696 5.5 5.5C5.5 6.16304 5.76339 6.79893 6.23223 7.26777C6.70107 7.73661 7.33696 8 8 8C8.66304 8 9.29893 7.73661 9.76777 7.26777C10.2366 6.79893 10.5 6.16304 10.5 5.5C10.5 4.83696 10.2366 4.20107 9.76777 3.73223C9.29893 3.26339 8.66304 3 8 3ZM4.5 5.5C4.5 4.57174 4.86875 3.6815 5.52513 3.02513C6.1815 2.36875 7.07174 2 8 2C8.92826 2 9.8185 2.36875 10.4749 3.02513C11.1313 3.6815 11.5 4.57174 11.5 5.5C11.5 6.42826 11.1313 7.3185 10.4749 7.97487C9.8185 8.63125 8.92826 9 8 9C7.07174 9 6.1815 8.63125 5.52513 7.97487C4.86875 7.3185 4.5 6.42826 4.5 5.5Z"
+                                                fill="#4B4848" />
+                                        </svg>
+                                    </button>
+                                    <button
+                                        class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100"
+                                        (click)="editCommande(commande.reference)">
+                                        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"
+                                            xmlns="http://www.w3.org/2000/svg">
+                                            <path
+                                                d="M1.66667 13.3333H2.85417L11 5.1875L9.8125 4L1.66667 12.1458V13.3333ZM0 15V11.4583L11 0.479167C11.1667 0.326389 11.3508 0.208333 11.5525 0.125C11.7542 0.0416667 11.9658 0 12.1875 0C12.4092 0 12.6244 0.0416667 12.8333 0.125C13.0422 0.208333 13.2228 0.333333 13.375 0.5L14.5208 1.66667C14.6875 1.81944 14.8092 2 14.8858 2.20833C14.9625 2.41667 15.0006 2.625 15 2.83333C15 3.05556 14.9619 3.2675 14.8858 3.46917C14.8097 3.67083 14.6881 3.85472 14.5208 4.02083L3.54167 15H0ZM10.3958 4.60417L9.8125 4L11 5.1875L10.3958 4.60417Z"
+                                                fill="#F68647" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <!-- Pagination -->
+                <div
+                    class="bg-white rounded-xl shadow flex flex-col sm:flex-row justify-between items-center p-4 gap-4">
+                    <p class="text-gray-500 text-sm">Page {{ currentPage }} sur {{ totalPages }}</p>
+                    <div class="flex gap-2">
+                        <button
+                            class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#2d3561] hover:text-[#2d3561]"
+                            [disabled]="currentPage === 1" (click)="previousPage()">Précédent</button>
+                        <button
+                            class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#2d3561] hover:text-[#2d3561]"
+                            [disabled]="currentPage === totalPages" (click)="nextPage()">Suivant</button>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <!-- Modal Nouvelle Commande -->
+        <div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden">
+                <!-- Header -->
+                <div class="flex items-center justify-between p-6 border-b border-gray-100">
+                    <h2 class="text-xl font-bold">Nouvelle commande fournisseur</h2>
+                    <button (click)="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Body -->
+                <div class="p-4 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Fournisseur -->
+                        <div class="space-y-2 px-2">
+                            <label class="text-[15px] font-medium text-gray-700">Fournisseur <span
+                                    class="text-red-500">*</span></label>
+                            <input type="text" [(ngModel)]="newCommande.fournisseur" placeholder="Saisir"
+                                [class.border-red-500]="errors.fournisseur"
+                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-gray-400">
+                            <p *ngIf="errors.fournisseur" class="text-red-500 text-xs mt-1">{{ errors.fournisseur }}</p>
+                        </div>
+
+                        <!-- Produit -->
+                        <div class="space-y-2">
+                            <label class="text-[15px] font-medium text-gray-700">Produit</label>
+                            <div class="relative">
+                                <select [(ngModel)]="newCommande.produit"
+                                    class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-gray-600 appearance-none bg-white">
+                                    <option value="" disabled selected>Sélectionner</option>
+                                    <option value="Riz">Riz</option>
+                                    <option value="Huile">Huile</option>
+                                    <option value="Sucre">Sucre</option>
+                                    <option value="Sel">Sel</option>
+                                </select>
+                                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5"
+                                            stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quantité -->
+                        <div class="space-y-2">
+                            <label class="text-[15px] font-medium text-gray-700">Quantité <span
+                                    class="text-red-500">*</span></label>
+                            <input type="number" [(ngModel)]="newCommande.quantite" placeholder="Saisir"
+                                [class.border-red-500]="errors.quantite"
+                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-gray-400">
+                            <p *ngIf="errors.quantite" class="text-red-500 text-xs mt-1">{{ errors.quantite }}</p>
+                        </div>
+
+                        <!-- ETA -->
+                        <div class="space-y-2">
+                            <label class="text-[15px] font-medium text-gray-700">ETA (date prévue)</label>
+                            <div class="relative">
+                                <input type="date" [(ngModel)]="newCommande.eta" [min]="minDate" #dateInput
+                                    [class.border-red-500]="errors.eta"
+                                    class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-gray-600 placeholder:text-gray-400 appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0">
+                                <img src="/icones/date.svg" alt="calendar"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer w-5 h-5"
+                                    (click)="dateInput.showPicker()">
+                            </div>
+                            <p *ngIf="errors.eta" class="text-red-500 text-xs mt-1">{{ errors.eta }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Note -->
+                    <div class="space-y-2">
+                        <label class="text-[15px] font-medium text-gray-700">Note (optionnel)</label>
+                        <textarea [(ngModel)]="newCommande.note" placeholder="Saisir" rows="2"
+                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-gray-400 resize-none"></textarea>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="flex items-center justify-between p-6 gap-2">
+                    <button (click)="saveCommande()"
+                        class="w-full py-4 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium transition-colors">
+                        Enregistrer
+                    </button>
+                    <button (click)="closeModal()"
+                        class="w-full py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 hover:text-gray-800 rounded-lg font-medium transition-colors">
+                        Annuler
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </app-main-layout>
