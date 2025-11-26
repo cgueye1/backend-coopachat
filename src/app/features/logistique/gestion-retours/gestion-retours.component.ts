@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
+import Swal from 'sweetalert2';
 
 interface Metric {
   title: string;
@@ -39,6 +40,13 @@ export class GestionRetoursComponent {
   showStatusDropdown: boolean = false;
   currentPage: number = 1;
   totalPages: number = 6;
+
+  // Modal Logic
+  showValidationModal: boolean = false;
+  selectedRetour: Retour | null = null;
+  validationOption: string = 'reintegrer';
+  showRefundModal: boolean = false;
+  refundAmount: number | null = null;
 
   metricsData: Metric[] = [
     { title: 'Total', value: '03', icon: 'box-blue', },
@@ -135,6 +143,93 @@ export class GestionRetoursComponent {
       case 'Rejeté': return 'bg-[#FF0909]';
       default: return 'bg-gray-500';
     }
+  }
+
+  openValidationModal(retour: Retour) {
+    this.selectedRetour = retour;
+    this.validationOption = 'reintegrer';
+    this.showValidationModal = true;
+  }
+
+  closeValidationModal() {
+    this.showValidationModal = false;
+    this.selectedRetour = null;
+    this.validationOption = 'reintegrer';
+  }
+
+  validateRetour() {
+    if (this.selectedRetour && this.validationOption === 'reintegrer') {
+      this.selectedRetour.status = 'Validé';
+      this.closeValidationModal();
+      this.showSuccessMessage();
+    } else if (this.selectedRetour && this.validationOption === 'rembourser') {
+      this.closeValidationModal();
+      this.openRefundModal();
+    }
+  }
+
+  openRefundModal() {
+    this.showRefundModal = true;
+    this.refundAmount = null;
+  }
+
+  closeRefundModal() {
+    this.showRefundModal = false;
+    this.refundAmount = null;
+  }
+
+  saveRefund() {
+    if (this.selectedRetour) {
+      this.selectedRetour.status = 'Validé';
+      this.closeRefundModal();
+      this.showRefundSuccessMessage();
+    }
+  }
+
+  showSuccessMessage() {
+    Swal.fire({
+      title: 'Retour enregistré - Produit réintégré au stock',
+      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showConfirmButton: false,
+      timer: 1500,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-xl font-medium text-gray-900',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px',
+      showClass: {
+        popup: 'animate__animated animate__fadeIn animate__faster'
+      },
+      hideClass: {
+        popup: 'animate__animated animate__fadeOut animate__faster'
+      }
+    });
+  }
+
+  showRefundSuccessMessage() {
+    Swal.fire({
+      title: 'Retour enregistré - Remboursement validé',
+      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showConfirmButton: false,
+      timer: 1500,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-xl font-medium text-gray-900',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px',
+      showClass: {
+        popup: 'animate__animated animate__fadeIn animate__faster'
+      },
+      hideClass: {
+        popup: 'animate__animated animate__fadeOut animate__faster'
+      }
+    });
   }
 
   getIcon(name: string): SafeHtml {

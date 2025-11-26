@@ -6,7 +6,7 @@
                 <div class="text-sm text-[#707EAE] mb-1">Pages / Planification Livraisons</div>
                 <h1 class="text-2xl sm:text-3xl font-bold text-[#2B3674]">Planification Livraisons</h1>
             </div>
-            <button
+            <button (click)="openModal()"
                 class="bg-[#2B3674] text-white px-6 py-3 rounded-full text-sm font-medium flex items-center gap-2 hover:bg-[#1a214d] transition-colors">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
@@ -224,17 +224,31 @@
                                     {{ item.statut }}
                                 </span>
                             </td>
+                            <!-- Actions Column -->
                             <td class="py-3 px-6 text-center">
-                                <button
-                                    class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100">
-                                    <svg width="6" height="21" viewBox="0 0 6 21" fill="none"
-                                        xmlns="http://www.w3.org/2000/svg">
-                                        <path
-                                            d="M2.625 15C1.92881 15 1.26113 15.2766 0.768845 15.7688C0.276562 16.2611 0 16.9288 0 17.625C0 18.3212 0.276562 18.9889 0.768845 19.4812C1.26113 19.9734 1.92881 20.25 2.625 20.25C3.32119 20.25 3.98887 19.9734 4.48116 19.4812C4.97344 18.9889 5.25 18.3212 5.25 17.625C5.25 16.9288 4.97344 16.2611 4.48116 15.7688C3.98887 15.2766 3.32119 15 2.625 15ZM2.625 7.5C1.92881 7.5 1.26113 7.77656 0.768845 8.26884C0.276562 8.76113 0 9.42881 0 10.125C0 10.8212 0.276562 11.4889 0.768845 11.9812C1.26113 12.4734 1.92881 12.75 2.625 12.75C3.32119 12.75 3.98887 12.4734 4.48116 11.9812C4.97344 11.4889 5.25 10.8212 5.25 10.125C5.25 9.42881 4.97344 8.76113 4.48116 8.26884C3.98887 7.77656 3.32119 7.5 2.625 7.5ZM5.25 2.625C5.25 1.92881 4.97344 1.26113 4.48116 0.768845C3.98887 0.276562 3.32119 0 2.625 0C1.92881 0 1.26113 0.276562 0.768845 0.768845C0.276562 1.26113 0 1.92881 0 2.625C0 3.32119 0.276562 3.98887 0.768845 4.48116C1.26113 4.97344 1.92881 5.25 2.625 5.25C3.32119 5.25 3.98887 4.97344 4.48116 4.48116C4.97344 3.98887 5.25 3.32119 5.25 2.625Z"
-                                            fill="#9CA3AF" />
-                                    </svg>
+                                <div class="relative inline-block">
+                                    <button (click)="toggleActionMenu(item.id, $event)"
+                                        class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 hover:bg-[#F0F5FA] hover:rounded-full">
+                                        <svg width="6" height="21" viewBox="0 0 6 21" fill="none"
+                                            xmlns="http://www.w3.org/2000/svg">
+                                            <path
+                                                d="M2.625 15C1.92881 15 1.26113 15.2766 0.768845 15.7688C0.276562 16.2611 0 16.9288 0 17.625C0 18.3212 0.276562 18.9889 0.768845 19.4812C1.26113 19.9734 1.92881 20.25 2.625 20.25C3.32119 20.25 3.98887 19.9734 4.48116 19.4812C4.97344 18.9889 5.25 18.3212 5.25 17.625C5.25 16.9288 4.97344 16.2611 4.48116 15.7688C3.98887 15.2766 3.32119 15 2.625 15ZM2.625 7.5C1.92881 7.5 1.26113 7.77656 0.768845 8.26884C0.276562 8.76113 0 9.42881 0 10.125C0 10.8212 0.276562 11.4889 0.768845 11.9812C1.26113 12.4734 1.92881 12.75 2.625 12.75C3.32119 12.75 3.98887 12.4734 4.48116 11.9812C4.97344 11.4889 5.25 10.8212 5.25 10.125C5.25 9.42881 4.97344 8.76113 4.48116 8.26884C3.98887 7.77656 3.32119 7.5 2.625 7.5ZM5.25 2.625C5.25 1.92881 4.97344 1.26113 4.48116 0.768845C3.98887 0.276562 3.32119 0 2.625 0C1.92881 0 1.26113 0.276562 0.768845 0.768845C0.276562 1.26113 0 1.92881 0 2.625C0 3.32119 0.276562 3.98887 0.768845 4.48116C1.26113 4.97344 1.92881 5.25 2.625 5.25C3.32119 5.25 3.98887 4.97344 4.48116 4.48116C4.97344 3.98887 5.25 3.32119 5.25 2.625Z"
+                                                fill="#9CA3AF" />
+                                        </svg>
+                                    </button>
 
-                                </button>
+                                    <!-- Options Modal -->
+                                    <div *ngIf="activeActionId === item.id"
+                                        class="absolute right-0 top-full mt-1 w-64 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
+                                        <button *ngFor="let option of actionOptions"
+                                            (click)="handleAction(option.action, item)"
+                                            class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                                            [class]="option.color || 'text-gray-700'">
+                                            <img [src]="option.icon" [alt]="option.label" class="w-4 h-4">
+                                            <span>{{ option.label }}</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -258,6 +272,375 @@
                         Suivant
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Planifier une tournée -->
+    <div *ngIf="showModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-100">
+                <h2 class="text-xl font-bold">Planifier une tournée</h2>
+                <button (click)="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-4 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <!-- Date de livraison -->
+                    <div class="space-y-2 px-2">
+                        <label class="text-[15px] font-medium text-gray-700">Date de livraison <span
+                                class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <input type="date" [(ngModel)]="newTournee.date" [min]="minDate" #dateInput
+                                [class.border-red-500]="errors.date"
+                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-gray-600 placeholder:text-[#6B7280] font-light appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0">
+                            <img src="/icones/date.svg" alt="calendar"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer w-5 h-5"
+                                (click)="dateInput.showPicker()">
+                        </div>
+                        <p *ngIf="errors.date" class="text-red-500 text-xs mt-1">{{ errors.date }}</p>
+                    </div>
+
+                    <!-- Créneau -->
+                    <div class="space-y-2 px-2">
+                        <label class="text-[15px] font-medium text-gray-700">Créneau</label>
+                        <div class="relative">
+                            <select [(ngModel)]="newTournee.creneau"
+                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-gray-600 appearance-none bg-white">
+                                <option *ngFor="let c of creneaux" [value]="c">{{ c }}</option>
+                            </select>
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Zone -->
+                    <div class="space-y-2 px-2">
+                        <label class="text-[15px] font-medium text-gray-700">Zone</label>
+                        <div class="relative">
+                            <select [(ngModel)]="newTournee.zone"
+                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-gray-600 appearance-none bg-white">
+                                <option *ngFor="let z of zones" [value]="z">{{ z }}</option>
+                            </select>
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Transporteur -->
+                    <div class="space-y-2 px-2">
+                        <label class="text-[15px] font-medium text-gray-700">Transporteur</label>
+                        <div class="relative">
+                            <select [(ngModel)]="newTournee.transporteur"
+                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-gray-600 appearance-none bg-white">
+                                <option *ngFor="let t of transporteursList" [value]="t">{{ t }}</option>
+                            </select>
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chauffeur -->
+                    <div class="space-y-2 px-2">
+                        <label class="text-[15px] font-medium text-gray-700">Chauffeur <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" [(ngModel)]="newTournee.chauffeur" placeholder="Saisir"
+                            [class.border-red-500]="errors.chauffeur"
+                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-[#6B7280] font-light">
+                        <p *ngIf="errors.chauffeur" class="text-red-500 text-xs mt-1">{{ errors.chauffeur }}</p>
+                    </div>
+
+                    <!-- Véhicule -->
+                    <div class="space-y-2 px-2">
+                        <label class="text-[15px] font-medium text-gray-700">Véhicule <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" [(ngModel)]="newTournee.vehicule" placeholder="Ex: AA-12345-AB"
+                            [class.border-red-500]="errors.vehicule"
+                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-[#6B7280] font-light">
+                        <p *ngIf="errors.vehicule" class="text-red-500 text-xs mt-1">{{ errors.vehicule }}</p>
+                    </div>
+                </div>
+
+                <!-- Commandes à inclure -->
+                <div class="space-y-2 px-2">
+                    <label class="text-[15px] font-medium text-gray-700">Commandes à inclure</label>
+                    <div class="relative">
+                        <button (click)="toggleCommandesDropdown()"
+                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-[#6B7280] font-light bg-white text-left flex items-center justify-between">
+                            <span [class.text-[#6B7280]]="newTournee.commandes.length === 0"
+                                [class.font-light]="newTournee.commandes.length === 0">
+                                {{ getSelectedCommandesLabel() }}
+                            </span>
+                            <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div *ngIf="showCommandesDropdown"
+                            class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 max-h-60 overflow-y-auto z-20 p-2">
+                            <div *ngFor="let cmd of commandesDisponibles" (click)="toggleCommandeSelection(cmd)"
+                                class="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
+                                <div class="relative flex items-center">
+                                    <input type="checkbox" [checked]="isCommandeSelected(cmd)"
+                                        class="w-5 h-5 border-2 border-gray-300 rounded text-[#2B3674] focus:ring-[#2B3674] transition-colors cursor-pointer">
+                                </div>
+                                <span class="text-sm text-[#6B7280]">{{ cmd }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Note -->
+                <div class="space-y-2 px-2">
+                    <label class="text-[15px] font-medium text-gray-700">Note (optionnel)</label>
+                    <textarea [(ngModel)]="newTournee.note" placeholder="Saisir" rows="2"
+                        class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-[#6B7280] font-light resize-none"></textarea>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex items-center justify-between p-6 gap-2">
+                <button (click)="saveTournee()"
+                    class="w-full py-4 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium transition-colors">
+                    Planifier
+                </button>
+                <button (click)="closeModal()"
+                    class="w-full py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 hover:text-gray-800 rounded-lg font-medium transition-colors">
+                    Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Reporter la livraison -->
+    <div *ngIf="showReportModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-6">
+                <h2 class="text-2xl text-gray-900">Reporter la livraison</h2>
+                <button (click)="closeReportModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="px-6 pb-6">
+                <div class="space-y-2">
+                    <label class="text-lg font-medium text-gray-700 block">Date</label>
+                    <div class="relative">
+                        <input #reportDateInput type="date" [(ngModel)]="newReportDate" [min]="minDate"
+                            class="w-full px-4 py-3 pr-12 rounded-lg border border-gray-300 focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0"
+                            [class.border-red-500]="reportDateError" placeholder="DD/MM/YYYY">
+                        <img src="/icones/date.svg" alt="calendar" (click)="reportDateInput.showPicker()"
+                            class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 cursor-pointer">
+                    </div>
+                    <p *ngIf="reportDateError" class="text-red-500 text-xs mt-1">{{ reportDateError }}</p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex items-center justify-between px-6 pb-6 gap-3">
+                <button (click)="reportLivraison()"
+                    class="flex-1 py-3 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium transition-colors">
+                    Reporter
+                </button>
+                <button (click)="closeReportModal()"
+                    class="flex-1 py-3 bg-transparent text-gray-600 hover:text-gray-800 rounded-lg font-medium transition-colors">
+                    Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Modifier la tournée -->
+    <div *ngIf="showEditModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-100">
+                <h2 class="text-xl font-bold">Modifier la tournée</h2>
+                <button (click)="closeEditModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-4 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <!-- Date de livraison -->
+                    <div class="space-y-2 px-2">
+                        <label class="text-[15px] font-medium text-gray-700">Date de livraison <span
+                                class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <input type="date" [(ngModel)]="editTournee.date" [min]="minDate" #editDateInput
+                                [class.border-red-500]="errors.date"
+                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-gray-600 placeholder:text-[#6B7280] font-light appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0">
+                            <img src="/icones/date.svg" alt="calendar"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer w-5 h-5"
+                                (click)="editDateInput.showPicker()">
+                        </div>
+                        <p *ngIf="errors.date" class="text-red-500 text-xs mt-1">{{ errors.date }}</p>
+                    </div>
+
+                    <!-- Créneau -->
+                    <div class="space-y-2 px-2">
+                        <label class="text-[15px] font-medium text-gray-700">Créneau</label>
+                        <div class="relative">
+                            <select [(ngModel)]="editTournee.creneau"
+                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-gray-600 appearance-none bg-white">
+                                <option *ngFor="let c of creneaux" [value]="c">{{ c }}</option>
+                            </select>
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Zone -->
+                    <div class="space-y-2 px-2">
+                        <label class="text-[15px] font-medium text-gray-700">Zone</label>
+                        <div class="relative">
+                            <select [(ngModel)]="editTournee.zone"
+                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-gray-600 appearance-none bg-white">
+                                <option *ngFor="let z of zones" [value]="z">{{ z }}</option>
+                            </select>
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Transporteur -->
+                    <div class="space-y-2 px-2">
+                        <label class="text-[15px] font-medium text-gray-700">Transporteur</label>
+                        <div class="relative">
+                            <select [(ngModel)]="editTournee.transporteur"
+                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-gray-600 appearance-none bg-white">
+                                <option *ngFor="let t of transporteursList" [value]="t">{{ t }}</option>
+                            </select>
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chauffeur -->
+                    <div class="space-y-2 px-2">
+                        <label class="text-[15px] font-medium text-gray-700">Chauffeur <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" [(ngModel)]="editTournee.chauffeur" placeholder="Saisir"
+                            [class.border-red-500]="errors.chauffeur"
+                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-[#6B7280] font-light">
+                        <p *ngIf="errors.chauffeur" class="text-red-500 text-xs mt-1">{{ errors.chauffeur }}</p>
+                    </div>
+
+                    <!-- Véhicule -->
+                    <div class="space-y-2 px-2">
+                        <label class="text-[15px] font-medium text-gray-700">Véhicule <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" [(ngModel)]="editTournee.vehicule" placeholder="Ex: AA-12345-AB"
+                            [class.border-red-500]="errors.vehicule"
+                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-[#6B7280] font-light">
+                        <p *ngIf="errors.vehicule" class="text-red-500 text-xs mt-1">{{ errors.vehicule }}</p>
+                    </div>
+                </div>
+
+                <!-- Commandes à inclure -->
+                <div class="space-y-2 px-2">
+                    <label class="text-[15px] font-medium text-gray-700">Commandes à inclure</label>
+                    <div class="relative">
+                        <button (click)="toggleCommandesDropdown()"
+                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-[#6B7280] font-light bg-white text-left flex items-center justify-between">
+                            <span [class.text-[#6B7280]]="editTournee.commandes.length === 0"
+                                [class.font-light]="editTournee.commandes.length === 0">
+                                {{ editTournee.commandes.length === 0 ? 'Sélectionner (multiple)' :
+                                editTournee.commandes.length + ' commande(s) sélectionnée(s)' }}
+                            </span>
+                            <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div *ngIf="showCommandesDropdown"
+                            class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 max-h-60 overflow-y-auto z-20 p-2">
+                            <div *ngFor="let cmd of commandesDisponibles" (click)="toggleCommandeSelection(cmd)"
+                                class="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
+                                <div class="relative flex items-center">
+                                    <input type="checkbox" [checked]="isCommandeSelected(cmd)"
+                                        class="w-5 h-5 border-2 border-gray-300 rounded text-[#2B3674] focus:ring-[#2B3674] transition-colors cursor-pointer">
+                                </div>
+                                <span class="text-sm text-[#6B7280]">{{ cmd }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Note -->
+                <div class="space-y-2 px-2">
+                    <label class="text-[15px] font-medium text-gray-700">Note (optionnel)</label>
+                    <textarea [(ngModel)]="editTournee.note" placeholder="Saisir" rows="2"
+                        class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-[#6B7280] font-light resize-none"></textarea>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex items-center justify-between p-6 gap-2">
+                <button (click)="saveEditTournee()"
+                    class="w-full py-4 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium transition-colors">
+                    Enregistrer
+                </button>
+                <button (click)="closeEditModal()"
+                    class="w-full py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 hover:text-gray-800 rounded-lg font-medium transition-colors">
+                    Annuler
+                </button>
             </div>
         </div>
     </div>

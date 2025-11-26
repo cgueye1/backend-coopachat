@@ -127,13 +127,15 @@
                                         </svg>
                                     </button>
                                     <ng-container *ngIf="item.status === 'En attente'">
-                                        <button
+                                        <!-- Approve Button -->
+                                        <button (click)="openValidationModal(item)"
                                             class="text-green-500 hover:text-green-700 transition-colors p-2 rounded-lg hover:bg-green-50 border border-gray-200">
                                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M5 13l4 4L19 7" />
                                             </svg>
                                         </button>
+                                        <!-- Reject Button -->
                                         <button
                                             class="text-red-500 hover:text-red-700 transition-colors p-2 rounded-lg hover:bg-red-50 border border-gray-200">
                                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -164,6 +166,98 @@
                         class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         [disabled]="currentPage === totalPages">
                         Suivant
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Validation de Retour -->
+    <div *ngIf="showValidationModal" (click)="closeValidationModal()"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 transition-opacity duration-200">
+        <div (click)="$event.stopPropagation()"
+            class="bg-white rounded-3xl shadow-xl w-full max-w-lg p-8 space-y-6 opacity-100 transition-opacity duration-200">
+
+            <!-- Icon -->
+            <div class="flex justify-center">
+                <img src="/icones/alerte.svg" alt="alert" class="w-24 h-24">
+            </div>
+
+            <!-- Title -->
+            <h2 class="text-2xl font-medium text-gray-900 text-center">Valider ce retour ?</h2>
+
+            <!-- Description -->
+            <p class="text-lg text-gray-600 text-center">Cette action mettra à jour le stock et notifiera le client.</p>
+
+            <!-- Radio Options -->
+            <div class="space-y-3">
+                <!-- Option 1: Réintégrer au stock -->
+                <label
+                    [class]="validationOption === 'reintegrer' ? 'bg-[#FF6B000D] border-[#FF6B0033]' : 'bg-white border-gray-200'"
+                    class="flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-[#FF6B0033]">
+                    <input type="radio" name="validationOption" value="reintegrer" [(ngModel)]="validationOption"
+                        class="w-4 h-4 accent-[#FF6B00] cursor-pointer">
+                    <span class="text-base font-medium text-gray-900">Réintégrer au stock</span>
+                </label>
+
+                <!-- Option 2: Rembourser le stock -->
+                <label
+                    [class]="validationOption === 'rembourser' ? 'bg-[#FF6B000D] border-[#FF6B0033]' : 'bg-white border-gray-200'"
+                    class="flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-[#FF6B0033]">
+                    <input type="radio" name="validationOption" value="rembourser" [(ngModel)]="validationOption"
+                        class="w-4 h-4 accent-[#FF6B00] cursor-pointer">
+                    <span class="text-base font-medium text-gray-900">Rembourser le stock</span>
+                </label>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex items-center justify-center gap-3 pt-2">
+                <button (click)="validateRetour()"
+                    class="px-8 py-3 bg-[#22C55E] hover:bg-[#16A34A] text-white rounded-lg font-medium text-base transition-colors">
+                    Continuer
+                </button>
+                <button (click)="closeValidationModal()"
+                    class="px-8 py-3 bg-[#F3F4F6] hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-base transition-colors">
+                    Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Montant du Remboursement -->
+    <div *ngIf="showRefundModal" class="fixed inset-0 z-50 flex items-center justify-center">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/20" (click)="closeRefundModal()"></div>
+
+        <!-- Modal Content -->
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 relative z-10 overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-6">
+                <h3 class="text-2xl font-medium">Montant du remboursement</h3>
+                <button (click)="closeRefundModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 pt-2">
+                <div class="mb-8">
+                    <label class="block text-lg font-medium text-gray-700 mb-2">Montant</label>
+                    <input type="number" [(ngModel)]="refundAmount" min="0" placeholder="9000"
+                        class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-gray-900 font-medium">
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <button (click)="saveRefund()"
+                        class="flex-1 bg-[#2B3674] text-white py-4 rounded-lg font-medium hover:bg-[#1a214d] transition-colors">
+                        Valider le remboursement
+                    </button>
+                    <button (click)="closeRefundModal()"
+                        class="flex-1 bg-white text-gray-500 py-4 rounded-lg font-medium hover:text-gray-700 transition-colors">
+                        Annuler
                     </button>
                 </div>
             </div>

@@ -210,7 +210,7 @@
 
                 <!-- Body -->
                 <div class="p-4 space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <!-- Fournisseur -->
                         <div class="space-y-2 px-2">
                             <label class="text-[15px] font-medium text-gray-700">Fournisseur <span
@@ -222,7 +222,7 @@
                         </div>
 
                         <!-- Produit -->
-                        <div class="space-y-2">
+                        <div class="space-y-2 px-2">
                             <label class="text-[15px] font-medium text-gray-700">Produit</label>
                             <div class="relative">
                                 <select [(ngModel)]="newCommande.produit"
@@ -244,7 +244,7 @@
                         </div>
 
                         <!-- Quantité -->
-                        <div class="space-y-2">
+                        <div class="space-y-2 px-2">
                             <label class="text-[15px] font-medium text-gray-700">Quantité <span
                                     class="text-red-500">*</span></label>
                             <input type="number" [(ngModel)]="newCommande.quantite" placeholder="Saisir"
@@ -254,7 +254,7 @@
                         </div>
 
                         <!-- ETA -->
-                        <div class="space-y-2">
+                        <div class="space-y-2 px-2">
                             <label class="text-[15px] font-medium text-gray-700">ETA (date prévue)</label>
                             <div class="relative">
                                 <input type="date" [(ngModel)]="newCommande.eta" [min]="minDate" #dateInput
@@ -269,7 +269,7 @@
                     </div>
 
                     <!-- Note -->
-                    <div class="space-y-2">
+                    <div class="space-y-2 px-2">
                         <label class="text-[15px] font-medium text-gray-700">Note (optionnel)</label>
                         <textarea [(ngModel)]="newCommande.note" placeholder="Saisir" rows="2"
                             class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-gray-400 resize-none"></textarea>

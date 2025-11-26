@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
+import Swal from 'sweetalert2';
 
 interface Metric {
   title: string;
@@ -192,6 +193,492 @@ export class LivraisonsComponent {
       case 'À confirmer': return 'bg-[#EAB308]';
       case 'Livrée': return 'bg-emerald-500';
       default: return 'bg-gray-500';
+    }
+  }
+
+  // Modal Logic
+  showModal = false;
+  showCommandesDropdown = false; // New state for custom dropdown
+  showReportModal = false;
+  showEditModal = false;
+  selectedLivraisonToEdit: Livraison | null = null;
+  selectedLivraisonToReport: Livraison | null = null;
+  newReportDate: string = '';
+  reportDateError: string = '';
+  editTournee: any = {
+    date: '',
+    creneau: '',
+    zone: '',
+    transporteur: '',
+    chauffeur: '',
+    vehicule: '',
+    commandes: [],
+    note: ''
+  };
+  newTournee: any = {
+    date: '',
+    creneau: '',
+    zone: '',
+    transporteur: '',
+    chauffeur: '',
+    vehicule: '',
+    commandes: [],
+    note: ''
+  };
+
+  errors: any = {
+    date: '',
+    chauffeur: '',
+    vehicule: ''
+  };
+
+  // Mock Data for Dropdowns
+  creneaux = ['Matin (08h-12h)', 'Après-midi (14h-18h)', 'Soir (18h-20h)'];
+  zones = ['Dakar', 'Thiès', 'Saint-Louis', 'Touba'];
+  transporteursList = ['DHL', 'Chrono SN', 'Colis SN', 'Maersk'];
+  // chauffeurs and vehicules are now just suggestions or not used as strict lists if input is text, 
+  // but I'll keep them if I want to implement autocomplete later. 
+  // For now, the user asked for text inputs, so I won't use them in the template for dropdowns.
+  chauffeurs = ['I. Diallo', 'A. Faye', 'S. Sow', 'M. Ndiaye'];
+  vehicules = ['Sprinter-1', 'Kia-Box', 'Sprinter-0', 'Dacia D', 'AA-12345-AB'];
+  commandesDisponibles = ['CMD-001', 'CMD-002', 'CMD-003', 'CMD-004'];
+
+  get minDate(): string {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  openModal() {
+    this.showModal = true;
+    this.showCommandesDropdown = false;
+    this.newTournee = {
+      date: '',
+      creneau: 'Matin (08h-12h)',
+      zone: 'Dakar',
+      transporteur: 'DHL',
+      chauffeur: '',
+      vehicule: '',
+      commandes: [],
+      note: ''
+    };
+    this.errors = {
+      date: '',
+      chauffeur: '',
+      vehicule: ''
+    };
+  }
+
+  closeModal() {
+    this.showModal = false;
+    this.showCommandesDropdown = false;
+  }
+
+  // Custom Dropdown Logic for Commandes
+  toggleCommandesDropdown() {
+    this.showCommandesDropdown = !this.showCommandesDropdown;
+  }
+
+  toggleCommandeSelection(cmd: string) {
+    const index = this.newTournee.commandes.indexOf(cmd);
+    if (index > -1) {
+      this.newTournee.commandes.splice(index, 1);
+    } else {
+      this.newTournee.commandes.push(cmd);
+    }
+  }
+
+  isCommandeSelected(cmd: string): boolean {
+    return this.newTournee.commandes.includes(cmd);
+  }
+
+  getSelectedCommandesLabel(): string {
+    if (this.newTournee.commandes.length === 0) {
+      return 'Sélectionner (multiple)';
+    }
+    return `${this.newTournee.commandes.length} commande(s) sélectionnée(s)`;
+  }
+
+  saveTournee() {
+    // Reset errors
+    this.errors = {
+      date: '',
+      chauffeur: '',
+      vehicule: ''
+    };
+
+    let isValid = true;
+
+    // Validation Date
+    if (!this.newTournee.date) {
+      this.errors.date = 'La date est obligatoire';
+      isValid = false;
+    } else {
+      const selectedDate = new Date(this.newTournee.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        this.errors.date = 'La date ne peut pas être dans le passé';
+        isValid = false;
+      }
+    }
+
+    // Validation Chauffeur
+    if (!this.newTournee.chauffeur) {
+      this.errors.chauffeur = 'Le chauffeur est obligatoire';
+      isValid = false;
+    }
+
+    // Validation Véhicule
+    if (!this.newTournee.vehicule) {
+      this.errors.vehicule = 'Le véhicule est obligatoire';
+      isValid = false;
+    }
+
+    if (!isValid) {
+      return;
+    }
+
+    console.log('Tournée planifiée:', this.newTournee);
+    // Add logic to save tournee if needed, for now just close
+    this.closeModal();
+  }
+
+  // Action Menu Logic
+  activeActionId: string | null = null;
+  menuPosition = { left: 0, top: 0 };
+
+  actionOptions = [
+    { label: 'Voir détails', icon: '/icones/voir details.svg', action: 'view' },
+    { label: 'Modifier', icon: '/icones/modifier.svg', action: 'edit' },
+    { label: 'Feuille', icon: '/icones/feuille.svg', action: 'sheet' },
+    { label: 'Confirmer', icon: '/icones/confirmer.svg', action: 'confirm', color: 'text-[#374151]' },
+    { label: 'Reporter', icon: '/icones/reporter.svg', action: 'postpone' },
+    { label: 'Annuler', icon: '/icones/annuler.svg', action: 'cancel', color: 'text-[#374151]' }
+  ];
+
+  toggleActionMenu(id: string, event: Event) {
+    event.stopPropagation();
+    if (this.activeActionId === id) {
+      this.activeActionId = null;
+    } else {
+      this.activeActionId = id;
+    }
+  }
+
+  closeActionMenu() {
+    this.activeActionId = null;
+  }
+
+  handleAction(action: string, livraison: Livraison) {
+    if (action === 'confirm') {
+      this.confirmTournee(livraison);
+    } else if (action === 'cancel') {
+      this.cancelTournee(livraison);
+    } else if (action === 'postpone') {
+      this.openReportModal(livraison);
+    } else if (action === 'edit') {
+      this.openEditModal(livraison);
+    } else {
+      console.log(`Action: ${action} on livraison ${livraison.id}`);
+    }
+    this.closeActionMenu();
+  }
+
+  confirmTournee(livraison: Livraison) {
+    Swal.fire({
+      title: 'Confirmer la tournée ?',
+      text: `${livraison.client.name} • ${livraison.date}`,
+      iconHtml: `<img src="/icones/alerte.svg" alt="alert" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showCancelButton: true,
+      confirmButtonText: 'Confirmer',
+      cancelButtonText: 'Annuler',
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-2xl font-medium text-gray-900',
+        htmlContainer: 'text-lg text-gray-600',
+        confirmButton: 'bg-[#22C55E] hover:bg-[#16A34A] text-white px-8 py-3 rounded-lg font-medium text-base shadow-none border-none ',
+        cancelButton: 'bg-[#F3F4F6] hover:bg-gray-200 text-gray-700 px-8 py-3 rounded-lg font-medium text-base shadow-none border-none ',
+        actions: 'flex justify-center w-full gap-2',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px',
+      showClass: {
+        popup: 'animate__animated animate__fadeIn animate__faster'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        livraison.statut = 'Confirmé';
+        this.showSuccessMessage();
+      }
+    });
+  }
+
+  cancelTournee(livraison: Livraison) {
+    Swal.fire({
+      title: 'Annuler cette tournée ?',
+      text: 'Lorem ipsum doloor',
+      iconHtml: `<img src="/icones/alerte.svg" alt="alert" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showCancelButton: true,
+      confirmButtonText: 'Oui',
+      cancelButtonText: 'Annuler',
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-2xl font-medium text-gray-900',
+        htmlContainer: 'text-lg text-gray-600',
+        confirmButton: 'bg-[#EF4444] hover:bg-[#DC2626] text-white px-8 py-3 rounded-lg font-medium text-base shadow-none border-none',
+        cancelButton: 'bg-[#F3F4F6] hover:bg-gray-200 text-gray-700 px-8 py-3 rounded-lg font-medium text-base shadow-none border-none',
+        actions: 'flex justify-center w-full gap-2',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px',
+      showClass: {
+        popup: 'animate__animated animate__fadeIn animate__faster'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        livraison.statut = 'Annulé';
+        this.showCancelSuccessMessage();
+      }
+    });
+  }
+
+  showSuccessMessage() {
+    Swal.fire({
+      title: 'Tournée confirmée',
+      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showConfirmButton: false,
+      timer: 1500,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-xl font-medium text-gray-900',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px',
+      showClass: {
+        popup: 'animate__animated animate__fadeIn animate__faster'
+      },
+      hideClass: {
+        popup: 'animate__animated animate__fadeOut animate__faster'
+      }
+    });
+  }
+
+  showCancelSuccessMessage() {
+    Swal.fire({
+      title: 'Tournée annulée',
+      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showConfirmButton: false,
+      timer: 1500,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-xl font-medium text-gray-900',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px',
+      showClass: {
+        popup: 'animate__animated animate__fadeIn animate__faster'
+      },
+      hideClass: {
+        popup: 'animate__animated animate__fadeOut animate__faster'
+      }
+    });
+  }
+
+  openReportModal(livraison: Livraison) {
+    this.selectedLivraisonToReport = livraison;
+    this.newReportDate = livraison.date.split('/').reverse().join('-');
+    this.reportDateError = '';
+    this.showReportModal = true;
+  }
+
+  closeReportModal() {
+    this.showReportModal = false;
+    this.selectedLivraisonToReport = null;
+    this.newReportDate = '';
+    this.reportDateError = '';
+  }
+
+  reportLivraison() {
+    this.reportDateError = '';
+
+    if (!this.newReportDate) {
+      this.reportDateError = 'La date est obligatoire';
+      return;
+    }
+
+    const selectedDate = new Date(this.newReportDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (selectedDate < today) {
+      this.reportDateError = 'La date ne peut pas être dans le passé';
+      return;
+    }
+
+    if (this.selectedLivraisonToReport) {
+      // Convertir la date au format DD/MM/YYYY
+      const [year, month, day] = this.newReportDate.split('-');
+      this.selectedLivraisonToReport.date = `${day}/${month}/${year}`;
+
+      this.closeReportModal();
+      this.showReportSuccessMessage();
+    }
+  }
+
+  showReportSuccessMessage() {
+    Swal.fire({
+      title: 'Tournée reportée',
+      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showConfirmButton: false,
+      timer: 1500,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-xl font-medium text-gray-900',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px',
+      showClass: {
+        popup: 'animate__animated animate__fadeIn animate__faster'
+      },
+      hideClass: {
+        popup: 'animate__animated animate__fadeOut animate__faster'
+      }
+    });
+  }
+
+  openEditModal(livraison: Livraison) {
+    this.selectedLivraisonToEdit = livraison;
+    // Convertir la date DD/MM/YYYY en YYYY-MM-DD pour l'input date
+    const [day, month, year] = livraison.date.split('/');
+    this.editTournee = {
+      date: `${year}-${month}-${day}`,
+      creneau: 'Matin (08h-12h)', // Valeur par défaut, peut être personnalisée
+      zone: 'Dakar', // Valeur par défaut, peut être personnalisée
+      transporteur: livraison.transporteur,
+      chauffeur: livraison.chauffeur?.name || '',
+      vehicule: livraison.chauffeur?.vehicle || '',
+      commandes: [],
+      note: ''
+    };
+    this.errors = {
+      date: '',
+      chauffeur: '',
+      vehicule: ''
+    };
+    this.showEditModal = true;
+  }
+
+  closeEditModal() {
+    this.showEditModal = false;
+    this.selectedLivraisonToEdit = null;
+    this.editTournee = {
+      date: '',
+      creneau: '',
+      zone: '',
+      transporteur: '',
+      chauffeur: '',
+      vehicule: '',
+      commandes: [],
+      note: ''
+    };
+    this.errors = {
+      date: '',
+      chauffeur: '',
+      vehicule: ''
+    };
+  }
+
+  saveEditTournee() {
+    // Reset errors
+    this.errors = {
+      date: '',
+      chauffeur: '',
+      vehicule: ''
+    };
+
+    let isValid = true;
+
+    // Validation Date
+    if (!this.editTournee.date) {
+      this.errors.date = 'La date est obligatoire';
+      isValid = false;
+    } else {
+      const selectedDate = new Date(this.editTournee.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        this.errors.date = 'La date ne peut pas être dans le passé';
+        isValid = false;
+      }
+    }
+
+    // Validation Chauffeur
+    if (!this.editTournee.chauffeur) {
+      this.errors.chauffeur = 'Le chauffeur est obligatoire';
+      isValid = false;
+    }
+
+    // Validation Véhicule
+    if (!this.editTournee.vehicule) {
+      this.errors.vehicule = 'Le véhicule est obligatoire';
+      isValid = false;
+    }
+
+    if (!isValid) {
+      return;
+    }
+
+    if (this.selectedLivraisonToEdit) {
+      // Convertir la date au format DD/MM/YYYY
+      const [year, month, day] = this.editTournee.date.split('-');
+      this.selectedLivraisonToEdit.date = `${day}/${month}/${year}`;
+      this.selectedLivraisonToEdit.transporteur = this.editTournee.transporteur;
+      this.selectedLivraisonToEdit.chauffeur = {
+        name: this.editTournee.chauffeur,
+        vehicle: this.editTournee.vehicule
+      };
+      
+      this.closeEditModal();
+      this.showEditSuccessMessage();
+    }
+  }
+
+  showEditSuccessMessage() {
+    Swal.fire({
+      title: 'Tournée modifiée',
+      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showConfirmButton: false,
+      timer: 1500,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-xl font-medium text-gray-900',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px',
+      showClass: {
+        popup: 'animate__animated animate__fadeIn animate__faster'
+      },
+      hideClass: {
+        popup: 'animate__animated animate__fadeOut animate__faster'
+      }
+    });
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (this.activeActionId) {
+      this.activeActionId = null;
     }
   }
 }

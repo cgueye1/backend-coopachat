@@ -93,7 +93,7 @@
             <!-- Filters -->
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 px-6">
                 <div class="relative flex-1 max-w-md">
-                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" fill="none"
+                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7280] w-5 h-5" fill="none"
                         stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -556,23 +556,23 @@
 
             <!-- Body -->
             <div class="p-4 space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <!-- Fournisseur -->
                     <div class="space-y-2 px-2">
                         <label class="text-[15px] font-medium text-gray-700">Fournisseur <span
                                 class="text-red-500">*</span></label>
                         <input type="text" [(ngModel)]="newOrder.fournisseur" placeholder="Saisir"
                             [class.border-red-500]="errors.fournisseur"
-                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-gray-400">
+                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-[#6B7280] font-light">
                         <p *ngIf="errors.fournisseur" class="text-red-500 text-xs mt-1">{{ errors.fournisseur }}</p>
                     </div>
 
                     <!-- Produit -->
-                    <div class="space-y-2">
+                    <div class="space-y-2 px-2">
                         <label class="text-[15px] font-medium text-gray-700">Produit</label>
                         <div class="relative">
                             <select [(ngModel)]="newOrder.produit"
-                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-gray-600 appearance-none bg-white">
+                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-[#6B7280] font-light appearance-none bg-white">
                                 <option value="" disabled selected>Sélectionner</option>
                                 <option value="Riz">Riz</option>
                                 <option value="Huile">Huile</option>
@@ -590,22 +590,22 @@
                     </div>
 
                     <!-- Quantité -->
-                    <div class="space-y-2">
+                    <div class="space-y-2 px-2">
                         <label class="text-[15px] font-medium text-gray-700">Quantité <span
                                 class="text-red-500">*</span></label>
                         <input type="number" [(ngModel)]="newOrder.quantite" placeholder="Saisir"
                             [class.border-red-500]="errors.quantite"
-                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-gray-400">
+                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-[#6B7280] font-light">
                         <p *ngIf="errors.quantite" class="text-red-500 text-xs mt-1">{{ errors.quantite }}</p>
                     </div>
 
                     <!-- ETA -->
-                    <div class="space-y-2">
+                    <div class="space-y-2 px-2">
                         <label class="text-[15px] font-medium text-gray-700">ETA (date prévue)</label>
                         <div class="relative">
                             <input type="date" [(ngModel)]="newOrder.eta" [min]="minDate" #dateInput
                                 [class.border-red-500]="errors.eta"
-                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-gray-600 placeholder:text-gray-400 appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0">
+                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-[#6B7280] font-light placeholder:text-[#6B7280] font-light appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0">
                             <img src="/icones/date.svg" alt="calendar"
                                 class="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer w-5 h-5"
                                 (click)="dateInput.showPicker()">
@@ -615,10 +615,10 @@
                 </div>
 
                 <!-- Note -->
-                <div class="space-y-2">
+                <div class="space-y-2 px-2">
                     <label class="text-[15px] font-medium text-gray-700">Note (optionnel)</label>
                     <textarea [(ngModel)]="newOrder.note" placeholder="Saisir" rows="2"
-                        class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-gray-400 resize-none"></textarea>
+                        class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-[#6B7280] font-light resize-none"></textarea>
                 </div>
             </div>
 
@@ -629,7 +629,7 @@
                     Enregistrer
                 </button>
                 <button (click)="closeNewOrderModal()"
-                    class="w-full py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 hover:text-gray-800 rounded-lg font-medium transition-colors">
+                    class="w-full py-4 bg-[#DDE2E433] text-[#6B7280] hover:bg-gray-50 hover:text-gray-800 rounded-lg font-medium transition-colors">
                     Annuler
                 </button>
             </div>
