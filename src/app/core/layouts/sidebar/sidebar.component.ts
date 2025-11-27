@@ -18,23 +18,23 @@ export class SidebarComponent implements OnChanges {
   userMenuMobileOpen = false;
 
   private readonly menuItems = [
-    { label: 'Tableau de bord', icon: 'icones/dashboard.svg', link: '/com/dashboard', active: false },
-    { label: 'Prospections', icon: 'icones/prospection.svg', link: '/com/propection', active: false },
-    { label: 'Gestion salariés', icon: 'icones/salaries.svg', link: '/com/salaries', active: false },
-    { label: 'Statistiques', icon: 'icones/statistiques.svg', link: '/com/statistiques', active: false },
-    { label: 'Promotions', icon: 'icones/promotion.svg', link: '/com/promotions', active: false },
-    
-    { label: 'Tableau de bord', icon: 'icones/dashboard.svg', link: '/log/dashboardlog', active: false },
-    { label: 'Commandes Fournisseurs', icon: 'icones/fourn.svg', link: '/log/fournisseurs', active: false },
-    { label: 'Gestion des Stocks', icon: 'icones/stocks.svg', link: '/log/stocks', active: false },
-    { label: 'Planification Livraisons', icon: 'icones/livraison.svg', link: '/log/livraisons', active: false },
-    { label: 'Gestion des Retours', icon: 'icones/retours.svg', link: '/log/retours', active: false },
+    { label: 'Tableau de bord', icon: 'dashboard', link: '/com/dashboard', active: false },
+    { label: 'Prospections', icon: 'prospection', link: '/com/propection', active: false },
+    { label: 'Gestion salariés', icon: 'salaries', link: '/com/salaries', active: false },
+    { label: 'Statistiques', icon: 'statistiques', link: '/com/statistiques', active: false },
+    { label: 'Promotions', icon: 'promotion', link: '/com/promotions', active: false },
 
-    
-    { label: 'Tableau de bord', icon: 'icones/dashboard.svg', link: '/admin/dashboardadmin', active: false },
-    { label: 'Utilisateurs', icon: 'icones/users.svg', link: '/admin/users', active: false },
-    { label: 'Catalogue', icon: 'icones/catalogue.svg', link: '/admin/catalogue', active: false },
-    
+    { label: 'Tableau de bord', icon: 'dashboard', link: '/log/dashboardlog', active: false },
+    { label: 'Commandes Fournisseurs', icon: 'fournisseurs', link: '/log/fournisseurs', active: false },
+    { label: 'Gestion des Stocks', icon: 'stocks', link: '/log/stocks', active: false },
+    { label: 'Planification Livraisons', icon: 'livraisons', link: '/log/livraisons', active: false },
+    { label: 'Gestion des Retours', icon: 'retours', link: '/log/retours', active: false },
+
+
+    { label: 'Tableau de bord', icon: 'dashboard', link: '/admin/dashboardadmin', active: false },
+    { label: 'Utilisateurs', icon: 'users', link: '/admin/users', active: false },
+    { label: 'Catalogue', icon: 'catalogue', link: '/admin/catalogue', active: false },
+
   ];
 
   filteredMenuItems = this.menuItems.slice();
