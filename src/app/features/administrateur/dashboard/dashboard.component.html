@@ -1,10 +1,7 @@
 <app-main-layout [role]="role">
   <div class="space-y-6 2xl:space-y-8">
     <!-- Header -->
-    <app-header 
-    [title]="'Tableau de bord'" 
-    [breadcrumb]="'Pages / Tableau de bord'" 
-    [type]="'filter'">
+    <app-header [title]="'Tableau de bord'" [breadcrumb]="'Pages / Tableau de bord'" [type]="'filter'">
     </app-header>
 
     <!-- Metrics -->
@@ -46,7 +43,7 @@
           </div>
         </div>
         <div class="flex items-center justify-center h-80">
-          <div class="relative w-60 h-60">
+          <div class="relative">
             <canvas #paiementsChart></canvas>
           </div>
         </div>
@@ -73,13 +70,13 @@
 
       <!-- Stocks état global -->
       <div class="bg-white rounded-lg p-6 hover:shadow-sm">
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center justify-between mb-6">
           <div>
             <h2 class="text-lg font-semibold text-[#2C3E50]">Stocks - État global</h2>
           </div>
         </div>
         <div class="flex items-center justify-center h-64">
-          <div class="relative w-48 h-48">
+          <div class="relative">
             <canvas #stocksEtatChart></canvas>
           </div>
         </div>
@@ -100,18 +97,32 @@
         <h2 class="text-lg font-semibold text-[#2C3E50]">Alertes et notifications</h2>
         <div class="space-y-4">
           <div class="flex items-start gap-4">
-            <div class="w-12 h-12 rounded-full bg-[#FFF7ED] flex items-center justify-center">
-              <span class="text-orange-400 text-lg">!</span>
+            <div class="w-10 h-10 rounded-full bg-[#FF914D14] flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M20 10C20 15.523 15.523 20 10 20C4.477 20 0 15.523 0 10C0 4.477 4.477 0 10 0C15.523 0 20 4.477 20 10ZM10 18C12.1217 18 14.1566 17.1571 15.6569 15.6569C17.1571 14.1566 18 12.1217 18 10C18 7.87827 17.1571 5.84344 15.6569 4.34315C14.1566 2.84285 12.1217 2 10 2C7.87827 2 5.84344 2.84285 4.34315 4.34315C2.84285 5.84344 2 7.87827 2 10C2 12.1217 2.84285 14.1566 4.34315 15.6569C5.84344 17.1571 7.87827 18 10 18Z"
+                  fill="#FF914D" />
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M10 12C9.73478 12 9.48043 11.8946 9.29289 11.7071C9.10536 11.5196 9 11.2652 9 11V6C9 5.73478 9.10536 5.48043 9.29289 5.29289C9.48043 5.10536 9.73478 5 10 5C10.2652 5 10.5196 5.10536 10.7071 5.29289C10.8946 5.48043 11 5.73478 11 6V11C11 11.2652 10.8946 11.5196 10.7071 11.7071C10.5196 11.8946 10.2652 12 10 12Z"
+                  fill="#FF914D" />
+                <path
+                  d="M9 14C9 13.7348 9.10536 13.4804 9.29289 13.2929C9.48043 13.1054 9.73478 13 10 13C10.2652 13 10.5196 13.1054 10.7071 13.2929C10.8946 13.4804 11 13.7348 11 14C11 14.2652 10.8946 14.5196 10.7071 14.7071C10.5196 14.8946 10.2652 15 10 15C9.73478 15 9.48043 14.8946 9.29289 14.7071C9.10536 14.5196 9 14.2652 9 14Z"
+                  fill="#FF914D" />
+              </svg>
             </div>
             <div>
-              <p class="text-sm font-semibold">18 livraison(s) en retard</p>
+              <p class="text-sm">18 livraison(s) en retard</p>
               <p class="text-xs text-[#64748B]">15/05/2025</p>
             </div>
           </div>
           <div class="border-t border-gray-100 pt-4">
             <div class="flex items-start gap-4">
-              <div class="w-12 h-12 rounded-full bg-[#FFE7E7] flex items-center justify-center">
-                <span class="text-rose-500 text-lg">!</span>
+              <div class="w-10 h-10 rounded-full bg-[#FF4D4F14] flex items-center justify-center">
+                <svg width="21" height="18" viewBox="0 0 21 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M0.987894 18C0.804561 18 0.637894 17.9543 0.487894 17.863C0.337894 17.7717 0.221228 17.6507 0.137894 17.5C0.054561 17.3493 0.00889441 17.1867 0.000894411 17.012C-0.00710559 16.8373 0.038561 16.6667 0.137894 16.5L9.38789 0.5C9.4879 0.333333 9.61723 0.208333 9.77589 0.125C9.93456 0.0416667 10.0969 0 10.2629 0C10.4289 0 10.5916 0.0416667 10.7509 0.125C10.9102 0.208333 11.0392 0.333333 11.1379 0.5L20.3879 16.5C20.4879 16.6667 20.5339 16.8377 20.5259 17.013C20.5179 17.1883 20.4719 17.3507 20.3879 17.5C20.3039 17.6493 20.1872 17.7703 20.0379 17.863C19.8886 17.9557 19.7219 18.0013 19.5379 18H0.987894ZM10.2629 15C10.5462 15 10.7839 14.904 10.9759 14.712C11.1679 14.52 11.2636 14.2827 11.2629 14C11.2622 13.7173 11.1662 13.48 10.9749 13.288C10.7836 13.096 10.5462 13 10.2629 13C9.97956 13 9.74223 13.096 9.55089 13.288C9.35956 13.48 9.26356 13.7173 9.26289 14C9.26223 14.2827 9.35823 14.5203 9.55089 14.713C9.74356 14.9057 9.9809 15.0013 10.2629 15ZM10.2629 12C10.5462 12 10.7839 11.904 10.9759 11.712C11.1679 11.52 11.2636 11.2827 11.2629 11V8C11.2629 7.71667 11.1669 7.47933 10.9749 7.288C10.7829 7.09667 10.5456 7.00067 10.2629 7C9.98023 6.99933 9.7429 7.09533 9.55089 7.288C9.35889 7.48067 9.26289 7.718 9.26289 8V11C9.26289 11.2833 9.35889 11.521 9.55089 11.713C9.7429 11.905 9.98023 12.0007 10.2629 12Z"
+                    fill="#FF4D4F" />
+                </svg>
               </div>
               <div>
                 <p class="text-sm font-semibold">8% de stocks en critique</p>

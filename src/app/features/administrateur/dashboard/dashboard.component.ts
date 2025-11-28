@@ -15,7 +15,7 @@ interface MetricCard {
 interface CommandRevenuePoint {
   date: string;
   commandes: number;
-  chiffreAffairesBar: number;
+  livraisons: number;
   montantEncaisse: number;
 }
 
@@ -88,13 +88,13 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
 
   // --- Jeu de données principal pour commandes vs chiffre d'affaires ---
   commandesChiffreData: CommandRevenuePoint[] = [
-    { date: '06/09', commandes: 74, chiffreAffairesBar: 70, montantEncaisse: 8800000 },
-    { date: '07/09', commandes: 72, chiffreAffairesBar: 70, montantEncaisse: 9600000 },
-    { date: '08/09', commandes: 62, chiffreAffairesBar: 56, montantEncaisse: 6200000 },
-    { date: '09/09', commandes: 65, chiffreAffairesBar: 60, montantEncaisse: 7200000 },
-    { date: '10/09', commandes: 70, chiffreAffairesBar: 67, montantEncaisse: 8400000 },
-    { date: '11/09', commandes: 74, chiffreAffairesBar: 69, montantEncaisse: 9600000 },
-    { date: '12/09', commandes: 70, chiffreAffairesBar: 60, montantEncaisse: 8000000 }
+    { date: '06/09', commandes: 7, livraisons: 7, montantEncaisse: 8800000 },
+    { date: '07/09', commandes: 7, livraisons: 7, montantEncaisse: 9600000 },
+    { date: '08/09', commandes: 6, livraisons: 5, montantEncaisse: 6200000 },
+    { date: '09/09', commandes: 6, livraisons: 6, montantEncaisse: 7200000 },
+    { date: '10/09', commandes: 7, livraisons: 6, montantEncaisse: 8400000 },
+    { date: '11/09', commandes: 7, livraisons: 6, montantEncaisse: 9600000 },
+    { date: '12/09', commandes: 7, livraisons: 6, montantEncaisse: 8000000 }
   ];
 
   // --- Répartition des statuts de paiement ---
@@ -185,7 +185,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
         labels: this.commandesChiffreData.map(point => point.date),
         datasets: [
           {
-            label: 'Commandes',
+            label: 'Commandes fournisseurs',
             data: this.commandesChiffreData.map(point => point.commandes),
             backgroundColor: '#E0E7FF',
             hoverBackgroundColor: '#C7D2FE',
@@ -194,8 +194,8 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
             yAxisID: 'y'
           },
           {
-            label: 'Chiffre d’affaires (M FCFA)',
-            data: this.commandesChiffreData.map(point => point.chiffreAffairesBar),
+            label: 'Livraisons',
+            data: this.commandesChiffreData.map(point => point.livraisons),
             backgroundColor: '#C1F3DC',
             hoverBackgroundColor: '#A5E9CD',
             categoryPercentage: 0.7,
@@ -237,13 +237,13 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
         scales: {
           y: {
             beginAtZero: true,
-            max: 80,
+            max: 8,
             grid: { color: '#F3F4F6' },
-            ticks: { color: '#6B7280', font: { size: 11 }, padding: 10 }
+            ticks: { color: '#6B7280', font: { size: 12 }, padding: 10 }
           },
           x: {
             grid: { color: '#F3F4F6' },
-            ticks: { color: '#6B7280', font: { size: 11 } },
+            ticks: { color: '#6B7280', font: { size: 12 } },
             border: { display: false }
           }
         }
@@ -369,7 +369,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
           x: {
             stacked: true,
             grid: { display: false },
-            ticks: { color: '#6B7280', font: { size: 11 } }
+            ticks: { color: '#6B7280', font: { size: 12 } }
           },
           y: {
             stacked: true,
@@ -380,7 +380,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
               callback: (value: number) => `${value}%`,
               stepSize: 20,
               color: '#6B7280',
-              font: { size: 11 }
+              font: { size: 12 }
               
             }
           }
@@ -425,12 +425,12 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: '#6B7280', font: { size: 11 } }
+            ticks: { color: '#6B7280', font: { size: 12 } }
           },
           y: {
             beginAtZero: true,
             grid: { display: false },
-            ticks: { color: '#6B7280', font: { size: 11 }, stepSize: 10 }
+            ticks: { color: '#6B7280', font: { size: 12 }, stepSize: 10 }
           }
         }
       }
@@ -521,12 +521,12 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
         scales: {
           x: {
             grid: { color: '#F3F4F6' },
-            ticks: { color: '#6B7280', font: { size: 11 } }
+            ticks: { color: '#6B7280', font: { size: 12 } }
           },
           y: {
             beginAtZero: false,
             grid: { color: '#F3F4F6' },
-            ticks: { color: '#6B7280', font: { size: 11 }, stepSize: 2 }
+            ticks: { color: '#6B7280', font: { size: 12 }, stepSize: 2 }
           }
         }
       }
