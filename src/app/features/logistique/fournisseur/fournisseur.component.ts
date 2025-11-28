@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
+import { HeaderComponent } from '../../../core/layouts/header/header.component';
 
 interface MetricCard {
   title: string;
@@ -20,7 +21,7 @@ interface Commande {
 @Component({
   selector: 'app-fournisseur',
   standalone: true,
-  imports: [MainLayoutComponent, CommonModule, FormsModule],
+  imports: [MainLayoutComponent, CommonModule, FormsModule, HeaderComponent],
   templateUrl: './fournisseur.component.html',
   styles: []
 })

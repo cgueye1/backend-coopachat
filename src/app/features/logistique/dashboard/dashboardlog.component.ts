@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
+import { HeaderComponent } from '../../../core/layouts/header/header.component';
 
 interface MetricCard {
   title: string;
@@ -28,7 +29,7 @@ interface CommandeLivraison {
 @Component({
   selector: 'app-dashboardlog',
   standalone: true,
-  imports: [CommonModule, MainLayoutComponent],
+  imports: [CommonModule, MainLayoutComponent, HeaderComponent],
   templateUrl: './dashboardlog.component.html',
   styleUrls: ['./dashboardlog.component.css']
 })

@@ -58,6 +58,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/logistique/gestion-retours/gestion-retours.component').then(c => c.GestionRetoursComponent)
   },
   {
+    path: 'log/commandes',
+    loadComponent: () => import('./features/logistique/gestion-commandes/gestion-commandes.component').then(c => c.GestionCommandesComponent)
+  },
+  {
     path: 'admin/dashboardadmin',
     loadComponent: () => import('./features/administrateur/dashboard/dashboard.component').then(c => c.AdminPageComponent)
   },

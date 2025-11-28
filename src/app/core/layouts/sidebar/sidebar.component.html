@@ -10,40 +10,38 @@
 
 <!-- SIDEBAR Desktop (lg and up) -->
 <aside
-  class="hidden lg:flex w-[240px] flex-col bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white fixed left-4 top-4 bottom-4 z-20 rounded-xl shadow-md"
+  class="hidden lg:flex w-[240px] flex-col bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white h-full m-4 z-20 rounded-xl shadow-md"
   role="navigation" aria-label="Sidebar navigation">
-  
+
   <!-- Logo -->
   <div class="px-5 pt-5 pb-4">
     <div class="bg-white rounded-xl px-4 py-3 inline-block">
       <img src="images/logo.png" alt="coop achat" class="w-[150px] h-auto object-contain">
     </div>
   </div>
-  
+
   <!-- Menu -->
   <nav class="flex-1 pr-1 pl-2 py-2 overflow-auto">
     <ul class="space-y-2">
       <li *ngFor="let item of filteredMenuItems">
-        <a [href]="item.link" 
-          class="group flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-150 w-full"
-          [ngClass]="{ 
+        <a [href]="item.link"
+          class="group flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-150 w-full" [ngClass]="{ 
             'bg-green/10 rounded-lg opacity-100': item.active,
             'opacity-60 hover:opacity-100': !item.active
-          }" 
-          [attr.aria-current]="item.active ? 'page' : null">
+          }" [attr.aria-current]="item.active ? 'page' : null">
 
           <!-- SVG Icon -->
           <ng-container [ngSwitch]="item.icon">
 
             <!-- Dashboard -->
             <ng-container *ngSwitchCase="'dashboard'">
-              <svg *ngIf="item.active" width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg"
-                class="shrink-0">
+              <svg *ngIf="item.active" width="17" height="17" viewBox="0 0 17 17" fill="none"
+                xmlns="http://www.w3.org/2000/svg" class="shrink-0">
                 <path fill="white"
                   d="M5.46417 9.58333H2.235C1.80716 9.58576 1.39767 9.75741 1.096 10.0608C0.794325 10.3642 0.624994 10.7747 0.625001 11.2025V14.4317C0.624782 14.6432 0.666276 14.8526 0.747108 15.048C0.827941 15.2435 0.946524 15.4211 1.09607 15.5706C1.24562 15.7201 1.42319 15.8387 1.61862 15.9196C1.81405 16.0004 2.02351 16.0419 2.235 16.0417H5.46417C5.89207 16.0421 6.3027 15.8729 6.60605 15.5711C6.9094 15.2693 7.08074 14.8596 7.0825 14.4317V11.2025C7.08272 10.9899 7.04101 10.7794 6.95976 10.5829C6.87851 10.3865 6.75931 10.208 6.60899 10.0577C6.45867 9.90736 6.28018 9.78816 6.08374 9.70691C5.88729 9.62566 5.67675 9.58395 5.46417 9.58417M5.46417 0.625001H2.235C2.02351 0.624782 1.81405 0.666276 1.61862 0.747108C1.42319 0.827941 1.24562 0.946524 1.09607 1.09607C0.946524 1.24562 0.827941 1.42319 0.747108 1.61862C0.666276 1.81405 0.624782 2.02351 0.625001 2.235V5.46417C0.624556 5.89207 0.793773 6.3027 1.09556 6.60605C1.39735 6.9094 1.8071 7.08074 2.235 7.0825H5.46417C5.67675 7.08272 5.88729 7.04101 6.08374 6.95976C6.28018 6.87851 6.45867 6.75931 6.60899 6.60899C6.75931 6.45867 6.87851 6.28018 6.95976 6.08374C7.04101 5.88729 7.08272 5.67675 7.0825 5.46417V2.235C7.08074 1.8071 6.9094 1.39735 6.60605 1.09556C6.3027 0.793773 5.89207 0.624556 5.46417 0.625001ZM14.4317 0.625001H11.2025C10.7746 0.624556 10.364 0.793773 10.0606 1.09556C9.75727 1.39735 9.58593 1.8071 9.58417 2.235V5.46417C9.58439 5.89331 9.75496 6.30481 10.0584 6.60826C10.3619 6.91171 10.7734 7.08228 11.2025 7.0825H14.4317C14.8596 7.08074 15.2693 6.9094 15.5711 6.60605C15.8729 6.3027 16.0421 5.89207 16.0417 5.46417V2.235C16.0419 2.02351 16.0004 1.81405 15.9196 1.61862C15.8387 1.42319 15.7201 1.24562 15.5706 1.09607C15.4211 0.946524 15.2435 0.827941 15.048 0.747108C14.8526 0.666276 14.6432 0.624782 14.4317 0.625001ZM12.8125 9.58333C11.9561 9.58333 11.1347 9.92355 10.5291 10.5291C9.92355 11.1347 9.58333 11.9561 9.58333 12.8125C9.58333 13.6689 9.92355 14.4903 10.5291 15.0959C11.1347 15.7015 11.9561 16.0417 12.8125 16.0417C13.6689 16.0417 14.4903 15.7015 15.0959 15.0959C15.7015 14.4903 16.0417 13.6689 16.0417 12.8125C16.0417 11.9561 15.7015 11.1347 15.0959 10.5291C14.4903 9.92355 13.6689 9.58333 12.8125 9.58333Z" />
               </svg>
-              <svg *ngIf="!item.active" width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg"
-                class="shrink-0">
+              <svg *ngIf="!item.active" width="17" height="17" viewBox="0 0 17 17" fill="none"
+                xmlns="http://www.w3.org/2000/svg" class="shrink-0">
                 <path stroke="white" stroke-opacity="0.6" fill="none"
                   d="M5.46417 9.58333H2.235C1.80716 9.58576 1.39767 9.75741 1.096 10.0608C0.794325 10.3642 0.624994 10.7747 0.625001 11.2025V14.4317C0.624782 14.6432 0.666276 14.8526 0.747108 15.048C0.827941 15.2435 0.946524 15.4211 1.09607 15.5706C1.24562 15.7201 1.42319 15.8387 1.61862 15.9196C1.81405 16.0004 2.02351 16.0419 2.235 16.0417H5.46417C5.89207 16.0421 6.3027 15.8729 6.60605 15.5711C6.9094 15.2693 7.08074 14.8596 7.0825 14.4317V11.2025C7.08272 10.9899 7.04101 10.7794 6.95976 10.5829C6.87851 10.3865 6.75931 10.208 6.60899 10.0577C6.45867 9.90736 6.28018 9.78816 6.08374 9.70691C5.88729 9.62566 5.67675 9.58395 5.46417 9.58417M5.46417 0.625001H2.235C2.02351 0.624782 1.81405 0.666276 1.61862 0.747108C1.42319 0.827941 1.24562 0.946524 1.09607 1.09607C0.946524 1.24562 0.827941 1.42319 0.747108 1.61862C0.666276 1.81405 0.624782 2.02351 0.625001 2.235V5.46417C0.624556 5.89207 0.793773 6.3027 1.09556 6.60605C1.39735 6.9094 1.8071 7.08074 2.235 7.0825H5.46417C5.67675 7.08272 5.88729 7.04101 6.08374 6.95976C6.28018 6.87851 6.45867 6.75931 6.60899 6.60899C6.75931 6.45867 6.87851 6.28018 6.95976 6.08374C7.04101 5.88729 7.08272 5.67675 7.0825 5.46417V2.235C7.08074 1.8071 6.9094 1.39735 6.60605 1.09556C6.3027 0.793773 5.89207 0.624556 5.46417 0.625001ZM14.4317 0.625001H11.2025C10.7746 0.624556 10.364 0.793773 10.0606 1.09556C9.75727 1.39735 9.58593 1.8071 9.58417 2.235V5.46417C9.58439 5.89331 9.75496 6.30481 10.0584 6.60826C10.3619 6.91171 10.7734 7.08228 11.2025 7.0825H14.4317C14.8596 7.08074 15.2693 6.9094 15.5711 6.60605C15.8729 6.3027 16.0421 5.89207 16.0417 5.46417V2.235C16.0419 2.02351 16.0004 1.81405 15.9196 1.61862C15.8387 1.42319 15.7201 1.24562 15.5706 1.09607C15.4211 0.946524 15.2435 0.827941 15.048 0.747108C14.8526 0.666276 14.6432 0.624782 14.4317 0.625001ZM12.8125 9.58333C11.9561 9.58333 11.1347 9.92355 10.5291 10.5291C9.92355 11.1347 9.58333 11.9561 9.58333 12.8125C9.58333 13.6689 9.92355 14.4903 10.5291 15.0959C11.1347 15.7015 11.9561 16.0417 12.8125 16.0417C13.6689 16.0417 14.4903 15.7015 15.0959 15.0959C15.7015 14.4903 16.0417 13.6689 16.0417 12.8125C16.0417 11.9561 15.7015 11.1347 15.0959 10.5291C14.4903 9.92355 13.6689 9.58333 12.8125 9.58333Z"
                   stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
@@ -73,9 +71,8 @@
             <ng-container *ngSwitchCase="'statistiques'">
               <svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg"
                 class="shrink-0">
-                <path d="M11.4583 11.4583V4.79163M8.12499 11.4583V7.29163M4.79166 11.4583V8.95829" 
-                  stroke="white" stroke-opacity="0.6" stroke-width="1.25"
-                  stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M11.4583 11.4583V4.79163M8.12499 11.4583V7.29163M4.79166 11.4583V8.95829" stroke="white"
+                  stroke-opacity="0.6" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
                 <path
                   d="M0.625 15.125V1.125C0.625 0.992392 0.677678 0.865215 0.771447 0.771447C0.865215 0.677678 0.992392 0.625 1.125 0.625H15.125C15.2576 0.625 15.3848 0.677678 15.4786 0.771447C15.5723 0.865215 15.625 0.992392 15.625 1.125V15.125C15.625 15.2576 15.5723 15.3848 15.4786 15.4786C15.3848 15.5723 15.2576 15.625 15.125 15.625H1.125C0.992392 15.625 0.865215 15.5723 0.771447 15.4786C0.677678 15.3848 0.625 15.2576 0.625 15.125Z"
                   stroke="white" stroke-opacity="0.6" stroke-width="1.25" />
@@ -94,6 +91,14 @@
 
             <!-- Fournisseurs -->
             <ng-container *ngSwitchCase="'fournisseurs'">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"
+                class="shrink-0">
+                <path fill="white"
+                  d="M7.40375 0.249984C8.2703 -0.083328 9.2297 -0.083328 10.0962 0.249984L16.2987 2.63498C16.6524 2.77114 16.9564 3.01124 17.1709 3.32364C17.3853 3.63603 17.5 4.00607 17.5 4.38498V12.6675C17.5 13.0464 17.3853 13.4164 17.1709 13.7288C16.9564 14.0412 16.6524 14.2813 16.2987 14.4175L10.0962 16.8037C9.2297 17.137 8.2703 17.137 7.40375 16.8037L1.2025 14.4175C0.84866 14.2815 0.544337 14.0415 0.329664 13.7291C0.114991 13.4167 5.01781e-05 13.0465 0 12.6675V4.38498C5.01781e-05 4.00592 0.114991 3.63578 0.329664 3.32337C0.544337 3.01095 0.84866 2.77094 1.2025 2.63498L7.40375 0.249984ZM9.6475 1.41623C9.0698 1.19403 8.4302 1.19403 7.8525 1.41623L6.1225 2.08248L13.11 4.72748L15.545 3.68498L9.6475 1.41623ZM16.25 4.74123L9.375 7.68998V15.725C9.46667 15.7017 9.5575 15.6725 9.6475 15.6375L15.85 13.2525C15.9679 13.207 16.0692 13.1269 16.1406 13.0227C16.212 12.9185 16.2501 12.7951 16.25 12.6687V4.74123ZM8.125 15.7237V7.68998L1.25 4.74248V12.6675C1.24987 12.7938 1.28802 12.9172 1.35943 13.0214C1.43083 13.1256 1.53214 13.2058 1.65 13.2512L7.8525 15.6362C7.94167 15.6712 8.0325 15.7004 8.125 15.7237ZM1.955 3.68498L8.75 6.59748L11.455 5.43748L4.37125 2.75498L1.955 3.68498Z" />
+              </svg>
+            </ng-container>
+
+            <ng-container *ngSwitchCase="'commandes'">
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"
                 class="shrink-0">
                 <path fill="white"
@@ -140,10 +145,10 @@
 
             <!-- Catalogue -->
             <ng-container *ngSwitchCase="'catalogue'">
-              <svg width="18" height="14" viewBox="0 0 18 14" fill="none" xmlns="http://www.w3.org/2000/svg"
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"
                 class="shrink-0">
                 <path fill="white"
-                  d="M0.666748 13.3334C0.48326 13.3334 0.326873 13.2689 0.197587 13.1396C0.0683011 13.0103 0.00319824 12.8539 0.000164811 12.6704V1.32923C0.000164811 1.14575 0.0646677 0.989362 0.193954 0.860076C0.32324 0.73079 0.479627 0.666445 0.663115 0.666445H5.53453C5.80103 0.666445 6.04287 0.747003 6.26006 0.908119C6.47726 1.0692 6.64062 1.28034 6.75015 1.54167L7.33342 2.83337H16.6667C16.8502 2.83337 17.0066 2.89788 17.1359 3.02689C17.2652 3.1559 17.3303 3.31201 17.3334 3.49523V12.6704C17.3334 12.8539 17.2689 13.0103 17.1396 13.1396C17.0103 13.2689 16.8539 13.3334 16.6704 13.3334H0.666748Z" />
+                  d="M7.40375 0.249984C8.2703 -0.083328 9.2297 -0.083328 10.0962 0.249984L16.2987 2.63498C16.6524 2.77114 16.9564 3.01124 17.1709 3.32364C17.3853 3.63603 17.5 4.00607 17.5 4.38498V12.6675C17.5 13.0464 17.3853 13.4164 17.1709 13.7288C16.9564 14.0412 16.6524 14.2813 16.2987 14.4175L10.0962 16.8037C9.2297 17.137 8.2703 17.137 7.40375 16.8037L1.2025 14.4175C0.84866 14.2815 0.544337 14.0415 0.329664 13.7291C0.114991 13.4167 5.01781e-05 13.0465 0 12.6675V4.38498C5.01781e-05 4.00592 0.114991 3.63578 0.329664 3.32337C0.544337 3.01095 0.84866 2.77094 1.2025 2.63498L7.40375 0.249984ZM9.6475 1.41623C9.0698 1.19403 8.4302 1.19403 7.8525 1.41623L6.1225 2.08248L13.11 4.72748L15.545 3.68498L9.6475 1.41623ZM16.25 4.74123L9.375 7.68998V15.725C9.46667 15.7017 9.5575 15.6725 9.6475 15.6375L15.85 13.2525C15.9679 13.207 16.0692 13.1269 16.1406 13.0227C16.212 12.9185 16.2501 12.7951 16.25 12.6687V4.74123ZM8.125 15.7237V7.68998L1.25 4.74248V12.6675C1.24987 12.7938 1.28802 12.9172 1.35943 13.0214C1.43083 13.1256 1.53214 13.2058 1.65 13.2512L7.8525 15.6362C7.94167 15.6712 8.0325 15.7004 8.125 15.7237ZM1.955 3.68498L8.75 6.59748L11.455 5.43748L4.37125 2.75498L1.955 3.68498Z" />
               </svg>
             </ng-container>
 
@@ -159,7 +164,8 @@
   <div class="px-4 pb-4 pt-3 mt-auto border-t border-white/10">
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 rounded-full bg-gray-300 border-2 border-white overflow-hidden shrink-0">
-        <img src="images/profile.jpg" alt="Profile" class="w-full h-full object-cover" onerror="this.style.display='none'">
+        <img src="images/profile.jpg" alt="Profile" class="w-full h-full object-cover"
+          onerror="this.style.display='none'">
       </div>
 
       <div class="flex-1 min-w-0">
@@ -167,8 +173,10 @@
         <div class="text-xs text-white/70 tracking-tight leading-tight truncate">{{ roleLabel }}</div>
       </div>
 
-      <button class="p-1.5 hover:bg-white/10 rounded-lg transition-colors" (click)="toggleUserMenu()" aria-label="Menu utilisateur">
-        <svg width="16" height="16" viewBox="0 0 19 18" fill="none" xmlns="http://www.w3.org/2000/svg" class="opacity-80">
+      <button class="p-1.5 hover:bg-white/10 rounded-lg transition-colors" (click)="toggleUserMenu()"
+        aria-label="Menu utilisateur">
+        <svg width="16" height="16" viewBox="0 0 19 18" fill="none" xmlns="http://www.w3.org/2000/svg"
+          class="opacity-80">
           <path
             d="M2.61575 18C2.06575 18 1.59509 17.8043 1.20375 17.413C0.81242 17.0217 0.61642 16.5507 0.615753 16V2C0.615753 1.45 0.811753 0.979333 1.20375 0.588C1.59575 0.196667 2.06642 0.000666667 2.61575 0H9.61575V2H2.61575V16H9.61575V18H2.61575ZM13.6158 14L12.2408 12.55L14.7908 10H6.61575V8H14.7908L12.2408 5.45L13.6158 4L18.6158 9L13.6158 14Z"
             fill="white" />
@@ -177,8 +185,7 @@
     </div>
 
     <!-- User Menu Desktop -->
-    <div *ngIf="userMenuOpen"
-      class="absolute bottom-20 left-4 right-4 bg-white rounded-lg shadow-xl py-2 z-50">
+    <div *ngIf="userMenuOpen" class="absolute bottom-20 left-4 right-4 bg-white rounded-lg shadow-xl py-2 z-50">
       <button (click)="goToProfile()"
         class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors">
         Mon compte
@@ -192,15 +199,14 @@
 </aside>
 
 <!-- SIDEBAR Mobile (< lg) -->
-<aside *ngIf="mobileOpen"
-  class="lg:hidden fixed inset-0 z-30 bg-black/50"
-  (click)="closeMobile()">
+<aside *ngIf="mobileOpen" class="lg:hidden fixed inset-0 z-30 bg-black/50" (click)="closeMobile()">
   <div class="w-64 h-full bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white shadow-xl"
     (click)="$event.stopPropagation()">
-    
+
     <!-- Close button -->
     <div class="p-4 flex justify-end">
-      <button (click)="closeMobile()" class="p-2 hover:bg-white/10 rounded-lg transition-colors" aria-label="Fermer le menu">
+      <button (click)="closeMobile()" class="p-2 hover:bg-white/10 rounded-lg transition-colors"
+        aria-label="Fermer le menu">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M18 6L6 18M6 6L18 18" stroke="white" stroke-width="2" stroke-linecap="round" />
         </svg>
@@ -218,10 +224,8 @@
     <nav class="px-3 py-2 overflow-auto max-h-[calc(100vh-250px)]">
       <ul class="space-y-0.5">
         <li *ngFor="let item of filteredMenuItems">
-          <a [href]="item.link" 
-            (click)="closeMobile()"
-            class="group flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-150 w-full"
-            [ngClass]="{ 
+          <a [href]="item.link" (click)="closeMobile()"
+            class="group flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-150 w-full" [ngClass]="{ 
               'bg-white/10 opacity-100': item.active,
               'opacity-60 hover:opacity-100': !item.active
             }">
@@ -232,10 +236,12 @@
     </nav>
 
     <!-- Profile Mobile -->
-    <div class="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-3 border-t border-white/10 bg-gradient-to-r from-[#FF6B00] to-[#FF914D]">
+    <div
+      class="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-3 border-t border-white/10 bg-gradient-to-r from-[#FF6B00] to-[#FF914D]">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-full bg-gray-300 border-2 border-white overflow-hidden shrink-0">
-          <img src="images/profile.jpg" alt="Profile" class="w-full h-full object-cover" onerror="this.style.display='none'">
+          <img src="images/profile.jpg" alt="Profile" class="w-full h-full object-cover"
+            onerror="this.style.display='none'">
         </div>
 
         <div class="flex-1 min-w-0">
@@ -243,8 +249,10 @@
           <div class="text-xs text-white/70 tracking-tight leading-tight truncate">{{ roleLabel }}</div>
         </div>
 
-        <button class="p-1.5 hover:bg-white/10 rounded-lg transition-colors" (click)="toggleUserMenuMobile()" aria-label="Menu utilisateur">
-          <svg width="16" height="16" viewBox="0 0 19 18" fill="none" xmlns="http://www.w3.org/2000/svg" class="opacity-80">
+        <button class="p-1.5 hover:bg-white/10 rounded-lg transition-colors" (click)="toggleUserMenuMobile()"
+          aria-label="Menu utilisateur">
+          <svg width="16" height="16" viewBox="0 0 19 18" fill="none" xmlns="http://www.w3.org/2000/svg"
+            class="opacity-80">
             <path
               d="M2.61575 18C2.06575 18 1.59509 17.8043 1.20375 17.413C0.81242 17.0217 0.61642 16.5507 0.615753 16V2C0.615753 1.45 0.811753 0.979333 1.20375 0.588C1.59575 0.196667 2.06642 0.000666667 2.61575 0H9.61575V2H2.61575V16H9.61575V18H2.61575ZM13.6158 14L12.2408 12.55L14.7908 10H6.61575V8H14.7908L12.2408 5.45L13.6158 4L18.6158 9L13.6158 14Z"
               fill="white" />
@@ -253,8 +261,7 @@
       </div>
 
       <!-- User Menu Mobile -->
-      <div *ngIf="userMenuMobileOpen"
-        class="mt-3 bg-white rounded-lg shadow-xl py-2">
+      <div *ngIf="userMenuMobileOpen" class="mt-3 bg-white rounded-lg shadow-xl py-2">
         <button (click)="goToProfile()"
           class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors">
           Mon compte

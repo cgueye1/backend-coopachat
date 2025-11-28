@@ -26,6 +26,7 @@ export class SidebarComponent implements OnChanges {
 
     { label: 'Tableau de bord', icon: 'dashboard', link: '/log/dashboardlog', active: false },
     { label: 'Commandes Fournisseurs', icon: 'fournisseurs', link: '/log/fournisseurs', active: false },
+    { label: 'Gestion des Commandes', icon: 'commandes', link: '/log/commandes', active: false },
     { label: 'Gestion des Stocks', icon: 'stocks', link: '/log/stocks', active: false },
     { label: 'Planification Livraisons', icon: 'livraisons', link: '/log/livraisons', active: false },
     { label: 'Gestion des Retours', icon: 'retours', link: '/log/retours', active: false },

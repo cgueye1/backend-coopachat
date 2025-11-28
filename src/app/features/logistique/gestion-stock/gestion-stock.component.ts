@@ -496,12 +496,6 @@ export class GestionStockComponent {
       subtitle: 'Stock = 0',
       icon: 'box-red'
     },
-    {
-      title: 'Commandes fournisseurs',
-      value: '01',
-      subtitle: 'ouvertes',
-      icon: 'box-black'
-    }
   ];
 
   stockItems: StockItem[] = [
