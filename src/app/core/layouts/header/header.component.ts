@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 
-type HeaderType = 'filter' | 'simple';
+type HeaderType = 'filter' | 'simple' | 'back';
 
 @Component({
   selector: 'app-header',

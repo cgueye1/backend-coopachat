@@ -6,8 +6,7 @@
 
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            <div *ngFor="let metric of metricsData"
-                class="bg-white rounded-lg p-5 hover:shadow-sm transition-shadow border border-gray-100">
+            <div *ngFor="let metric of metricsData" class="bg-white rounded-lg p-5 hover:shadow-sm transition-shadow">
                 <div class="flex items-start justify-between">
                     <div class="flex-1">
                         <div class="text-xs text-[#6B7280] mb-1">{{ metric.title }}</div>
@@ -19,8 +18,8 @@
                 </div>
             </div>
         </div>
-
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100">
+        <!-- Users Table -->
+        <div class="bg-white rounded-2xl hover:shadow-sm">
             <!-- Filters -->
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4">
                 <div class="relative flex-1 max-w-md">
@@ -32,14 +31,14 @@
                             fill="#777777" />
                     </svg>
                     <input type="text" placeholder="Rechercher par référence ou produit..." [(ngModel)]="searchText"
-                        class="w-full pl-12 pr-4 py-3 border border-[#CBD5E1] rounded-xl focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm bg-white placeholder-gray-400">
+                        class="w-full pl-12 pr-4 py-3 border border-[#EEEEEE] rounded-lg focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm bg-white placeholder-[#777777]">
                 </div>
 
                 <div class="flex flex-wrap gap-3">
                     <!-- Rôle Filter -->
                     <div class="relative">
                         <button (click)="toggleRoleDropdown()"
-                            class="px-3 py-2 border border-[#CBD5E1] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
+                            class="px-3 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
                             <!-- Filter icon SVG placeholder -->
                             <svg width="20" height="21" viewBox="0 0 20 21" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
@@ -62,7 +61,7 @@
                     <!-- Statut Filter -->
                     <div class="relative">
                         <button (click)="toggleStatutDropdown()"
-                            class="px-3 py-2 border border-[#CBD5E1] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
+                            class="px-3 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
                             <!-- Filter icon SVG placeholder -->
                             <svg width="20" height="21" viewBox="0 0 20 21" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
@@ -83,7 +82,7 @@
                     </div>
 
                     <button
-                        class="px-3 py-2 border border-[#CBD5E1] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
+                        class="px-3 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
                         <!-- Export icon SVG placeholder -->
                         <svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd"
@@ -100,50 +99,47 @@
                 <table class="w-full">
                     <thead class="bg-[#F4F7FE]">
                         <tr>
-                            <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Nom</th>
-                            <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Email</th>
-                            <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Rôle</th>
-                            <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Créé</th>
-                            <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Statut</th>
-                            <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Actions</th>
+                            <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Nom</th>
+                            <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Email</th>
+                            <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Rôle</th>
+                            <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Créé</th>
+                            <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Statut</th>
+                            <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         <tr *ngFor="let user of filteredUsers" class="hover:bg-gray-50 transition-colors">
-                            <td class="py-3 px-6">
+                            <td class="py-3 px-4">
                                 <div class="flex items-center gap-3">
                                     <div
-                                        class="w-10 h-10 rounded-lg bg-[#E6E8F0] flex items-center justify-center text-sm font-semibold text-[#4B4848]">
+                                        class="w-10 h-10 rounded-lg bg-[#F2F2F2] flex items-center justify-center text-base font-semibold text-[#4B4848]">
                                         {{ user.initials }}
                                     </div>
                                     <div>
-                                        <div class="text-sm font-medium text-gray-900">{{ user.name }}</div>
-                                        <div class="text-xs text-gray-500">{{ user.id }}</div>
+                                        <div class="text-sm font-medium text-[#4B4848]">{{ user.name }}</div>
+                                        <div class="text-xs text-[#6B7280]">{{ user.id }}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-3 px-6 text-sm text-gray-600">{{ user.email }}</td>
-                            <td class="py-3 px-6 text-sm text-gray-900">{{ user.role }}</td>
-                            <td class="py-3 px-6 text-sm text-gray-600">{{ user.createdAt }}</td>
+                            <td class="py-3 px-6 text-sm text-[#4B4848]">{{ user.email }}</td>
+                            <td class="py-3 px-6 text-sm text-[#4B4848]">{{ user.role }}</td>
+                            <td class="py-3 px-6 text-sm text-[#4B4848]">{{ user.createdAt }}</td>
                             <td class="py-3 px-6">
                                 <span
                                     [class]="'inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ' + getStatusClass(user.status)">
-                                    <span [class]="'w-1.5 h-1.5 rounded-full ' + getStatusDotClass(user.status)"></span>
+                                    <span [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(user.status)"></span>
                                     {{ user.status }}
                                 </span>
                             </td>
-                            <td class="py-3 px-6">
+                            <td class="py-3 px-0">
                                 <div class="flex items-center gap-2">
                                     <button (click)="viewUser(user)"
                                         class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                                         <!-- View icon SVG placeholder -->
-                                        <svg width="16" height="11" viewBox="0 0 16 11" fill="none"
+                                        <svg width="20" height="14" viewBox="0 0 20 14" fill="none"
                                             xmlns="http://www.w3.org/2000/svg">
                                             <path
-                                                d="M16 5.5C16 5.5 13 0 8 0C3 0 0 5.5 0 5.5C0 5.5 3 11 8 11C13 11 16 5.5 16 5.5ZM1.173 5.5C1.65578 4.76459 2.21197 4.08008 2.833 3.457C4.12 2.168 5.88 1 8 1C10.12 1 11.879 2.168 13.168 3.457C13.789 4.08008 14.3452 4.76459 14.828 5.5C14.7707 5.58667 14.7057 5.68267 14.633 5.788C14.298 6.268 13.803 6.908 13.168 7.543C11.879 8.832 10.119 10 8 10C5.881 10 4.121 8.832 2.832 7.543C2.21097 6.91992 1.65578 6.23541 1.173 5.5Z"
-                                                fill="#4B4848" />
-                                            <path
-                                                d="M8 3C7.33696 3 6.70107 3.26339 6.23223 3.73223C5.76339 4.20107 5.5 4.83696 5.5 5.5C5.5 6.16304 5.76339 6.79893 6.23223 7.26777C6.70107 7.73661 7.33696 8 8 8C8.66304 8 9.29893 7.73661 9.76777 7.26777C10.2366 6.79893 10.5 6.16304 10.5 5.5C10.5 4.83696 10.2366 4.20107 9.76777 3.73223C9.29893 3.26339 8.66304 3 8 3ZM4.5 5.5C4.5 4.57174 4.86875 3.6815 5.52513 3.02513C6.1815 2.36875 7.07174 2 8 2C8.92826 2 9.8185 2.36875 10.4749 3.02513C11.1313 3.6815 11.5 4.57174 11.5 5.5C11.5 6.42826 11.1313 7.3185 10.4749 7.97487C9.8185 8.63125 8.92826 9 8 9C7.07174 9 6.1815 8.63125 5.52513 7.97487C4.86875 7.3185 4.5 6.42826 4.5 5.5Z"
+                                                d="M9.61012 1.7473C11.2165 1.74195 12.7918 2.19005 14.1549 3.04006C15.5181 3.89006 16.6136 5.10749 17.3157 6.55236C15.8742 9.49655 12.93 11.3574 9.61012 11.3574C6.29026 11.3574 3.34607 9.49655 1.90455 6.55236C2.60663 5.10749 3.7022 3.89006 5.0653 3.04006C6.42841 2.19005 8.00372 1.74195 9.61012 1.7473ZM9.61012 0C5.24189 0 1.51141 2.71705 0 6.55236C1.51141 10.3877 5.24189 13.1047 9.61012 13.1047C13.9784 13.1047 17.7088 10.3877 19.2202 6.55236C17.7088 2.71705 13.9784 0 9.61012 0ZM9.61012 4.36824C10.1894 4.36824 10.7449 4.59835 11.1545 5.00795C11.5641 5.41755 11.7942 5.97309 11.7942 6.55236C11.7942 7.13162 11.5641 7.68716 11.1545 8.09676C10.7449 8.50637 10.1894 8.73648 9.61012 8.73648C9.03086 8.73648 8.47532 8.50637 8.06572 8.09676C7.65612 7.68716 7.426 7.13162 7.426 6.55236C7.426 5.97309 7.65612 5.41755 8.06572 5.00795C8.47532 4.59835 9.03086 4.36824 9.61012 4.36824ZM9.61012 2.62094C7.44348 2.62094 5.67871 4.38571 5.67871 6.55236C5.67871 8.71901 7.44348 10.4838 9.61012 10.4838C11.7768 10.4838 13.5415 8.71901 13.5415 6.55236C13.5415 4.38571 11.7768 2.62094 9.61012 2.62094Z"
                                                 fill="#4B4848" />
                                         </svg>
                                     </button>
@@ -175,18 +171,39 @@
 
             <!-- Pagination -->
             <div class="flex items-center justify-between p-4 border-t border-gray-100">
-                <div class="text-sm text-gray-600">
+                <div class="text-sm text-[#4B4848]">
                     Page {{ currentPage }} sur {{ totalPages }}
                 </div>
                 <div class="flex gap-2">
                     <button (click)="previousPage()" [disabled]="currentPage === 1"
-                        class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-[#4B4848] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                         Précédent
                     </button>
                     <button (click)="nextPage()" [disabled]="currentPage === totalPages"
-                        class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-[#4B4848] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                         Suivant
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+            <!-- Bar Chart - Utilisateurs par rôle -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+                <h3 class="text-lg font-semibold text-[#2C3E50] mb-4">Utilisateurs par rôle</h3>
+                <div class="h-64">
+                    <canvas baseChart [data]="barChartData" [options]="barChartOptions" type="bar">
+                    </canvas>
+                </div>
+            </div>
+
+            <!-- Doughnut Chart - Répartition des statuts -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+                <h3 class="text-lg font-semibold text-[#2C3E50] mb-4">Répartition des statuts</h3>
+                <div class="h-64">
+                    <canvas baseChart [data]="doughnutChartData" [options]="doughnutChartOptions" type="doughnut">
+                    </canvas>
                 </div>
             </div>
         </div>
@@ -198,125 +215,116 @@
                 <!-- Header -->
                 <div class="flex items-center justify-between p-6 border-b border-gray-100">
                     <h2 class="text-xl font-bold text-gray-900">Utilisateur {{ selectedUser.id }}</h2>
-                    <button (click)="closeUserModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <button (click)="closeUserModal()" class="transition-colors">
                         <!-- Close icon SVG placeholder -->
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round" />
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M12.892 0.302021C12.7995 0.209317 12.6896 0.135769 12.5686 0.085588C12.4477 0.0354065 12.318 0.00957632 12.187 0.00957632C12.0561 0.00957632 11.9264 0.0354065 11.8054 0.085588C11.6844 0.135769 11.5745 0.209317 11.482 0.302021L6.59202 5.18202L1.70202 0.29202C1.60944 0.199438 1.49953 0.125998 1.37856 0.0758934C1.2576 0.0257884 1.12795 9.75509e-10 0.997021 0C0.86609 -9.75509e-10 0.736441 0.0257884 0.615477 0.0758934C0.494513 0.125998 0.384602 0.199438 0.29202 0.29202C0.199438 0.384602 0.125998 0.494513 0.0758934 0.615477C0.0257884 0.736441 -9.75509e-10 0.86609 0 0.997021C9.75509e-10 1.12795 0.0257884 1.2576 0.0758934 1.37856C0.125998 1.49953 0.199438 1.60944 0.29202 1.70202L5.18202 6.59202L0.29202 11.482C0.199438 11.5746 0.125998 11.6845 0.0758934 11.8055C0.0257884 11.9264 0 12.0561 0 12.187C0 12.318 0.0257884 12.4476 0.0758934 12.5686C0.125998 12.6895 0.199438 12.7994 0.29202 12.892C0.384602 12.9846 0.494513 13.058 0.615477 13.1081C0.736441 13.1583 0.86609 13.184 0.997021 13.184C1.12795 13.184 1.2576 13.1583 1.37856 13.1081C1.49953 13.058 1.60944 12.9846 1.70202 12.892L6.59202 8.00202L11.482 12.892C11.5746 12.9846 11.6845 13.058 11.8055 13.1081C11.9264 13.1583 12.0561 13.184 12.187 13.184C12.318 13.184 12.4476 13.1583 12.5686 13.1081C12.6895 13.058 12.7994 12.9846 12.892 12.892C12.9846 12.7994 13.058 12.6895 13.1081 12.5686C13.1583 12.4476 13.184 12.318 13.184 12.187C13.184 12.0561 13.1583 11.9264 13.1081 11.8055C13.058 11.6845 12.9846 11.5746 12.892 11.482L8.00202 6.59202L12.892 1.70202C13.272 1.32202 13.272 0.682021 12.892 0.302021Z"
+                                fill="#545454" />
                         </svg>
                     </button>
                 </div>
-
                 <!-- Body -->
                 <div class="p-6 space-y-6">
                     <!-- User Avatar and Info -->
                     <div class="flex flex-col items-center text-center">
                         <div
-                            class="w-20 h-20 rounded-full bg-[#E6E8F0] flex items-center justify-center text-2xl font-semibold text-[#2B3674] mb-3 relative">
+                            class="w-24 h-24 rounded-full bg-[#F2F2F2] flex items-center justify-center text-4xl font-semibold text-[#4B4848] mb-6 relative">
                             {{ selectedUser.initials }}
                             <span class="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white"
                                 [class.bg-green-500]="selectedUser.status === 'Actif'"
                                 [class.bg-red-500]="selectedUser.status === 'Inactif'">
                             </span>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ selectedUser.name }}</h3>
-                        <p class="text-sm text-gray-600">{{ selectedUser.role }}</p>
+                        <h3 class="text-lg text-[#4B4848] mb-1">{{ selectedUser.name }}</h3>
+                        <p class="text-xs text-gray-600">{{ selectedUser.role }}</p>
                     </div>
 
                     <!-- User Details -->
-                    <div class="space-y-4">
+                    <div class="space-y-6">
                         <!-- Role -->
                         <div class="flex items-start gap-3">
                             <div class="w-5 h-5 mt-0.5 flex-shrink-0">
                                 <!-- Briefcase icon SVG placeholder -->
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                <svg width="14" height="12" viewBox="0 0 14 12" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">
                                     <path
-                                        d="M6.66667 5V3.33333C6.66667 2.89131 6.84226 2.46738 7.15482 2.15482C7.46738 1.84226 7.89131 1.66667 8.33333 1.66667H11.6667C12.1087 1.66667 12.5326 1.84226 12.8452 2.15482C13.1577 2.46738 13.3333 2.89131 13.3333 3.33333V5M3.33333 5H16.6667C17.5871 5 18.3333 5.74619 18.3333 6.66667V16.6667C18.3333 17.5871 17.5871 18.3333 16.6667 18.3333H3.33333C2.41286 18.3333 1.66667 17.5871 1.66667 16.6667V6.66667C1.66667 5.74619 2.41286 5 3.33333 5Z"
-                                        stroke="#A3AED0" stroke-width="1.5" stroke-linecap="round"
-                                        stroke-linejoin="round" />
+                                        d="M11.6667 2H9.33333V1.33333C9.3328 0.979874 9.19216 0.641042 8.94222 0.391109C8.69229 0.141175 8.35346 0.000529 8 0H5.33333C4.97987 0.000529 4.64104 0.141175 4.39111 0.391109C4.14117 0.641042 4.00053 0.979874 4 1.33333V2H1.66667C1.22464 2 0.800716 2.17559 0.488155 2.48816C0.175595 2.80072 0 3.22464 0 3.66667V10.3333C0 10.7754 0.175595 11.1993 0.488155 11.5118C0.800716 11.8244 1.22464 12 1.66667 12H11.6667C12.1087 12 12.5326 11.8244 12.8452 11.5118C13.1577 11.1993 13.3333 10.7754 13.3333 10.3333V3.66667C13.3333 3.22464 13.1577 2.80072 12.8452 2.48816C12.5326 2.17559 12.1087 2 11.6667 2ZM4.66667 1.33333C4.66667 1.15652 4.7369 0.986953 4.86193 0.861929C4.98695 0.736905 5.15652 0.666667 5.33333 0.666667H8C8.17681 0.666667 8.34638 0.736905 8.4714 0.861929C8.59643 0.986953 8.66667 1.15652 8.66667 1.33333V2H4.66667V1.33333ZM12.6667 10.3333C12.6667 10.5985 12.5613 10.8529 12.3738 11.0404C12.1862 11.228 11.9319 11.3333 11.6667 11.3333H1.66667C1.40145 11.3333 1.1471 11.228 0.95956 11.0404C0.772023 10.8529 0.666667 10.5985 0.666667 10.3333V6.018L4.56133 7.31667C4.59532 7.32784 4.63089 7.33347 4.66667 7.33333H8.66667C8.70244 7.33347 8.73801 7.32784 8.772 7.31667L12.6667 6.018V10.3333ZM12.6667 5.33733C12.6311 5.33612 12.5955 5.34062 12.5613 5.35067L8.61267 6.66667H4.72067L0.772 5.35C0.737827 5.33996 0.702265 5.33545 0.666667 5.33667V3.66667C0.666667 3.40145 0.772023 3.1471 0.95956 2.95956C1.1471 2.77202 1.40145 2.66667 1.66667 2.66667H11.6667C11.9319 2.66667 12.1862 2.77202 12.3738 2.95956C12.5613 3.1471 12.6667 3.40145 12.6667 3.66667V5.33733Z"
+                                        fill="#64748B" />
                                 </svg>
+
                             </div>
-                            <div class="flex-1">
+                            <div class="flex justify-between items-center w-full">
                                 <p class="text-sm text-gray-900">{{ selectedUser.role }}</p>
                                 <p class="text-xs text-gray-500">Rôle</p>
                             </div>
                         </div>
-
                         <!-- Email -->
                         <div class="flex items-start gap-3">
                             <div class="w-5 h-5 mt-0.5 flex-shrink-0">
                                 <!-- Email icon SVG placeholder -->
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                <svg width="16" height="12" viewBox="0 0 16 12" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">
                                     <path
-                                        d="M3.33333 3.33334H16.6667C17.5833 3.33334 18.3333 4.08334 18.3333 5.00001V15C18.3333 15.9167 17.5833 16.6667 16.6667 16.6667H3.33333C2.41666 16.6667 1.66666 15.9167 1.66666 15V5.00001C1.66666 4.08334 2.41666 3.33334 3.33333 3.33334Z"
-                                        stroke="#A3AED0" stroke-width="1.5" stroke-linecap="round"
-                                        stroke-linejoin="round" />
-                                    <path d="M18.3333 5L9.99999 10.8333L1.66666 5" stroke="#A3AED0" stroke-width="1.5"
-                                        stroke-linecap="round" stroke-linejoin="round" />
+                                        d="M0 2C0 1.46957 0.210714 0.960859 0.585786 0.585786C0.960859 0.210714 1.46957 0 2 0H14C14.5304 0 15.0391 0.210714 15.4142 0.585786C15.7893 0.960859 16 1.46957 16 2V10C16 10.5304 15.7893 11.0391 15.4142 11.4142C15.0391 11.7893 14.5304 12 14 12H2C1.46957 12 0.960859 11.7893 0.585786 11.4142C0.210714 11.0391 0 10.5304 0 10V2ZM2 1C1.73478 1 1.48043 1.10536 1.29289 1.29289C1.10536 1.48043 1 1.73478 1 2V2.217L8 6.417L15 2.217V2C15 1.73478 14.8946 1.48043 14.7071 1.29289C14.5196 1.10536 14.2652 1 14 1H2ZM15 3.383L10.292 6.208L15 9.105V3.383ZM14.966 10.259L9.326 6.788L8 7.583L6.674 6.788L1.034 10.258C1.09083 10.4708 1.21632 10.6589 1.39099 10.7931C1.56566 10.9272 1.77975 11 2 11H14C14.2201 11 14.4341 10.9274 14.6088 10.7934C14.7834 10.6595 14.909 10.4716 14.966 10.259ZM1 9.105L5.708 6.208L1 3.383V9.105Z"
+                                        fill="#64748B" />
                                 </svg>
+
                             </div>
                             <div class="flex-1">
                                 <p class="text-sm text-gray-900">{{ selectedUser.email }}</p>
                                 <p class="text-xs text-gray-500"></p>
                             </div>
                         </div>
-
                         <!-- Phone -->
                         <div class="flex items-start gap-3" *ngIf="selectedUser.phone">
                             <div class="w-5 h-5 mt-0.5 flex-shrink-0">
                                 <!-- Phone icon SVG placeholder -->
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">
                                     <path
-                                        d="M18.3333 14.1V16.6C18.3342 16.8321 18.2866 17.0618 18.1936 17.2745C18.1006 17.4871 17.9643 17.678 17.7933 17.8349C17.6222 17.9918 17.4203 18.1112 17.2005 18.1856C16.9806 18.26 16.7477 18.2878 16.5167 18.2667C13.9523 17.988 11.489 17.1118 9.32499 15.7084C7.31151 14.4289 5.60443 12.7218 4.32499 10.7084C2.91663 8.53438 2.04019 6.05916 1.76666 3.48337C1.74583 3.25295 1.77334 3.02069 1.84718 2.80135C1.92102 2.58201 2.03963 2.38049 2.19562 2.2096C2.35162 2.03871 2.54149 1.90219 2.75314 1.80881C2.9648 1.71543 3.19348 1.66724 3.42499 1.66671H5.92499C6.32953 1.66281 6.72148 1.80629 7.028 2.06981C7.33451 2.33332 7.53006 2.69954 7.57499 3.10004C7.65832 3.90006 7.83313 4.68874 8.09582 5.45004C8.2041 5.76001 8.22067 6.09479 8.14352 6.41382C8.06637 6.73286 7.89846 7.02305 7.65832 7.25004L6.59166 8.31671C7.77998 10.4056 9.59441 12.22 11.6833 13.4084L12.75 12.3417C12.977 12.1016 13.2672 11.9337 13.5862 11.8565C13.9052 11.7794 14.24 11.7959 14.55 11.9042C15.3113 12.1669 16.1 12.3417 16.9 12.425C17.3048 12.4706 17.6745 12.6696 17.9388 12.9814C18.2032 13.2932 18.3435 13.6914 18.3333 14.1Z"
-                                        stroke="#A3AED0" stroke-width="1.5" stroke-linecap="round"
-                                        stroke-linejoin="round" />
+                                        d="M3.65447 1.32805C3.59544 1.25211 3.52092 1.1896 3.43587 1.14468C3.35082 1.09975 3.25719 1.07343 3.16119 1.06747C3.06519 1.06151 2.96902 1.07605 2.87907 1.11012C2.78912 1.14418 2.70744 1.19699 2.63947 1.26505L1.60547 2.30005C1.12247 2.78405 0.944471 3.46905 1.15547 4.07005C2.0322 6.55716 3.45662 8.81546 5.32347 10.6781C7.18606 12.5449 9.44436 13.9693 11.9315 14.8461C12.5325 15.0571 13.2175 14.8791 13.7015 14.3961L14.7355 13.3621C14.8035 13.2941 14.8563 13.2124 14.8904 13.1225C14.9245 13.0325 14.939 12.9363 14.933 12.8403C14.9271 12.7443 14.9008 12.6507 14.8558 12.5656C14.8109 12.4806 14.7484 12.4061 14.6725 12.3471L12.3655 10.5531C12.2843 10.4903 12.1899 10.4467 12.0895 10.4255C11.989 10.4044 11.8851 10.4063 11.7855 10.4311L9.59547 10.9781C9.30313 11.0506 8.997 11.0465 8.70671 10.9661C8.41643 10.8857 8.15181 10.7317 7.93847 10.5191L5.48247 8.06205C5.26965 7.84881 5.11549 7.58424 5.0349 7.29395C4.95431 7.00366 4.95003 6.69748 5.02247 6.40505L5.57047 4.21505C5.59523 4.11544 5.59712 4.01151 5.57599 3.91106C5.55486 3.81061 5.51126 3.71625 5.44847 3.63505L3.65447 1.32805ZM1.88447 0.511051C2.05947 0.336 2.2697 0.200181 2.50121 0.112612C2.73272 0.0250429 2.98021 -0.0122724 3.22725 0.00314389C3.47429 0.0185602 3.71522 0.0863553 3.93405 0.202028C4.15288 0.3177 4.3446 0.478602 4.49647 0.674051L6.29047 2.98005C6.61947 3.40305 6.73547 3.95405 6.60547 4.47405L6.05847 6.66405C6.03039 6.77749 6.03201 6.89625 6.06319 7.00888C6.09437 7.12151 6.15405 7.2242 6.23647 7.30705L8.69347 9.76405C8.77642 9.84664 8.87928 9.90642 8.9921 9.9376C9.10492 9.96878 9.22388 9.97032 9.33747 9.94205L11.5265 9.39505C11.7831 9.33126 12.0509 9.32647 12.3096 9.38102C12.5684 9.43558 12.8114 9.54807 13.0205 9.71005L15.3265 11.5041C16.1555 12.149 16.2315 13.3741 15.4895 14.1151L14.4555 15.1491C13.7155 15.8891 12.6095 16.2141 11.5785 15.8511C8.93914 14.9236 6.54301 13.4128 4.56847 11.4311C2.58684 9.4568 1.07602 7.06102 0.148471 4.42205C-0.213529 3.39205 0.111471 2.28505 0.851471 1.54505L1.88447 0.511051Z"
+                                        fill="#64748B" />
                                 </svg>
+
                             </div>
                             <div class="flex-1">
                                 <p class="text-sm text-gray-900">{{ selectedUser.phone }}</p>
                                 <p class="text-xs text-gray-500"></p>
                             </div>
                         </div>
-
                         <!-- Date d'inscription -->
                         <div class="flex items-start gap-3">
                             <div class="w-5 h-5 mt-0.5 flex-shrink-0">
                                 <!-- Calendar icon SVG placeholder -->
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">
                                     <path
-                                        d="M15.8333 3.33334H4.16667C3.24619 3.33334 2.5 4.07954 2.5 5.00001V16.6667C2.5 17.5872 3.24619 18.3333 4.16667 18.3333H15.8333C16.7538 18.3333 17.5 17.5872 17.5 16.6667V5.00001C17.5 4.07954 16.7538 3.33334 15.8333 3.33334Z"
-                                        stroke="#A3AED0" stroke-width="1.5" stroke-linecap="round"
-                                        stroke-linejoin="round" />
-                                    <path d="M13.3333 1.66666V5" stroke="#A3AED0" stroke-width="1.5"
-                                        stroke-linecap="round" stroke-linejoin="round" />
-                                    <path d="M6.66667 1.66666V5" stroke="#A3AED0" stroke-width="1.5"
-                                        stroke-linecap="round" stroke-linejoin="round" />
-                                    <path d="M2.5 8.33334H17.5" stroke="#A3AED0" stroke-width="1.5"
-                                        stroke-linecap="round" stroke-linejoin="round" />
+                                        d="M8 7C8.13261 7 8.25979 7.05268 8.35355 7.14645C8.44732 7.24021 8.5 7.36739 8.5 7.5V9H10C10.1326 9 10.2598 9.05268 10.3536 9.14645C10.4473 9.24021 10.5 9.36739 10.5 9.5C10.5 9.63261 10.4473 9.75979 10.3536 9.85355C10.2598 9.94732 10.1326 10 10 10H8.5V11.5C8.5 11.6326 8.44732 11.7598 8.35355 11.8536C8.25979 11.9473 8.13261 12 8 12C7.86739 12 7.74021 11.9473 7.64645 11.8536C7.55268 11.7598 7.5 11.6326 7.5 11.5V10H6C5.86739 10 5.74021 9.94732 5.64645 9.85355C5.55268 9.75979 5.5 9.63261 5.5 9.5C5.5 9.36739 5.55268 9.24021 5.64645 9.14645C5.74021 9.05268 5.86739 9 6 9H7.5V7.5C7.5 7.36739 7.55268 7.24021 7.64645 7.14645C7.74021 7.05268 7.86739 7 8 7Z"
+                                        fill="#64748B" />
+                                    <path
+                                        d="M3.5 0C3.63261 0 3.75979 0.0526784 3.85355 0.146447C3.94732 0.240215 4 0.367392 4 0.5V1H12V0.5C12 0.367392 12.0527 0.240215 12.1464 0.146447C12.2402 0.0526784 12.3674 0 12.5 0C12.6326 0 12.7598 0.0526784 12.8536 0.146447C12.9473 0.240215 13 0.367392 13 0.5V1H14C14.5304 1 15.0391 1.21071 15.4142 1.58579C15.7893 1.96086 16 2.46957 16 3V14C16 14.5304 15.7893 15.0391 15.4142 15.4142C15.0391 15.7893 14.5304 16 14 16H2C1.46957 16 0.960859 15.7893 0.585786 15.4142C0.210714 15.0391 0 14.5304 0 14V3C0 2.46957 0.210714 1.96086 0.585786 1.58579C0.960859 1.21071 1.46957 1 2 1H3V0.5C3 0.367392 3.05268 0.240215 3.14645 0.146447C3.24021 0.0526784 3.36739 0 3.5 0ZM1 4V14C1 14.2652 1.10536 14.5196 1.29289 14.7071C1.48043 14.8946 1.73478 15 2 15H14C14.2652 15 14.5196 14.8946 14.7071 14.7071C14.8946 14.5196 15 14.2652 15 14V4H1Z"
+                                        fill="#64748B" />
                                 </svg>
                             </div>
-                            <div class="flex-1">
+                            <div class="flex items-center justify-between w-full">
                                 <p class="text-sm text-gray-900">{{ selectedUser.createdAt }}</p>
                                 <p class="text-xs text-gray-500">Date d'inscription</p>
                             </div>
                         </div>
 
                         <!-- Status Toggle -->
-                        <div class="flex items-center justify-between pt-2">
-                            <span class="text-sm text-gray-700">Utilisateur activé</span>
+                        <div class="flex items-center  pt-2">
                             <button (click)="toggleUserStatus(selectedUser)"
                                 class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                                 <div
-                                    [class]="'w-12 h-6 rounded-full relative transition-colors ' + (selectedUser.status === 'Actif' ? 'bg-[#FF6A3D]' : 'bg-gray-300')">
+                                    [class]="'w-6 h-3.5 rounded-full relative transition-colors ' + (selectedUser.status === 'Actif' ? 'bg-[#FF6A3D]' : 'bg-gray-300')">
                                     <div
-                                        [class]="'w-5 h-5 bg-white rounded-full absolute top-0.5 transition-all ' + (selectedUser.status === 'Actif' ? 'right-0.5' : 'left-0.5')">
+                                        [class]="'w-2.5 h-2.5 bg-white rounded-full absolute top-0.5 transition-all ' + (selectedUser.status === 'Actif' ? 'right-0.5' : 'left-0.5')">
                                     </div>
                                 </div>
                             </button>
+                            <span class="text-xs text-gray-700">Utilisateur activé</span>
                         </div>
                     </div>
                 </div>
@@ -324,11 +332,11 @@
                 <!-- Footer -->
                 <div class="flex items-center gap-3 p-6 border-t border-gray-100">
                     <button (click)="modifierUser()"
-                        class="flex-1 py-3 bg-[#2C2D5B] hover:bg-[#232447] text-white rounded-lg font-medium transition-colors text-sm">
+                        class="flex-1 py-4 bg-[#2C2D5B] hover:bg-[#232447] text-white rounded-md font-medium transition-colors">
                         Modifier
                     </button>
                     <button (click)="annulerUser()"
-                        class="flex-1 py-3 bg-[#DDE2E433] text-gray-600 hover:bg-gray-100 hover:text-gray-800 rounded-lg font-medium transition-colors text-sm">
+                        class="flex-1 py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-100 hover:text-gray-800 rounded-lg font-medium transition-colors">
                         Annuler
                     </button>
                 </div>

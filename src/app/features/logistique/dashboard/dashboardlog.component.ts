@@ -98,8 +98,8 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
 
   deliveryStatusData = [
     { status: 'Planifiée', value: 75, color: '#22C55E' },
-    { status: 'À confirmer', value: 15, color: '#FEF3C7' },
-    { status: 'Retard', value: 10, color: '#FBCFE8' }
+    { status: 'À confirmer', value: 15, color: '#FFE7C2' },
+    { status: 'Retard', value: 10, color: '#FFD3D3' }
   ];
 
   returnRateData = [
@@ -300,7 +300,7 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
         datasets: [{
           data: [75, 15, 10],
           backgroundColor: ['#22C55F', '#FFE7C2', '#FFD3D3'],
-          borderWidth: 0
+          borderWidth: 2
         }]
       },
       options: {
@@ -405,7 +405,7 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
         datasets: [{
           data: this.deliveryStatusData.map(d => d.value),
           backgroundColor: this.deliveryStatusData.map(d => d.color),
-          borderWidth: 0
+          borderWidth: 2
         }]
       },
       options: {

@@ -57,7 +57,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
   @ViewChild('couponsChart') couponsChartRef!: ElementRef<HTMLCanvasElement>;
 
   role: 'admin' = 'admin';
-  
+
   // --- Cartes KPI supérieures ---
   metricsData: MetricCard[] = [
     {
@@ -73,7 +73,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
       value: '1 041',
       delta: '↘ 3 %',
       trend: 'down',
-      icon: '/icones/utilisateurs.svg',
+      icon: '/icones/users.svg',
       iconBg: 'bg-[#FFF7ED]'
     },
     {
@@ -81,7 +81,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
       value: '1,25 Md FCFA',
       delta: '↗ 12 %',
       trend: 'up',
-      icon: '/icones/vente.svg',
+      icon: '/icones/temps.svg',
       iconBg: 'bg-[#ECFDF5]'
     }
   ];
@@ -148,7 +148,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
   private stocksEtatChart?: any;
   private couponsChart?: any;
 
-  ngOnInit(): void {}
+  ngOnInit(): void { }
 
   ngAfterViewInit(): void {
     // Le léger délai garantit que les templates sont rendus avant d’initialiser Chart.js
@@ -266,7 +266,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
           {
             data: this.paymentStatusData.map(slice => slice.value),
             backgroundColor: this.paymentStatusData.map(slice => slice.color),
-            borderWidth: 0,
+            borderWidth: 1,
             hoverOffset: 4
           }
         ]
@@ -320,19 +320,28 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
             label: 'Livrés',
             data: this.livraisonsData.map(point => point.livres),
             backgroundColor: '#22C55E',
-            barThickness: 24
+            barThickness: 24,
+            borderColor: 'white',
+            borderWidth: 1, 
+
           },
           {
             label: 'Planifiés',
             data: this.livraisonsData.map(point => point.planifies),
             backgroundColor: '#E5E7EB',
-            barThickness: 24
+            barThickness: 24,
+            borderColor: 'white',
+            borderWidth: 1,  
+
           },
           {
             label: 'Retard',
             data: this.livraisonsData.map(point => point.retard),
             backgroundColor: '#F97316',
-            barThickness: 24
+            barThickness: 24,
+            borderColor: 'white',
+            borderWidth: 1, 
+
           }
         ]
       },
@@ -381,7 +390,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
               stepSize: 20,
               color: '#6B7280',
               font: { size: 12 }
-              
+
             }
           }
         }
@@ -451,7 +460,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
         datasets: [{
           data: this.stockCategoryData.map(d => d.value),
           backgroundColor: ['#22C55F', '#FFE7C2', '#FFD3D3'],
-          borderWidth: 0
+          borderWidth: 1
         }]
       },
       options: {
@@ -498,7 +507,8 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
         datasets: [{
           data: this.couponsTrendData.map(point => point.value),
           borderColor: '#F97316',
-          tension: 0.5,
+          tension: 0.4,
+          cubicInterpolationMode: 'monotone', // ← CLÉ pour des courbes naturelles
           borderWidth: 2,
           pointRadius: 0,
           fill: false

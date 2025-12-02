@@ -1,8 +1,12 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
+import { NgChartsModule } from 'ng2-charts';
+import { ChartConfiguration } from 'chart.js';
+import { UserService, User } from '../../../shared/services/user.service';
 
 interface MetricCard {
   title: string;
@@ -10,25 +14,14 @@ interface MetricCard {
   icon: string;
 }
 
-interface User {
-  id: string;
-  name: string;
-  initials: string;
-  email: string;
-  role: string;
-  createdAt: string;
-  status: 'Actif' | 'Inactif';
-  phone?: string;
-}
-
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [MainLayoutComponent, HeaderComponent, CommonModule, FormsModule],
+  imports: [MainLayoutComponent, HeaderComponent, CommonModule, FormsModule, NgChartsModule],
   templateUrl: './users.component.html',
   styles: ``
 })
-export class UsersComponent {
+export class UsersComponent implements OnInit {
   searchText = '';
   selectedRole = 'Toutes les rôles';
   selectedStatut = 'Tous les statuts';
@@ -39,76 +32,183 @@ export class UsersComponent {
   showUserModal = false;
   selectedUser: User | null = null;
 
-  metricsData: MetricCard[] = [
-    {
-      title: 'Utilisateurs',
-      value: '06',
-      icon: '/icones/utilisateurs.svg'
-    },
-    {
-      title: 'Actifs',
-      value: '05',
-      icon: '/icones/GreenUser.svg'
-    },
-    {
-      title: 'Inactifs',
-      value: '01',
-      icon: '/icones/OrangeUser.svg'
-    }
-  ];
+  constructor(private router: Router, private userService: UserService) { }
 
-  users: User[] = [
-    {
-      id: 'US-2025-05',
-      name: 'Aminata Ndiaye',
-      initials: 'AN',
-      email: 'aminata@exemple.sn',
-      role: 'Salarié',
-      createdAt: '05/10/2025',
-      status: 'Actif',
-      phone: '70 645 87 92'
+  // Bar Chart Configuration - Utilisateurs par rôle
+  public barChartData: ChartConfiguration<'bar'>['data'] = {
+    labels: ['Salariés', 'Commerciaux', 'Livreurs', 'Admin'],
+    datasets: [
+      {
+        data: [45, 35, 25, 20],
+        backgroundColor: (ctx) => {
+          const { chart } = ctx;
+          const { ctx: c, chartArea } = chart as any;
+          if (!chartArea) {
+            return '#FF6B00';
+          }
+          const gradient = c.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+          gradient.addColorStop(0, '#FF6B00');
+          gradient.addColorStop(1, '#FF914D');
+          return gradient;
+        },
+        barThickness: 30,
+        hoverBackgroundColor: '#FF914D'
+      }
+    ]
+  };
+
+  public barChartOptions: ChartConfiguration<'bar'>['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: 'y',
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+        align: 'start',
+        labels: {
+          boxWidth: 40,
+          boxHeight: 12,
+          padding: 15,
+          font: {
+            size: 12
+          },
+          generateLabels: () => [
+            {
+              text: 'Utilisation(%)',
+              fillStyle: '#FF6B00',
+              strokeStyle: '#FF6B00',
+              lineWidth: 0
+            }
+          ]
+        }
+      },
+      tooltip: {
+        enabled: true
+      }
     },
-    {
-      id: 'US-2025-04',
-      name: 'Moussa Sarr',
-      initials: 'MS',
-      email: 'moussa@exemple.sn',
-      role: 'Commercial',
-      createdAt: '05/10/2025',
-      status: 'Actif',
-      phone: '77 123 45 67'
-    },
-    {
-      id: 'US-2025-03',
-      name: 'Fatou Diop',
-      initials: 'FD',
-      email: 'fatou@exemple.sn',
-      role: 'Livreur',
-      createdAt: '05/10/2025',
-      status: 'Actif',
-      phone: '76 987 65 43'
-    },
-    {
-      id: 'US-2025-02',
-      name: 'Ibrahima Ba',
-      initials: 'IB',
-      email: 'ibrahima@exemple.sn',
-      role: 'Salarié',
-      createdAt: '05/10/2025',
-      status: 'Actif',
-      phone: '78 456 78 90'
-    },
-    {
-      id: 'US-2025-01',
-      name: 'Lamine Sy',
-      initials: 'LS',
-      email: 'lamine@exemple.sn',
-      role: 'Administrateur',
-      createdAt: '05/10/2025',
-      status: 'Inactif',
-      phone: '77 234 56 78'
+    scales: {
+      x: {
+        beginAtZero: true,
+        max: 50,
+        ticks: {
+          stepSize: 5,
+          font: {
+            size: 10
+          }
+        },
+        grid: {
+          display: true,
+          color: '#F2F5F9'
+        }
+      },
+      y: {
+        ticks: {
+          font: {
+            size: 12
+          }
+        },
+        grid: {
+          display: true,
+          color: '#F2F5F9'
+        }
+      }
     }
-  ];
+  };
+
+  // Doughnut Chart Configuration - Répartition des statuts
+  public doughnutChartData: ChartConfiguration<'doughnut'>['data'] = {
+    labels: ['Actifs', 'Inactifs'],
+    datasets: [
+      {
+        data: [83, 17],
+        backgroundColor: ['#22C55F', '#FFD3D3'],
+        hoverBackgroundColor: ['#22C55E', '#eeb8b8ff'],
+        borderWidth: 2,
+        hoverBorderColor: '#FFFFFF'
+
+
+
+      }
+    ]
+  };
+
+  public doughnutChartOptions: ChartConfiguration<'doughnut'>['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '60%',
+    plugins: {
+      legend: {
+        display: true,
+        position: 'right',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          boxWidth: 6,
+          boxHeight: 6,
+          padding: 20,
+          font: {
+            size: 12
+          },
+          generateLabels: (chart) => {
+            const data = chart.data;
+            if (data.labels && data.datasets.length) {
+              return data.labels.map((label, i) => ({
+                text: label as string,
+                fillStyle: (data.datasets[0].backgroundColor as string[])[i],
+                strokeStyle: (data.datasets[0].backgroundColor as string[])[i],
+                lineWidth: 0,
+                hidden: false,
+                index: i
+              }));
+            }
+            return [];
+          }
+        }
+      },
+      tooltip: {
+        enabled: true,
+        callbacks: {
+          label: (context) => {
+            return `${context.label}: ${context.parsed}%`;
+          }
+        }
+      }
+    }
+  };
+
+  ngOnInit() {
+    this.userService.users$.subscribe(users => {
+      this.users = users;
+      this.updateMetrics();
+    });
+  }
+
+  updateMetrics() {
+    const actifs = this.users.filter(u => u.status === 'Actif').length;
+    const inactifs = this.users.filter(u => u.status === 'Inactif').length;
+
+    this.metricsData = [
+      {
+        title: 'Utilisateurs',
+        value: String(this.users.length).padStart(2, '0'),
+        icon: '/icones/utilisateurs.svg'
+      },
+      {
+        title: 'Actifs',
+        value: String(actifs).padStart(2, '0'),
+        icon: '/icones/GreenUser.svg'
+      },
+      {
+        title: 'Inactifs',
+        value: String(inactifs).padStart(2, '0'),
+        icon: '/icones/OrangeUser.svg'
+      }
+    ];
+  }
+
+  metricsData: MetricCard[] = [];
+  users: User[] = [];
 
   get uniqueRoles(): string[] {
     const roles = new Set(this.users.map(user => user.role));
@@ -155,16 +255,16 @@ export class UsersComponent {
 
   getStatusClass(status: string): string {
     return status === 'Actif'
-      ? 'bg-green-50 text-green-700'
-      : 'bg-red-50 text-red-700';
+      ? 'bg-[#0A97480F] text-[#0A9748]'
+      : 'bg-red-50 text-[#FF0909]';
   }
 
   getStatusDotClass(status: string): string {
-    return status === 'Actif' ? 'bg-green-500' : 'bg-red-500';
+    return status === 'Actif' ? 'bg-[#0A9748]' : 'bg-[#FF0909]';
   }
 
   nouveauUtilisateur() {
-    console.log('Nouveau utilisateur');
+    this.router.navigate(['/admin/users/add']);
   }
 
   viewUser(user: User) {

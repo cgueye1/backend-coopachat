@@ -35,7 +35,7 @@ export const routes: Routes = [
     path: 'reset-password',
     loadComponent: () => import('./features/auth/reset-password/reset-password.component').then(c => c.ResetPasswordComponent)
   },
- 
+
   //path for logistique dashboard module
   {
     path: 'log/dashboardlog',
@@ -70,6 +70,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/administrateur/users/users.component').then(c => c.UsersComponent)
   },
   {
+    path: 'admin/users/add',
+    loadComponent: () => import('./features/administrateur/add-user/add-user.component').then(c => c.AddUserComponent)
+  },
+  {
     path: 'admin/catalogue',
     loadComponent: () => import('./features/administrateur/catalogue/catalogue.component').then(c => c.CatalogueComponent)
   },
@@ -78,7 +82,7 @@ export const routes: Routes = [
     path: 'com/dashboard',
     loadComponent: () => import('./features/commercial/dashboard/dashboard.component').then(c => c.DashboardComponent)
   },
-   {
+  {
     path: 'com/propection',
     loadComponent: () => import('./features/commercial/propection/propection.component').then(c => c.ProspectionComponent)
   },
@@ -90,7 +94,7 @@ export const routes: Routes = [
     path: 'com/statistiques',
     loadComponent: () => import('./features/commercial/statistiques/statistiques.component').then(c => c.SalesStatisticsComponent)
   },
-   {
+  {
     path: 'com/promotions',
     loadComponent: () => import('./features/commercial/promotions/promotions.component').then(c => c.PromotionsManagementComponent)
   },
