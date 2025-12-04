@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AuthLayoutComponent } from '../auth-layout/auth-layout.component';
 
 // TODO: Importer le service d'inscription
 // import { AuthService } from '../services/auth.service';
@@ -9,29 +10,24 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
-  templateUrl: './register.component.html',
-  styles: [`
-    .animate-float {
-      animation: float  ease-in-out infinite;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-20px); }
-    }
-  `]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, AuthLayoutComponent],
+  templateUrl: './register.component.html'
 })
 export class RegisterComponent {
   registerForm: FormGroup;
-  
+
+  userTypes = [
+    { value: 'commercial', label: 'Commercial' },
+    { value: 'logistique', label: 'Logistique' }
+  ];
+
   // TODO: Ajouter ces propriétés pour gérer l'état de l'API
   // isLoading = false;
   // errorMessage = '';
   // successMessage = '';
 
   constructor(
-    private fb: FormBuilder, 
+    private fb: FormBuilder,
     private router: Router
     // TODO: Injecter le service d'authentification
     // private authService: AuthService
@@ -53,12 +49,12 @@ export class RegisterComponent {
   onSubmit(): void {
     if (this.registerForm.valid) {
       console.log('Form submitted:', this.registerForm.value);
-      
+
       // TODO: ============ INTÉGRATION API - DÉBUT ============
       // this.isLoading = true;
       // this.errorMessage = '';
       // this.successMessage = '';
-      
+
       // const registrationData = {
       //   userType: this.registerForm.value.userType,
       //   firstName: this.registerForm.value.firstName,
@@ -67,7 +63,7 @@ export class RegisterComponent {
       //   phone: this.registerForm.value.phone,
       //   company: this.registerForm.value.company
       // };
-      
+
       // this.authService.register(registrationData).subscribe({
       //   next: (response) => {
       //     // Succès de l'inscription
@@ -111,20 +107,20 @@ export class RegisterComponent {
       //   }
       // });
       // TODO: ============ INTÉGRATION API - FIN ============
-      
+
       // Code de simulation actuel (à supprimer après intégration API)
       setTimeout(() => {
         const email = this.registerForm.get('email')?.value;
         localStorage.setItem('verificationEmail', email);
-        
+
         this.router.navigate(['/otp-verification'], {
-          queryParams: { 
+          queryParams: {
             email: email,
             type: 'registration'
           }
         });
       }, 2000);
-      
+
     } else {
       console.log('Form is invalid');
       // Marquer tous les champs comme touchés pour afficher les erreurs

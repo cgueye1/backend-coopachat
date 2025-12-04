@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AuthLayoutComponent } from '../auth-layout/auth-layout.component';
 // TODO: Importer le service d'authentification
 // import { AuthService } from '../services/auth.service';
 // TODO: Importer Router pour la navigation après connexion
@@ -9,18 +10,9 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, AuthLayoutComponent],
   templateUrl: `login.component.html`,
-  styles: [`
-    .animate-float {
-      animation: float  ease-in-out infinite;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-20px); }
-    }
-  `]
+  styles: []
 })
 export class LoginComponent {
   loginForm: FormGroup;

@@ -1,7 +1,7 @@
 <!-- Back Type -->
 <div *ngIf="type === 'back'" class="flex items-center gap-4 mb-4 2xl:mb-8">
   <button (click)="onActionClick()"
-    class="w-12 h-12 bg-white rounded-md flex items-center justify-center transition-colors flex-shrink-0">
+    class="w-14 h-14 bg-white rounded-md flex items-center justify-center transition-colors flex-shrink-0">
     <svg width="18" height="14" viewBox="0 0 18 14" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M16.75 6.75H0.75M0.75 6.75L6.75 0.75M0.75 6.75L6.75 12.75" stroke="#2B3674" stroke-width="1.5"
         stroke-linecap="round" stroke-linejoin="round" />
@@ -9,7 +9,7 @@
   </button>
   <div class="space-y-1">
     <div *ngIf="breadcrumb" class="text-sm text-[#707EAE] mb-1">{{ breadcrumb }}</div>
-    <h1 *ngIf="title" class="text-2xl sm:text-3xl font-bold text-[#2B3674]">{{ title }}</h1>
+    <h1 *ngIf="title" class="text-2xl font-bold text-[#2B3674]">{{ title }}</h1>
   </div>
 </div>
 

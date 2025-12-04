@@ -17,12 +17,6 @@ export const routes: Routes = [
     path: 'register',
     loadComponent: () => import('./features/auth/register/register.component').then(c => c.RegisterComponent)
   },
-
-  {
-    path: 'forgot-password',
-    loadComponent: () => import('./features/auth/forgot-password/forgot-password.component').then(c => c.ForgotPasswordComponent)
-  },
-
   {
     path: 'create-password', // ✅ Route corrigée pour CreatePasswordComponent
     loadComponent: () => import('./features/auth/create-password/create-password.component').then(c => c.CreatePasswordComponent)
@@ -76,6 +70,10 @@ export const routes: Routes = [
   {
     path: 'admin/catalogue',
     loadComponent: () => import('./features/administrateur/catalogue/catalogue.component').then(c => c.CatalogueComponent)
+  },
+  {
+    path: 'admin/add-produit',
+    loadComponent: () => import('./features/administrateur/add-produit/add-produit.component').then(c => c.AddProduitComponent)
   },
   //path for commercial dashboard module
   {
