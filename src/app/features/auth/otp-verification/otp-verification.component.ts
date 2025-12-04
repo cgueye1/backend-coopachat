@@ -1,20 +1,20 @@
-import { Component, ElementRef, QueryList, ViewChildren, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthLayoutComponent } from '../auth-layout/auth-layout.component';
+import { NgOtpInputModule, NgOtpInputConfig } from 'ng-otp-input';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-otp-verification',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, AuthLayoutComponent],
+  imports: [CommonModule, AuthLayoutComponent, NgOtpInputModule],
   templateUrl: './otp-verification.component.html',
   styleUrls: ['./otp-verification.component.css']
 })
 export class OtpVerificationComponent implements OnInit {
-  @ViewChildren('otpInput') otpInputs!: QueryList<ElementRef>;
+  @ViewChild('ngOtpInput') ngOtpInputRef: any;
 
-  otpForm: FormGroup;
   maskedEmail: string = '';
   verificationType: string = 'registration';
   errorMessage: string = '';
@@ -22,21 +22,36 @@ export class OtpVerificationComponent implements OnInit {
   isInvalid: boolean = false;
   isResendDisabled: boolean = false;
   resendCountdown: number = 0;
+  otpValue: string = '';
+
+  otpConfig: NgOtpInputConfig = {
+    length: 6,
+    isPasswordInput: false,
+    disableAutoFocus: false,
+    placeholder: '',
+    allowNumbersOnly: true,
+    inputStyles: {
+      'width': '48px',
+      'height': '48px',
+      'border': '1px solid #D1D5DB',
+      'border-radius': '16px',
+      'text-align': 'center',
+      'font-size': '1.25rem',
+      'font-weight': '600',
+      'color': '#374151',
+      'outline': 'none',
+      'transition': 'all 0.2s'
+    },
+    containerStyles: {
+      'display': 'flex',
+      'gap': '16px'
+    }
+  };
 
   constructor(
-    private fb: FormBuilder,
     private router: Router,
     private route: ActivatedRoute
-  ) {
-    this.otpForm = this.fb.group({
-      digit1: ['', [Validators.required, Validators.pattern(/^\d$/)]],
-      digit2: ['', [Validators.required, Validators.pattern(/^\d$/)]],
-      digit3: ['', [Validators.required, Validators.pattern(/^\d$/)]],
-      digit4: ['', [Validators.required, Validators.pattern(/^\d$/)]],
-      digit5: ['', [Validators.required, Validators.pattern(/^\d$/)]],
-      digit6: ['', [Validators.required, Validators.pattern(/^\d$/)]]
-    });
-  }
+  ) { }
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {
@@ -61,110 +76,13 @@ export class OtpVerificationComponent implements OnInit {
   }
 
   get isCodeComplete(): boolean {
-    return this.otpForm.valid &&
-      this.otpForm.get('digit1')?.value &&
-      this.otpForm.get('digit2')?.value &&
-      this.otpForm.get('digit3')?.value &&
-      this.otpForm.get('digit4')?.value &&
-      this.otpForm.get('digit5')?.value &&
-      this.otpForm.get('digit6')?.value;
+    return this.otpValue.length === 6;
   }
 
-  onDigitInput(event: any, index: number): void {
-    const value = event.target.value;
-
-    // Only allow digits
-    if (!/^\d$/.test(value) && value !== '') {
-      event.target.value = '';
-      const digitControlName = `digit${index + 1}`;
-      this.otpForm.get(digitControlName)?.setValue('');
-      return;
-    }
-
+  onOtpChange(otp: string): void {
+    this.otpValue = otp;
     this.errorMessage = '';
     this.isInvalid = false;
-
-    // Move to next input if value is entered
-    if (value && index < 5) {
-      const nextInput = this.otpInputs.toArray()[index + 1];
-      if (nextInput) {
-        nextInput.nativeElement.focus();
-      }
-    }
-  }
-
-  onKeyDown(event: KeyboardEvent, index: number): void {
-    const digitControlName = `digit${index + 1}`;
-
-    // Handle backspace
-    if (event.key === 'Backspace') {
-      if (!this.otpForm.get(digitControlName)?.value) {
-        // Move to previous input if current is empty
-        if (index > 0) {
-          const prevInput = this.otpInputs.toArray()[index - 1];
-          if (prevInput) {
-            prevInput.nativeElement.focus();
-          }
-        }
-      } else {
-        // Clear current input
-        this.otpForm.get(digitControlName)?.setValue('');
-      }
-    }
-
-    // Handle arrow keys
-    if (event.key === 'ArrowLeft' && index > 0) {
-      const prevInput = this.otpInputs.toArray()[index - 1];
-      if (prevInput) {
-        prevInput.nativeElement.focus();
-      }
-    }
-
-    if (event.key === 'ArrowRight' && index < 5) {
-      const nextInput = this.otpInputs.toArray()[index + 1];
-      if (nextInput) {
-        nextInput.nativeElement.focus();
-      }
-    }
-  }
-
-  onPaste(event: ClipboardEvent, index: number): void {
-    event.preventDefault();
-    const pastedData = event.clipboardData?.getData('text') || '';
-
-    if (/^\d{6}$/.test(pastedData)) {
-      // Valid 6-digit code
-      for (let i = 0; i < 6; i++) {
-        const digitControlName = `digit${i + 1}`;
-        this.otpForm.get(digitControlName)?.setValue(pastedData[i]);
-
-        const input = this.otpInputs.toArray()[i];
-        if (input) {
-          input.nativeElement.value = pastedData[i];
-        }
-      }
-
-      // Focus on last input
-      const lastInput = this.otpInputs.toArray()[5];
-      if (lastInput) {
-        lastInput.nativeElement.focus();
-      }
-    }
-  }
-
-  onFocus(event: FocusEvent, index: number): void {
-    // Select all text when input is focused
-    const input = event.target as HTMLInputElement;
-    input.select();
-  }
-
-  getOtpCode(): string {
-    return (this.otpForm.get('digit1')?.value || '') +
-      (this.otpForm.get('digit2')?.value || '') +
-      (this.otpForm.get('digit3')?.value || '') +
-      (this.otpForm.get('digit4')?.value || '') +
-      (this.otpForm.get('digit5')?.value || '') +
-      (this.otpForm.get('digit6')?.value || '');
   }
 
   onSubmit(): void {
@@ -172,31 +90,58 @@ export class OtpVerificationComponent implements OnInit {
       this.isLoading = true;
       this.errorMessage = '';
 
-      const otpCode = this.getOtpCode();
-
       // Simulate API call
       setTimeout(() => {
         this.isLoading = false;
 
         // Simulate validation (replace with actual API call)
-        if (otpCode === '123456') {
-          // Success - redirect based on verification type
-          if (this.verificationType === 'registration') {
-            this.router.navigate(['/create-password']);
-          } else {
-            this.router.navigate(['/reset-password']);
-          }
+        if (this.otpValue === '123456') {
+          // Success - show message then redirect
+          this.showSuccessMessage();
         } else {
           // Error
           this.errorMessage = 'Code de vérification incorrect. Veuillez réessayer.';
           this.isInvalid = true;
 
-          // Clear inputs and focus first one
-          this.otpForm.reset();
-          this.otpInputs.first.nativeElement.focus();
+          // Clear OTP input
+          if (this.ngOtpInputRef) {
+            this.ngOtpInputRef.setValue('');
+          }
+          this.otpValue = '';
         }
       }, 2000);
     }
+  }
+
+  showSuccessMessage(): void {
+    Swal.fire({
+      title: 'Vérification réussie',
+      html: '<p style="color: #231F20; font-size: 18px; margin: 0;">Votre adresse email a été confirmée avec succès</p>',
+      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showConfirmButton: false,
+      timer: 1500,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-xl p-6',
+        title: 'text-2xl font-semibold text-[#231F20]',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px',
+      showClass: {
+        popup: 'animate__animated animate__fadeIn animate__faster'
+      },
+      hideClass: {
+        popup: 'animate__animated animate__fadeOut animate__faster'
+      }
+    }).then(() => {
+      // Redirect based on verification type
+      if (this.verificationType === 'registration') {
+        this.router.navigate(['/create-password']);
+      } else {
+        this.router.navigate(['/reset-password']);
+      }
+    });
   }
 
   resendCode(): void {

@@ -1,8 +1,28 @@
-.animate-float {
-      animation: float  ease-in-out infinite;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-20px); }
-    }
+/* Styles pour ng-otp-input - géré ici avec ::ng-deep */
+::ng-deep .otp-input {
+    width: 56px !important;
+    height: 56px !important;
+    border: none !important;
+    border-radius: 16px !important;
+    text-align: center !important;
+    font-size: 1.125rem !important;
+    font-weight: 500 !important;
+    color: #212121 !important;
+    outline: none !important;
+    transition: all 0.2s !important;
+    background-color: #FFFFFF !important;
+}
+
+::ng-deep .otp-input:focus {
+    background-color: #FF6B000D !important;
+    box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.3) !important;
+}
+
+::ng-deep .otp-input:not(:placeholder-shown) {
+    background-color: #FFFFFF !important;
+}
+
+::ng-deep .ng-otp-input-wrapper {
+    display: flex !important;
+    gap: 16px !important;
+}
