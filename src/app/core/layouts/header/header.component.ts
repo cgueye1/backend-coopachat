@@ -14,10 +14,47 @@ export class HeaderComponent {
   @Input() title: string = '';
   @Input() breadcrumb: string = '';
   @Input() buttonLabel = '';
+  @Input() showSupplierFilter: boolean = true;
 
   @Output() actionClick = new EventEmitter<void>();
 
+  // Dropdown states
+  isPeriodDropdownOpen = false;
+  isSupplierDropdownOpen = false;
+
+  // Selected values
+  selectedPeriod = 'Cette année';
+  selectedSupplier = 'Tous';
+
+  periodOptions = ['Cette année', 'Ce mois', 'Cette semaine'];
+  supplierOptions = ['Tous', 'Fournisseur 1', 'Fournisseur 2'];
+
   onActionClick() {
     this.actionClick.emit();
+  }
+
+  togglePeriodDropdown() {
+    this.isPeriodDropdownOpen = !this.isPeriodDropdownOpen;
+    this.isSupplierDropdownOpen = false;
+  }
+
+  toggleSupplierDropdown() {
+    this.isSupplierDropdownOpen = !this.isSupplierDropdownOpen;
+    this.isPeriodDropdownOpen = false;
+  }
+
+  selectPeriod(period: string) {
+    this.selectedPeriod = period;
+    this.isPeriodDropdownOpen = false;
+  }
+
+  selectSupplier(supplier: string) {
+    this.selectedSupplier = supplier;
+    this.isSupplierDropdownOpen = false;
+  }
+
+  closeDropdowns() {
+    this.isPeriodDropdownOpen = false;
+    this.isSupplierDropdownOpen = false;
   }
 }

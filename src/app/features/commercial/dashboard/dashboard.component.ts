@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
+import { HeaderComponent } from '../../../core/layouts/header/header.component';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -8,7 +9,8 @@ Chart.register(...registerables);
 interface MetricCard {
   title: string;
   value: string;
-  change: string;
+  changePrimary: string; // Partie 1: chiffre, actives, etc.
+  changeSecondary: string; // Partie 2: description
   changeType: 'positive' | 'negative';
   icon: string;
 }
@@ -32,14 +34,14 @@ interface PartnerCompany {
 @Component({
   selector: 'app-commercial-dashboard',
   standalone: true,
-  imports: [CommonModule, MainLayoutComponent],
+  imports: [CommonModule, MainLayoutComponent, HeaderComponent],
   templateUrl: 'dashboard.component.html',
   styleUrls: ['dashboard.component.css']
 })
 
 export class DashboardComponent implements AfterViewInit {
   @ViewChild('salesChart', { static: false }) salesChartRef!: ElementRef<HTMLCanvasElement>;
-  
+
   role: 'com' = 'com';
   private salesChart?: Chart;
 
@@ -47,28 +49,32 @@ export class DashboardComponent implements AfterViewInit {
     {
       title: 'Entreprises',
       value: '24',
-      change: '+2 Partenaires actifs',
+      changePrimary: '+2',
+      changeSecondary: 'Partenaires actifs',
       changeType: 'positive',
       icon: 'icones/entreprise.svg'
     },
     {
       title: 'Salariés',
       value: '458',
-      change: '+15 Inscrits ce mois',
+      changePrimary: '+15',
+      changeSecondary: 'Inscrits ce mois',
       changeType: 'positive',
       icon: 'icones/salaries2.svg'
     },
     {
       title: 'Ventes',
       value: '18,250€',
-      change: '+12% Ce mois',
+      changePrimary: '+12%',
+      changeSecondary: 'Ce mois',
       changeType: 'positive',
       icon: 'icones/vente.svg'
     },
     {
       title: 'Promotions',
       value: '3',
-      change: 'Actives En cours',
+      changePrimary: 'Actives',
+      changeSecondary: 'En cours',
       changeType: 'positive',
       icon: 'icones/promo.svg'
     }
@@ -138,7 +144,7 @@ export class DashboardComponent implements AfterViewInit {
     if (!ctx) return;
 
     // Données identiques à la capture d'écran
-    const data = [4000, 3000, 5000, 3500, 4500, 4200, 5500];
+    const data = [4000, 3000, 5000, 2900, 1700, 2600, 3500];
     const labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Juil'];
 
     this.salesChart = new Chart(ctx, {
@@ -147,13 +153,13 @@ export class DashboardComponent implements AfterViewInit {
         labels: labels,
         datasets: [{
           data: data,
-          borderColor: '#09090aff',
+          borderColor: '#2C2D5B',
           backgroundColor: 'transparent',
           borderWidth: 1,
           pointBackgroundColor: '#ffffffff',
-          pointBorderColor: '#000000ff',
+          pointBorderColor: '#2C2D5B',
           pointBorderWidth: 1,
-          pointRadius: 5,
+          pointRadius: 3,
           tension: 0.4,
           fill: false
         }]
@@ -177,7 +183,7 @@ export class DashboardComponent implements AfterViewInit {
             borderWidth: 1,
             displayColors: false,
             callbacks: {
-              label: function(context) {
+              label: function (context) {
                 return context.parsed.y.toLocaleString() + '€';
               }
             }
@@ -187,9 +193,9 @@ export class DashboardComponent implements AfterViewInit {
           x: {
             grid: {
               display: true,
-              color: '#d1d5db',
+              color: '#CCCCCC',
               drawBorder: true,
-              borderDash: [2, 8],
+              borderDash: [2, 4],
               borderDashOffset: 2
             },
             ticks: {
@@ -205,19 +211,19 @@ export class DashboardComponent implements AfterViewInit {
             max: 6000,
             grid: {
               display: true,
-              color: '#d1d5db',
+              color: '#CCCCCC',
               drawBorder: true,
-              borderDash: [2, 8],
+              borderDash: [2, 4],
               borderDashOffset: 2
             },
             ticks: {
-              color: '#6b7280',
+              color: '#666666',
               font: {
                 size: 11
               },
               padding: 8,
               stepSize: 1500,
-              callback: function(value) {
+              callback: function (value) {
                 return value.toLocaleString();
               }
             }
@@ -243,11 +249,17 @@ export class DashboardComponent implements AfterViewInit {
 
   getStatusClass(color: string): string {
     const classes = {
-      'yellow': 'bg-yellow-100 text-yellow-800',
-      'blue': 'bg-blue-100 text-blue-800',
-      'green': 'bg-green-100 text-green-800'
+      'yellow': 'bg-[#FEF9C3] text-[#854D0E]',
+      'blue': 'bg-[#DBEAFE] text-[#1E40AF]',
+      'green': 'bg-[#DCFCE7] text-[#166534]'
     };
     return classes[color as keyof typeof classes] || 'bg-gray-100 text-gray-800';
+  }
+
+  getCompanyStatusClass(status: 'Active' | 'En attente'): string {
+    return status === 'Active'
+      ? 'bg-[#DCFCE7] text-[#166534]'
+      : 'bg-[#FEF9C3] text-[#854D0E]';
   }
 
   ngOnDestroy() {
