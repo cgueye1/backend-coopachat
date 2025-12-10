@@ -15,6 +15,7 @@ export class HeaderComponent {
   @Input() breadcrumb: string = '';
   @Input() buttonLabel = '';
   @Input() showSupplierFilter: boolean = true;
+  @Input() supplierLabel: string = 'Fournisseurs';
 
   @Output() actionClick = new EventEmitter<void>();
 

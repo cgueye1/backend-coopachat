@@ -1,8 +1,18 @@
-import { Component } from '@angular/core';
+import { Component, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
+import { HeaderComponent } from '../../../core/layouts/header/header.component';
 import { CouponModalComponent, CouponFormData } from '../../../shared/components/coupon-modal/coupon-modal.component';
+import { ProductService, Product } from '../../../shared/services/product.service';
+import Swal from 'sweetalert2';
+
+interface StatCard {
+  title: string;
+  value: string | number;
+  icon: string;
+  method?: string;
+}
 
 interface Promotion {
   id: number;
@@ -14,13 +24,14 @@ interface Promotion {
   statut: 'Actif' | 'Expiré' | 'Planifié';
   utilisations: number;
   montantGenere: string;
+  produitsIds?: string[];
 }
 
 @Component({
   selector: 'app-promotions',
   standalone: true,
-  imports: [CommonModule, FormsModule, MainLayoutComponent, CouponModalComponent],
-  templateUrl:'promotions.component.html',
+  imports: [CommonModule, FormsModule, MainLayoutComponent, HeaderComponent, CouponModalComponent],
+  templateUrl: 'promotions.component.html',
 })
 export class PromotionsManagementComponent {
 
@@ -34,6 +45,41 @@ export class PromotionsManagementComponent {
   isModalOpen: boolean = false;
   isSubmitting: boolean = false;
 
+  // Propriétés pour le dropdown de statut
+  showStatusDropdown: boolean = false;
+
+  // Propriétés pour le modal de détails
+  showDetailModal: boolean = false;
+  selectedPromotion: Promotion | null = null;
+  allProducts: Product[] = [];
+
+  statsCards: StatCard[] = [
+    {
+      title: 'Promotions actives',
+      value: 0,
+      icon: '/icones/label.svg',
+      method: 'getActivePromotions'
+    },
+    {
+      title: 'Utilisations totales',
+      value: 0,
+      icon: '/icones/cart.svg',
+      method: 'getTotalUtilisations'
+    },
+    {
+      title: 'Montant généré',
+      value: '',
+      icon: '/icones/money-filled.svg',
+      method: 'getTotalMontant'
+    },
+    {
+      title: 'Panier moyen',
+      value: '',
+      icon: '/icones/money-filled-orange.svg',
+      method: 'getPanierMoyen'
+    }
+  ];
+
   promotions: Promotion[] = [
     {
       id: 1,
@@ -44,18 +90,20 @@ export class PromotionsManagementComponent {
       icon: "/icones/actif.svg",
       statut: 'Actif',
       utilisations: 124,
-      montantGenere: '8 700 €'
+      montantGenere: '8 700 Fcfa',
+      produitsIds: ['1', '2', '3', '4']
     },
     {
       id: 2,
       nom: 'Été 2023',
       reduction: '5%',
-      produits: 'Catégorie Électroménager',
+      produits: 'Électroménager',
       validite: '15/06/2023 - 31/07/2023',
       icon: "/icones/inactif.svg",
       statut: 'Expiré',
       utilisations: 215,
-      montantGenere: '15 000 €'
+      montantGenere: '15 000 Fcfa',
+      produitsIds: ['2', '3']
     },
     {
       id: 3,
@@ -66,7 +114,8 @@ export class PromotionsManagementComponent {
       icon: "/icones/inactif.svg",
       statut: 'Expiré',
       utilisations: 45,
-      montantGenere: '3 200 €'
+      montantGenere: '3 200 Fcfa',
+      produitsIds: ['1', '4']
     },
     {
       id: 4,
@@ -77,14 +126,24 @@ export class PromotionsManagementComponent {
       icon: "/icones/attente.svg",
       statut: 'Planifié',
       utilisations: 0,
-      montantGenere: '- €'
+      montantGenere: '- Fcfa',
+      produitsIds: ['1', '2', '3', '4', '5']
     }
   ];
 
   filteredPromotions: Promotion[] = [...this.promotions];
 
-  constructor() {
+  constructor(private productService: ProductService) {
+    this.allProducts = this.productService.getProducts();
     this.filterPromotions();
+    this.updateStatsCards();
+  }
+
+  updateStatsCards(): void {
+    this.statsCards[0].value = this.getActivePromotions();
+    this.statsCards[1].value = this.getTotalUtilisations();
+    this.statsCards[2].value = this.getTotalMontant();
+    this.statsCards[3].value = this.getPanierMoyen();
   }
 
   // Méthodes pour le modal
@@ -113,7 +172,7 @@ export class PromotionsManagementComponent {
         icon: '/icones/attente.svg',
         statut: 'Planifié',
         utilisations: 0,
-        montantGenere: '- €'
+        montantGenere: '- Fcfa'
       };
 
       // Ajouter la nouvelle promotion
@@ -124,8 +183,8 @@ export class PromotionsManagementComponent {
       this.isSubmitting = false;
       this.closeCouponModal();
 
-      // Optionnel : afficher un message de succès
-      alert('Coupon créé avec succès !');
+      // Afficher un message de succès
+      this.showCreateSuccessMessage();
     }, 2000);
   }
 
@@ -138,17 +197,31 @@ export class PromotionsManagementComponent {
   }
 
   getTotalMontant(): string {
-    const total = this.promotions
-      .filter(promo => promo.montantGenere !== '- €')
-      .reduce((sum, promo) => {
-        const amount = parseInt(promo.montantGenere.replace(/[^\d]/g, ''));
-        return sum + amount;
-      }, 0);
-    return `${total.toLocaleString()} €`;
+    return '451 090 F';
   }
 
   getPanierMoyen(): string {
-    return '72 €';
+    return '23 000 F';
+  }
+
+  toggleStatusDropdown(): void {
+    this.showStatusDropdown = !this.showStatusDropdown;
+  }
+
+  selectStatus(status: string): void {
+    this.selectedStatusFilter = status;
+    this.showStatusDropdown = false;
+    this.filterPromotions();
+    this.currentPage = 1;
+  }
+
+  getSelectedStatusLabel(): string {
+    return this.selectedStatusFilter || 'Tous les statuts';
+  }
+
+  get availableStatuses(): string[] {
+    const statuses = new Set(this.promotions.map(p => p.statut));
+    return Array.from(statuses);
   }
 
   filterPromotions(): void {
@@ -181,30 +254,249 @@ export class PromotionsManagementComponent {
   }
 
   viewDetails(id: number): void {
-    console.log('Afficher les détails de la promotion:', id);
-    // Ici vous pouvez implémenter la navigation vers les détails
+    const promotion = this.promotions.find(p => p.id === id);
+    if (promotion) {
+      this.selectedPromotion = promotion;
+      this.showDetailModal = true;
+    }
   }
+
+  closeDetailModal(): void {
+    this.showDetailModal = false;
+    this.selectedPromotion = null;
+  }
+
+  toggleProductSelection(productId: string): void {
+    if (!this.selectedPromotion) return;
+
+    if (!this.selectedPromotion.produitsIds) {
+      this.selectedPromotion.produitsIds = [];
+    }
+
+    const index = this.selectedPromotion.produitsIds.indexOf(productId);
+    if (index > -1) {
+      this.selectedPromotion.produitsIds.splice(index, 1);
+    } else {
+      this.selectedPromotion.produitsIds.push(productId);
+    }
+  }
+
+  isProductSelected(productId: string): boolean {
+    return this.selectedPromotion?.produitsIds?.includes(productId) || false;
+  }
+
+  getPromotionProducts(): Product[] {
+    if (!this.selectedPromotion?.produitsIds) return [];
+    return this.allProducts.filter(p => this.selectedPromotion!.produitsIds!.includes(p.id));
+  }
+
+  modifierCoupon(): void {
+    console.log('Modifier coupon:', this.selectedPromotion);
+    this.closeDetailModal();
+  }
+
+  toggleCouponStatus(action: 'activer' | 'desactiver'): void {
+    if (!this.selectedPromotion) return;
+
+    if (action === 'activer') {
+      this.activateCoupon(this.selectedPromotion);
+    } else {
+      this.deactivateCoupon(this.selectedPromotion);
+    }
+  }
+
+  // Expose String constructor for template
+  String = String;
 
   // Et ajouter cette méthode dans la classe du composant :
   togglePromotionStatus(promotionId: number, action: 'activer' | 'desactiver'): void {
     const promotion = this.promotions.find(p => p.id === promotionId);
     if (promotion) {
       if (action === 'activer') {
+        this.activateCoupon(promotion);
+      } else if (action === 'desactiver') {
+        this.deactivateCoupon(promotion);
+      }
+    }
+  }
+
+  activateCoupon(promotion: Promotion): void {
+    Swal.fire({
+      title: 'Activer ce coupon',
+      text: 'Lorem ipsum has been the industry\'s standard dummy text ever since the 1500',
+      iconHtml: `<img src="/icones/alerte.svg" alt="alert" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showCancelButton: true,
+      confirmButtonText: 'Activer',
+      cancelButtonText: 'Annuler',
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-2xl font-medium text-gray-900',
+        htmlContainer: 'text-lg text-gray-600',
+        confirmButton: 'bg-[#22C55E] hover:bg-[#16A34A] text-white px-8 py-3 rounded-lg font-medium text-base shadow-none border-none',
+        cancelButton: 'bg-[#F3F4F6] hover:bg-gray-200 text-gray-700 px-8 py-3 rounded-lg font-medium text-base shadow-none border-none',
+        actions: 'flex justify-center w-full gap-2',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px',
+      showClass: {
+        popup: 'animate__animated animate__fadeIn animate__faster'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
         promotion.statut = 'Actif';
         promotion.icon = '/icones/actif.svg';
-        console.log(`Promotion "${promotion.nom}" activée`);
-      } else if (action === 'desactiver') {
+        this.filterPromotions();
+        this.updateStatsCards();
+        this.showActivateSuccessMessage();
+      }
+    });
+  }
+
+  deactivateCoupon(promotion: Promotion): void {
+    Swal.fire({
+      title: 'Désactiver ce coupon',
+      text: 'Lorem ipsum has been the industry\'s standard dummy text ever since the 1500',
+      iconHtml: `<img src="/icones/alerte.svg" alt="alert" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showCancelButton: true,
+      confirmButtonText: 'Désactiver',
+      cancelButtonText: 'Annuler',
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-2xl font-medium text-gray-900',
+        htmlContainer: 'text-lg text-gray-600',
+        confirmButton: 'bg-[#EF4444] hover:bg-[#DC2626] text-white px-8 py-3 rounded-lg font-medium text-base shadow-none border-none',
+        cancelButton: 'bg-[#F3F4F6] hover:bg-gray-200 text-gray-700 px-8 py-3 rounded-lg font-medium text-base shadow-none border-none',
+        actions: 'flex justify-center w-full gap-2',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px',
+      showClass: {
+        popup: 'animate__animated animate__fadeIn animate__faster'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
         promotion.statut = 'Planifié';
         promotion.icon = '/icones/attente.svg';
-        console.log(`Promotion "${promotion.nom}" désactivée`);
+        this.filterPromotions();
+        this.updateStatsCards();
+        this.showDeactivateSuccessMessage();
       }
+    });
+  }
 
-      // Rafraîchir les promotions filtrées
-      this.filterPromotions();
+  showDeactivateSuccessMessage(): void {
+    Swal.fire({
+      title: 'Coupon désactivé',
+      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showConfirmButton: false,
+      timer: 1500,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-xl font-medium text-gray-900',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px',
+      showClass: {
+        popup: 'animate__animated animate__fadeIn animate__faster'
+      },
+      hideClass: {
+        popup: 'animate__animated animate__fadeOut animate__faster'
+      }
+    });
+  }
 
-      // Optionnel : afficher un message de confirmation
-      const actionText = action === 'activer' ? 'activée' : 'désactivée';
-      alert(`Promotion "${promotion.nom}" ${actionText} avec succès !`);
+  showActivateSuccessMessage(): void {
+    Swal.fire({
+      title: 'Coupon activé',
+      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showConfirmButton: false,
+      timer: 1500,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-xl font-medium text-gray-900',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px',
+      showClass: {
+        popup: 'animate__animated animate__fadeIn animate__faster'
+      },
+      hideClass: {
+        popup: 'animate__animated animate__fadeOut animate__faster'
+      }
+    });
+  }
+
+  showCreateSuccessMessage(): void {
+    Swal.fire({
+      title: 'Coupon créé avec succès',
+      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showConfirmButton: false,
+      timer: 1500,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-xl font-medium text-gray-900',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px',
+      showClass: {
+        popup: 'animate__animated animate__fadeIn animate__faster'
+      },
+      hideClass: {
+        popup: 'animate__animated animate__fadeOut animate__faster'
+      }
+    });
+  }
+
+  getStatusClass(status: string): string {
+    switch (status) {
+      case 'Actif':
+        return 'bg-[#0A97480F] text-[#0A9748]';
+      case 'Expiré':
+        return 'bg-[#F2F2F2] text-[#2C3E50]';
+      case 'Planifié':
+        return 'bg-[#1E40AF0F] text-[#1E40AF]';
+      default:
+        return 'bg-gray-50 text-gray-600';
+    }
+  }
+
+  getStatusDotClass(status: string): string {
+    switch (status) {
+      case 'Actif':
+        return 'bg-[#0A9748]';
+      case 'Expiré':
+        return 'bg-[#2C3E50]';
+      case 'Planifié':
+        return 'bg-[#1E40AF]';
+      default:
+        return 'bg-gray-400';
+    }
+  }
+
+  getCurrentPagePromotions(): Promotion[] {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    return this.filteredPromotions.slice(startIndex, endIndex);
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredPromotions.length / this.itemsPerPage));
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (this.showStatusDropdown) {
+      this.showStatusDropdown = false;
     }
   }
 }

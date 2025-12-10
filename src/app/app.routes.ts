@@ -97,10 +97,6 @@ export const routes: Routes = [
     loadComponent: () => import('./features/commercial/promotions/promotions.component').then(c => c.PromotionsManagementComponent)
   },
   {
-    path: 'ui/input',
-    loadComponent: () => import('./shared/ui/input/input.component').then(c => c.InputComponent)
-  },
-  {
     path: '**',
     redirectTo: '/login'
   }
