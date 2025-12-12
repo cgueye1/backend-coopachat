@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
+import { ProductService, Product } from '../../../shared/services/product.service';
 
 interface MetricCard {
   title: string;
@@ -16,6 +17,9 @@ interface Commande {
   date: string;
   produits: string;
   statut: 'En cours' | 'Livrée' | 'En attente' | 'Annulée';
+  datePrevue?: string;
+  note?: string;
+  produitsDetails?: { productId: string; quantity: number }[];
 }
 
 @Component({
@@ -26,6 +30,10 @@ interface Commande {
   styles: []
 })
 export class FournisseurComponent {
+  constructor(private productService: ProductService) {
+    this.allProducts = this.productService.getProducts();
+  }
+
   metricsData: MetricCard[] = [
     {
       title: 'Total commandes',
@@ -55,6 +63,9 @@ export class FournisseurComponent {
   showFournisseurDropdown = false;
   showStatutDropdown = false;
   showModal = false;
+  showDetailModal = false;
+  selectedCommande: Commande | null = null;
+  allProducts: Product[] = [];
   newCommande: any = {
     fournisseur: '',
     produit: '',
@@ -135,28 +146,52 @@ export class FournisseurComponent {
       fournisseur: 'Fourniture Express',
       date: '03/10/2025',
       produits: 'Riz (100), Huile (50)',
-      statut: 'En cours'
+      statut: 'En cours',
+      datePrevue: '03/10/2025',
+      note: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+      produitsDetails: [
+        { productId: '1', quantity: 25 },
+        { productId: '4', quantity: 30 }
+      ]
     },
     {
       reference: 'CMD-0011',
       fournisseur: 'Stock Pro',
       date: '03/10/2025',
       produits: 'Sucre (80), Sel (40)',
-      statut: 'Livrée'
+      statut: 'Livrée',
+      datePrevue: '03/10/2025',
+      note: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+      produitsDetails: [
+        { productId: '2', quantity: 15 },
+        { productId: '3', quantity: 20 }
+      ]
     },
     {
       reference: 'CMD-0010',
       fournisseur: 'Stock Pro',
       date: '03/10/2025',
       produits: 'Sucre (80), Sel (40)',
-      statut: 'En attente'
+      statut: 'En attente',
+      datePrevue: '03/10/2025',
+      note: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+      produitsDetails: [
+        { productId: '1', quantity: 10 },
+        { productId: '2', quantity: 12 }
+      ]
     },
     {
       reference: 'CMD-0009',
       fournisseur: 'Stock Pro',
       date: '03/10/2025',
       produits: 'Sucre (80), Sel (40)',
-      statut: 'Annulée'
+      statut: 'Annulée',
+      datePrevue: '03/10/2025',
+      note: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+      produitsDetails: [
+        { productId: '3', quantity: 8 },
+        { productId: '4', quantity: 15 }
+      ]
     }
   ];
 
@@ -165,7 +200,7 @@ export class FournisseurComponent {
 
   getStatusClass(status: string): string {
     switch (status) {
-      case 'En attente': return 'bg-gray-100 text-gray-600';
+      case 'En attente': return 'bg-[#F2F2F2] text-[#2C3E50]';
       case 'Livrée': return 'bg-[#0A97480F] text-[#0A9748]';
       case 'En cours': return 'bg-[#EAB3080F] text-[#EAB308]';
       case 'Annulée': return 'bg-[#FF09090F] text-[#FF0909]';
@@ -175,7 +210,7 @@ export class FournisseurComponent {
 
   getStatusDotClass(status: string): string {
     switch (status) {
-      case 'En attente': return 'bg-gray-500';
+      case 'En attente': return 'bg-[#2C3E50]';
       case 'Livrée': return 'bg-[#0A9748]';
       case 'En cours': return 'bg-[#EAB308]';
       case 'Annulée': return 'bg-[#FF0909]';
@@ -184,7 +219,39 @@ export class FournisseurComponent {
   }
 
   viewCommande(reference: string): void {
-    console.log('Voir commande:', reference);
+    const commande = this.commandes.find(c => c.reference === reference);
+    if (commande) {
+      this.selectedCommande = commande;
+      this.showDetailModal = true;
+    }
+  }
+
+  closeDetailModal(): void {
+    this.showDetailModal = false;
+    this.selectedCommande = null;
+  }
+
+  getCommandeProducts(): Product[] {
+    if (!this.selectedCommande?.produitsDetails) return [];
+    return this.allProducts.filter(p =>
+      this.selectedCommande!.produitsDetails!.some(pd => pd.productId === p.id)
+    );
+  }
+
+  getProductQuantity(productId: string): number {
+    if (!this.selectedCommande?.produitsDetails) return 0;
+    const detail = this.selectedCommande.produitsDetails.find(pd => pd.productId === productId);
+    return detail?.quantity || 0;
+  }
+
+  modifierCommande(): void {
+    console.log('Modifier commande:', this.selectedCommande);
+    this.closeDetailModal();
+  }
+
+  annulerCommande(): void {
+    console.log('Annuler commande:', this.selectedCommande);
+    this.closeDetailModal();
   }
 
   editCommande(reference: string): void {

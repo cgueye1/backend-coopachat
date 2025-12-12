@@ -18,6 +18,7 @@ interface Retour {
     name: string;
     reference: string;
     icon: string;
+    category: string;
   };
   client: string;
   quantity: number;
@@ -42,11 +43,20 @@ export class GestionRetoursComponent {
   totalPages: number = 6;
 
   // Modal Logic
+  showDetailModal: boolean = false;
+  selectedDetailRetour: Retour | null = null;
   showValidationModal: boolean = false;
   selectedRetour: Retour | null = null;
   validationOption: string = 'reintegrer';
+  validationOptions = [
+    { value: 'reintegrer', label: 'Réintégrer au stock' },
+    { value: 'rembourser', label: 'Rembourser le stock' }
+  ];
   showRefundModal: boolean = false;
   refundAmount: number | null = null;
+  showRejectModal: boolean = false;
+  rejectReason: string = '';
+  selectedRetourToReject: Retour | null = null;
 
   metricsData: Metric[] = [
     { title: 'Total', value: '03', icon: 'box-blue', },
@@ -59,7 +69,7 @@ export class GestionRetoursComponent {
   retours: Retour[] = [
     {
       id: '1',
-      product: { name: 'Eau 1.5L (x6)', reference: 'CP-2025-03', icon: 'water' },
+      product: { name: 'Eau 1.5L (x6)', reference: 'CP-2025-03', icon: 'water', category: 'Épicerie' },
       client: 'Amadou Ndiaye',
       quantity: 6,
       motif: 'Bouteill fuyarde',
@@ -68,7 +78,7 @@ export class GestionRetoursComponent {
     },
     {
       id: '2',
-      product: { name: 'Lait 1L', reference: 'CP-2025-02', icon: 'milk' },
+      product: { name: 'Lait 1L', reference: 'CP-2025-02', icon: 'milk', category: 'Épicerie' },
       client: 'Elimane Ndiaye',
       quantity: 10,
       motif: 'Date courte',
@@ -77,7 +87,7 @@ export class GestionRetoursComponent {
     },
     {
       id: '3',
-      product: { name: 'Eau 1.5L (x6)', reference: 'CP-2025-03', icon: 'water' },
+      product: { name: 'Eau 1.5L (x6)', reference: 'CP-2025-03', icon: 'water', category: 'Épicerie' },
       client: 'Moussa Faye',
       quantity: 4,
       motif: 'Bouteill fuyarde',
@@ -86,7 +96,7 @@ export class GestionRetoursComponent {
     },
     {
       id: '4',
-      product: { name: 'Savon 250g', reference: 'CP-2025-01', icon: 'soap' },
+      product: { name: 'Savon 250g', reference: 'CP-2025-01', icon: 'soap', category: 'Épicerie' },
       client: 'Khadija Diallo',
       quantity: 2,
       motif: 'Bouteill fuyarde',
@@ -125,6 +135,16 @@ export class GestionRetoursComponent {
     this.showStatusDropdown = false;
   }
 
+  openDetailModal(retour: Retour) {
+    this.selectedDetailRetour = retour;
+    this.showDetailModal = true;
+  }
+
+  closeDetailModal() {
+    this.showDetailModal = false;
+    this.selectedDetailRetour = null;
+  }
+
   getStatusClass(status: string): string {
     switch (status) {
       case 'En attente': return 'bg-gray-100 text-gray-600';
@@ -153,7 +173,6 @@ export class GestionRetoursComponent {
 
   closeValidationModal() {
     this.showValidationModal = false;
-    this.selectedRetour = null;
     this.validationOption = 'reintegrer';
   }
 
@@ -162,6 +181,7 @@ export class GestionRetoursComponent {
       this.selectedRetour.status = 'Validé';
       this.closeValidationModal();
       this.showSuccessMessage();
+      this.selectedRetour = null;
     } else if (this.selectedRetour && this.validationOption === 'rembourser') {
       this.closeValidationModal();
       this.openRefundModal();
@@ -176,6 +196,7 @@ export class GestionRetoursComponent {
   closeRefundModal() {
     this.showRefundModal = false;
     this.refundAmount = null;
+    this.selectedRetour = null;
   }
 
   saveRefund() {
@@ -184,6 +205,53 @@ export class GestionRetoursComponent {
       this.closeRefundModal();
       this.showRefundSuccessMessage();
     }
+  }
+
+  openRejectModal(retour: Retour) {
+    this.selectedRetourToReject = retour;
+    this.rejectReason = '';
+    this.showRejectModal = true;
+  }
+
+  closeRejectModal() {
+    this.showRejectModal = false;
+    this.selectedRetourToReject = null;
+    this.rejectReason = '';
+  }
+
+  confirmReject() {
+    if (!this.rejectReason.trim()) {
+      return;
+    }
+
+    if (this.selectedRetourToReject) {
+      this.selectedRetourToReject.status = 'Rejeté';
+      this.closeRejectModal();
+      this.showRejectSuccessMessage();
+    }
+  }
+
+  showRejectSuccessMessage() {
+    Swal.fire({
+      title: 'Demande rejetée',
+      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showConfirmButton: false,
+      timer: 1500,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-xl font-medium text-gray-900',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px',
+      showClass: {
+        popup: 'animate__animated animate__fadeIn animate__faster'
+      },
+      hideClass: {
+        popup: 'animate__animated animate__fadeOut animate__faster'
+      }
+    });
   }
 
   showSuccessMessage() {

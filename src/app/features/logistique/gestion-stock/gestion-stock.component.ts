@@ -265,6 +265,24 @@ export class GestionStockComponent {
 
   constructor(private sanitizer: DomSanitizer) { }
 
+  openApprovisionnementModal(item: StockItem) {
+    const today = new Date().toISOString().split('T')[0];
+
+    this.showNewOrderModal = true;
+    this.newOrder = {
+      fournisseur: '',
+      produit: item.name,
+      quantite: '',
+      eta: today,
+      note: ''
+    };
+    this.errors = {
+      fournisseur: '',
+      quantite: '',
+      eta: ''
+    };
+  }
+
   openStockEntryModal(item: StockItem) {
     this.selectedStockItem = item;
     this.stockEntryQuantity = 1;

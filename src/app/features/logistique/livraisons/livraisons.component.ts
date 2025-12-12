@@ -198,11 +198,16 @@ export class LivraisonsComponent {
 
   // Modal Logic
   showModal = false;
+  showDetailModal = false;
+  selectedLivraison: Livraison | null = null;
   showCommandesDropdown = false; // New state for custom dropdown
   showReportModal = false;
   showEditModal = false;
+  showCancelModal = false;
+  cancelReason: string = '';
   selectedLivraisonToEdit: Livraison | null = null;
   selectedLivraisonToReport: Livraison | null = null;
+  selectedLivraisonToCancel: Livraison | null = null;
   newReportDate: string = '';
   reportDateError: string = '';
   editTournee: any = {
@@ -349,7 +354,6 @@ export class LivraisonsComponent {
   actionOptions = [
     { label: 'Voir détails', icon: '/icones/voir details.svg', action: 'view' },
     { label: 'Modifier', icon: '/icones/modifier.svg', action: 'edit' },
-    { label: 'Feuille', icon: '/icones/feuille.svg', action: 'sheet' },
     { label: 'Confirmer', icon: '/icones/confirmer.svg', action: 'confirm', color: 'text-[#374151]' },
     { label: 'Reporter', icon: '/icones/reporter.svg', action: 'postpone' },
     { label: 'Annuler', icon: '/icones/annuler.svg', action: 'cancel', color: 'text-[#374151]' }
@@ -369,7 +373,9 @@ export class LivraisonsComponent {
   }
 
   handleAction(action: string, livraison: Livraison) {
-    if (action === 'confirm') {
+    if (action === 'view') {
+      this.openDetailModal(livraison);
+    } else if (action === 'confirm') {
       this.confirmTournee(livraison);
     } else if (action === 'cancel') {
       this.cancelTournee(livraison);
@@ -381,6 +387,16 @@ export class LivraisonsComponent {
       console.log(`Action: ${action} on livraison ${livraison.id}`);
     }
     this.closeActionMenu();
+  }
+
+  openDetailModal(livraison: Livraison) {
+    this.selectedLivraison = livraison;
+    this.showDetailModal = true;
+  }
+
+  closeDetailModal() {
+    this.showDetailModal = false;
+    this.selectedLivraison = null;
   }
 
   confirmTournee(livraison: Livraison) {
@@ -410,39 +426,34 @@ export class LivraisonsComponent {
       if (result.isConfirmed) {
         livraison.statut = 'Confirmé';
         this.showSuccessMessage();
+        this.closeDetailModal();
       }
     });
   }
 
   cancelTournee(livraison: Livraison) {
-    Swal.fire({
-      title: 'Annuler cette tournée ?',
-      text: 'Lorem ipsum doloor',
-      iconHtml: `<img src="/icones/alerte.svg" alt="alert" style="width: 95px; height: 95px; margin: 0 auto;" />`,
-      showCancelButton: true,
-      confirmButtonText: 'Oui',
-      cancelButtonText: 'Annuler',
-      buttonsStyling: false,
-      customClass: {
-        popup: 'rounded-3xl p-6',
-        title: 'text-2xl font-medium text-gray-900',
-        htmlContainer: 'text-lg text-gray-600',
-        confirmButton: 'bg-[#EF4444] hover:bg-[#DC2626] text-white px-8 py-3 rounded-lg font-medium text-base shadow-none border-none',
-        cancelButton: 'bg-[#F3F4F6] hover:bg-gray-200 text-gray-700 px-8 py-3 rounded-lg font-medium text-base shadow-none border-none',
-        actions: 'flex justify-center w-full gap-2',
-        icon: 'border-none'
-      },
-      backdrop: `rgba(0,0,0,0.2)`,
-      width: '580px',
-      showClass: {
-        popup: 'animate__animated animate__fadeIn animate__faster'
-      }
-    }).then((result) => {
-      if (result.isConfirmed) {
-        livraison.statut = 'Annulé';
-        this.showCancelSuccessMessage();
-      }
-    });
+    this.selectedLivraisonToCancel = livraison;
+    this.cancelReason = '';
+    this.showCancelModal = true;
+  }
+
+  closeCancelModal() {
+    this.showCancelModal = false;
+    this.selectedLivraisonToCancel = null;
+    this.cancelReason = '';
+  }
+
+  confirmCancelTournee() {
+    if (!this.cancelReason.trim()) {
+      return;
+    }
+
+    if (this.selectedLivraisonToCancel) {
+      this.selectedLivraisonToCancel.statut = 'Annulé';
+      this.closeCancelModal();
+      this.showCancelSuccessMessage();
+      this.closeDetailModal();
+    }
   }
 
   showSuccessMessage() {
@@ -529,6 +540,7 @@ export class LivraisonsComponent {
 
       this.closeReportModal();
       this.showReportSuccessMessage();
+      this.closeDetailModal();
     }
   }
 
@@ -646,9 +658,10 @@ export class LivraisonsComponent {
         name: this.editTournee.chauffeur,
         vehicle: this.editTournee.vehicule
       };
-      
+
       this.closeEditModal();
       this.showEditSuccessMessage();
+      this.closeDetailModal();
     }
   }
 

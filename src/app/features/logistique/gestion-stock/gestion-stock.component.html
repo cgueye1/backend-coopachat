@@ -273,7 +273,8 @@
                                 <td class="py-3 px-6 text-sm font-medium text-gray-900">{{ item.stock }}</td>
                                 <td class="py-3 px-6 text-sm text-gray-600">{{ item.minThreshold }}</td>
                                 <td class="py-3 px-6">
-                                    <button
+                                    <!-- Button approvisionnement -->
+                                    <button (click)="openApprovisionnementModal(item)"
                                         class="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors">
                                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
                                             xmlns="http://www.w3.org/2000/svg">
@@ -452,53 +453,38 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <!-- Fournisseur -->
                     <div class="space-y-2 px-2">
-                        <label class="text-[15px] font-medium text-gray-700">Fournisseur <span
+                        <label class="text-base font-medium text-gray-700">Fournisseur <span
                                 class="text-red-500">*</span></label>
                         <input type="text" [(ngModel)]="newOrder.fournisseur" placeholder="Saisir"
                             [class.border-red-500]="errors.fournisseur"
-                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-[#6B7280] font-light">
+                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base placeholder:text-[#6B7280] font-light">
                         <p *ngIf="errors.fournisseur" class="text-red-500 text-xs mt-1">{{ errors.fournisseur }}</p>
                     </div>
 
                     <!-- Produit -->
                     <div class="space-y-2 px-2">
-                        <label class="text-[15px] font-medium text-gray-700">Produit</label>
-                        <div class="relative">
-                            <select [(ngModel)]="newOrder.produit"
-                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-[#6B7280] font-light appearance-none bg-white">
-                                <option value="" disabled selected>Sélectionner</option>
-                                <option value="Riz">Riz</option>
-                                <option value="Huile">Huile</option>
-                                <option value="Sucre">Sucre</option>
-                                <option value="Sel">Sel</option>
-                            </select>
-                            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5"
-                                        stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                            </div>
-                        </div>
+                        <label class="text-base font-medium text-gray-700">Produit</label>
+                        <input type="text" [(ngModel)]="newOrder.produit" readonly
+                            class="w-full p-3 rounded-lg border border-[#CBD5E1] outline-none transition-all text-base text-[#4B4848] font-semibold cursor-not-allowed">
                     </div>
 
                     <!-- Quantité -->
                     <div class="space-y-2 px-2">
-                        <label class="text-[15px] font-medium text-gray-700">Quantité <span
+                        <label class="text-base font-medium text-gray-700">Quantité <span
                                 class="text-red-500">*</span></label>
                         <input type="number" [(ngModel)]="newOrder.quantite" placeholder="Saisir"
                             [class.border-red-500]="errors.quantite"
-                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-[#6B7280] font-light">
+                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base placeholder:text-[#6B7280] font-light">
                         <p *ngIf="errors.quantite" class="text-red-500 text-xs mt-1">{{ errors.quantite }}</p>
                     </div>
 
                     <!-- ETA -->
                     <div class="space-y-2 px-2">
-                        <label class="text-[15px] font-medium text-gray-700">ETA (date prévue)</label>
+                        <label class="text-base font-medium text-gray-700">ETA (date prévue)</label>
                         <div class="relative">
                             <input type="date" [(ngModel)]="newOrder.eta" [min]="minDate" #dateInput
                                 [class.border-red-500]="errors.eta"
-                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-[#6B7280] font-light placeholder:text-[#6B7280] font-light appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0">
+                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base text-[#4B4848] placeholder:text-[#4B4848] font-semibold appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0">
                             <img src="/icones/date.svg" alt="calendar"
                                 class="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer w-5 h-5"
                                 (click)="dateInput.showPicker()">
@@ -509,9 +495,9 @@
 
                 <!-- Note -->
                 <div class="space-y-2 px-2">
-                    <label class="text-[15px] font-medium text-gray-700">Note (optionnel)</label>
+                    <label class="text-base font-medium text-gray-700">Note (optionnel)</label>
                     <textarea [(ngModel)]="newOrder.note" placeholder="Saisir" rows="2"
-                        class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-[#6B7280] font-light resize-none"></textarea>
+                        class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base placeholder:text-[#6B7280] font-light resize-none"></textarea>
                 </div>
             </div>
 

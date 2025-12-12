@@ -114,7 +114,8 @@
                             <td class="py-3 px-6 text-sm font-medium text-gray-600">{{ item.decision || '' }}</td>
                             <td class="py-3 px-6 text-center">
                                 <div class="flex items-center justify-start gap-2">
-                                    <button
+                                    <!-- Eye button -->
+                                    <button (click)="openDetailModal(item)"
                                         class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100 border border-gray-200">
                                         <svg class="w-4 h-4" width="16" height="11" viewBox="0 0 16 11" fill="none"
                                             xmlns="http://www.w3.org/2000/svg">
@@ -136,7 +137,7 @@
                                             </svg>
                                         </button>
                                         <!-- Reject Button -->
-                                        <button
+                                        <button (click)="openRejectModal(item)"
                                             class="text-red-500 hover:text-red-700 transition-colors p-2 rounded-lg hover:bg-red-50 border border-gray-200">
                                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -172,11 +173,123 @@
         </div>
     </div>
 
+    <!-- Modal Détails du Retour -->
+    <div *ngIf="showDetailModal" (click)="closeDetailModal()"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20">
+        <div (click)="$event.stopPropagation()" class="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden">
+
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-[#F7FAFC]">
+                <h2 class="text-xl font-semibold text-gray-900">Produit {{ selectedDetailRetour!.product.reference }}
+                </h2>
+                <button (click)="closeDetailModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-8">
+                <!-- Product Info -->
+                <div class="flex items-start gap-4 mb-8">
+                    <div class="w-20 h-20 rounded-xl bg-[#E2E2E2] flex-shrink-0 overflow-hidden flex items-center justify-center [&>svg]:w-16 [&>svg]:h-16"
+                        [innerHTML]="getIcon(selectedDetailRetour!.product.icon)">
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold text-[#333333] mb-2">{{ selectedDetailRetour!.product.name }}
+                        </h3>
+                        <p class="text-sm text-[#4B4848] font-light leading-relaxed">
+                            Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has
+                            been the industry's standard dummy text ever since the 1500s,
+                        </p>
+                    </div>
+                    <span
+                        class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-[#F2F2F2] text-[#6B7280]">
+                        {{ selectedDetailRetour!.product.category }}
+                    </span>
+                </div>
+
+                <!-- Details Grid -->
+                <div class="grid grid-cols-3 gap-x-8 gap-y-4 mb-6">
+                    <div>
+                        <div class="text-sm text-[#6B7280] mb-1">Client</div>
+                        <div class="text-base font-medium text-[#4B4848]">{{ selectedDetailRetour?.client }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-[#6B7280] mb-1">Date</div>
+                        <div class="text-base font-medium text-[#4B4848]">{{ selectedDetailRetour?.date }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-[#6B7280] mb-1">Statut</div>
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
+                            [ngClass]="getStatusClass(selectedDetailRetour?.status || '')">
+                            <span class="w-2 h-2 rounded-full"
+                                [ngClass]="getStatusDotClass(selectedDetailRetour?.status || '')"></span>
+                            {{ selectedDetailRetour?.status }}
+                        </span>
+                    </div>
+                    <div>
+                        <div class="text-sm text-[#6B7280] mb-1">Montant</div>
+                        <div class="text-base font-bold text-[#4B4848]">9 000 Fcfa</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-[#6B7280] mb-1">Quantité</div>
+                        <div class="text-base font-bold text-[#4B4848]">{{ selectedDetailRetour?.quantity }}</div>
+                    </div>
+                </div>
+
+                <!-- Motif -->
+                <div class="mb-6">
+                    <div class="text-sm text-[#6B7280] mb-1">Motif</div>
+                    <div class="text-base font-medium text-[#4B4848]">{{ selectedDetailRetour?.motif }}</div>
+                </div>
+
+                <!-- Motif du rejet (uniquement si rejeté) -->
+                <div *ngIf="selectedDetailRetour?.status === 'Rejeté'" class="mb-6">
+                    <h3 class="text-lg font-bold text-[#374151] mb-3">Motif du rejet</h3>
+                    <div class="bg-[#FF09090F] border border-[#FF090926] rounded-lg p-4">
+                        <p class="text-sm text-[#4B4848]">
+                            Lorem Ipsum is simply dummy text of the printing and typesetting industry.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-end gap-3">
+                    <ng-container *ngIf="selectedDetailRetour?.status === 'En attente'">
+                        <button (click)="openValidationModal(selectedDetailRetour!); closeDetailModal()"
+                            class="flex items-center justify-center gap-2 px-8 py-3 bg-white text-green-600 border border-[#E5E7EB] rounded-lg font-medium hover:bg-green-50 transition-colors">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>
+                            Valider ce retour
+                        </button>
+                        <button (click)="openRejectModal(selectedDetailRetour!); closeDetailModal()"
+                            class="flex items-center justify-center gap-2 px-8 py-3 bg-white text-red-600 border border-[#E5E7EB] rounded-lg font-medium hover:bg-red-50 transition-colors">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Rejeter
+                        </button>
+                    </ng-container>
+                    <button (click)="closeDetailModal()"
+                        class="px-8 py-3 bg-[#DDE2E433] text-[#646B78] rounded-lg font-medium transition-colors">
+                        {{ selectedDetailRetour?.status === 'En attente' ? 'Fermer' : 'Annuler' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Validation de Retour -->
     <div *ngIf="showValidationModal" (click)="closeValidationModal()"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 transition-opacity duration-200">
         <div (click)="$event.stopPropagation()"
-            class="bg-white rounded-3xl shadow-xl w-full max-w-lg p-8 space-y-6 opacity-100 transition-opacity duration-200">
+            class="bg-white rounded-3xl shadow-xl w-full max-w-xl p-8 space-y-6 opacity-100 transition-opacity duration-200">
 
             <!-- Icon -->
             <div class="flex justify-center">
@@ -190,23 +303,35 @@
             <p class="text-lg text-gray-600 text-center">Cette action mettra à jour le stock et notifiera le client.</p>
 
             <!-- Radio Options -->
-            <div class="space-y-3">
-                <!-- Option 1: Réintégrer au stock -->
-                <label
-                    [class]="validationOption === 'reintegrer' ? 'bg-[#FF6B000D] border-[#FF6B0033]' : 'bg-white border-gray-200'"
-                    class="flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-[#FF6B0033]">
-                    <input type="radio" name="validationOption" value="reintegrer" [(ngModel)]="validationOption"
-                        class="w-4 h-4 accent-[#FF6B00] cursor-pointer">
-                    <span class="text-base font-medium text-gray-900">Réintégrer au stock</span>
-                </label>
+            <div class="space-y-4">
+                <label *ngFor="let option of validationOptions"
+                    class="flex items-center p-4 border rounded-lg cursor-pointer transition-all duration-200"
+                    [class.border-[#FF6B00]]="validationOption === option.value"
+                    [class.bg-[#F9731608]]="validationOption === option.value"
+                    [class.border-[#CBD5E1]]="validationOption !== option.value"
+                    [class.hover:border-orange-300]="validationOption !== option.value">
 
-                <!-- Option 2: Rembourser le stock -->
-                <label
-                    [class]="validationOption === 'rembourser' ? 'bg-[#FF6B000D] border-[#FF6B0033]' : 'bg-white border-gray-200'"
-                    class="flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-[#FF6B0033]">
-                    <input type="radio" name="validationOption" value="rembourser" [(ngModel)]="validationOption"
-                        class="w-4 h-4 accent-[#FF6B00] cursor-pointer">
-                    <span class="text-base font-medium text-gray-900">Rembourser le stock</span>
+                    <!-- Radio Button -->
+                    <div class="w-5 h-5 rounded-full border flex items-center justify-center"
+                        [class.border-[#FF6B00]]="validationOption === option.value"
+                        [class.bg-transparent]="validationOption === option.value"
+                        [class.border-[#CBCAD7]]="validationOption !== option.value">
+                        <div *ngIf="validationOption === option.value"
+                            class="w-2 h-2 rounded-full bg-gradient-to-r from-[#FF6B00] to-[#FF914D]"></div>
+                    </div>
+
+                    <input type="radio" name="validationOption" [value]="option.value" [(ngModel)]="validationOption"
+                        class="hidden">
+
+                    <!-- Label Text -->
+                    <span class="ml-3 font-medium" [class.bg-gradient-to-r]="validationOption === option.value"
+                        [class.from-[#FF6B00]]="validationOption === option.value"
+                        [class.to-[#FF914D]]="validationOption === option.value"
+                        [class.bg-clip-text]="validationOption === option.value"
+                        [class.text-transparent]="validationOption === option.value"
+                        [class.text-gray-700]="validationOption !== option.value">
+                        {{ option.label }}
+                    </span>
                 </label>
             </div>
 
@@ -225,7 +350,7 @@
     </div>
 
     <!-- Modal Montant du Remboursement -->
-    <div *ngIf="showRefundModal" class="fixed inset-0 z-50 flex items-center justify-center">
+    <div *ngIf="showRefundModal" class="fixed inset-0 z-40 flex items-center justify-center">
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-black/20" (click)="closeRefundModal()"></div>
 
@@ -252,7 +377,7 @@
 
                 <div class="flex items-center gap-4">
                     <button (click)="saveRefund()"
-                        class="flex-1 bg-[#2B3674] text-white py-4 rounded-lg font-medium hover:bg-[#1a214d] transition-colors">
+                        class="flex-1 text-white py-4 rounded-lg font-medium bg-[#1a214d] transition-colors">
                         Valider le remboursement
                     </button>
                     <button (click)="closeRefundModal()"
@@ -260,6 +385,47 @@
                         Annuler
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Rejet de Demande -->
+    <div *ngIf="showRejectModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 transition-opacity duration-300"
+        (click)="closeRejectModal()">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl" (click)="$event.stopPropagation()">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-100">
+                <h2 class="text-2xl font-medium text-[#231F20]">Rejeter la demande</h2>
+                <button (click)="closeRejectModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 space-y-4">
+                <p class="text-lg text-[#231F20]">Veuillez indiquer la raison du rejet.</p>
+
+                <div class="space-y-2">
+                    <label class="text-base font-medium text-[#374151]">Motif du rejet</label>
+                    <textarea [(ngModel)]="rejectReason" placeholder="Saisir" rows="4"
+                        class="w-full p-3 rounded-lg border border-gray-200 focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-sm placeholder:text-gray-400 resize-none"></textarea>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex items-center gap-3 p-6">
+                <button (click)="confirmReject()" [disabled]="!rejectReason.trim()"
+                    class="flex-1 py-4 bg-[#EF4444] hover:bg-[#DC2626] text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    Confirmer le rejet
+                </button>
+                <button (click)="closeRejectModal()"
+                    class="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors">
+                    Annuler
+                </button>
             </div>
         </div>
     </div>

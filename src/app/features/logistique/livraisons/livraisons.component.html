@@ -276,6 +276,84 @@
         </div>
     </div>
 
+    <!-- Modal Détails Planification -->
+    <div *ngIf="showDetailModal && selectedLivraison"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 transition-opacity duration-300"
+        (click)="closeDetailModal()">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            (click)="$event.stopPropagation()">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-100">
+                <h2 class="text-xl font-bold text-[#2C3E50]">Planification {{ selectedLivraison.id }}</h2>
+                <button (click)="closeDetailModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 space-y-6">
+                <!-- Informations Grid -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <div class="text-sm text-[#6B7280] mb-1">Client</div>
+                        <div class="text-base font-medium text-[#4B4848]">{{ selectedLivraison.client.name }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-[#6B7280] mb-1">Transporteur</div>
+                        <div class="text-base font-medium text-[#4B4848]">{{ selectedLivraison.transporteur }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-[#6B7280] mb-1">Fournisseur</div>
+                        <div class="text-base font-medium text-[#4B4848]">{{ selectedLivraison.fournisseur }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-[#6B7280] mb-1">Commande</div>
+                        <div class="text-base font-medium text-[#4B4848]">{{ selectedLivraison.commande }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-[#6B7280] mb-1">Chauffeur / Véhicule</div>
+                        <div *ngIf="selectedLivraison.chauffeur" class="text-base font-medium text-[#4B4848]">
+                            {{ selectedLivraison.chauffeur.name }} / {{ selectedLivraison.chauffeur.vehicle }}
+                        </div>
+                        <div *ngIf="!selectedLivraison.chauffeur" class="text-base text-gray-400">--</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-[#6B7280] mb-1">Date</div>
+                        <div class="text-base font-medium text-[#4B4848]">{{ selectedLivraison.date }}</div>
+                    </div>
+                    <div class="col-span-2">
+                        <div class="text-sm text-[#6B7280] mb-1">Statut</div>
+                        <div
+                            [class]="'inline-flex items-center gap-2 px-3 py-1.5 rounded-full ' + getStatusClass(selectedLivraison.statut)">
+                            <span
+                                [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(selectedLivraison.statut)"></span>
+                            <span class="text-xs font-medium">
+                                {{ selectedLivraison.statut }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer avec les boutons d'action -->
+            <div class="flex items-center justify-between gap-3 px-6 pb-6 pt-4">
+                <button *ngFor="let option of actionOptions" (click)="handleAction(option.action, selectedLivraison)"
+                    class="w-full flex items-center  gap-2 p-4 border border-[#E5E7EB] text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                    [class]="option.color || ''">
+                    <img [src]="option.icon" [alt]="option.label">
+                    <span>{{ option.label }}</span>
+                </button>
+                <button (click)="closeDetailModal()"
+                    class="w-full p-4 bg-[#DDE2E433] hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Planifier une tournée -->
     <div *ngIf="showModal"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 transition-opacity duration-300">
@@ -639,6 +717,47 @@
                 </button>
                 <button (click)="closeEditModal()"
                     class="w-full py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 hover:text-gray-800 rounded-lg font-medium transition-colors">
+                    Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Annuler Tournée -->
+    <div *ngIf="showCancelModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 transition-opacity duration-300"
+        (click)="closeCancelModal()">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg" (click)="$event.stopPropagation()">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-100">
+                <h2 class="text-2xl font-medium text-[231F20]">Annuler cette tournée ?</h2>
+                <button (click)="closeCancelModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 space-y-4">
+                <p class="text-lg text-[#231F20]">Veuillez indiquer la raison du rejet.</p>
+                
+                <div class="space-y-2">
+                    <label class="text-base font-medium text-[#374151]">Motif du rejet</label>
+                    <textarea [(ngModel)]="cancelReason" placeholder="Saisir" rows="4"
+                        class="w-full p-3 rounded-lg border border-gray-200 focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-sm placeholder:text-gray-400 resize-none"></textarea>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex items-center gap-3 p-6">
+                <button (click)="confirmCancelTournee()" [disabled]="!cancelReason.trim()"
+                    class="flex-1 py-4 bg-[#EF4444] hover:bg-[#DC2626] text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    Confirmer
+                </button>
+                <button (click)="closeCancelModal()"
+                    class="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors">
                     Annuler
                 </button>
             </div>
