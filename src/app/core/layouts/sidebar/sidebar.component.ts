@@ -1,5 +1,7 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 
 type Role = 'log' | 'com' | 'admin' | 'commercial';
 
@@ -10,12 +12,14 @@ type Role = 'log' | 'com' | 'admin' | 'commercial';
   templateUrl: './sidebar.component.html',
   styleUrls: [],
 })
-export class SidebarComponent implements OnChanges {
+export class SidebarComponent implements OnChanges, OnInit {
   @Input() role: Role = 'log';
 
   mobileOpen = false;
   userMenuOpen = false;
   userMenuMobileOpen = false;
+
+  constructor(private router: Router) { }
 
   private readonly menuItems = [
     { label: 'Tableau de bord', icon: 'dashboard', link: '/com/dashboard', active: false },
@@ -41,10 +45,30 @@ export class SidebarComponent implements OnChanges {
   filteredMenuItems = this.menuItems.slice();
   roleLabel = 'Logistique';
 
+  ngOnInit(): void {
+    // Mettre à jour l'état actif au chargement initial
+    this.updateActiveState();
+
+    // Écouter les changements de route
+    this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe(() => {
+        this.updateActiveState();
+      });
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['role']) {
       this.applyRoleFilter();
+      this.updateActiveState();
     }
+  }
+
+  private updateActiveState(): void {
+    const currentUrl = this.router.url;
+    this.filteredMenuItems.forEach(item => {
+      item.active = currentUrl === item.link || currentUrl.startsWith(item.link + '/');
+    });
   }
 
   private normalizeRole(input: Role): 'log' | 'com' | 'admin' {
@@ -65,6 +89,7 @@ export class SidebarComponent implements OnChanges {
 
     const prefix = normalized === 'com' ? '/com' : normalized === 'log' ? '/log' : '/admin';
     this.filteredMenuItems = this.menuItems.filter(item => item.link.startsWith(prefix));
+    this.updateActiveState();
   }
 
   // Méthodes pour mobile
