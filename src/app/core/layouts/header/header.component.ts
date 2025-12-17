@@ -18,6 +18,7 @@ export class HeaderComponent {
   @Input() supplierLabel: string = 'Fournisseurs';
 
   @Output() actionClick = new EventEmitter<void>();
+  @Output() mobileMenuToggle = new EventEmitter<void>();
 
   // Dropdown states
   isPeriodDropdownOpen = false;
@@ -57,5 +58,9 @@ export class HeaderComponent {
   closeDropdowns() {
     this.isPeriodDropdownOpen = false;
     this.isSupplierDropdownOpen = false;
+  }
+
+  toggleMobileMenu() {
+    this.mobileMenuToggle.emit();
   }
 }

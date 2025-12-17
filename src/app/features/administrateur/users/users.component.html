@@ -1,46 +1,48 @@
 <app-main-layout role="admin">
-    <div class="min-h-screen">
+    <div class="space-y-4 sm:space-y-5 lg:space-y-6">
         <!-- Header -->
         <app-header [title]="'Gestion des utilisateurs'" [breadcrumb]="'Pages / Gestion des utilisateurs'"
             [type]="'simple'" [buttonLabel]="'Nouveau Utilisateur'" (actionClick)="nouveauUtilisateur()"></app-header>
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            <div *ngFor="let metric of metricsData" class="bg-white rounded-lg p-5 hover:shadow-sm transition-shadow">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5 mb-3 sm:mb-4">
+            <div *ngFor="let metric of metricsData"
+                class="bg-white rounded-lg p-4 sm:p-5 hover:shadow-sm transition-shadow">
                 <div class="flex items-start justify-between">
                     <div class="flex-1">
-                        <div class="text-xs text-[#6B7280] mb-1">{{ metric.title }}</div>
-                        <div class="text-2xl font-semibold text-[#2B3674] mb-2">{{ metric.value }}</div>
+                        <div class="text-xs text-[#6B7280] mb-0.5 sm:mb-1">{{ metric.title }}</div>
+                        <div class="text-xl font-semibold text-[#2B3674] mb-1.5 sm:text-2xl sm:mb-2">{{ metric.value }}
+                        </div>
                     </div>
-                    <div class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <img [src]="metric.icon" alt="icon" class="w-8 h-8">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 sm:w-12 sm:h-12">
+                        <img [src]="metric.icon" alt="icon" class="w-7 h-7 sm:w-8 sm:h-8">
                     </div>
                 </div>
             </div>
         </div>
+
         <!-- Users Table -->
         <div class="bg-white rounded-2xl hover:shadow-sm">
             <!-- Filters -->
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4">
                 <div class="relative flex-1 max-w-md">
-                    <!-- Search icon SVG placeholder -->
-                    <svg class="absolute left-4 top-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 14 14"
-                        fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5" width="14" height="14"
+                        viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path
                             d="M13.1539 12.2073L10.6806 9.75393C11.6407 8.55687 12.1056 7.03747 11.9798 5.50813C11.854 3.9788 11.147 2.55579 10.0043 1.5317C8.86151 0.507604 7.3698 -0.0397263 5.83588 0.00224731C4.30196 0.0442209 2.84241 0.672308 1.75736 1.75736C0.672308 2.84241 0.0442209 4.30196 0.00224731 5.83588C-0.0397263 7.3698 0.507604 8.86151 1.5317 10.0043C2.55579 11.147 3.9788 11.854 5.50813 11.9798C7.03747 12.1056 8.55687 11.6407 9.75393 10.6806L12.2073 13.1339C12.2692 13.1964 12.343 13.246 12.4242 13.2799C12.5055 13.3137 12.5926 13.3311 12.6806 13.3311C12.7686 13.3311 12.8557 13.3137 12.937 13.2799C13.0182 13.246 13.092 13.1964 13.1539 13.1339C13.2741 13.0096 13.3413 12.8435 13.3413 12.6706C13.3413 12.4977 13.2741 12.3316 13.1539 12.2073ZM6.01393 10.6806C5.09095 10.6806 4.1887 10.4069 3.42127 9.89412C2.65384 9.38134 2.0557 8.65251 1.7025 7.79979C1.34929 6.94707 1.25687 6.00876 1.43694 5.10351C1.617 4.19827 2.06146 3.36675 2.7141 2.7141C3.36675 2.06146 4.19827 1.617 5.10351 1.43694C6.00876 1.25687 6.94707 1.34929 7.79979 1.7025C8.65251 2.0557 9.38134 2.65384 9.89412 3.42127C10.4069 4.1887 10.6806 5.09095 10.6806 6.01393C10.6806 7.25161 10.1889 8.43859 9.31376 9.31376C8.43859 10.1889 7.25161 10.6806 6.01393 10.6806Z"
                             fill="#777777" />
                     </svg>
                     <input type="text" placeholder="Rechercher par référence ou produit..." [(ngModel)]="searchText"
-                        class="w-full pl-12 pr-4 py-3 border border-[#EEEEEE] rounded-lg focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm bg-white placeholder-[#777777]">
+                        class="w-full pl-10 pr-3 py-2.5 border border-[#EEEEEE] rounded-lg focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-xs sm:pl-12 sm:pr-4 sm:py-3 sm:text-sm bg-white placeholder-[#777777]">
                 </div>
 
-                <div class="flex flex-wrap gap-3">
+                <div class="flex flex-wrap gap-2 sm:gap-3">
                     <!-- Rôle Filter -->
                     <div class="relative">
                         <button (click)="toggleRoleDropdown()"
-                            class="px-3 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
+                            class="px-2.5 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-1.5 sm:px-3 sm:gap-2 bg-white transition-colors">
                             <!-- Filter icon SVG placeholder -->
-                            <svg width="20" height="21" viewBox="0 0 20 21" fill="none"
+                            <svg class="w-4 h-4" width="20" height="21" viewBox="0 0 20 21" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path
                                     d="M16.6673 5.16671C16.6673 4.70004 16.6673 4.46671 16.5757 4.28837C16.496 4.13171 16.3688 4.00424 16.2123 3.92421C16.034 3.83337 15.8007 3.83337 15.334 3.83337H4.66732C4.20065 3.83337 3.96732 3.83337 3.78898 3.92421C3.63219 4.0041 3.50471 4.13158 3.42482 4.28837C3.33398 4.46671 3.33398 4.70004 3.33398 5.16671V5.78087C3.33398 5.98504 3.33398 6.08671 3.35732 6.18254C3.37772 6.26786 3.41147 6.34942 3.45732 6.42421C3.50815 6.50754 3.58065 6.58004 3.72398 6.72421L7.94315 10.9425C8.08732 11.0867 8.15982 11.1592 8.21065 11.2425C8.25676 11.3181 8.2901 11.3987 8.31065 11.4842C8.33398 11.5792 8.33398 11.68 8.33398 11.8792V15.8425C8.33398 16.5567 8.33398 16.9142 8.48398 17.1292C8.54906 17.2222 8.63245 17.3009 8.72903 17.3605C8.82562 17.4201 8.93336 17.4594 9.04565 17.4759C9.30482 17.5142 9.62482 17.355 10.2632 17.035L10.9298 16.7017C11.1982 16.5684 11.3315 16.5017 11.429 16.4017C11.5155 16.3134 11.5812 16.2069 11.6215 16.09C11.6673 15.9584 11.6673 15.8084 11.6673 15.5092V11.8859C11.6673 11.6817 11.6673 11.58 11.6907 11.4842C11.7111 11.3989 11.7448 11.3173 11.7907 11.2425C11.8407 11.1592 11.9132 11.0875 12.0548 10.9459L12.0582 10.9425L16.2773 6.72421C16.4207 6.58004 16.4923 6.50754 16.544 6.42421C16.5901 6.34865 16.6234 6.2681 16.644 6.18254C16.6673 6.08837 16.6673 5.98671 16.6673 5.78754V5.16671Z"
@@ -50,9 +52,9 @@
                             {{ selectedRole }}
                         </button>
                         <div *ngIf="showRoleDropdown"
-                            class="absolute top-full right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10">
+                            class="absolute top-full right-0 mt-1 w-44 sm:w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10">
                             <button *ngFor="let role of uniqueRoles" (click)="selectRole(role)"
-                                class="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-[#2B3674] transition-colors">
+                                class="w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-50 hover:text-[#2B3674] transition-colors">
                                 {{ role }}
                             </button>
                         </div>
@@ -61,9 +63,9 @@
                     <!-- Statut Filter -->
                     <div class="relative">
                         <button (click)="toggleStatutDropdown()"
-                            class="px-3 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
+                            class="px-2.5 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-1.5 sm:px-3 sm:gap-2 bg-white transition-colors">
                             <!-- Filter icon SVG placeholder -->
-                            <svg width="20" height="21" viewBox="0 0 20 21" fill="none"
+                            <svg class="w-4 h-4" width="20" height="21" viewBox="0 0 20 21" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path
                                     d="M16.6673 5.16671C16.6673 4.70004 16.6673 4.46671 16.5757 4.28837C16.496 4.13171 16.3688 4.00424 16.2123 3.92421C16.034 3.83337 15.8007 3.83337 15.334 3.83337H4.66732C4.20065 3.83337 3.96732 3.83337 3.78898 3.92421C3.63219 4.0041 3.50471 4.13158 3.42482 4.28837C3.33398 4.46671 3.33398 4.70004 3.33398 5.16671V5.78087C3.33398 5.98504 3.33398 6.08671 3.35732 6.18254C3.37772 6.26786 3.41147 6.34942 3.45732 6.42421C3.50815 6.50754 3.58065 6.58004 3.72398 6.72421L7.94315 10.9425C8.08732 11.0867 8.15982 11.1592 8.21065 11.2425C8.25676 11.3181 8.2901 11.3987 8.31065 11.4842C8.33398 11.5792 8.33398 11.68 8.33398 11.8792V15.8425C8.33398 16.5567 8.33398 16.9142 8.48398 17.1292C8.54906 17.2222 8.63245 17.3009 8.72903 17.3605C8.82562 17.4201 8.93336 17.4594 9.04565 17.4759C9.30482 17.5142 9.62482 17.355 10.2632 17.035L10.9298 16.7017C11.1982 16.5684 11.3315 16.5017 11.429 16.4017C11.5155 16.3134 11.5812 16.2069 11.6215 16.09C11.6673 15.9584 11.6673 15.8084 11.6673 15.5092V11.8859C11.6673 11.6817 11.6673 11.58 11.6907 11.4842C11.7111 11.3989 11.7448 11.3173 11.7907 11.2425C11.8407 11.1592 11.9132 11.0875 12.0548 10.9459L12.0582 10.9425L16.2773 6.72421C16.4207 6.58004 16.4923 6.50754 16.544 6.42421C16.5901 6.34865 16.6234 6.2681 16.644 6.18254C16.6673 6.08837 16.6673 5.98671 16.6673 5.78754V5.16671Z"
@@ -73,18 +75,20 @@
                             {{ selectedStatut }}
                         </button>
                         <div *ngIf="showStatutDropdown"
-                            class="absolute top-full right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10">
+                            class="absolute top-full right-0 mt-1 w-44 sm:w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10">
                             <button *ngFor="let statut of uniqueStatuts" (click)="selectStatut(statut)"
-                                class="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-[#2B3674] transition-colors">
+                                class="w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-50 hover:text-[#2B3674] transition-colors">
                                 {{ statut }}
                             </button>
                         </div>
                     </div>
 
+                    <!-- Export Button -->
                     <button
-                        class="px-3 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
+                        class="px-2.5 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-1.5 sm:px-3 sm:gap-2 bg-white transition-colors">
                         <!-- Export icon SVG placeholder -->
-                        <svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg class="w-4 h-4" width="20" height="21" viewBox="0 0 20 21" fill="none"
+                            xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd"
                                 d="M3.75 2.375C3.75 2.20924 3.81585 2.05027 3.93306 1.93306C4.05027 1.81585 4.20924 1.75 4.375 1.75H11.25C11.3321 1.74985 11.4135 1.7659 11.4894 1.79721C11.5653 1.82853 11.6344 1.8745 11.6925 1.9325L16.0675 6.3075C16.1255 6.36565 16.1715 6.43466 16.2028 6.51059C16.2341 6.58651 16.2501 6.66787 16.25 6.75V9.875H15V7.375H11.25C11.0842 7.375 10.9253 7.30915 10.8081 7.19194C10.6908 7.07473 10.625 6.91576 10.625 6.75V3H5V18H11.875V19.25H4.375C4.20924 19.25 4.05027 19.1842 3.93306 19.0669C3.81585 18.9497 3.75 18.7908 3.75 18.625V2.375ZM11.875 3.88375L14.1163 6.125H11.875V3.88375ZM15.4425 11.9338L17.9425 14.4338C18.0597 14.551 18.1255 14.7099 18.1255 14.8756C18.1255 15.0414 18.0597 15.2003 17.9425 15.3175L15.4425 17.8175L14.5575 16.9325L15.9913 15.5H10V14.25H15.9913L14.5575 12.8175L15.4425 11.9338Z"
                                 fill="#A3AED0" />
@@ -96,57 +100,57 @@
 
             <!-- Table -->
             <div class="overflow-x-auto">
-                <table class="w-full">
+                <table class="w-full text-xs sm:text-sm">
                     <thead class="bg-[#F4F7FE]">
                         <tr>
-                            <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Nom</th>
-                            <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Email</th>
-                            <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Rôle</th>
-                            <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Créé</th>
-                            <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Statut</th>
-                            <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Actions</th>
+                            <th class="text-left text-xs text-[#2C3E50] py-3 px-4 sm:py-4 sm:px-6">Nom</th>
+                            <th class="text-left text-xs text-[#2C3E50] py-3 px-4 sm:py-4 sm:px-6">Email</th>
+                            <th class="text-left text-xs text-[#2C3E50] py-3 px-4 sm:py-4 sm:px-6">Rôle</th>
+                            <th class="text-left text-xs text-[#2C3E50] py-3 px-4 sm:py-4 sm:px-6">Créé</th>
+                            <th class="text-left text-xs text-[#2C3E50] py-3 px-4 sm:py-4 sm:px-6">Statut</th>
+                            <th class="text-left text-xs text-[#2C3E50] py-3 px-4 sm:py-4 sm:px-6">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         <tr *ngFor="let user of filteredUsers" class="hover:bg-gray-50 transition-colors">
-                            <td class="py-3 px-4">
-                                <div class="flex items-center gap-3">
+                            <td class="py-2 px-2 sm:py-3 sm:px-4">
+                                <div class="flex items-center gap-2 sm:gap-3">
                                     <div
-                                        class="w-10 h-10 rounded-lg bg-[#F2F2F2] flex items-center justify-center text-base font-semibold text-[#4B4848]">
+                                        class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-[#F2F2F2] flex items-center justify-center text-xs sm:text-base font-semibold text-[#4B4848]">
                                         {{ user.initials }}
                                     </div>
                                     <div>
-                                        <div class="text-sm font-medium text-[#4B4848]">{{ user.name }}</div>
-                                        <div class="text-xs text-[#6B7280]">{{ user.id }}</div>
+                                        <div class="text-xs sm:text-sm font-medium text-[#4B4848]">{{ user.name }}</div>
+                                        <div class="text-[10px] sm:text-xs text-[#6B7280]">{{ user.id }}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-3 px-6 text-sm text-[#4B4848]">{{ user.email }}</td>
-                            <td class="py-3 px-6 text-sm text-[#4B4848]">{{ user.role }}</td>
-                            <td class="py-3 px-6 text-sm text-[#4B4848]">{{ user.createdAt }}</td>
-                            <td class="py-3 px-6">
+                            <td class="py-2 px-2 sm:py-3 sm:px-6 text-xs sm:text-sm text-[#4B4848]">{{ user.email }}
+                            </td>
+                            <td class="py-2 px-2 sm:py-3 sm:px-6 text-xs sm:text-sm text-[#4B4848]">{{ user.role }}</td>
+                            <td class="py-2 px-2 sm:py-3 sm:px-6 text-xs sm:text-sm text-[#4B4848]">{{ user.createdAt }}
+                            </td>
+                            <td class="py-2 px-2 sm:py-3 sm:px-6">
                                 <span
-                                    [class]="'inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ' + getStatusClass(user.status)">
+                                    [class]="'inline-flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-medium ' + getStatusClass(user.status)">
                                     <span [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(user.status)"></span>
                                     {{ user.status }}
                                 </span>
                             </td>
-                            <td class="py-3 px-0">
-                                <div class="flex items-center gap-2">
-                                    <button (click)="viewUser(user)"
-                                        class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                            <td class="py-2 px-0 sm:py-3">
+                                <div class="flex items-center gap-2 sm:gap-3">
+                                    <button (click)="viewUser(user)" class="transition-colors">
                                         <!-- View icon SVG placeholder -->
-                                        <svg width="20" height="14" viewBox="0 0 20 14" fill="none"
+                                        <svg class="w-5 h-4" width="20" height="14" viewBox="0 0 20 14" fill="none"
                                             xmlns="http://www.w3.org/2000/svg">
                                             <path
                                                 d="M9.61012 1.7473C11.2165 1.74195 12.7918 2.19005 14.1549 3.04006C15.5181 3.89006 16.6136 5.10749 17.3157 6.55236C15.8742 9.49655 12.93 11.3574 9.61012 11.3574C6.29026 11.3574 3.34607 9.49655 1.90455 6.55236C2.60663 5.10749 3.7022 3.89006 5.0653 3.04006C6.42841 2.19005 8.00372 1.74195 9.61012 1.7473ZM9.61012 0C5.24189 0 1.51141 2.71705 0 6.55236C1.51141 10.3877 5.24189 13.1047 9.61012 13.1047C13.9784 13.1047 17.7088 10.3877 19.2202 6.55236C17.7088 2.71705 13.9784 0 9.61012 0ZM9.61012 4.36824C10.1894 4.36824 10.7449 4.59835 11.1545 5.00795C11.5641 5.41755 11.7942 5.97309 11.7942 6.55236C11.7942 7.13162 11.5641 7.68716 11.1545 8.09676C10.7449 8.50637 10.1894 8.73648 9.61012 8.73648C9.03086 8.73648 8.47532 8.50637 8.06572 8.09676C7.65612 7.68716 7.426 7.13162 7.426 6.55236C7.426 5.97309 7.65612 5.41755 8.06572 5.00795C8.47532 4.59835 9.03086 4.36824 9.61012 4.36824ZM9.61012 2.62094C7.44348 2.62094 5.67871 4.38571 5.67871 6.55236C5.67871 8.71901 7.44348 10.4838 9.61012 10.4838C11.7768 10.4838 13.5415 8.71901 13.5415 6.55236C13.5415 4.38571 11.7768 2.62094 9.61012 2.62094Z"
                                                 fill="#4B4848" />
                                         </svg>
                                     </button>
-                                    <button (click)="editUser(user)"
-                                        class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                                    <button (click)="editUser(user)" class="transition-colors">
                                         <!-- Edit icon SVG placeholder -->
-                                        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"
+                                        <svg class="w-4 h-4" width="15" height="15" viewBox="0 0 15 15" fill="none"
                                             xmlns="http://www.w3.org/2000/svg">
                                             <path
                                                 d="M1.66667 13.3333H2.85417L11 5.1875L9.8125 4L1.66667 12.1458V13.3333ZM0 15V11.4583L11 0.479167C11.1667 0.326389 11.3508 0.208333 11.5525 0.125C11.7542 0.0416667 11.9658 0 12.1875 0C12.4092 0 12.6244 0.0416667 12.8333 0.125C13.0422 0.208333 13.2228 0.333333 13.375 0.5L14.5208 1.66667C14.6875 1.81944 14.8092 2 14.8858 2.20833C14.9625 2.41667 15.0006 2.625 15 2.83333C15 3.05556 14.9619 3.2675 14.8858 3.46917C14.8097 3.67083 14.6881 3.85472 14.5208 4.02083L3.54167 15H0ZM10.3958 4.60417L9.8125 4L11 5.1875L10.3958 4.60417Z"
@@ -154,7 +158,7 @@
                                         </svg>
                                     </button>
                                     <button (click)="toggleUserStatus(user)"
-                                        class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                                        class="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors">
                                         <div
                                             [class]="'w-6 h-3.5 rounded-full relative transition-colors ' + (user.status === 'Actif' ? 'bg-gradient-to-r from-[#FF6B00] to-[#FF914D]' : 'bg-gray-300')">
                                             <div
@@ -170,17 +174,18 @@
             </div>
 
             <!-- Pagination -->
-            <div class="flex items-center justify-between p-4 border-t border-gray-100">
-                <div class="text-sm text-[#4B4848]">
+            <div
+                class="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0 px-4 sm:px-6 py-3 sm:py-4 border-t border-[#F4F7FE]">
+                <div class="text-xs sm:text-sm text-[#4B4848]">
                     Page {{ currentPage }} sur {{ totalPages }}
                 </div>
-                <div class="flex gap-2">
+                <div class="flex gap-1.5 sm:gap-2">
                     <button (click)="previousPage()" [disabled]="currentPage === 1"
-                        class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-[#4B4848] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        class="px-3 py-2 border border-[#EEEEEE] rounded-lg text-xs sm:text-sm font-medium text-[#4B4848] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                         Précédent
                     </button>
                     <button (click)="nextPage()" [disabled]="currentPage === totalPages"
-                        class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-[#4B4848] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        class="px-3 py-2 border border-[#EEEEEE] rounded-lg text-xs sm:text-sm font-medium text-[#4B4848] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                         Suivant
                     </button>
                 </div>
@@ -188,20 +193,20 @@
         </div>
 
         <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
             <!-- Bar Chart - Utilisateurs par rôle -->
-            <div class="bg-white rounded-2xl p-6 shadow-sm">
-                <h3 class="text-lg font-semibold text-[#2C3E50] mb-4">Utilisateurs par rôle</h3>
-                <div class="h-64">
+            <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+                <h3 class="text-base font-semibold text-[#2C3E50] mb-3 sm:text-lg sm:mb-4">Utilisateurs par rôle</h3>
+                <div class="h-48 sm:h-64">
                     <canvas baseChart [data]="barChartData" [options]="barChartOptions" type="bar">
                     </canvas>
                 </div>
             </div>
 
             <!-- Doughnut Chart - Répartition des statuts -->
-            <div class="bg-white rounded-2xl p-6 shadow-sm">
-                <h3 class="text-lg font-semibold text-[#2C3E50] mb-4">Répartition des statuts</h3>
-                <div class="h-64">
+            <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+                <h3 class="text-base font-semibold text-[#2C3E50] mb-3 sm:text-lg sm:mb-4">Répartition des statuts</h3>
+                <div class="h-48 sm:h-64">
                     <canvas baseChart [data]="doughnutChartData" [options]="doughnutChartOptions" type="doughnut">
                     </canvas>
                 </div>
@@ -210,43 +215,46 @@
 
         <!-- User Detail Modal -->
         <div *ngIf="showUserModal && selectedUser"
-            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30">
-            <div class="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-                <!-- Header -->
-                <div class="flex items-center justify-between p-6 border-b border-gray-100">
-                    <h2 class="text-xl font-bold text-gray-900">Utilisateur {{ selectedUser.id }}</h2>
-                    <button (click)="closeUserModal()" class="transition-colors">
+            class="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50"
+            (click)="closeUserModal()">
+            <div class="bg-white rounded-2xl w-full max-w-lg sm:max-w-xl mx-2 sm:mx-4 shadow-lg"
+                (click)="$event.stopPropagation()">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-6 border-b border-gray-100">
+                    <h2 class="text-lg font-semibold sm:text-xl">Utilisateur {{ selectedUser.id }}</h2>
+                    <button (click)="closeUserModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                         <!-- Close icon SVG placeholder -->
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg class="w-6 h-6" width="14" height="14" viewBox="0 0 14 14" fill="none"
+                            xmlns="http://www.w3.org/2000/svg">
                             <path
-                                d="M12.892 0.302021C12.7995 0.209317 12.6896 0.135769 12.5686 0.085588C12.4477 0.0354065 12.318 0.00957632 12.187 0.00957632C12.0561 0.00957632 11.9264 0.0354065 11.8054 0.085588C11.6844 0.135769 11.5745 0.209317 11.482 0.302021L6.59202 5.18202L1.70202 0.29202C1.60944 0.199438 1.49953 0.125998 1.37856 0.0758934C1.2576 0.0257884 1.12795 9.75509e-10 0.997021 0C0.86609 -9.75509e-10 0.736441 0.0257884 0.615477 0.0758934C0.494513 0.125998 0.384602 0.199438 0.29202 0.29202C0.199438 0.384602 0.125998 0.494513 0.0758934 0.615477C0.0257884 0.736441 -9.75509e-10 0.86609 0 0.997021C9.75509e-10 1.12795 0.0257884 1.2576 0.0758934 1.37856C0.125998 1.49953 0.199438 1.60944 0.29202 1.70202L5.18202 6.59202L0.29202 11.482C0.199438 11.5746 0.125998 11.6845 0.0758934 11.8055C0.0257884 11.9264 0 12.0561 0 12.187C0 12.318 0.0257884 12.4476 0.0758934 12.5686C0.125998 12.6895 0.199438 12.7994 0.29202 12.892C0.384602 12.9846 0.494513 13.058 0.615477 13.1081C0.736441 13.1583 0.86609 13.184 0.997021 13.184C1.12795 13.184 1.2576 13.1583 1.37856 13.1081C1.49953 13.058 1.60944 12.9846 1.70202 12.892L6.59202 8.00202L11.482 12.892C11.5746 12.9846 11.6845 13.058 11.8055 13.1081C11.9264 13.1583 12.0561 13.184 12.187 13.184C12.318 13.184 12.4476 13.1583 12.5686 13.1081C12.6895 13.058 12.7994 12.9846 12.892 12.892C12.9846 12.7994 13.058 12.6895 13.1081 12.5686C13.1583 12.4476 13.184 12.318 13.184 12.187C13.184 12.0561 13.1583 11.9264 13.1081 11.8055C13.058 11.6845 12.9846 11.5746 12.892 11.482L8.00202 6.59202L12.892 1.70202C13.272 1.32202 13.272 0.682021 12.892 0.302021Z"
+                                d="M12.892 0.302021C12.7995 0.209317 12.6896 0.135769 12.5686 0.085588C12.4477 0.0354065 12.318 0.00957632 12.187 0.00957632C12.0561 0.00957632 11.9264 0.0354065 11.8054 0.085588C11.6844 0.135769 11.5745 0.209317 11.482 0.302021L6.59202 5.18202L1.70202 0.29202C1.60944 0.199438 1.49953 0.125998 1.37856 0.0758934C1.2576 0.0257884 1.12795 9.75509e-10 0.997021 0C0.86609 -9.75509e-10 0.736441 0.0257884 0.615477 0.0758934C0.494513 0.125998 0.384602 0.199438 0.29202 0.29202C0.199438 0.384602 0.125998 0.494513 0.0758934 0.615477C0.0257884 0.736441 -9.75509e-10 0.86609 0 0.997021C9.75509e-10 1.12795 0.0257884 1.2576 0.0758934 1.37856C0.125998 1.49953 0.199438 1.60944 0.29202 1.70202L5.18202 6.59202L0.29202 11.482C0.199438 11.5746 0.125998 11.6845 0.0758934 11.8055C0.0257884 11.9264 0 12.0561 0 12.187C0 12.318 0.0257884 12.4476 0.0758934 12.5686C0.125998 12.6895 0.199438 12.7994 0.29202 12.892C0.384602 12.9846 0.494513 13.058 0.615477 13.1081C0.736441 13.1583 0.86609 13.184 0.997021 13.184C1.12795 13.184 1.2576 13.1583 1.37856 13.1081C1.49953 13.058 1.60944 12.9846 1.70202 12.892L6.59202 8.00202L12.892 12.892C13.274 13.272 13.274 13.682 12.892 14.062C12.6896 14.2645 12.5055 14.447 12.2426 14.5858C11.9798 14.7246 11.646 14.792 11.312 14.7692C10.978 14.7464 10.6615 14.632 10.392 14.439L9.61012 13.657L8.82812 14.439C8.55862 14.632 8.24208 14.7464 7.90812 14.7692C7.57417 14.792 7.24035 14.7246 6.97756 14.5858C6.71476 14.447 6.53067 14.2645 6.32812 14.062C5.94612 13.682 5.94612 13.272 6.32812 12.892L11.2181 7.00202L6.32812 2.11202C5.94612 1.73202 5.94612 1.32202 6.32812 0.942021C6.53067 0.640521 6.71476 0.457031 6.97756 0.318115C7.24035 0.179198 7.57417 0.111328 7.90812 0.134766C8.24208 0.158203 8.55862 0.272577 8.82812 0.466019L9.61012 1.24702L10.392 0.466019C10.6615 0.272577 10.978 0.158203 11.312 0.134766C11.646 0.111328 11.9798 0.179198 12.2426 0.318115C12.5055 0.457031 12.6896 0.640521 12.892 0.942021C13.274 1.32202 13.274 1.73202 12.892 2.11202L8.00202 7.00202L12.892 11.482C13.274 11.5746 13.682 11.6845 13.946 11.8055C14.2101 11.9264 14.3398 12.0561 14.3398 12.187C14.3398 12.318 14.2101 12.4476 13.946 12.5686C13.682 12.6895 13.274 12.7994 12.892 12.892C12.7994 12.9846 12.6895 13.058 12.5686 13.1081C12.4476 13.1583 12.318 13.184 12.187 13.184C12.0561 13.184 11.9264 13.1583 11.8054 13.1081C11.6844 12.9846 11.5745 12.7994 11.482 12.7077L6.59202 7.81768L1.70202 12.7077C1.60944 12.8003 1.49953 12.8738 1.37856 12.9239C1.2576 12.974 1.12795 13 0.997021 13C0.86609 13 0.736441 12.974 0.615477 12.9239C0.494513 12.8738 0.384602 12.8003 0.29202 12.7077C0.199438 12.6151 0.125998 12.5052 0.0758934 12.3842C0.0257884 12.2633 -9.75509e-10 12.0561 0 11.9252C9.75509e-10 11.7942 0.0257884 11.6746 0.0758934 11.5537C0.125998 11.4328 0.199438 11.323 0.29202 11.2304L5.18202 6.3404L0.29202 1.4504C0.199438 1.3577 0.125998 1.248 0.0758934 1.127C0.0257884 1.00605 -9.75509e-10 0.799805 0 0.668854C9.75509e-10 0.537903 0.0257884 0.418335 0.0758934 0.297451C0.125998 0.176566 0.199438 0.0668945 0.29202 -0.0253906C0.384602 -0.117675 0.494513 -0.191406 0.615477 -0.242577C0.736441 -0.293748 0.86609 -0.319577 0.997021 -0.319577C1.12795 -0.319577 1.2576 -0.293748 1.37856 -0.242577C1.49953 -0.191406 1.60944 -0.117675 1.70202 -0.0253906L6.59202 5.18202L11.482 0.29202C11.5746 0.199438 11.6845 0.125998 11.8055 0.0758934C11.9264 0.0257884 12.0561 0 12.187 0C12.318 0 12.4476 0.0257884 12.5686 0.0758934C12.6895 0.125998 12.7994 0.199438 12.892 0.29202C13.0846 0.484577 13.3413 0.632812 13.5415 0.732812C13.7417 0.832812 13.8787 0.883789 14.0208 0.892578C14.1629 0.901367 14.3073 0.867188 14.4336 0.792969C14.5599 0.71875 14.6748 0.609375 14.7559 0.476562C14.837 0.34375 14.8906 0.191406 14.8906 0C14.8906 -0.191406 14.837 -0.34375 14.7559 -0.476562C14.6748 -0.609375 14.5599 -0.71875 14.4336 -0.792969C14.3073 -0.867188 14.1629 -0.901367 14.0208 -0.892578C13.8787 -0.883789 13.7417 -0.832812 13.5415 -0.732812C13.3413 -0.632812 13.0846 -0.484577 12.892 -0.29202Z"
                                 fill="#545454" />
                         </svg>
                     </button>
                 </div>
-                <!-- Body -->
-                <div class="p-6 space-y-6">
+                <!-- Modal Body -->
+                <div class="p-4 sm:p-8 space-y-6">
                     <!-- User Avatar and Info -->
                     <div class="flex flex-col items-center text-center">
                         <div
-                            class="w-24 h-24 rounded-full bg-[#F2F2F2] flex items-center justify-center text-4xl font-semibold text-[#4B4848] mb-6 relative">
+                            class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#F2F2F2] flex items-center justify-center text-2xl sm:text-4xl font-semibold text-[#4B4848] mb-4 sm:mb-6 relative">
                             {{ selectedUser.initials }}
                             <span class="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white"
                                 [class.bg-green-500]="selectedUser.status === 'Actif'"
                                 [class.bg-red-500]="selectedUser.status === 'Inactif'">
                             </span>
                         </div>
-                        <h3 class="text-lg text-[#4B4848] mb-1">{{ selectedUser.name }}</h3>
+                        <h3 class="text-base sm:text-lg text-[#4B4848] mb-1">{{ selectedUser.name }}</h3>
                         <p class="text-xs text-gray-600">{{ selectedUser.role }}</p>
                     </div>
 
                     <!-- User Details -->
-                    <div class="space-y-6">
+                    <div class="space-y-4 sm:space-y-6">
                         <!-- Role -->
-                        <div class="flex items-start gap-3">
+                        <div class="flex items-start gap-2 sm:gap-3">
                             <div class="w-5 h-5 mt-0.5 flex-shrink-0">
                                 <!-- Briefcase icon SVG placeholder -->
-                                <svg width="14" height="12" viewBox="0 0 14 12" fill="none"
+                                <svg class="w-4 h-4" width="14" height="12" viewBox="0 0 14 12" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">
                                     <path
                                         d="M11.6667 2H9.33333V1.33333C9.3328 0.979874 9.19216 0.641042 8.94222 0.391109C8.69229 0.141175 8.35346 0.000529 8 0H5.33333C4.97987 0.000529 4.64104 0.141175 4.39111 0.391109C4.14117 0.641042 4.00053 0.979874 4 1.33333V2H1.66667C1.22464 2 0.800716 2.17559 0.488155 2.48816C0.175595 2.80072 0 3.22464 0 3.66667V10.3333C0 10.7754 0.175595 11.1993 0.488155 11.5118C0.800716 11.8244 1.22464 12 1.66667 12H11.6667C12.1087 12 12.5326 11.8244 12.8452 11.5118C13.1577 11.1993 13.3333 10.7754 13.3333 10.3333V3.66667C13.3333 3.22464 13.1577 2.80072 12.8452 2.48816C12.5326 2.17559 12.1087 2 11.6667 2ZM4.66667 1.33333C4.66667 1.15652 4.7369 0.986953 4.86193 0.861929C4.98695 0.736905 5.15652 0.666667 5.33333 0.666667H8C8.17681 0.666667 8.34638 0.736905 8.4714 0.861929C8.59643 0.986953 8.66667 1.15652 8.66667 1.33333V2H4.66667V1.33333ZM12.6667 10.3333C12.6667 10.5985 12.5613 10.8529 12.3738 11.0404C12.1862 11.228 11.9319 11.3333 11.6667 11.3333H1.66667C1.40145 11.3333 1.1471 11.228 0.95956 11.0404C0.772023 10.8529 0.666667 10.5985 0.666667 10.3333V6.018L4.56133 7.31667C4.59532 7.32784 4.63089 7.33347 4.66667 7.33333H8.66667C8.70244 7.33347 8.73801 7.32784 8.772 7.31667L12.6667 6.018V10.3333ZM12.6667 5.33733C12.6311 5.33612 12.5955 5.34062 12.5613 5.35067L8.61267 6.66667H4.72067L0.772 5.35C0.737827 5.33996 0.702265 5.33545 0.666667 5.33667V3.66667C0.666667 3.40145 0.772023 3.1471 0.95956 2.95956C1.1471 2.77202 1.40145 2.66667 1.66667 2.66667H11.6667C11.9319 2.66667 12.1862 2.77202 12.3738 2.95956C12.5613 3.1471 12.6667 3.40145 12.6667 3.66667V5.33733Z"
@@ -255,15 +263,15 @@
 
                             </div>
                             <div class="flex justify-between items-center w-full">
-                                <p class="text-sm text-gray-900">{{ selectedUser.role }}</p>
-                                <p class="text-xs text-gray-500">Rôle</p>
+                                <p class="text-xs sm:text-sm text-gray-900">{{ selectedUser.role }}</p>
+                                <p class="text-[10px] sm:text-xs text-gray-500">Rôle</p>
                             </div>
                         </div>
                         <!-- Email -->
-                        <div class="flex items-start gap-3">
+                        <div class="flex items-start gap-2 sm:gap-3">
                             <div class="w-5 h-5 mt-0.5 flex-shrink-0">
                                 <!-- Email icon SVG placeholder -->
-                                <svg width="16" height="12" viewBox="0 0 16 12" fill="none"
+                                <svg class="w-4 h-4" width="16" height="12" viewBox="0 0 16 12" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">
                                     <path
                                         d="M0 2C0 1.46957 0.210714 0.960859 0.585786 0.585786C0.960859 0.210714 1.46957 0 2 0H14C14.5304 0 15.0391 0.210714 15.4142 0.585786C15.7893 0.960859 16 1.46957 16 2V10C16 10.5304 15.7893 11.0391 15.4142 11.4142C15.0391 11.7893 14.5304 12 14 12H2C1.46957 12 0.960859 11.7893 0.585786 11.4142C0.210714 11.0391 0 10.5304 0 10V2ZM2 1C1.73478 1 1.48043 1.10536 1.29289 1.29289C1.10536 1.48043 1 1.73478 1 2V2.217L8 6.417L15 2.217V2C15 1.73478 14.8946 1.48043 14.7071 1.29289C14.5196 1.10536 14.2652 1 14 1H2ZM15 3.383L10.292 6.208L15 9.105V3.383ZM14.966 10.259L9.326 6.788L8 7.583L6.674 6.788L1.034 10.258C1.09083 10.4708 1.21632 10.6589 1.39099 10.7931C1.56566 10.9272 1.77975 11 2 11H14C14.2201 11 14.4341 10.9274 14.6088 10.7934C14.7834 10.6595 14.909 10.4716 14.966 10.259ZM1 9.105L5.708 6.208L1 3.383V9.105Z"
@@ -272,15 +280,14 @@
 
                             </div>
                             <div class="flex-1">
-                                <p class="text-sm text-gray-900">{{ selectedUser.email }}</p>
-                                <p class="text-xs text-gray-500"></p>
+                                <p class="text-xs sm:text-sm text-gray-900">{{ selectedUser.email }}</p>
                             </div>
                         </div>
                         <!-- Phone -->
-                        <div class="flex items-start gap-3" *ngIf="selectedUser.phone">
+                        <div class="flex items-start gap-2 sm:gap-3" *ngIf="selectedUser.phone">
                             <div class="w-5 h-5 mt-0.5 flex-shrink-0">
                                 <!-- Phone icon SVG placeholder -->
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                                <svg class="w-4 h-4" width="16" height="16" viewBox="0 0 16 16" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">
                                     <path
                                         d="M3.65447 1.32805C3.59544 1.25211 3.52092 1.1896 3.43587 1.14468C3.35082 1.09975 3.25719 1.07343 3.16119 1.06747C3.06519 1.06151 2.96902 1.07605 2.87907 1.11012C2.78912 1.14418 2.70744 1.19699 2.63947 1.26505L1.60547 2.30005C1.12247 2.78405 0.944471 3.46905 1.15547 4.07005C2.0322 6.55716 3.45662 8.81546 5.32347 10.6781C7.18606 12.5449 9.44436 13.9693 11.9315 14.8461C12.5325 15.0571 13.2175 14.8791 13.7015 14.3961L14.7355 13.3621C14.8035 13.2941 14.8563 13.2124 14.8904 13.1225C14.9245 13.0325 14.939 12.9363 14.933 12.8403C14.9271 12.7443 14.9008 12.6507 14.8558 12.5656C14.8109 12.4806 14.7484 12.4061 14.6725 12.3471L12.3655 10.5531C12.2843 10.4903 12.1899 10.4467 12.0895 10.4255C11.989 10.4044 11.8851 10.4063 11.7855 10.4311L9.59547 10.9781C9.30313 11.0506 8.997 11.0465 8.70671 10.9661C8.41643 10.8857 8.15181 10.7317 7.93847 10.5191L5.48247 8.06205C5.26965 7.84881 5.11549 7.58424 5.0349 7.29395C4.95431 7.00366 4.95003 6.69748 5.02247 6.40505L5.57047 4.21505C5.59523 4.11544 5.59712 4.01151 5.57599 3.91106C5.55486 3.81061 5.51126 3.71625 5.44847 3.63505L3.65447 1.32805ZM1.88447 0.511051C2.05947 0.336 2.2697 0.200181 2.50121 0.112612C2.73272 0.0250429 2.98021 -0.0122724 3.22725 0.00314389C3.47429 0.0185602 3.71522 0.0863553 3.93405 0.202028C4.15288 0.3177 4.3446 0.478602 4.49647 0.674051L6.29047 2.98005C6.61947 3.40305 6.73547 3.95405 6.60547 4.47405L6.05847 6.66405C6.03039 6.77749 6.03201 6.89625 6.06319 7.00888C6.09437 7.12151 6.15405 7.2242 6.23647 7.30705L8.69347 9.76405C8.77642 9.84664 8.87928 9.90642 8.9921 9.9376C9.10492 9.96878 9.22388 9.97032 9.33747 9.94205L11.5265 9.39505C11.7831 9.33126 12.0509 9.32647 12.3096 9.38102C12.5684 9.43558 12.8114 9.54807 13.0205 9.71005L15.3265 11.5041C16.1555 12.149 16.2315 13.3741 15.4895 14.1151L14.4555 15.1491C13.7155 15.8891 12.6095 16.2141 11.5785 15.8511C8.93914 14.9236 6.54301 13.4128 4.56847 11.4311C2.58684 9.4568 1.07602 7.06102 0.148471 4.42205C-0.213529 3.39205 0.111471 2.28505 0.851471 1.54505L1.88447 0.511051Z"
@@ -289,15 +296,14 @@
 
                             </div>
                             <div class="flex-1">
-                                <p class="text-sm text-gray-900">{{ selectedUser.phone }}</p>
-                                <p class="text-xs text-gray-500"></p>
+                                <p class="text-xs sm:text-sm text-gray-900">{{ selectedUser.phone }}</p>
                             </div>
                         </div>
                         <!-- Date d'inscription -->
-                        <div class="flex items-start gap-3">
+                        <div class="flex items-start gap-2 sm:gap-3">
                             <div class="w-5 h-5 mt-0.5 flex-shrink-0">
                                 <!-- Calendar icon SVG placeholder -->
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                                <svg class="w-4 h-4" width="16" height="16" viewBox="0 0 16 16" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">
                                     <path
                                         d="M8 7C8.13261 7 8.25979 7.05268 8.35355 7.14645C8.44732 7.24021 8.5 7.36739 8.5 7.5V9H10C10.1326 9 10.2598 9.05268 10.3536 9.14645C10.4473 9.24021 10.5 9.36739 10.5 9.5C10.5 9.63261 10.4473 9.75979 10.3536 9.85355C10.2598 9.94732 10.1326 10 10 10H8.5V11.5C8.5 11.6326 8.44732 11.7598 8.35355 11.8536C8.25979 11.9473 8.13261 12 8 12C7.86739 12 7.74021 11.9473 7.64645 11.8536C7.55268 11.7598 7.5 11.6326 7.5 11.5V10H6C5.86739 10 5.74021 9.94732 5.64645 9.85355C5.55268 9.75979 5.5 9.63261 5.5 9.5C5.5 9.36739 5.55268 9.24021 5.64645 9.14645C5.74021 9.05268 5.86739 9 6 9H7.5V7.5C7.5 7.36739 7.55268 7.24021 7.64645 7.14645C7.74021 7.05268 7.86739 7 8 7Z"
@@ -308,35 +314,34 @@
                                 </svg>
                             </div>
                             <div class="flex items-center justify-between w-full">
-                                <p class="text-sm text-gray-900">{{ selectedUser.createdAt }}</p>
-                                <p class="text-xs text-gray-500">Date d'inscription</p>
+                                <p class="text-xs sm:text-sm text-gray-900">{{ selectedUser.createdAt }}</p>
+                                <p class="text-[10px] sm:text-xs text-gray-500">Date d'inscription</p>
                             </div>
                         </div>
 
                         <!-- Status Toggle -->
-                        <div class="flex items-center  pt-2">
+                        <div class="flex items-center pt-2">
                             <button (click)="toggleUserStatus(selectedUser)"
-                                class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                                class="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors">
                                 <div
-                                    [class]="'w-6 h-3.5 rounded-full relative transition-colors ' + (selectedUser.status === 'Actif' ? 'bg-[#FF6A3D]' : 'bg-gray-300')">
+                                    [class]="'w-6 h-3.5 rounded-full relative transition-colors ' + (selectedUser.status === 'Actif' ? 'bg-gradient-to-r from-[#FF6B00] to-[#FF914D]' : 'bg-gray-300')">
                                     <div
-                                        [class]="'w-2.5 h-2.5 bg-white rounded-full absolute top-0.5 transition-all ' + (selectedUser.status === 'Actif' ? 'right-0.5' : 'left-0.5')">
+                                        [class]="'w-2.5 h-2.5 bg-white rounded-full absolute top-0.5 transition-all shadow-md ' + (selectedUser.status === 'Actif' ? 'right-0.5' : 'left-0.5')">
                                     </div>
                                 </div>
                             </button>
-                            <span class="text-xs text-gray-700">Utilisateur activé</span>
+                            <span class="text-xs sm:text-sm text-gray-700 ml-2">Utilisateur activé</span>
                         </div>
                     </div>
                 </div>
-
-                <!-- Footer -->
-                <div class="flex items-center gap-3 p-6 border-t border-gray-100">
+                <!-- Modal Footer -->
+                <div class="flex items-center gap-2 sm:gap-3 px-4 sm:px-8 py-4 sm:py-6 border-t border-gray-100">
                     <button (click)="modifierUser()"
-                        class="flex-1 py-4 bg-[#2C2D5B] hover:bg-[#232447] text-white rounded-md font-medium transition-colors">
+                        class="flex-1 py-2.5 sm:py-4 bg-[#2C2D5B] hover:bg-[#232447] text-white rounded-md font-medium text-xs sm:text-base transition-colors">
                         Modifier
                     </button>
                     <button (click)="annulerUser()"
-                        class="flex-1 py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-100 hover:text-gray-800 rounded-lg font-medium transition-colors">
+                        class="flex-1 py-2.5 sm:py-4 bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 rounded-lg font-medium text-xs sm:text-base transition-colors">
                         Annuler
                     </button>
                 </div>

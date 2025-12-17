@@ -330,16 +330,16 @@ export class PromotionsManagementComponent {
       cancelButtonText: 'Annuler',
       buttonsStyling: false,
       customClass: {
-        popup: 'rounded-3xl p-6',
-        title: 'text-2xl font-medium text-gray-900',
-        htmlContainer: 'text-lg text-gray-600',
-        confirmButton: 'bg-[#22C55E] hover:bg-[#16A34A] text-white px-8 py-3 rounded-lg font-medium text-base shadow-none border-none',
-        cancelButton: 'bg-[#F3F4F6] hover:bg-gray-200 text-gray-700 px-8 py-3 rounded-lg font-medium text-base shadow-none border-none',
+        popup: 'rounded-2xl p-3 sm:p-6 w-[85vw] max-w-[420px] sm:max-w-[580px]',
+        title: 'text-lg sm:text-2xl font-medium text-gray-900',
+        htmlContainer: 'text-sm sm:text-lg text-gray-600',
+        confirmButton: 'bg-[#22C55E] hover:bg-[#16A34A] text-white px-4 sm:px-8 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base shadow-none border-none',
+        cancelButton: 'bg-[#F3F4F6] hover:bg-gray-200 text-gray-700 px-4 sm:px-8 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base shadow-none border-none',
         actions: 'flex justify-center w-full gap-2',
         icon: 'border-none'
       },
       backdrop: `rgba(0,0,0,0.2)`,
-      width: '580px',
+      width: '85vw',
       showClass: {
         popup: 'animate__animated animate__fadeIn animate__faster'
       }
@@ -364,16 +364,16 @@ export class PromotionsManagementComponent {
       cancelButtonText: 'Annuler',
       buttonsStyling: false,
       customClass: {
-        popup: 'rounded-3xl p-6',
-        title: 'text-2xl font-medium text-gray-900',
-        htmlContainer: 'text-lg text-gray-600',
-        confirmButton: 'bg-[#EF4444] hover:bg-[#DC2626] text-white px-8 py-3 rounded-lg font-medium text-base shadow-none border-none',
-        cancelButton: 'bg-[#F3F4F6] hover:bg-gray-200 text-gray-700 px-8 py-3 rounded-lg font-medium text-base shadow-none border-none',
+        popup: 'rounded-2xl p-3 sm:p-6 w-[85vw] max-w-[420px] sm:max-w-[580px]',
+        title: 'text-lg sm:text-2xl font-medium text-gray-900',
+        htmlContainer: 'text-sm sm:text-lg text-gray-600',
+        confirmButton: 'bg-[#EF4444] hover:bg-[#DC2626] text-white px-4 sm:px-8 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base shadow-none border-none',
+        cancelButton: 'bg-[#F3F4F6] hover:bg-gray-200 text-gray-700 px-4 sm:px-8 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base shadow-none border-none',
         actions: 'flex justify-center w-full gap-2',
         icon: 'border-none'
       },
       backdrop: `rgba(0,0,0,0.2)`,
-      width: '580px',
+      width: '85vw',
       showClass: {
         popup: 'animate__animated animate__fadeIn animate__faster'
       }
@@ -396,12 +396,12 @@ export class PromotionsManagementComponent {
       timer: 1500,
       buttonsStyling: false,
       customClass: {
-        popup: 'rounded-3xl p-6',
-        title: 'text-xl font-medium text-gray-900',
+        popup: 'rounded-2xl p-3 sm:p-6 w-[85vw] max-w-[420px] sm:max-w-[580px]',
+        title: 'text-base sm:text-xl font-medium text-gray-900',
         icon: 'border-none'
       },
       backdrop: `rgba(0,0,0,0.2)`,
-      width: '580px',
+      width: '85vw',
       showClass: {
         popup: 'animate__animated animate__fadeIn animate__faster'
       },
@@ -419,12 +419,12 @@ export class PromotionsManagementComponent {
       timer: 1500,
       buttonsStyling: false,
       customClass: {
-        popup: 'rounded-3xl p-6',
-        title: 'text-xl font-medium text-gray-900',
+        popup: 'rounded-2xl p-3 sm:p-6 w-[85vw] max-w-[420px] sm:max-w-[580px]',
+        title: 'text-base sm:text-xl font-medium text-gray-900',
         icon: 'border-none'
       },
       backdrop: `rgba(0,0,0,0.2)`,
-      width: '580px',
+      width: '85vw',
       showClass: {
         popup: 'animate__animated animate__fadeIn animate__faster'
       },
@@ -442,12 +442,12 @@ export class PromotionsManagementComponent {
       timer: 1500,
       buttonsStyling: false,
       customClass: {
-        popup: 'rounded-3xl p-6',
-        title: 'text-xl font-medium text-gray-900',
+        popup: 'rounded-2xl p-3 sm:p-6 w-[85vw] max-w-[420px] sm:max-w-[580px]',
+        title: 'text-base sm:text-xl font-medium text-gray-900',
         icon: 'border-none'
       },
       backdrop: `rgba(0,0,0,0.2)`,
-      width: '580px',
+      width: '85vw',
       showClass: {
         popup: 'animate__animated animate__fadeIn animate__faster'
       },

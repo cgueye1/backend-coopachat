@@ -4,15 +4,16 @@
         <app-header [title]="'Commandes Fournisseurs'" [breadcrumb]="'Pages / Commandes Fournisseurs'" [type]="'simple'"
             [buttonLabel]="'Nouvelle commande'" (actionClick)="nouvelleCommande()"></app-header>
 
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div *ngFor="let metric of metricsData" class="bg-white rounded-lg p-4 hover:shadow-sm transition-shadow">
-                <div class="flex items-start justify-between">
+        <!-- Stats Cards Responsive -->
+        <div class="grid grid-cols-1 gap-2 mb-2 sm:grid-cols-2 sm:gap-3 md:gap-4 md:mb-4 lg:grid-cols-4">
+            <div *ngFor="let metric of metricsData"
+                class="bg-white rounded-lg p-3 sm:p-4 hover:shadow-sm transition-shadow">
+                <div class="flex items-start justify-between gap-2">
                     <div class="flex-1">
                         <div class="text-xs text-[#6B7280] mb-1">{{ metric.title }}</div>
                         <div class="text-2xl font-semibold text-[#2B3674]">{{ metric.value }}</div>
                     </div>
-                    <div class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0">
                         <img [src]="metric.icon" alt="icon" class="w-8 h-8">
                     </div>
                 </div>
@@ -20,19 +21,20 @@
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100">
-            <!-- Filters -->
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4">
-                <div class="relative flex-1 max-w-md">
+            <!-- Filters Responsive -->
+            <div
+                class="flex flex-col gap-2 p-2 sm:gap-3 sm:p-4 md:flex-row md:items-center md:gap-4 md:p-4 lg:flex-row lg:items-center lg:gap-4 lg:p-4 justify-between">
+                <div class="relative flex-1 max-w-full sm:max-w-md">
                     <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" fill="none"
                         stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                     <input type="text" placeholder="Rechercher par référence ou produit..." [(ngModel)]="searchText"
-                        class="w-full pl-12 pr-4 py-3 border border-[#CBD5E1] rounded-xl focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm bg-white placeholder-gray-400">
+                        class="w-full pl-12 pr-4 py-2 sm:py-3 border border-[#CBD5E1] rounded-xl focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm bg-white placeholder-gray-400">
                 </div>
 
-                <div class="flex flex-wrap gap-3">
+                <div class="flex flex-col gap-2 sm:flex-row sm:gap-3 md:flex-row md:gap-3">
                     <!-- Fournisseur Filter -->
                     <div class="relative">
                         <button (click)="toggleFournisseurDropdown()"
@@ -89,46 +91,47 @@
                         </svg>
                         Exporter
                     </button>
-
                 </div>
             </div>
 
             <!-- Table -->
             <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-[#F4F7FE]">
-                        <tr>
-                            <th class="text-left text-xs text-[#2C3E50] p-4">
-                                Référence</th>
-                            <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">
-                                Fournisseur</th>
-                            <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">
-                                Date</th>
-                            <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">
-                                Produits</th>
-                            <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">
-                                Statut</th>
-                            <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">
-                                Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        <tr *ngFor="let commande of filteredCommandes" class="hover:bg-gray-50 transition-colors group">
-                            <td class="py-4 px-6 text-sm text-[#4B4848]">{{ commande.reference }}</td>
-                            <td class="py-4 px-6 text-sm font-medium text-[#4B4848]">{{ commande.fournisseur }}</td>
-                            <td class="py-4 px-6 text-sm font-medium text-[#4B4848]">{{ commande.date }}</td>
-                            <td class="py-4 px-6 text-sm font-medium text-[#4B4848]">{{ commande.produits }}</td>
-                            <td class="py-4 px-6">
-                                <span
-                                    [class]="'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ' + getStatusClass(commande.statut)">
-                                    <span [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(commande.statut)"></span>
-                                    {{ commande.statut }}
-                                </span>
-                            </td>
-                            <td class="py-4 px-6">
-                                <div class="flex items-center gap-2">
+                <!-- Table Responsive -->
+                <div class="space-y-2 md:space-y-0 md:overflow-x-auto">
+                    <!-- Mobile: Cards, Desktop: Table -->
+                    <ng-container *ngIf="filteredCommandes.length > 0">
+                        <!-- Mobile layout -->
+                        <div class="flex flex-col gap-2 md:hidden">
+                            <div *ngFor="let commande of filteredCommandes"
+                                class="bg-white rounded-xl border border-gray-100 p-3 flex flex-col gap-2 shadow-sm">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-xs text-[#6B7280]">Référence</div>
+                                    <div class="text-sm font-semibold text-[#2C3E50]">{{ commande.reference }}</div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div class="text-xs text-[#6B7280]">Fournisseur</div>
+                                    <div class="text-sm font-medium text-[#4B4848]">{{ commande.fournisseur }}</div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div class="text-xs text-[#6B7280]">Date</div>
+                                    <div class="text-sm font-medium text-[#4B4848]">{{ commande.date }}</div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div class="text-xs text-[#6B7280]">Produits</div>
+                                    <div class="text-sm font-medium text-[#4B4848]">{{ commande.produits }}</div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div class="text-xs text-[#6B7280]">Statut</div>
+                                    <span
+                                        [class]="'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ' + getStatusClass(commande.statut)">
+                                        <span
+                                            [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(commande.statut)"></span>
+                                        {{ commande.statut }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2 pt-2">
                                     <button
-                                        class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100"
+                                        class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100 flex-1"
                                         (click)="viewCommande(commande.reference)">
                                         <svg width="16" height="11" viewBox="0 0 16 11" fill="none"
                                             xmlns="http://www.w3.org/2000/svg">
@@ -141,7 +144,7 @@
                                         </svg>
                                     </button>
                                     <button
-                                        class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100"
+                                        class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100 flex-1"
                                         (click)="editCommande(commande.reference)">
                                         <svg width="15" height="15" viewBox="0 0 15 15" fill="none"
                                             xmlns="http://www.w3.org/2000/svg">
@@ -151,20 +154,80 @@
                                         </svg>
                                     </button>
                                 </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                            </div>
+                        </div>
+                        <!-- Desktop/tablet layout -->
+                        <table class="w-full hidden md:table">
+                            <thead class="bg-[#F4F7FE]">
+                                <tr>
+                                    <th class="text-left text-xs text-[#2C3E50] p-4">Référence</th>
+                                    <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Fournisseur
+                                    </th>
+                                    <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Date</th>
+                                    <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Produits</th>
+                                    <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Statut</th>
+                                    <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr *ngFor="let commande of filteredCommandes"
+                                    class="hover:bg-gray-50 transition-colors group">
+                                    <td class="py-4 px-6 text-sm text-[#4B4848]">{{ commande.reference }}</td>
+                                    <td class="py-4 px-6 text-sm font-medium text-[#4B4848]">{{ commande.fournisseur }}
+                                    </td>
+                                    <td class="py-4 px-6 text-sm font-medium text-[#4B4848]">{{ commande.date }}</td>
+                                    <td class="py-4 px-6 text-sm font-medium text-[#4B4848]">{{ commande.produits }}
+                                    </td>
+                                    <td class="py-4 px-6">
+                                        <span
+                                            [class]="'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ' + getStatusClass(commande.statut)">
+                                            <span
+                                                [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(commande.statut)"></span>
+                                            {{ commande.statut }}
+                                        </span>
+                                    </td>
+                                    <td class="py-4 px-6">
+                                        <div class="flex items-center gap-2">
+                                            <button
+                                                class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100"
+                                                (click)="viewCommande(commande.reference)">
+                                                <svg width="16" height="11" viewBox="0 0 16 11" fill="none"
+                                                    xmlns="http://www.w3.org/2000/svg">
+                                                    <path
+                                                        d="M16 5.5C16 5.5 13 0 8 0C3 0 0 5.5 0 5.5C0 5.5 3 11 8 11C13 11 16 5.5 16 5.5ZM1.173 5.5C1.65578 4.76459 2.21197 4.08008 2.833 3.457C4.12 2.168 5.88 1 8 1C10.12 1 11.879 2.168 13.168 3.457C13.789 4.08008 14.3452 4.76459 14.828 5.5C14.7707 5.58667 14.7057 5.68267 14.633 5.788C14.298 6.268 13.803 6.908 13.168 7.543C11.879 8.832 10.119 10 8 10C5.881 10 4.121 8.832 2.832 7.543C2.21097 6.91992 1.65578 6.23541 1.173 5.5Z"
+                                                        fill="#4B4848" />
+                                                    <path
+                                                        d="M8 3C7.33696 3 6.70107 3.26339 6.23223 3.73223C5.76339 4.20107 5.5 4.83696 5.5 5.5C5.5 6.16304 5.76339 6.79893 6.23223 7.26777C6.70107 7.73661 7.33696 8 8 8C8.66304 8 9.29893 7.73661 9.76777 7.26777C10.2366 6.79893 10.5 6.16304 10.5 5.5C10.5 4.83696 10.2366 4.20107 9.76777 3.73223C9.29893 3.26339 8.66304 3 8 3ZM4.5 5.5C4.5 4.57174 4.86875 3.6815 5.52513 3.02513C6.1815 2.36875 7.07174 2 8 2C8.92826 2 9.8185 2.36875 10.4749 3.02513C11.1313 3.6815 11.5 4.57174 11.5 5.5C11.5 6.42826 11.1313 7.3185 10.4749 7.97487C9.8185 8.63125 8.92826 9 8 9C7.07174 9 6.1815 8.63125 5.52513 7.97487C4.86875 7.3185 4.5 6.42826 4.5 5.5Z"
+                                                        fill="#4B4848" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100"
+                                                (click)="editCommande(commande.reference)">
+                                                <svg width="15" height="15" viewBox="0 0 15 15" fill="none"
+                                                    xmlns="http://www.w3.org/2000/svg">
+                                                    <path
+                                                        d="M1.66667 13.3333H2.85417L11 5.1875L9.8125 4L1.66667 12.1458V13.3333ZM0 15V11.4583L11 0.479167C11.1667 0.326389 11.3508 0.208333 11.5525 0.125C11.7542 0.0416667 11.9658 0 12.1875 0C12.4092 0 12.6244 0.0416667 12.8333 0.125C13.0422 0.208333 13.2228 0.333333 13.375 0.5L14.5208 1.66667C14.6875 1.81944 14.8092 2 14.8858 2.20833C14.9625 2.41667 15.0006 2.625 15 2.83333C15 3.05556 14.9619 3.2675 14.8858 3.46917C14.8097 3.67083 14.6881 3.85472 14.5208 4.02083L3.54167 15H0ZM10.3958 4.60417L9.8125 4L11 5.1875L10.3958 4.60417Z"
+                                                        fill="#F68647" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </ng-container>
+                </div>
                 <!-- Pagination -->
                 <div
                     class="bg-white rounded-xl shadow flex flex-col sm:flex-row justify-between items-center p-4 gap-4">
-                    <p class="text-gray-500 text-sm">Page {{ currentPage }} sur {{ totalPages }}</p>
-                    <div class="flex gap-2">
+                    <p class="text-gray-500 text-sm mb-2 sm:mb-0">Page {{ currentPage }} sur {{ totalPages }}</p>
+                    <div class="flex gap-2 w-full sm:w-auto">
                         <button
-                            class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#2d3561] hover:text-[#2d3561]"
+                            class="w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#2d3561] hover:text-[#2d3561]"
                             [disabled]="currentPage === 1" (click)="previousPage()">Précédent</button>
                         <button
-                            class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#2d3561] hover:text-[#2d3561]"
+                            class="w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#2d3561] hover:text-[#2d3561]"
                             [disabled]="currentPage === totalPages" (click)="nextPage()">Suivant</button>
                     </div>
                 </div>
@@ -172,11 +235,12 @@
         </div>
 
         <!-- Modal Nouvelle Commande -->
-        <div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30">
-            <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden">
-                <!-- Header -->
-                <div class="flex items-center justify-between p-6 border-b border-gray-100">
-                    <h2 class="text-xl font-bold">Nouvelle commande fournisseur</h2>
+        <div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/30">
+            <div
+                class="bg-white rounded-xl shadow-xl w-full max-w-xs sm:max-w-2xl md:max-w-3xl lg:max-w-4xl flex flex-col max-h-[90vh]">
+                <!-- Header (fixed) -->
+                <div class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 flex-shrink-0">
+                    <h2 class="text-lg sm:text-xl font-bold">Nouvelle commande fournisseur</h2>
                     <button (click)="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -184,12 +248,11 @@
                         </svg>
                     </button>
                 </div>
-
-                <!-- Body -->
-                <div class="p-4 space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <!-- Body (scrollable) -->
+                <div class="overflow-y-auto p-2 sm:p-4 space-y-4 flex-1">
+                    <div class="grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2 md:gap-3">
                         <!-- Fournisseur -->
-                        <div class="space-y-2 px-2">
+                        <div class="space-y-2 px-1 sm:px-2">
                             <label class="text-[15px] font-medium text-gray-700">Fournisseur <span
                                     class="text-red-500">*</span></label>
                             <input type="text" [(ngModel)]="newCommande.fournisseur" placeholder="Saisir"
@@ -197,9 +260,8 @@
                                 class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-gray-400">
                             <p *ngIf="errors.fournisseur" class="text-red-500 text-xs mt-1">{{ errors.fournisseur }}</p>
                         </div>
-
                         <!-- Produit -->
-                        <div class="space-y-2 px-2">
+                        <div class="space-y-2 px-1 sm:px-2">
                             <label class="text-[15px] font-medium text-gray-700">Produit</label>
                             <div class="relative">
                                 <select [(ngModel)]="newCommande.produit"
@@ -219,9 +281,8 @@
                                 </div>
                             </div>
                         </div>
-
                         <!-- Quantité -->
-                        <div class="space-y-2 px-2">
+                        <div class="space-y-2 px-1 sm:px-2">
                             <label class="text-[15px] font-medium text-gray-700">Quantité <span
                                     class="text-red-500">*</span></label>
                             <input type="number" [(ngModel)]="newCommande.quantite" placeholder="Saisir"
@@ -229,9 +290,8 @@
                                 class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-gray-400">
                             <p *ngIf="errors.quantite" class="text-red-500 text-xs mt-1">{{ errors.quantite }}</p>
                         </div>
-
                         <!-- ETA -->
-                        <div class="space-y-2 px-2">
+                        <div class="space-y-2 px-1 sm:px-2">
                             <label class="text-[15px] font-medium text-gray-700">ETA (date prévue)</label>
                             <div class="relative">
                                 <input type="date" [(ngModel)]="newCommande.eta" [min]="minDate" #dateInput
@@ -244,23 +304,22 @@
                             <p *ngIf="errors.eta" class="text-red-500 text-xs mt-1">{{ errors.eta }}</p>
                         </div>
                     </div>
-
                     <!-- Note -->
-                    <div class="space-y-2 px-2">
+                    <div class="space-y-2 px-1 sm:px-2">
                         <label class="text-[15px] font-medium text-gray-700">Note (optionnel)</label>
                         <textarea [(ngModel)]="newCommande.note" placeholder="Saisir" rows="2"
                             class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg placeholder:text-gray-400 resize-none"></textarea>
                     </div>
                 </div>
-
-                <!-- Footer -->
-                <div class="flex items-center justify-between p-6 gap-2">
+                <!-- Footer (fixed) -->
+                <div
+                    class="flex flex-col gap-2 sm:flex-row sm:items-center justify-between p-4 sm:p-6 border-t border-gray-100 flex-shrink-0">
                     <button (click)="saveCommande()"
-                        class="w-full py-4 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium transition-colors">
+                        class="flex-1 py-3 sm:py-4 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium transition-colors">
                         Enregistrer
                     </button>
                     <button (click)="closeModal()"
-                        class="w-full py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 hover:text-gray-800 rounded-lg font-medium transition-colors">
+                        class="flex-1 py-3 sm:py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 hover:text-gray-800 rounded-lg font-medium transition-colors">
                         Annuler
                     </button>
                 </div>
@@ -269,13 +328,14 @@
     </div>
 
     <!-- Modal Détails Commande -->
-    <div *ngIf="showDetailModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+    <div *ngIf="showDetailModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/30"
         (click)="closeDetailModal()">
-        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto"
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-3xl flex flex-col max-h-[90vh]"
             (click)="$event.stopPropagation()">
-            <!-- Header -->
-            <div class="flex items-center justify-between p-6 border-b border-gray-100">
-                <h2 class="text-xl font-bold text-[#2C3E50]">Commande N° {{ selectedCommande?.reference }}</h2>
+            <!-- Header (fixed) -->
+            <div class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 flex-shrink-0">
+                <h2 class="text-lg sm:text-xl font-bold text-[#2C3E50]">Commande N° {{ selectedCommande?.reference }}
+                </h2>
                 <button (click)="closeDetailModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -283,20 +343,18 @@
                     </svg>
                 </button>
             </div>
-
-            <!-- Body -->
-            <div class="p-6 space-y-8">
+            <!-- Body (scrollable) -->
+            <div class="overflow-y-auto p-4 sm:p-6 space-y-8 flex-1">
                 <!-- Informations Grid -->
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <div class="text-sm text-[#6B7280] mb-1">Fournisseur</div>
-                        <div class="text-base font-medium text-[##4B4848]">{{ selectedCommande?.fournisseur }}</div>
+                        <div class="text-base font-medium text-[#4B4848]">{{ selectedCommande?.fournisseur }}</div>
                     </div>
                     <div>
                         <div class="text-sm text-[#6B7280] mb-1">Date prévue</div>
-                        <div class="text-base font-medium text-[##4B4848]">{{ selectedCommande?.datePrevue ||
-                            selectedCommande?.date }}
-                        </div>
+                        <div class="text-base font-medium text-[#4B4848]">{{ selectedCommande?.datePrevue ||
+                            selectedCommande?.date }}</div>
                     </div>
                     <div>
                         <div class="text-sm text-[#6B7280] mb-1">Statut</div>
@@ -304,27 +362,22 @@
                             [class]="'inline-flex items-center gap-2 px-3 py-1.5 rounded-full ' + getStatusClass(selectedCommande?.statut || 'En attente')">
                             <span
                                 [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(selectedCommande?.statut || 'En attente')"></span>
-                            <span class="text-xs font-medium">
-                                {{ selectedCommande?.statut }}
-                            </span>
+                            <span class="text-xs font-medium">{{ selectedCommande?.statut }}</span>
                         </div>
                     </div>
                     <div>
                         <div class="text-sm text-[#6B7280] mb-1">Référence</div>
-                        <div class="text-base font-medium text-[##4B4848]">{{ selectedCommande?.reference }}</div>
+                        <div class="text-base font-medium text-[#4B4848]">{{ selectedCommande?.reference }}</div>
                     </div>
                 </div>
-
                 <!-- Note -->
                 <div *ngIf="selectedCommande?.note">
                     <div class="text-sm text-[#6B7280] mb-1">Note</div>
                     <div class="text-base text-[#4B4848] mb-8">{{ selectedCommande!.note }}</div>
                 </div>
-
                 <!-- Produits commandés -->
                 <div>
                     <h3 class="text-base font-bold text-[#374151] mb-3">Produits commandés</h3>
-
                     <!-- Table Header -->
                     <div class="bg-[#F4F7FE] rounded-t-lg px-4 py-3">
                         <div class="grid grid-cols-2 gap-4">
@@ -332,7 +385,6 @@
                             <div class="text-xs font-semibold text-[#2C3E50] text-right">Stock</div>
                         </div>
                     </div>
-
                     <!-- Products List -->
                     <div class="border border-gray-100 rounded-b-lg divide-y divide-gray-100">
                         <div *ngFor="let product of getCommandeProducts()"
@@ -356,17 +408,13 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Modal Footer -->
-            <div class="flex items-center justify-between gap-3 p-6">
+            <!-- Footer (fixed) -->
+            <div
+                class="flex flex-col gap-2 sm:flex-row sm:items-center justify-between p-4 sm:p-6 border-t border-gray-100 flex-shrink-0">
                 <button (click)="modifierCommande()"
-                    class="w-full flex-1 py-4 bg-[#2C2D5B] text-white rounded-lg font-medium transition-colors">
-                    Modifier
-                </button>
+                    class="flex-1 py-3 sm:py-4 bg-[#2C2D5B] text-white rounded-lg font-medium transition-colors">Modifier</button>
                 <button (click)="annulerCommande()"
-                    class="w-full flex-1 py-4 bg-gray-100 text-gray-700 rounded-lg font-medium transition-colors">
-                    Annuler
-                </button>
+                    class="flex-1 py-3 sm:py-4 bg-gray-100 text-gray-700 rounded-lg font-medium transition-colors">Annuler</button>
             </div>
         </div>
     </div>

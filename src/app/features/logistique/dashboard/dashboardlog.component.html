@@ -1,50 +1,55 @@
 <app-main-layout [role]="role">
     <!-- Header Section -->
-   <app-header [title]="'Tableau de bord'" [breadcrumb]="'Pages / Tableau de bord'" [type]="'filter'"></app-header>
+    <app-header [title]="'Tableau de bord'" [breadcrumb]="'Pages / Tableau de bord'" [type]="'filter'"></app-header>
 
     <!-- Metrics Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 2xl:mb-8">
-        <div *ngFor="let metric of metricsData" class="bg-white rounded-lg p-4 hover:shadow-sm transition-shadow">
-            <div class="flex items-start justify-between mb-4">
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-4 mb-3 sm:mb-6 2xl:mb-8">
+        <div *ngFor="let metric of metricsData"
+            class="bg-white rounded-lg p-3 sm:p-4 hover:shadow-sm transition-shadow">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0 ">
                 <div class="flex-1">
                     <div class="text-xs text-[#6B7280] mb-1">{{ metric.title }}</div>
-                    <div class="text-2xl font-medium text-[#2B3674] mb-2">{{ metric.value }}</div>
+                    <div class="text-2xl font-semibold text-[#2B3674] mb-4">{{ metric.value }}</div>
                     <div class="text-xs" [ngClass]="getMetricSubtitleClass(metric.subtitle)">
                         {{ metric.subtitle }}
                     </div>
                 </div>
-                <div class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <img [src]="metric.icon" alt="icon" class="w-8 h-8">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <img [src]="metric.icon" alt="icon" class="w-7 h-7 sm:w-8 sm:h-8">
                 </div>
             </div>
         </div>
     </div>
+
     <!-- Charts Row -->
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-4 2xl:mb-8">
+    <div class="flex flex-col gap-3 sm:gap-4 xl:grid xl:grid-cols-3 xl:gap-6 mb-3 sm:mb-4 2xl:mb-8">
         <!-- Commandes vs Livraisons Chart -->
-        <div class="col-span-2 bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-900">Commandes vs Livraisons</h3>
-                <button class="text-sm text-gray-600 hover:text-gray-900 px-3 py-1 border border-gray-300 rounded-full">
+        <div
+            class="order-1 xl:col-span-2 bg-white rounded-lg p-3 sm:p-6 hover:shadow-sm transition-shadow">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
+                <h3 class="text-base sm:text-lg font-semibold text-gray-900">Commandes vs Livraisons</h3>
+                <button
+                    class="self-start text-xs sm:text-sm text-gray-600 hover:text-gray-900 px-3 py-1 border border-gray-300 rounded-full flex-shrink-0">
                     Voir détails
                 </button>
             </div>
-            <div class="relative h-80">
+            <div class="relative h-56 sm:h-80">
                 <canvas #commandesChart></canvas>
             </div>
         </div>
 
         <!-- Stocks - État global -->
-        <div class="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-900">Stocks - État global</h3>
-                <button class="text-sm text-gray-600 hover:text-gray-900 px-3 py-1 border border-gray-300 rounded-full">
+        <div class="order-2 bg-white rounded-lg p-3 sm:p-6 hover:shadow-sm transition-shadow">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
+                <h3 class="text-base sm:text-lg font-semibold text-gray-900">Stocks - État global</h3>
+                <a routerLink="/log/stocks"
+                    class="self-start text-xs sm:text-sm text-gray-600 hover:text-gray-900 px-3 py-1 border border-gray-300 rounded-full flex-shrink-0">
                     Voir détails
-                </button>
+                </a>
             </div>
 
-            <div class="flex items-center justify-center h-80">
-                <div class="relative" >
+            <div class="flex items-center justify-center h-72">
+                <div class="relative">
                     <canvas #stocksChart></canvas>
                 </div>
             </div>
@@ -52,27 +57,27 @@
     </div>
 
     <!-- Graphiques de statistiques -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-4">
+    <div class="flex flex-col gap-3 sm:gap-4 lg:grid lg:grid-cols-3 lg:gap-6 mb-3 sm:mb-4">
         <!-- Stocks sous seuil -->
-        <div class="bg-white rounded-lg p-5 border border-gray-200 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-base font-semibold text-gray-900">Stocks sous seuil — par catégorie</h3>
+        <div class="bg-white rounded-lg p-3 sm:p-5 hover:shadow-sm transition-shadow">
+            <div class="flex items-center justify-between mb-3 sm:mb-4">
+                <h3 class="text-sm sm:text-base font-semibold text-gray-900">Stocks sous seuil — par catégorie</h3>
             </div>
-            <div class="relative h-64">
+            <div class="relative h-48 sm:h-64 2xl:h-80">
                 <canvas #stockCategoryChart></canvas>
             </div>
         </div>
 
         <!-- Statut des livraisons -->
-        <div class="bg-white rounded-lg p-5 border border-gray-200 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-base font-semibold text-gray-900">Statut des livraisons</h3>
-                <button
-                    class="text-xs text-gray-600 px-3 py-1.5 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
+        <div class="bg-white rounded-lg p-3 sm:p-5 hover:shadow-sm transition-shadow">
+            <div class="flex flex-col sm:flex-row  sm:items-center sm:justify-between mb-3 sm:mb-4">
+                <h3 class="text-sm sm:text-base font-semibold text-gray-900">Statut des livraisons</h3>
+                <a routerLink="/log/livraisons"
+                    class="self-start text-xs sm:text-sm text-gray-600 px-3 py-1.5 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
                     Voir détails
-                </button>
+                </a>
             </div>
-            <div class="flex items-center justify-center h-64" >
+            <div class="flex items-center justify-center h-72 2xl:h-96">
                 <div class="relative">
                     <canvas #deliveryStatusChart></canvas>
                 </div>
@@ -80,15 +85,15 @@
         </div>
 
         <!-- Taux de retours -->
-        <div class="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-base font-semibold text-gray-900">Taux de retours (%)</h3>
-                <button
+        <div class="bg-white rounded-lg p-3 sm:p-6 hover:shadow-sm transition-shadow">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4">
+                <h3 class="text-sm sm:text-base font-semibold text-gray-900">Taux de retours (%)</h3>
+                <a routerLink="/log/retours"
                     class="text-xs text-gray-600 px-3 py-1.5 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
                     Voir détails
-                </button>
+                </a>
             </div>
-            <div class="relative h-64">
+            <div class="relative h-48 sm:h-64">
                 <canvas #returnRateChart></canvas>
             </div>
         </div>

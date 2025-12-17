@@ -1,6 +1,5 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HeaderComponent } from '../header/header.component';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 
 type Role = 'log' | 'com' | 'admin' | 'commercial';
@@ -8,7 +7,7 @@ type Role = 'log' | 'com' | 'admin' | 'commercial';
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, HeaderComponent, SidebarComponent],
+  imports: [CommonModule, SidebarComponent],
   templateUrl: './main-layout.component.html',
   styles: [`
     :host {
@@ -19,6 +18,7 @@ type Role = 'log' | 'com' | 'admin' | 'commercial';
 })
 export class MainLayoutComponent {
   @Input() role?: Role;
+  @ViewChild(SidebarComponent) sidebar!: SidebarComponent;
 
   /** Normalisation du rôle */
   get normalizedRole(): 'log' | 'com' | 'admin' {
@@ -26,5 +26,9 @@ export class MainLayoutComponent {
     if (this.role === 'commercial') return 'com';
     if (this.role === 'com' || this.role === 'log' || this.role === 'admin') return this.role;
     return 'log';
+  }
+
+  onMobileMenuToggle() {
+    this.sidebar?.toggleMobile();
   }
 }

@@ -11,7 +11,7 @@
         <div class="flex items-start justify-between">
           <div class="flex-1">
             <div class="text-xs text-[#6B7280] mb-1">{{ stat.title }}</div>
-            <div class="text-2xl font-medium text-[#2B3674]">{{ stat.value }}</div>
+            <div class="text-2xl font-semibold text-[#2B3674]">{{ stat.value }}</div>
           </div>
           <div class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0">
             <img [src]="stat.icon" alt="icon" class="w-8 h-8">
@@ -136,8 +136,9 @@
       </div>
 
       <!-- Pagination -->
-      <div class="flex items-center justify-between p-4 border-t border-gray-100">
-        <div class="text-sm text-[#4B4848]">
+      <div
+        class="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 2xl:p-5 border-t border-gray-100">
+        <div class="text-xs sm:text-sm text-[#4B4848]">
           Page {{ currentPage }} sur {{ totalPages }}
         </div>
         <div class="flex gap-2">
@@ -160,15 +161,19 @@
 
   <!-- Modal de détails du coupon -->
   <div *ngIf="showDetailModal && selectedPromotion"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 transition-opacity duration-300"
+    class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/30 transition-opacity duration-300"
     (click)="closeDetailModal()">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+    <div
+      class="bg-white rounded-2xl shadow-xl w-full max-w-full sm:max-w-2xl md:max-w-3xl 2xl:max-w-4xl max-h-[90vh] overflow-y-auto"
       (click)="$event.stopPropagation()">
       <!-- Header -->
-      <div class="flex items-center justify-between p-6 border-b border-gray-100">
-        <h2 class="text-2xl font-bold text-gray-900">Coupon N° 2025-{{ String(selectedPromotion.id).padStart(2, '0') }}
+      <div
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 sm:p-6 border-b border-gray-100">
+        <h2 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Coupon N° 2025-{{
+          String(selectedPromotion.id).padStart(2, '0') }}
         </h2>
-        <button (click)="closeDetailModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+        <button (click)="closeDetailModal()"
+          class="self-end sm:self-auto text-gray-400 hover:text-gray-600 transition-colors">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
               stroke-linejoin="round" />
@@ -177,23 +182,23 @@
       </div>
 
       <!-- Body -->
-      <div class="p-6 space-y-6">
+      <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
         <!-- Informations du coupon -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-4 sm:gap-6">
           <div>
-            <div class="text-sm text-[#6B7280] mb-1">Nom du coupon</div>
-            <div class="text-base font-medium text-[#4B4848]">{{ selectedPromotion.nom }}</div>
+            <div class="text-xs sm:text-sm text-[#6B7280] mb-1">Nom du coupon</div>
+            <div class="text-sm sm:text-base font-medium text-[#4B4848]">{{ selectedPromotion.nom }}</div>
           </div>
           <div>
-            <div class="text-sm text-[#6B7280] mb-1">Taux de réduction</div>
-            <div class="text-base font-medium text-[#4B4848]">{{ selectedPromotion.reduction }}</div>
+            <div class="text-xs sm:text-sm text-[#6B7280] mb-1">Taux de réduction</div>
+            <div class="text-sm sm:text-base font-medium text-[#4B4848]">{{ selectedPromotion.reduction }}</div>
           </div>
           <div>
-            <div class="text-sm text-[#6B7280] mb-1">Période</div>
-            <div class="text-base font-medium text-[#4B4848]">{{ selectedPromotion.validite }}</div>
+            <div class="text-xs sm:text-sm text-[#6B7280] mb-1">Période</div>
+            <div class="text-sm sm:text-base font-medium text-[#4B4848]">{{ selectedPromotion.validite }}</div>
           </div>
           <div>
-            <div class="text-sm text-[#6B7280] mb-1">Statut</div>
+            <div class="text-xs sm:text-sm text-[#6B7280] mb-1">Statut</div>
             <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
               [class.bg-[#0A97480F]]="selectedPromotion.statut === 'Actif'"
               [class.bg-[#F2F2F2]]="selectedPromotion.statut === 'Expiré'"
@@ -210,14 +215,14 @@
 
         <!-- Produits Section -->
         <div>
-          <h3 class="text-base font-bold text-[#374151] mb-4">Produits</h3>
+          <h3 class="text-sm sm:text-base font-bold text-[#374151] mb-2 sm:mb-4">Produits</h3>
 
           <!-- Table des produits -->
-          <div class="bg-[#F8F9FC] rounded-lg overflow-hidden">
-            <table class="w-full">
+          <div class="bg-[#F8F9FC] rounded-lg overflow-x-auto">
+            <table class="w-full min-w-[400px]">
               <thead>
                 <tr class="bg-[#F8F9FC]">
-                  <th class="text-left text-sm font-medium text-gray-700 py-3 px-4 w-12">
+                  <th class="text-left text-xs sm:text-sm font-medium text-gray-700 py-2 sm:py-3 px-2 sm:px-4 w-12">
                     <div class="w-5 h-5 rounded bg-[#FF6B00] flex items-center justify-center">
                       <svg width="12" height="9" viewBox="0 0 12 9" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M1 4.5L4.5 8L11 1" stroke="white" stroke-width="2" stroke-linecap="round"
@@ -225,15 +230,18 @@
                       </svg>
                     </div>
                   </th>
-                  <th class="text-left text-sm font-medium text-gray-700 py-3 px-4">Produit</th>
-                  <th class="text-left text-sm font-medium text-gray-700 py-3 px-4">Description</th>
-                  <th class="text-left text-sm font-medium text-gray-700 py-3 px-4">Stock</th>
+                  <th class="text-left text-xs sm:text-sm font-medium text-gray-700 py-2 sm:py-3 px-2 sm:px-4">Produit
+                  </th>
+                  <th class="text-left text-xs sm:text-sm font-medium text-gray-700 py-2 sm:py-3 px-2 sm:px-4">
+                    Description</th>
+                  <th class="text-left text-xs sm:text-sm font-medium text-gray-700 py-2 sm:py-3 px-2 sm:px-4">Stock
+                  </th>
                 </tr>
               </thead>
               <tbody class="bg-white">
                 <tr *ngFor="let product of allProducts"
                   class="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                  <td class="py-3 px-4">
+                  <td class="py-2 sm:py-3 px-2 sm:px-4">
                     <button (click)="toggleProductSelection(product.id)" type="button"
                       class="w-5 h-5 rounded border-2 flex items-center justify-center transition-all"
                       [class.bg-[#FF6B00]]="isProductSelected(product.id)"
@@ -246,26 +254,26 @@
                       </svg>
                     </button>
                   </td>
-                  <td class="py-3 px-4">
-                    <div class="flex items-center gap-3">
+                  <td class="py-2 sm:py-3 px-2 sm:px-4">
+                    <div class="flex items-center gap-2 sm:gap-3">
                       <div
-                        class="w-12 h-12 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        <img [src]="product.icon" [alt]="product.name" class="w-8 h-8 object-contain">
+                        class="w-10 h-10 sm:w-12 sm:h-12 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        <img [src]="product.icon" [alt]="product.name" class="w-7 h-7 sm:w-8 sm:h-8 object-contain">
                       </div>
                       <div>
-                        <div class="text-sm font-medium text-gray-900">{{ product.name }}</div>
-                        <div class="text-xs text-gray-500">{{ product.category }}</div>
+                        <div class="text-xs sm:text-sm font-medium text-gray-900">{{ product.name }}</div>
+                        <div class="text-[10px] sm:text-xs text-gray-500">{{ product.category }}</div>
                       </div>
                     </div>
                   </td>
-                  <td class="py-3 px-4">
-                    <div class="text-sm text-gray-600">
+                  <td class="py-2 sm:py-3 px-2 sm:px-4">
+                    <div class="text-xs sm:text-sm text-gray-600">
                       {{ product.description || 'Lorem Ipsum has been the industry\'s standard dummy text ever since the
                       1500' }}
                     </div>
                   </td>
-                  <td class="py-3 px-4">
-                    <div class="text-sm font-medium text-gray-900">{{ product.stock }}</div>
+                  <td class="py-2 sm:py-3 px-2 sm:px-4">
+                    <div class="text-xs sm:text-sm font-medium text-gray-900">{{ product.stock }}</div>
                   </td>
                 </tr>
               </tbody>
@@ -275,9 +283,10 @@
       </div>
 
       <!-- Footer -->
-      <div class="flex items-center justify-between px-6 pb-6 gap-4">
+      <div
+        class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between px-4 sm:px-6 pb-4 sm:pb-6 gap-2 sm:gap-4">
         <button (click)="modifierCoupon()"
-          class="w-full bg-white border border-[#E5E7EB] text-[#666666] px-6 py-3 rounded-lg font-medium text-base hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+          class="w-full sm:w-auto bg-white border border-[#E5E7EB] text-[#666666] px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M8.33301 1.66333H2.49967C2.05765 1.66333 1.63372 1.83892 1.32116 2.15149C1.0086 2.46405 0.833008 2.88797 0.833008 3.33V14.9967C0.833008 15.4387 1.0086 15.8626 1.32116 16.1752C1.63372 16.4877 2.05765 16.6633 2.49967 16.6633H14.1663C14.6084 16.6633 15.0323 16.4877 15.3449 16.1752C15.6574 15.8626 15.833 15.4387 15.833 14.9967V9.16333"
@@ -289,7 +298,7 @@
           Modifier
         </button>
         <button *ngIf="selectedPromotion.statut === 'Actif'" (click)="toggleCouponStatus('desactiver')"
-          class="w-full bg-white border border-[#E5E7EB] text-[#EF4444] px-6 py-3 rounded-lg font-medium text-base hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
+          class="w-full sm:w-auto bg-white border border-[#E5E7EB] text-[#EF4444] px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
           <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path fill-rule="evenodd" clip-rule="evenodd"
               d="M6 0C7.06087 0 8.07828 0.421427 8.82843 1.17157C9.57857 1.92172 10 2.93913 10 4V6.05C10.5647 6.16527 11.0722 6.47209 11.4367 6.91855C11.8011 7.36501 12.0001 7.92367 12 8.5V13.5C12 14.163 11.7366 14.7989 11.2678 15.2678C10.7989 15.7366 10.163 16 9.5 16H2.5C1.83696 16 1.20107 15.7366 0.732233 15.2678C0.263392 14.7989 5.21142e-08 14.163 5.21142e-08 13.5V8.5C-0.000117575 7.92367 0.198892 7.36501 0.563347 6.91855C0.927802 6.47209 1.43532 6.16527 2 6.05V4C2 2.93913 2.42143 1.92172 3.17157 1.17157C3.92172 0.421427 4.93913 0 6 0ZM2.5 7C2.10218 7 1.72064 7.15804 1.43934 7.43934C1.15804 7.72064 1 8.10218 1 8.5V13.5C1 13.8978 1.15804 14.2794 1.43934 14.5607C1.72064 14.842 2.10218 15 2.5 15H9.5C9.89782 15 10.2794 14.842 10.5607 14.5607C10.842 14.2794 11 13.8978 11 13.5V8.5C11 8.10218 10.842 7.72064 10.5607 7.43934C10.2794 7.15804 9.89782 7 9.5 7H2.5ZM6 1C5.20435 1 4.44129 1.31607 3.87868 1.87868C3.31607 2.44129 3 3.20435 3 4V6H9V4C9 3.20435 8.68393 2.44129 8.12132 1.87868C7.55871 1.31607 6.79565 1 6 1Z"
@@ -298,7 +307,7 @@
           Désactiver
         </button>
         <button *ngIf="selectedPromotion.statut === 'Planifié'" (click)="toggleCouponStatus('activer')"
-          class="w-full bg-white border border-[#E5E7EB] text-[#16A34A] px-6 py-3 rounded-lg font-medium text-base hover:bg-green-50 transition-colors flex items-center justify-center gap-2">
+          class="w-full sm:w-auto bg-white border border-[#E5E7EB] text-[#16A34A] px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base hover:bg-green-50 transition-colors flex items-center justify-center gap-2">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path fill-rule="evenodd" clip-rule="evenodd"
               d="M12 0C13.0609 0 14.0783 0.421427 14.8284 1.17157C15.5786 1.92172 16 2.93913 16 4V6.5H15V4C15 3.20435 14.6839 2.44129 14.1213 1.87868C13.5587 1.31607 12.7956 1 12 1C11.2044 1 10.4413 1.31607 9.87868 1.87868C9.31607 2.44129 9 3.20435 9 4V6H9.5C9.8283 6 10.1534 6.06466 10.4567 6.1903C10.76 6.31594 11.0356 6.50009 11.2678 6.73223C11.4999 6.96438 11.6841 7.23998 11.8097 7.54329C11.9353 7.84661 12 8.1717 12 8.5V13.5C12 13.8283 11.9353 14.1534 11.8097 14.4567C11.6841 14.76 11.4999 15.0356 11.2678 15.2678C11.0356 15.4999 10.76 15.6841 10.4567 15.8097C10.1534 15.9353 9.8283 16 9.5 16H2.5C1.83696 16 1.20107 15.7366 0.732233 15.2678C0.263392 14.7989 0 14.163 0 13.5L0 8.5C0 7.83696 0.263392 7.20107 0.732233 6.73223C1.20107 6.26339 1.83696 6 2.5 6H8V4C8 2.93913 8.42143 1.92172 9.17157 1.17157C9.92172 0.421427 10.9391 0 12 0ZM2.5 7C2.10218 7 1.72064 7.15804 1.43934 7.43934C1.15804 7.72064 1 8.10218 1 8.5V13.5C1 13.8978 1.15804 14.2794 1.43934 14.5607C1.72064 14.842 2.10218 15 2.5 15H9.5C9.89782 15 10.2794 14.842 10.5607 14.5607C10.842 14.2794 11 13.8978 11 13.5V8.5C11 8.10218 10.842 7.72064 10.5607 7.43934C10.2794 7.15804 9.89782 7 9.5 7H2.5Z"
@@ -307,7 +316,7 @@
           Activer
         </button>
         <button (click)="closeDetailModal()"
-          class="w-full bg-[#DDE2E433] text-[#646B78] px-6 py-3 rounded-lg font-medium text-base transition-colors">
+          class="w-full sm:w-auto bg-[#DDE2E433] text-[#646B78] px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-colors">
           Fermer
         </button>
       </div>

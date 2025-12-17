@@ -1,5 +1,5 @@
 <app-main-layout role="admin">
-    <div class="min-h-screen bg-[#F9FAFB]">
+    <div class="space-y-4 sm:space-y-5 lg:space-y-6">
         <!-- Header with back navigation -->
         <app-header [title]="'Nouveau utilisateur'"
             [breadcrumb]="'Pages / Gestion des utilisateurs / Nouveau utilisateur'" [type]="'back'"
@@ -7,79 +7,81 @@
         </app-header>
 
         <!-- Form Container -->
-        <div class="mx-auto py-2">
-            <div class="bg-white rounded-2xl p-6">
+        <div class="mx-auto">
+            <div class="bg-white rounded-2xl p-4 sm:p-5 lg:p-6">
                 <!-- Section Title -->
-                <h2 class="text-xl text-[#2C3E50] pb-4 mb-6 border-b border-[#F4F7FE] -mx-6 px-6">Informations générales
+                <h2
+                    class="text-lg font-semibold text-[#2C3E50] pb-3 mb-4 border-b border-[#F4F7FE] -mx-4 px-4 sm:text-xl sm:pb-4 sm:mb-6 sm:-mx-5 sm:px-5 lg:-mx-6 lg:px-6">
+                    Informations générales
                 </h2>
 
                 <!-- Form Grid -->
-                <div class="space-y-6">
+                <div class="space-y-4 sm:space-y-5 lg:space-y-6">
                     <!-- Row 1: Prénom & Nom -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                         <!-- Prénom -->
-                        <div class="space-y-2">
-                            <label class="block font-medium text-[#333333]">
+                        <div class="space-y-1.5 sm:space-y-2">
+                            <label class="block font-medium text-[#333333] text-sm sm:text-base">
                                 Prénom
                             </label>
                             <input type="text" [(ngModel)]="newUser.prenom" placeholder="Saisir"
                                 [class.border-red-500]="errors.prenom"
-                                class="w-full px-4 py-3.5 border border-[#CBD5E1] rounded-md focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm placeholder-[#9CA3AF] transition-colors">
+                                class="w-full px-3 py-2.5 border border-[#CBD5E1] rounded-md focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-xs placeholder-[#9CA3AF] transition-colors sm:px-4 sm:py-3 sm:text-sm lg:py-3.5">
                             <p *ngIf="errors.prenom" class="text-red-500 text-xs mt-1">{{ errors.prenom }}</p>
                         </div>
 
                         <!-- Nom -->
-                        <div class="space-y-2">
-                            <label class="block font-medium text-[#333333]">
+                        <div class="space-y-1.5 sm:space-y-2">
+                            <label class="block font-medium text-[#333333] text-sm sm:text-base">
                                 Nom
                             </label>
                             <input type="text" [(ngModel)]="newUser.nom" placeholder="Saisir"
                                 [class.border-red-500]="errors.nom"
-                                class="w-full px-4 py-3.5 border border-[#CBD5E1] rounded-md focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm placeholder-[#9CA3AF] transition-colors">
+                                class="w-full px-3 py-2.5 border border-[#CBD5E1] rounded-md focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-xs placeholder-[#9CA3AF] transition-colors sm:px-4 sm:py-3 sm:text-sm lg:py-3.5">
                             <p *ngIf="errors.nom" class="text-red-500 text-xs mt-1">{{ errors.nom }}</p>
                         </div>
                     </div>
 
                     <!-- Row 2: Email & Téléphone -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                         <!-- Email -->
-                        <div class="space-y-2">
-                            <label class="block font-medium text-[#333333]">
+                        <div class="space-y-1.5 sm:space-y-2">
+                            <label class="block font-medium text-[#333333] text-sm sm:text-base">
                                 Adresse email
                             </label>
                             <input type="email" [(ngModel)]="newUser.email" placeholder="Saisir"
                                 [class.border-red-500]="errors.email"
-                                class="w-full px-4 py-3.5 border border-[#CBD5E1] rounded-md focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm placeholder-[#9CA3AF] transition-colors">
+                                class="w-full px-3 py-2.5 border border-[#CBD5E1] rounded-md focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-xs placeholder-[#9CA3AF] transition-colors sm:px-4 sm:py-3 sm:text-sm lg:py-3.5">
                             <p *ngIf="errors.email" class="text-red-500 text-xs mt-1">{{ errors.email }}</p>
                         </div>
 
                         <!-- Téléphone -->
-                        <div class="space-y-2">
-                            <label class="block font-medium text-[#333333]">
+                        <div class="space-y-1.5 sm:space-y-2">
+                            <label class="block font-medium text-[#333333] text-sm sm:text-base">
                                 Téléphone
                             </label>
                             <input type="tel" [(ngModel)]="newUser.telephone" placeholder="Saisir"
                                 [class.border-red-500]="errors.telephone"
-                                class="w-full px-4 py-3.5 border border-[#CBD5E1] rounded-md focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm placeholder-[#9CA3AF] transition-colors">
+                                class="w-full px-3 py-2.5 border border-[#CBD5E1] rounded-md focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-xs placeholder-[#9CA3AF] transition-colors sm:px-4 sm:py-3 sm:text-sm lg:py-3.5">
                             <p *ngIf="errors.telephone" class="text-red-500 text-xs mt-1">{{ errors.telephone }}</p>
                         </div>
                     </div>
 
                     <!-- Row 3: Rôle (Dropdown) -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                        <div class="space-y-2">
-                            <label class="block font-medium text-[#333333]">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+                        <div class="space-y-1.5 sm:space-y-2">
+                            <label class="block font-medium text-[#333333] text-sm sm:text-base">
                                 Rôle
                             </label>
                             <div class="relative">
                                 <button type="button" (click)="toggleRoleDropdown()"
                                     [class.border-red-500]="errors.role"
-                                    class="w-full px-4 py-3.5 border border-[#CBD5E1] rounded-md focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm text-left bg-white transition-colors flex items-center justify-between">
+                                    class="w-full px-3 py-2.5 border border-[#CBD5E1] rounded-md focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-xs text-left bg-white transition-colors flex items-center justify-between sm:px-4 sm:py-3 sm:text-sm lg:py-3.5">
                                     <span [class.text-[#9CA3AF]]="!newUser.role" [class.text-[#2C3E50]]="newUser.role">
                                         {{ newUser.role || 'Sélectionner' }}
                                     </span>
                                     <svg [class.rotate-180]="showRoleDropdown"
-                                        class="w-4 h-4 text-[#9CA3AF] transition-transform" fill="none"
+                                        class="w-3 h-3 text-[#9CA3AF] transition-transform sm:w-4 sm:h-4" fill="none"
                                         stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M19 9l-7 7-7-7" />
@@ -90,7 +92,7 @@
                                 <div *ngIf="showRoleDropdown"
                                     class="absolute top-full left-0 right-0 mt-1 bg-white rounded-md shadow-lg border border-[#CBD5E1] py-1 z-10 max-h-60 overflow-y-auto">
                                     <button *ngFor="let role of roles" type="button" (click)="selectRole(role)"
-                                        class="w-full text-left px-4 py-2.5 text-sm text-[#2C3E50] hover:bg-[#F9FAFB] transition-colors">
+                                        class="w-full text-left px-3 py-2 text-xs text-[#2C3E50] hover:bg-[#F9FAFB] transition-colors sm:px-4 sm:py-2.5 sm:text-sm">
                                         {{ role }}
                                     </button>
                                 </div>
@@ -101,13 +103,13 @@
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="flex flex-col sm:flex-row items-center justify-end gap-3 mt-8 pt-6">
+                <div class="flex flex-col sm:flex-row items-center justify-end gap-2 mt-4 sm:gap-3 sm:mt-5 lg:mt-6">
                     <button (click)="enregistrer()"
-                        class="w-full sm:w-auto px-12 py-4 bg-[#2C2D5B] hover:bg-[#232447] text-white rounded-md font-medium transition-colors text-sm">
+                        class="w-full sm:w-auto px-6 py-2.5 bg-[#2C2D5B] hover:bg-[#232447] text-white rounded-md font-medium transition-colors text-xs sm:px-8 sm:py-3 sm:text-sm lg:px-12 lg:py-4">
                         Enregistrer
                     </button>
                     <button (click)="annuler()"
-                        class="w-full sm:w-auto px-12 py-4 bg-[#F3F4F6] hover:bg-[#CBD5E1] text-[#6B7280] rounded-md font-medium transition-colors text-sm">
+                        class="w-full sm:w-auto px-6 py-2.5 bg-[#F3F4F6] hover:bg-[#CBD5E1] text-[#6B7280] rounded-md font-medium transition-colors text-xs sm:px-8 sm:py-3 sm:text-sm lg:px-12 lg:py-4">
                         Annuler
                     </button>
                 </div>

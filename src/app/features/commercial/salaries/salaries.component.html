@@ -5,43 +5,45 @@
     </app-header>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-        <div *ngFor="let metric of metricsData" class="bg-white rounded-lg p-5 hover:shadow-sm transition-shadow">
-            <div class="flex items-start justify-between">
-                <div class="flex-1">
-                    <div class="text-xs text-[#6B7280] mb-1">{{ metric.title }}</div>
-                    <div class="text-2xl font-semibold text-[#2B3674]">{{ metric.value }}</div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 2xl:gap-6 mb-4 sm:mb-5 2xl:mb-6">
+        <div *ngFor="let metric of metricsData"
+            class="bg-white rounded-lg p-4 sm:p-5 2xl:p-6 hover:shadow-sm transition-all duration-200">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs 2xl:text-sm text-[#6B7280] mb-1.5">{{ metric.title }}</div>
+                    <div class="text-xl sm:text-2xl 2xl:text-3xl font-semibold text-[#2B3674]">{{ metric.value }}</div>
                 </div>
-                <div class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <img [src]="metric.icon" alt="icon" class="w-8 h-8">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <img [src]="metric.icon" alt="icon" class="w-6 h-6 xl:w-8 xl:h-8">
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Employees Table -->
-    <div class="bg-white rounded-2xl hover:shadow-sm">
+    <div class="bg-white rounded-lg sm:rounded-2xl hover:shadow-sm">
         <!-- Filters -->
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4">
-            <div class="relative flex-1 max-w-md">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4">
+            <div class="relative flex-1 max-w-full lg:max-w-md">
                 <!-- Search icon -->
-                <svg class="absolute left-4 top-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 14 14"
-                    fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg class="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4"
+                    viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
                         d="M13.1539 12.2073L10.6806 9.75393C11.6407 8.55687 12.1056 7.03747 11.9798 5.50813C11.854 3.9788 11.147 2.55579 10.0043 1.5317C8.86151 0.507604 7.3698 -0.0397263 5.83588 0.00224731C4.30196 0.0442209 2.84241 0.672308 1.75736 1.75736C0.672308 2.84241 0.0442209 4.30196 0.00224731 5.83588C-0.0397263 7.3698 0.507604 8.86151 1.5317 10.0043C2.55579 11.147 3.9788 11.854 5.50813 11.9798C7.03747 12.1056 8.55687 11.6407 9.75393 10.6806L12.2073 13.1339C12.2692 13.1964 12.343 13.246 12.4242 13.2799C12.5055 13.3137 12.5926 13.3311 12.6806 13.3311C12.7686 13.3311 12.8557 13.3137 12.937 13.2799C13.0182 13.246 13.092 13.1964 13.1539 13.1339C13.2741 13.0096 13.3413 12.8435 13.3413 12.6706C13.3413 12.4977 13.2741 12.3316 13.1539 12.2073ZM6.01393 10.6806C5.09095 10.6806 4.1887 10.4069 3.42127 9.89412C2.65384 9.38134 2.0557 8.65251 1.7025 7.79979C1.34929 6.94707 1.25687 6.00876 1.43694 5.10351C1.617 4.19827 2.06146 3.36675 2.7141 2.7141C3.36675 2.06146 4.19827 1.617 5.10351 1.43694C6.00876 1.25687 6.94707 1.34929 7.79979 1.7025C8.65251 2.0557 9.38134 2.65384 9.89412 3.42127C10.4069 4.1887 10.6806 5.09095 10.6806 6.01393C10.6806 7.25161 10.1889 8.43859 9.31376 9.31376C8.43859 10.1889 7.25161 10.6806 6.01393 10.6806Z"
                         fill="#777777" />
                 </svg>
                 <input type="text" placeholder="Rechercher un salarié..." [(ngModel)]="searchTerm"
                     (input)="filterEmployees()"
-                    class="w-full pl-12 pr-4 py-3 border border-[#EEEEEE] rounded-lg focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm bg-white placeholder-[#777777]">
+                    class="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 border border-[#EEEEEE] rounded-lg focus:outline-none focus:border-[#2B3674] focus:ring-2 focus:ring-[#2B3674]/20 text-xs sm:text-sm bg-white placeholder-[#777777] transition-all">
             </div>
 
-            <div class="flex flex-wrap gap-3">
+            <div class="flex flex-wrap gap-2 sm:gap-3">
                 <!-- Company Filter -->
                 <div class="relative">
                     <button (click)="toggleCompanyDropdown()"
-                        class="px-3 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
-                        <svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        class="px-3 py-2 border border-[#EEEEEE] rounded-lg text-xs 2xl:text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 flex items-center gap-2 bg-white transition-all">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 20 21" fill="none"
+                            xmlns="http://www.w3.org/2000/svg">
                             <path
                                 d="M16.6673 5.16671C16.6673 4.70004 16.6673 4.46671 16.5757 4.28837C16.496 4.13171 16.3688 4.00424 16.2123 3.92421C16.034 3.83337 15.8007 3.83337 15.334 3.83337H4.66732C4.20065 3.83337 3.96732 3.83337 3.78898 3.92421C3.63219 4.0041 3.50471 4.13158 3.42482 4.28837C3.33398 4.46671 3.33398 4.70004 3.33398 5.16671V5.78087C3.33398 5.98504 3.33398 6.08671 3.35732 6.18254C3.37772 6.26786 3.41147 6.34942 3.45732 6.42421C3.50815 6.50754 3.58065 6.58004 3.72398 6.72421L7.94315 10.9425C8.08732 11.0867 8.15982 11.1592 8.21065 11.2425C8.25676 11.3181 8.2901 11.3987 8.31065 11.4842C8.33398 11.5792 8.33398 11.68 8.33398 11.8792V15.8425C8.33398 16.5567 8.33398 16.9142 8.48398 17.1292C8.54906 17.2222 8.63245 17.3009 8.72903 17.3605C8.82562 17.4201 8.93336 17.4594 9.04565 17.4759C9.30482 17.5142 9.62482 17.355 10.2632 17.035L10.9298 16.7017C11.1982 16.5684 11.3315 16.5017 11.429 16.4017C11.5155 16.3134 11.5812 16.2069 11.6215 16.09C11.6673 15.9584 11.6673 15.8084 11.6673 15.5092V11.8859C11.6673 11.6817 11.6673 11.58 11.6907 11.4842C11.7111 11.3989 11.7448 11.3173 11.7907 11.2425C11.8407 11.1592 11.9132 11.0875 12.0548 10.9459L12.0582 10.9425L16.2773 6.72421C16.4207 6.58004 16.4923 6.50754 16.544 6.42421C16.5901 6.34865 16.6234 6.2681 16.644 6.18254C16.6673 6.08837 16.6673 5.98671 16.6673 5.78754V5.16671Z"
                                 stroke="#A3AED0" stroke-width="1.66667" stroke-linecap="round"
@@ -50,9 +52,9 @@
                         {{ selectedCompanyFilter || 'Toutes les entreprises' }}
                     </button>
                     <div *ngIf="showCompanyDropdown"
-                        class="absolute top-full right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10">
+                        class="absolute top-full right-0 mt-1 min-w-[180px] sm:min-w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-20">
                         <button *ngFor="let company of uniqueCompanies" (click)="selectCompany(company)"
-                            class="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-[#2B3674] transition-colors">
+                            class="w-full text-left px-4 py-2 text-xs 2xl:text-sm text-gray-700 hover:bg-gray-50 hover:text-[#2B3674] transition-all">
                             {{ company }}
                         </button>
                     </div>
@@ -82,47 +84,63 @@
         </div>
 
         <!-- Table -->
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto -mx-3 sm:mx-0">
             <table class="w-full">
                 <thead class="bg-[#F4F7FE]">
                     <tr>
-                        <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Salarié</th>
-                        <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Email</th>
-                        <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Entreprise</th>
-                        <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Date d'inscription</th>
-                        <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Statut</th>
-                        <th class="text-left text-xs text-[#2C3E50] py-4 px-6">Actions</th>
+                        <th
+                            class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">
+                            Salarié</th>
+                        <th
+                            class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">
+                            Email</th>
+                        <th
+                            class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">
+                            Entreprise</th>
+                        <th
+                            class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">
+                            Date d'inscription</th>
+                        <th
+                            class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">
+                            Statut</th>
+                        <th
+                            class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">
+                            Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     <tr *ngFor="let employee of getCurrentPageEmployees()" class="hover:bg-gray-50 transition-colors">
-                        <td class="py-3 px-4">
+                        <td class="py-3 px-4 2xl:px-6">
                             <div class="flex items-center gap-3">
                                 <div
-                                    class="w-10 h-10 rounded-lg bg-[#F2F2F2] flex items-center justify-center text-base font-semibold text-[#4B4848]">
+                                    class="w-9 h-9 lg:w-10 lg:h-10 rounded-lg bg-[#F2F2F2] flex items-center justify-center text-sm lg:text-base font-semibold text-[#4B4848] flex-shrink-0">
                                     {{ employee.initials }}
                                 </div>
-                                <div>
-                                    <div class="text-sm font-medium text-[#4B4848]">{{ employee.nom }}</div>
-                                    <div class="text-xs text-[#6B7280]">{{ employee.code }}</div>
+                                <div class="min-w-0">
+                                    <div class="text-xs lg:text-sm font-medium text-[#4B4848] truncate">{{ employee.nom
+                                        }}</div>
+                                    <div class="text-xs text-[#6B7280] truncate">{{ employee.code }}</div>
                                 </div>
                             </div>
                         </td>
-                        <td class="py-3 px-6 text-sm text-[#4B4848]">{{ employee.email }}</td>
-                        <td class="py-3 px-6 text-sm text-[#4B4848]">{{ employee.entreprise }}</td>
-                        <td class="py-3 px-6 text-sm text-[#4B4848]">{{ employee.dateInscription }}</td>
-                        <td class="py-3 px-6">
+                        <td class="py-3 px-4 lg:px-6 text-xs lg:text-sm text-[#4B4848] whitespace-nowrap">{{
+                            employee.email }}</td>
+                        <td class="py-3 px-4 lg:px-6 text-xs lg:text-sm text-[#4B4848] whitespace-nowrap">{{
+                            employee.entreprise }}</td>
+                        <td class="py-3 px-4 lg:px-6 text-xs lg:text-sm text-[#4B4848] whitespace-nowrap">{{
+                            employee.dateInscription }}</td>
+                        <td class="py-3 px-4 lg:px-6 whitespace-nowrap">
                             <span
                                 [class]="'inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ' + getStatusClass(employee.statut)">
                                 <span [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(employee.statut)"></span>
                                 {{ employee.statut }}
                             </span>
                         </td>
-                        <td class="py-3 px-0">
+                        <td class="py-3 px-4 2xl:px-6">
                             <div class="flex items-center gap-2">
                                 <button (click)="viewDetails(employee)"
-                                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                                    <svg width="20" height="14" viewBox="0 0 20 14" fill="none"
+                                    class="p-2 hover:bg-gray-100 active:bg-gray-150 rounded-lg transition-all">
+                                    <svg class="w-4 h-4 lg:w-5 lg:h-5" viewBox="0 0 20 14" fill="none"
                                         xmlns="http://www.w3.org/2000/svg">
                                         <path
                                             d="M9.61012 1.7473C11.2165 1.74195 12.7918 2.19005 14.1549 3.04006C15.5181 3.89006 16.6136 5.10749 17.3157 6.55236C15.8742 9.49655 12.93 11.3574 9.61012 11.3574C6.29026 11.3574 3.34607 9.49655 1.90455 6.55236C2.60663 5.10749 3.7022 3.89006 5.0653 3.04006C6.42841 2.19005 8.00372 1.74195 9.61012 1.7473ZM9.61012 0C5.24189 0 1.51141 2.71705 0 6.55236C1.51141 10.3877 5.24189 13.1047 9.61012 13.1047C13.9784 13.1047 17.7088 10.3877 19.2202 6.55236C17.7088 2.71705 13.9784 0 9.61012 0ZM9.61012 4.36824C10.1894 4.36824 10.7449 4.59835 11.1545 5.00795C11.5641 5.41755 11.7942 5.97309 11.7942 6.55236C11.7942 7.13162 11.5641 7.68716 11.1545 8.09676C10.7449 8.50637 10.1894 8.73648 9.61012 8.73648C9.03086 8.73648 8.47532 8.50637 8.06572 8.09676C7.65612 7.68716 7.426 7.13162 7.426 6.55236C7.426 5.97309 7.65612 5.41755 8.06572 5.00795C8.47532 4.59835 9.03086 4.36824 9.61012 4.36824ZM9.61012 2.62094C7.44348 2.62094 5.67871 4.38571 5.67871 6.55236C5.67871 8.71901 7.44348 10.4838 9.61012 10.4838C11.7768 10.4838 13.5415 8.71901 13.5415 6.55236C13.5415 4.38571 11.7768 2.62094 9.61012 2.62094Z"
@@ -130,8 +148,8 @@
                                     </svg>
                                 </button>
                                 <button (click)="editEmployee(employee.id)"
-                                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none"
+                                    class="p-2 hover:bg-orange-100  rounded-lg transition-all">
+                                    <svg class="w-4 h-4" viewBox="0 0 15 15" fill="none"
                                         xmlns="http://www.w3.org/2000/svg">
                                         <path
                                             d="M1.66667 13.3333H2.85417L11 5.1875L9.8125 4L1.66667 12.1458V13.3333ZM0 15V11.4583L11 0.479167C11.1667 0.326389 11.3508 0.208333 11.5525 0.125C11.7542 0.0416667 11.9658 0 12.1875 0C12.4092 0 12.6244 0.0416667 12.8333 0.125C13.0422 0.208333 13.2228 0.333333 13.375 0.5L14.5208 1.66667C14.6875 1.81944 14.8092 2 14.8858 2.20833C14.9625 2.41667 15.0006 2.625 15 2.83333C15 3.05556 14.9619 3.2675 14.8858 3.46917C14.8097 3.67083 14.6881 3.85472 14.5208 4.02083L3.54167 15H0ZM10.3958 4.60417L9.8125 4L11 5.1875L10.3958 4.60417Z"
@@ -139,11 +157,11 @@
                                     </svg>
                                 </button>
                                 <button (click)="toggleEmployeeStatus(employee)"
-                                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                                    class="p-2 hover:bg-gray-100 rounded-lg transition-all">
                                     <div
-                                        [class]="'w-6 h-3.5 rounded-full relative transition-colors ' + (employee.statut === 'Actif' ? 'bg-gradient-to-r from-[#FF6B00] to-[#FF914D]' : 'bg-gray-300')">
+                                        [class]="'w-6 h-3.5 rounded-full relative transition-all duration-200 ' + (employee.statut === 'Actif' ? 'bg-gradient-to-r from-[#FF6B00] to-[#FF914D]' : 'bg-gray-300')">
                                         <div
-                                            [class]="'w-2.5 h-2.5 bg-white rounded-full absolute top-0.5 transition-all ' + (employee.statut === 'Actif' ? 'right-1' : 'left-1')">
+                                            [class]="'w-2.5 h-2.5 bg-white rounded-full absolute top-0.5 transition-all duration-200' + (employee.statut === 'Actif' ? 'right-1' : 'left-1')">
                                         </div>
                                     </div>
                                 </button>
@@ -155,17 +173,18 @@
         </div>
 
         <!-- Pagination -->
-        <div class="flex items-center justify-between p-4 border-t border-gray-100">
-            <div class="text-sm text-[#4B4848]">
+        <div
+            class="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 2xl:p-5 border-t border-gray-100">
+            <div class="text-xs sm:text-sm text-[#4B4848]">
                 Page {{ currentPage }} sur {{ totalPages }}
             </div>
-            <div class="flex gap-2">
+            <div class="flex gap-2 sm:gap-3">
                 <button (click)="previousPage()" [disabled]="currentPage === 1"
-                    class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-[#4B4848] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    class="px-3 sm:px-4 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm font-medium text-[#4B4848] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                     Précédent
                 </button>
                 <button (click)="nextPage()" [disabled]="currentPage === totalPages"
-                    class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-[#4B4848] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    class="px-3 sm:px-4 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm font-medium text-[#4B4848] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                     Suivant
                 </button>
             </div>
@@ -178,13 +197,15 @@
 
     <!-- Employee Detail Modal -->
     <div *ngIf="showEmployeeModal && selectedEmployee"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 transition-opacity duration-300">
+        class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/30 transition-opacity duration-300">
         <div
-            class="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden transform transition-all duration-300 scale-100">
+            class="bg-white rounded-2xl shadow-xl w-full max-w-full sm:max-w-lg  2xl:max-w-xl overflow-hidden transform transition-all duration-300 scale-100">
             <!-- Header -->
-            <div class="flex items-center justify-between p-6 border-b border-gray-100">
-                <h2 class="text-xl font-bold text-gray-900">Salarié {{ selectedEmployee.code }}</h2>
-                <button (click)="closeEmployeeModal()" class="transition-colors">
+            <div
+                class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 sm:p-6 border-b border-gray-100">
+                <h2 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Salarié {{ selectedEmployee.code }}
+                </h2>
+                <button (click)="closeEmployeeModal()" class="self-end sm:self-auto transition-colors">
                     <!-- Close icon SVG -->
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path
@@ -194,25 +215,25 @@
                 </button>
             </div>
             <!-- Body -->
-            <div class="p-6 space-y-6">
+            <div class="p-3 sm:p-6 space-y-4 sm:space-y-6">
                 <!-- Employee Avatar and Info -->
                 <div class="flex flex-col items-center text-center">
                     <div
-                        class="w-24 h-24 rounded-full bg-[#F2F2F2] flex items-center justify-center text-4xl font-semibold text-[#4B4848] mb-6 relative">
+                        class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#F2F2F2] flex items-center justify-center text-3xl sm:text-4xl font-semibold text-[#4B4848] mb-4 sm:mb-6 relative">
                         {{ selectedEmployee.initials }}
                         <span class="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white"
                             [class.bg-green-500]="selectedEmployee.statut === 'Actif'"
                             [class.bg-red-500]="selectedEmployee.statut === 'Inactif'">
                         </span>
                     </div>
-                    <h3 class="text-lg text-[#4B4848] mb-1">{{ selectedEmployee.nom }}</h3>
+                    <h3 class="text-base sm:text-lg text-[#4B4848] mb-1">{{ selectedEmployee.nom }}</h3>
                     <p class="text-xs text-gray-600">Salarié</p>
                 </div>
 
                 <!-- Employee Details -->
-                <div class="space-y-6">
+                <div class="space-y-4 sm:space-y-6">
                     <!-- Email -->
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2 sm:gap-3">
                         <div class="flex-shrink-0">
                             <!-- Mail icon SVG -->
                             <svg width="16" height="12" viewBox="0 0 16 12" fill="none"
@@ -309,13 +330,13 @@
             </div>
 
             <!-- Footer -->
-            <div class="flex items-center gap-3 p-6 ">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 p-3 sm:p-6 ">
                 <button (click)="modifierEmployee()"
-                    class="flex-1 py-4 bg-[#2C2D5B] hover:bg-[#232447] text-white rounded-md font-medium transition-colors">
+                    class="flex-1 py-3 sm:py-4 bg-[#2C2D5B] hover:bg-[#232447] text-white rounded-md font-medium text-sm sm:text-base transition-colors">
                     Modifier
                 </button>
                 <button (click)="annulerEmployee()"
-                    class="flex-1 py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-100 hover:text-gray-800 rounded-lg font-medium transition-colors">
+                    class="flex-1 py-3 sm:py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-100 hover:text-gray-800 rounded-lg font-medium text-sm sm:text-base transition-colors">
                     Annuler
                 </button>
             </div>

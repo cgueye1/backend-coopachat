@@ -7,10 +7,3 @@
     button {
       transition: all 0.2s ease-in-out;
     }
-    
-    /* Responsive improvements */
-    @media (max-width: 640px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
-    }

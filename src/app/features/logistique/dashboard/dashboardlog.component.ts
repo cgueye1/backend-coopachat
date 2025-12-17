@@ -2,6 +2,8 @@ import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angula
 import { CommonModule } from '@angular/common';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
+import { RouterModule } from '@angular/router';
+import { isBoxedPrimitive } from 'util/types';
 
 interface MetricCard {
   title: string;
@@ -29,7 +31,7 @@ interface CommandeLivraison {
 @Component({
   selector: 'app-dashboardlog',
   standalone: true,
-  imports: [CommonModule, MainLayoutComponent, HeaderComponent],
+  imports: [CommonModule, MainLayoutComponent, HeaderComponent, RouterModule],
   templateUrl: './dashboardlog.component.html',
   styleUrls: ['./dashboardlog.component.css']
 })
@@ -135,62 +137,6 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
     const ctx = this.commandesChartRef?.nativeElement?.getContext('2d');
     if (!ctx) return;
 
-    const drawArrow = (ctx: any, x: number, y: number, angle: number) => {
-      const headLength = 6;
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(angle);
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(-headLength, headLength / 1.5);
-      ctx.lineTo(-headLength, -headLength / 1.5);
-      ctx.closePath();
-      ctx.fillStyle = '#4338CA';
-      ctx.fill();
-      ctx.restore();
-    };
-
-    const customLinePlugin = {
-      id: 'customLinePlugin',
-      afterDatasetsDraw: (chart: any) => {
-        const ctx = chart.ctx;
-        const meta0 = chart.getDatasetMeta(0); // Commandes dataset
-        const meta1 = chart.getDatasetMeta(1); // Livraisons dataset
-
-        // Combine and sort points by x coordinate to pass through both blue and green bars
-        const points = [...meta0.data, ...meta1.data].sort((a: any, b: any) => a.x - b.x);
-
-        if (points.length === 0) return;
-
-        ctx.save();
-        ctx.strokeStyle = '#4338CA';
-        ctx.lineWidth = 2;
-        ctx.lineJoin = 'round';
-
-        ctx.beginPath();
-        points.forEach((point: any, index: number) => {
-          if (index === 0) ctx.moveTo(point.x, point.y);
-          else ctx.lineTo(point.x, point.y);
-        });
-        ctx.stroke();
-
-        if (points.length > 1) {
-          // Start arrow
-          const p0 = points[0];
-          const p1 = points[1];
-          const angleStart = Math.atan2(p1.y - p0.y, p1.x - p0.x);
-          drawArrow(ctx, p0.x, p0.y, angleStart);
-
-          // End arrow
-          const pn = points[points.length - 1];
-          const pn_1 = points[points.length - 2];
-          const angleEnd = Math.atan2(pn.y - pn_1.y, pn.x - pn_1.x);
-          drawArrow(ctx, pn.x, pn.y, angleEnd);
-        }
-        ctx.restore();
-      }
-    };
-
     this.commandesChart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -240,7 +186,8 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
             labels: {
               usePointStyle: true,
               pointStyle: 'circle',
-              boxWidth: 8,
+              boxWidth: 6,
+              boxHeight: 6,
               padding: 20,
               font: { size: 12 },
               filter: (item: any) => item.text !== 'Montant'
@@ -286,7 +233,7 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
           }
         }
       },
-      plugins: [customLinePlugin]
+      // plugins: [] // Suppression du plugin customLinePlugin
     });
   }
   initStocksChart(Chart: any): void {
@@ -314,6 +261,8 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
             labels: {
               usePointStyle: true,
               pointStyle: 'circle',
+              boxWidth: 10,
+              boxHeight: 10,
               padding: 20,
               font: {
                 size: 12
@@ -419,6 +368,8 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
             labels: {
               usePointStyle: true,
               pointStyle: 'circle',
+              boxWidth: 10,
+              boxHeight: 10,
               padding: 20,
               font: {
                 size: 12

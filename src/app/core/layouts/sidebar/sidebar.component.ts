@@ -1,6 +1,6 @@
 import { Component, Input, OnChanges, SimpleChanges, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, NavigationEnd } from '@angular/router';
+import { Router, NavigationEnd, RouterModule } from '@angular/router';
 import { filter } from 'rxjs/operators';
 
 type Role = 'log' | 'com' | 'admin' | 'commercial';
@@ -8,7 +8,7 @@ type Role = 'log' | 'com' | 'admin' | 'commercial';
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './sidebar.component.html',
   styleUrls: [],
 })
@@ -17,7 +17,6 @@ export class SidebarComponent implements OnChanges, OnInit {
 
   mobileOpen = false;
   userMenuOpen = false;
-  userMenuMobileOpen = false;
 
   constructor(private router: Router) { }
 
@@ -92,31 +91,20 @@ export class SidebarComponent implements OnChanges, OnInit {
     this.updateActiveState();
   }
 
-  // Méthodes pour mobile
+  // Toggle mobile menu
   toggleMobile() {
     this.mobileOpen = !this.mobileOpen;
   }
 
-  closeMobile() {
-    this.mobileOpen = false;
-  }
-
-  // Méthodes pour menu utilisateur desktop
+  // Toggle user menu
   toggleUserMenu() {
     this.userMenuOpen = !this.userMenuOpen;
-    this.userMenuMobileOpen = false;
   }
 
-  // Méthodes pour menu utilisateur mobile
-  toggleUserMenuMobile() {
-    this.userMenuMobileOpen = !this.userMenuMobileOpen;
+  // Close all menus
+  closeMenus() {
+    this.mobileOpen = false;
     this.userMenuOpen = false;
-  }
-
-  // Fermer tous les menus utilisateur
-  closeUserMenus() {
-    this.userMenuOpen = false;
-    this.userMenuMobileOpen = false;
   }
 
   // Actions du menu utilisateur
@@ -124,13 +112,13 @@ export class SidebarComponent implements OnChanges, OnInit {
     console.log('Redirection vers Mon compte');
     // Implémentez ici la navigation vers la page de profil
     // Par exemple : this.router.navigate(['/profile']);
-    this.closeUserMenus();
+    this.closeMenus();
   }
 
   logout() {
     console.log('Déconnexion de l\'utilisateur');
     // Implémentez ici la logique de déconnexion
     // Par exemple : this.authService.logout(); this.router.navigate(['/login']);
-    this.closeUserMenus();
+    this.closeMenus();
   }
 }

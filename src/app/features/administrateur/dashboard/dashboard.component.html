@@ -1,37 +1,38 @@
 <app-main-layout [role]="role">
-  <div class="space-y-6 2xl:space-y-8">
+  <div class="space-y-4 sm:space-y-5 lg:space-y-6 2xl:space-y-8">
     <!-- Header -->
     <app-header [title]="'Tableau de bord'" [breadcrumb]="'Pages / Tableau de bord'" [type]="'filter'">
     </app-header>
 
     <!-- Metrics -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
       <div *ngFor="let metric of metricsData" class="bg-white rounded-lg p-4 hover:shadow-sm transition-shadow">
         <div class="flex items-start justify-between">
           <div class="flex-1">
             <p class="text-xs text-[#6B7280] mb-1">{{ metric.title }}</p>
-            <p class="text-2xl font-medium text-[#2B3674] mb-2">{{ metric.value }}</p>
+            <p class="text-xl font-medium text-[#2B3674] mb-2 sm:text-2xl lg:text-3xl">{{ metric.value }}</p>
             <p class="text-xs" [ngClass]="getTrendClass(metric.trend)">{{ metric.delta }}</p>
           </div>
           <div class="flex items-center justify-center">
-            <img [src]="metric.icon" alt="icone {{ metric.title }}" class="w-8 h-8">
+            <img [src]="metric.icon" alt="icone {{ metric.title }}" class="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8">
           </div>
         </div>
       </div>
     </div>
 
     <!-- Charts -->
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
-      <div class="col-span-2 bg-white rounded-lg p-6 hover:shadow-sm transition-shadow">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+      <div class="md:col-span-2 xl:col-span-2 bg-white rounded-lg p-6 hover:shadow-sm transition-shadow">
+        <div class="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between mb-4">
           <div>
-            <h2 class="text-lg font-semibold text-[#2C3E50]">Commandes vs Livraisons</h2>
+            <h2 class="text-base font-semibold text-[#2C3E50] sm:text-lg lg:text-xl">Commandes vs Livraisons</h2>
           </div>
-          <button class="text-sm border border-gray-200 rounded-full px-3 py-2 hover:bg-gray-50 transition-colors">
+          <button
+            class="text-xs border border-gray-200 rounded-full px-2 py-1.5 hover:bg-gray-50 transition-colors sm:text-sm sm:px-3 sm:py-2">
             Voir détails
           </button>
         </div>
-        <div class="relative h-80">
+        <div class="relative h-64 md:h-72 lg:h-80">
           <canvas #commandesChart></canvas>
         </div>
       </div>
@@ -39,10 +40,10 @@
       <div class="bg-white rounded-lg p-6 hover:shadow-sm">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <h2 class="text-lg font-semibold text-[#2C3E50]">Paiements par statut</h2>
+            <h2 class="text-base font-semibold text-[#2C3E50] sm:text-lg lg:text-xl">Paiements par statut</h2>
           </div>
         </div>
-        <div class="flex items-center justify-center h-80">
+        <div class="flex items-center justify-center h-64 md:h-72 lg:h-80">
           <div class="relative">
             <canvas #paiementsChart></canvas>
           </div>
@@ -51,10 +52,10 @@
     </div>
 
     <!-- Secondary charts -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
       <!-- Livraisons stacked chart -->
       <div class="bg-white rounded-lg p-6 hover:shadow-sm">
-        <h2 class="text-lg font-semibold text-[#2C3E50] mb-4">Livraisons</h2>
+        <h2 class="text-base font-semibold text-[#2C3E50] mb-4 sm:text-lg">Livraisons</h2>
         <div class="relative h-64">
           <canvas #livraisonsChart></canvas>
         </div>
@@ -62,7 +63,7 @@
 
       <!-- Utilisateurs par rôle -->
       <div class="bg-white rounded-lg p-6 hover:shadow-sm">
-        <h2 class="text-lg font-semibold text-[#2C3E50] mb-4">Utilisateurs par rôle</h2>
+        <h2 class="text-base font-semibold text-[#2C3E50] mb-4 sm:text-lg">Utilisateurs par rôle</h2>
         <div class="relative h-64">
           <canvas #rolesChart></canvas>
         </div>
@@ -72,10 +73,10 @@
       <div class="bg-white rounded-lg p-6 hover:shadow-sm">
         <div class="flex items-center justify-between mb-6">
           <div>
-            <h2 class="text-lg font-semibold text-[#2C3E50]">Stocks - État global</h2>
+            <h2 class="text-base font-semibold text-[#2C3E50] sm:text-lg">Stocks - État global</h2>
           </div>
         </div>
-        <div class="flex items-center justify-center h-64">
+        <div class="flex items-center justify-center h-48 sm:h-56 md:h-64">
           <div class="relative">
             <canvas #stocksEtatChart></canvas>
           </div>
@@ -84,20 +85,21 @@
     </div>
 
     <!-- Coupons & alerts -->
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
-      <div class="col-span-2 bg-white rounded-lg p-6 hover:shadow-sm">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+      <div class="md:col-span-2 xl:col-span-2 bg-white rounded-lg p-6 hover:shadow-sm">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold text-[#2C3E50]">Tendance des coupons utilisés</h2>
+          <h2 class="text-base font-semibold text-[#2C3E50] sm:text-lg lg:text-xl">Tendance des coupons utilisés</h2>
         </div>
-        <div class="relative h-48">
+        <div class="relative h-40 sm:h-48 md:h-56">
           <canvas #couponsChart></canvas>
         </div>
       </div>
-      <div class="bg-white rounded-lg p-6 hover:shadow-sm transition-shadow space-y-6">
-        <h2 class="text-xl font-semibold text-[#2C3E50]">Alertes et notifications</h2>
-        <div class="space-y-4">
-          <div class="flex items-start gap-4">
-            <div class="w-10 h-10 rounded-full bg-[#FF914D14] flex items-center justify-center">
+      <div class="bg-white rounded-lg p-6 hover:shadow-sm transition-shadow space-y-4 sm:space-y-5 lg:space-y-6">
+        <h2 class="text-lg font-semibold text-[#2C3E50] sm:text-xl">Alertes et notifications</h2>
+        <div class="space-y-3 sm:space-y-4">
+          <div class="flex items-start gap-3 sm:gap-4">
+            <div
+              class="w-8 h-8 rounded-full bg-[#FF914D14] flex items-center justify-center sm:w-9 sm:h-9 lg:w-10 lg:h-10">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path fill-rule="evenodd" clip-rule="evenodd"
                   d="M20 10C20 15.523 15.523 20 10 20C4.477 20 0 15.523 0 10C0 4.477 4.477 0 10 0C15.523 0 20 4.477 20 10ZM10 18C12.1217 18 14.1566 17.1571 15.6569 15.6569C17.1571 14.1566 18 12.1217 18 10C18 7.87827 17.1571 5.84344 15.6569 4.34315C14.1566 2.84285 12.1217 2 10 2C7.87827 2 5.84344 2.84285 4.34315 4.34315C2.84285 5.84344 2 7.87827 2 10C2 12.1217 2.84285 14.1566 4.34315 15.6569C5.84344 17.1571 7.87827 18 10 18Z"
@@ -111,12 +113,12 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm">18 livraison(s) en retard</p>
-              <p class="text-xs text-[#64748B]">15/05/2025</p>
+              <p class="text-xs sm:text-sm">18 livraison(s) en retard</p>
+              <p class="text-[10px] sm:text-xs text-[#64748B]">15/05/2025</p>
             </div>
           </div>
-          <div class="border-t border-gray-100 pt-4">
-            <div class="flex items-start gap-4">
+          <div class="border-t border-gray-100 pt-3 sm:pt-4">
+            <div class="flex items-start gap-3 sm:gap-4">
               <div class="w-10 h-10 rounded-full bg-[#FF4D4F14] flex items-center justify-center">
                 <svg width="21" height="18" viewBox="0 0 21 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
@@ -125,8 +127,8 @@
                 </svg>
               </div>
               <div>
-                <p class="text-sm font-semibold">8% de stocks en critique</p>
-                <p class="text-xs text-[#64748B]">Clique pour ouvrir le module concerné</p>
+                <p class="text-xs font-semibold sm:text-sm">8% de stocks en critique</p>
+                <p class="text-[10px] text-[#64748B] sm:text-xs">Clique pour ouvrir le module concerné</p>
               </div>
             </div>
           </div>
