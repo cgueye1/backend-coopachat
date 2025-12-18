@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
@@ -48,7 +49,7 @@ public class Employee {
     // Relations
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false, unique = true)
-    private User user; // L'utilisateur salarié
+    private Users user; // L'utilisateur salarié
 
     @ManyToOne
     @JoinColumn(name = "company_id", nullable = false)
@@ -56,5 +57,5 @@ public class Employee {
 
     @ManyToOne
     @JoinColumn(name = "enrolled_by_commercial_id", nullable = false)
-    private User enrolledBy; // Commercial qui a inscrit le salarié
+    private Users enrolledBy; // Commercial qui a inscrit le salarié
 }

@@ -1,6 +1,5 @@
 package com.example.coopachat.entities;
 
-
 import com.example.coopachat.enums.CompanySector;
 import com.example.coopachat.enums.CompanyStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -75,7 +74,7 @@ public class Company {
     // Relations
     @ManyToOne
     @JoinColumn(name = "commercial_id", nullable = false)
-    private User commercial; // Commercial qui gère l'entreprise
+    private Users commercial; // Commercial qui gère l'entreprise
 
    @OneToMany (mappedBy = "company", cascade = CascadeType.ALL)
    private List<Employee> employees; // Liste des salariés de l'entreprise

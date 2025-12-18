@@ -10,3 +10,12 @@ server.port=8082
 spring.jpa.hibernate.ddl-auto=update
 springdoc.api-docs.path=/v3/api-docs
 springdoc.swagger-ui.path=/swagger-ui.html
+
+# Clé secrète du token
+jwt.secret=coopachat-secret-key-256-bits-minimum-required-for-security-2025
+
+#Temps d'expiration du token 24heures par défaut
+jwt.expiration=86400000
+
+#Temps d'expiration du code d'activation lors de l'inscription
+activation.code.expiration.minutes=15
