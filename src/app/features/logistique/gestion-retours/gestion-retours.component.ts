@@ -157,11 +157,11 @@ export class GestionRetoursComponent {
       'water': '/icones/eau.svg',
       'milk': '/icones/lait.svg',
       'soap': '/icones/savon.svg',
-      'box-blue': '/icones/stocks.svg',
-      'check-green': '/icones/actif.svg',
-      'box-red': '/icones/retours.svg',
-      'box-indigo': '/icones/stocks.svg',
-      'money-green': '/icones/money-filled.svg'
+      'box-blue': '/icones/commandefour.svg',
+      'check-green': '/icones/green-box.svg',
+      'box-red': '/icones/red-box.svg',
+      'box-indigo': '/icones/purple-box.svg',
+      'money-green': '/icones/money.svg'
     };
     return iconMap[iconName] || '/icones/stocks.svg';
   }

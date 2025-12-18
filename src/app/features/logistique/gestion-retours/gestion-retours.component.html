@@ -14,10 +14,10 @@
                 <div class="flex justify-between items-start">
                     <div>
                         <div class="text-xs text-[#6B7280] mb-1">{{ metric.title }}</div>
-                        <div class="text-2xl font-medium text-[#2B3674]">{{ metric.value }}</div>
+                        <div class="text-2xl font-semibold text-[#2B3674]">{{ metric.value }}</div>
                     </div>
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center">
-                        <img [src]="getIconPath(metric.icon)" [alt]="metric.title" class="w-6 h-6">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0">
+                        <img [src]="getIconPath(metric.icon)" [alt]="metric.title" class="w-8 h-8">
                     </div>
                 </div>
             </div>
@@ -76,19 +76,33 @@
                 <table class="w-full">
                     <thead class="bg-[#F4F7FE]">
                         <tr>
-                            <th class="text-left text-xs font-bold text-gray-500 py-4 px-6">Produit retourné</th>
-                            <th class="text-left text-xs font-bold text-gray-500 py-4 px-6">Client</th>
-                            <th class="text-left text-xs font-bold text-gray-500 py-4 px-6">Qté</th>
-                            <th class="text-left text-xs font-bold text-gray-500 py-4 px-6">Motif</th>
-                            <th class="text-left text-xs font-bold text-gray-500 py-4 px-6">Date</th>
-                            <th class="text-left text-xs font-bold text-gray-500 py-4 px-6">Statut</th>
-                            <th class="text-left text-xs font-bold text-gray-500 py-4 px-6">Décision</th>
+                            <th
+                                class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">
+                                Produit retourné</th>
+                            <th
+                                class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">
+                                Client</th>
+                            <th
+                                class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">
+                                Qté</th>
+                            <th
+                                class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">
+                                Motif</th>
+                            <th
+                                class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">
+                                Date</th>
+                            <th
+                                class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">
+                                Statut</th>
+                            <th
+                                class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">
+                                Décision</th>
                             <th class="text-center text-xs font-bold text-gray-500 py-4 px-6">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         <tr *ngFor="let item of filteredRetours" class="hover:bg-gray-50 transition-colors group">
-                            <td class="py-3 px-2">
+                            <td class="py-3 px-2 2xl:px-6">
                                 <div class="flex items-center gap-3">
                                     <div
                                         class="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
@@ -96,24 +110,35 @@
                                             class="w-8 h-8 object-contain">
                                     </div>
                                     <div>
-                                        <div class="text-sm font-medium text-gray-900 mb-1">{{ item.product.name }}
+                                        <div class="text-sm font-medium text-gray-900 mb-1 truncate">{{
+                                            item.product.name }}
                                         </div>
-                                        <div class="text-xs text-gray-500">{{ item.product.reference }}</div>
+                                        <div class="text-xs text-gray-500 truncate">{{ item.product.reference }}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-3 px-6 text-sm font-medium text-gray-600">{{ item.client }}</td>
-                            <td class="py-3 px-6 text-sm font-medium text-gray-600">{{ item.quantity }}</td>
-                            <td class="py-3 px-6 text-sm font-medium text-gray-600">{{ item.motif }}</td>
-                            <td class="py-3 px-6 text-sm font-medium text-gray-600">{{ item.date }}</td>
-                            <td class="py-3 px-6">
+                            <td
+                                class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 whitespace-nowrap">
+                                {{ item.client }}</td>
+                            <td
+                                class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 whitespace-nowrap">
+                                {{ item.quantity }}</td>
+                            <td
+                                class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 whitespace-nowrap">
+                                {{ item.motif }}</td>
+                            <td
+                                class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 whitespace-nowrap">
+                                {{ item.date }}</td>
+                            <td
+                                class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 whitespace-nowrap">
                                 <span
                                     [class]="'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ' + getStatusClass(item.status)">
                                     <span [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(item.status)"></span>
                                     {{ item.status }}
                                 </span>
                             </td>
-                            <td class="py-3 px-6 text-sm font-medium text-gray-600">{{ item.decision || '' }}</td>
+                            <td class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 truncate">{{
+                                item.decision || '' }}</td>
                             <td class="py-3 px-6 text-center">
                                 <div class="flex items-center justify-start gap-2">
                                     <!-- Eye button -->
@@ -155,7 +180,7 @@
             </div>
 
             <!-- Pagination -->
-            <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+            <div class="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t border-gray-100">
                 <div class="text-sm text-gray-500 font-medium">
                     Page {{ currentPage }} sur {{ totalPages }}
                 </div>
@@ -177,56 +202,57 @@
 
     <!-- Modal Détails du Retour -->
     <div *ngIf="showDetailModal" (click)="closeDetailModal()"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20">
-        <div (click)="$event.stopPropagation()" class="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden">
-
+        class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/20">
+        <div (click)="$event.stopPropagation()"
+            class="bg-white rounded-2xl shadow-xl w-full max-w-4xl sm:mx-4 mx-0 flex flex-col max-h-[95vh] overflow-hidden">
             <!-- Header -->
-            <div class="flex items-center justify-between px-6 py-4 border-b border-[#F7FAFC]">
-                <h2 class="text-xl font-semibold text-gray-900">Produit {{ selectedDetailRetour!.product.reference }}
-                </h2>
-                <button (click)="closeDetailModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <div
+                class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3 sm:px-6 sm:py-4 border-b border-[#F7FAFC] sticky top-0 bg-white z-10 rounded-t-2xl">
+                <h2 class="text-lg sm:text-xl font-semibold text-gray-900 truncate">Produit {{
+                    selectedDetailRetour!.product.reference }}</h2>
+                <button (click)="closeDetailModal()"
+                    class="text-gray-400 hover:text-gray-600 transition-colors p-2 sm:p-0">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                             stroke-linejoin="round" />
                     </svg>
                 </button>
             </div>
-
             <!-- Body -->
-            <div class="p-8">
+            <div class="flex-1 overflow-y-auto p-4 sm:p-8">
                 <!-- Product Info -->
-                <div class="flex items-start gap-4 mb-8">
+                <div class="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 mb-6 sm:mb-8">
                     <div
-                        class="w-20 h-20 rounded-xl bg-[#E2E2E2] flex-shrink-0 overflow-hidden flex items-center justify-center">
+                        class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-[#E2E2E2] flex-shrink-0 overflow-hidden flex items-center justify-center mx-auto sm:mx-0">
                         <img [src]="getIconPath(selectedDetailRetour!.product.icon)"
-                            [alt]="selectedDetailRetour!.product.name" class="w-16 h-16 object-contain">
+                            [alt]="selectedDetailRetour!.product.name" class="w-12 h-12 sm:w-16 sm:h-16 object-contain">
                     </div>
-                    <div class="flex-1">
-                        <h3 class="text-xl font-semibold text-[#333333] mb-2">{{ selectedDetailRetour!.product.name }}
-                        </h3>
-                        <p class="text-sm text-[#4B4848] font-light leading-relaxed">
+                    <div class="flex-1 text-center sm:text-left">
+                        <h3 class="text-base sm:text-xl font-semibold text-[#333333] mb-1 sm:mb-2">{{
+                            selectedDetailRetour!.product.name }}</h3>
+                        <p class="text-xs sm:text-sm text-[#4B4848] font-light leading-relaxed">
                             Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has
                             been the industry's standard dummy text ever since the 1500s,
                         </p>
                     </div>
                     <span
-                        class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-[#F2F2F2] text-[#6B7280]">
-                        {{ selectedDetailRetour!.product.category }}
-                    </span>
+                        class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-[#F2F2F2] text-[#6B7280] mt-2 sm:mt-0 mx-auto sm:mx-0">{{
+                        selectedDetailRetour!.product.category }}</span>
                 </div>
-
                 <!-- Details Grid -->
-                <div class="grid grid-cols-3 gap-x-8 gap-y-4 mb-6">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-x-8 sm:gap-y-4 mb-4 sm:mb-6">
                     <div>
-                        <div class="text-sm text-[#6B7280] mb-1">Client</div>
-                        <div class="text-base font-medium text-[#4B4848]">{{ selectedDetailRetour?.client }}</div>
+                        <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Client</div>
+                        <div class="text-sm sm:text-base font-medium text-[#4B4848]">{{ selectedDetailRetour?.client }}
+                        </div>
                     </div>
                     <div>
-                        <div class="text-sm text-[#6B7280] mb-1">Date</div>
-                        <div class="text-base font-medium text-[#4B4848]">{{ selectedDetailRetour?.date }}</div>
+                        <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Date</div>
+                        <div class="text-sm sm:text-base font-medium text-[#4B4848]">{{ selectedDetailRetour?.date }}
+                        </div>
                     </div>
                     <div>
-                        <div class="text-sm text-[#6B7280] mb-1">Statut</div>
+                        <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Statut</div>
                         <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
                             [ngClass]="getStatusClass(selectedDetailRetour?.status || '')">
                             <span class="w-2 h-2 rounded-full"
@@ -235,36 +261,34 @@
                         </span>
                     </div>
                     <div>
-                        <div class="text-sm text-[#6B7280] mb-1">Montant</div>
-                        <div class="text-base font-bold text-[#4B4848]">9 000 Fcfa</div>
+                        <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Montant</div>
+                        <div class="text-sm sm:text-base font-bold text-[#4B4848]">9 000 Fcfa</div>
                     </div>
                     <div>
-                        <div class="text-sm text-[#6B7280] mb-1">Quantité</div>
-                        <div class="text-base font-bold text-[#4B4848]">{{ selectedDetailRetour?.quantity }}</div>
+                        <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Quantité</div>
+                        <div class="text-sm sm:text-base font-bold text-[#4B4848]">{{ selectedDetailRetour?.quantity }}
+                        </div>
                     </div>
                 </div>
-
                 <!-- Motif -->
-                <div class="mb-6">
-                    <div class="text-sm text-[#6B7280] mb-1">Motif</div>
-                    <div class="text-base font-medium text-[#4B4848]">{{ selectedDetailRetour?.motif }}</div>
+                <div class="mb-4 sm:mb-6">
+                    <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Motif</div>
+                    <div class="text-sm sm:text-base font-medium text-[#4B4848]">{{ selectedDetailRetour?.motif }}</div>
                 </div>
-
                 <!-- Motif du rejet (uniquement si rejeté) -->
-                <div *ngIf="selectedDetailRetour?.status === 'Rejeté'" class="mb-6">
-                    <h3 class="text-lg font-bold text-[#374151] mb-3">Motif du rejet</h3>
-                    <div class="bg-[#FF09090F] border border-[#FF090926] rounded-lg p-4">
-                        <p class="text-sm text-[#4B4848]">
+                <div *ngIf="selectedDetailRetour?.status === 'Rejeté'" class="mb-4 sm:mb-6">
+                    <h3 class="text-base sm:text-lg font-bold text-[#374151] mb-2 sm:mb-3">Motif du rejet</h3>
+                    <div class="bg-[#FF09090F] border border-[#FF090926] rounded-lg p-3 sm:p-4">
+                        <p class="text-xs sm:text-sm text-[#4B4848]">
                             Lorem Ipsum is simply dummy text of the printing and typesetting industry.
                         </p>
                     </div>
                 </div>
-
                 <!-- Action Buttons -->
-                <div class="flex items-center justify-end gap-3">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 mt-2">
                     <ng-container *ngIf="selectedDetailRetour?.status === 'En attente'">
                         <button (click)="openValidationModal(selectedDetailRetour!); closeDetailModal()"
-                            class="flex items-center justify-center gap-2 px-8 py-3 bg-white text-green-600 border border-[#E5E7EB] rounded-lg font-medium hover:bg-green-50 transition-colors">
+                            class="flex items-center justify-center gap-2 px-4 py-3 sm:px-8 sm:py-3 bg-white text-green-600 border border-[#E5E7EB] rounded-lg font-medium hover:bg-green-50 transition-colors text-sm sm:text-base">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M5 13l4 4L19 7" />
@@ -272,7 +296,7 @@
                             Valider ce retour
                         </button>
                         <button (click)="openRejectModal(selectedDetailRetour!); closeDetailModal()"
-                            class="flex items-center justify-center gap-2 px-8 py-3 bg-white text-red-600 border border-[#E5E7EB] rounded-lg font-medium hover:bg-red-50 transition-colors">
+                            class="flex items-center justify-center gap-2 px-4 py-3 sm:px-8 sm:py-3 bg-white text-red-600 border border-[#E5E7EB] rounded-lg font-medium hover:bg-red-50 transition-colors text-sm sm:text-base">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M6 18L18 6M6 6l12 12" />
@@ -281,7 +305,7 @@
                         </button>
                     </ng-container>
                     <button (click)="closeDetailModal()"
-                        class="px-8 py-3 bg-[#DDE2E433] text-[#646B78] rounded-lg font-medium transition-colors">
+                        class="px-4 py-3 sm:px-8 sm:py-3 bg-[#DDE2E433] text-[#646B78] rounded-lg font-medium transition-colors text-sm sm:text-base">
                         {{ selectedDetailRetour?.status === 'En attente' ? 'Fermer' : 'Annuler' }}
                     </button>
                 </div>
@@ -362,7 +386,7 @@
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 relative z-10 overflow-hidden">
             <!-- Header -->
             <div class="flex items-center justify-between p-6">
-                <h3 class="text-2xl font-medium">Montant du remboursement</h3>
+                <h3 class="text-xl sm:text-2xl font-medium">Montant du remboursement</h3>
                 <button (click)="closeRefundModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -379,13 +403,13 @@
                         class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-gray-900 font-medium">
                 </div>
 
-                <div class="flex items-center gap-4">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
                     <button (click)="saveRefund()"
-                        class="flex-1 text-white py-4 rounded-lg font-medium bg-[#1a214d] transition-colors">
+                        class="flex-1 text-white py-3 sm:py-4 rounded-lg font-medium bg-[#1a214d] transition-colors">
                         Valider le remboursement
                     </button>
                     <button (click)="closeRefundModal()"
-                        class="flex-1 bg-white text-gray-500 py-4 rounded-lg font-medium hover:text-gray-700 transition-colors">
+                        class="flex-1 bg-white text-gray-500 py-3 sm:py-4 rounded-lg font-medium hover:text-gray-700 transition-colors">
                         Annuler
                     </button>
                 </div>
