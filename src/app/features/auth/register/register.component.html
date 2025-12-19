@@ -1,10 +1,10 @@
 <app-auth-layout>
     <!-- Title -->
-    <div class="mb-8">
-        <h1 class="text-3xl lg:text-4xl font-bold mb-4">
+    <div class="mb-6 sm:mb-8">
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4">
             Créer un compte
         </h1>
-        <p class="text-[#49475A] font-light">
+        <p class="text-[#49475A] font-light text-sm sm:text-base">
             Inscrivez-vous pour accéder à votre espace personnel de gestion logistique
         </p>
     </div>
@@ -25,9 +25,9 @@
           </div> -->
 
     <!-- User Type Selection -->
-    <div class="mb-8">
-        <p class="text-[#49475A] text-lg font-medium mb-4">Vous êtes ?</p>
-        <div class="grid grid-cols-2 gap-4">
+    <div class="mb-6 sm:mb-8">
+        <p class="text-[#49475A] text-base sm:text-lg font-medium mb-3 sm:mb-4">Vous êtes ?</p>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
             <label *ngFor="let type of userTypes"
                 class="flex items-center p-4 border rounded-lg cursor-pointer transition-all duration-200"
                 [class.border-[#FF6B00]]="registerForm.get('userType')?.value === type.value"
@@ -62,9 +62,9 @@
     </div>
 
     <!-- Form -->
-    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-6">
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-5 sm:space-y-6">
         <!-- Prénom et Nom -->
-        <div class="grid grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6">
             <div>
                 <label class="block text-gray-700 text-sm font-medium mb-3">
                     Prénom <span class="text-red-500">*</span>
@@ -93,7 +93,7 @@
         </div>
 
         <!-- Email et Téléphone -->
-        <div class="grid grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6">
             <div>
                 <label class="block text-gray-700 text-sm font-medium mb-3">
                     Adresse e-mail professionnelle <span class="text-red-500">*</span>
@@ -141,8 +141,8 @@
             </div>
         </div>
 
-        <!-- Entreprise -->
-        <div>
+        <!-- Entreprise (visible uniquement pour Commercial) -->
+        <div *ngIf="registerForm.get('userType')?.value === 'commercial'">
             <label class="block text-gray-700 text-sm font-medium mb-3">
                 Entreprise / Entité <span class="text-red-500">*</span>
             </label>
@@ -165,13 +165,14 @@
         </div>
 
         <button type="submit" [disabled]="!registerForm.valid"
-            class="w-full bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white py-3 px-4 rounded-lg hover:from-orange-600 hover:to-orange-700 focus:ring-4 focus:ring-orange-200 font-medium text-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+            class="w-full bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white py-3 px-4 rounded-lg hover:from-orange-600 hover:to-orange-700 focus:ring-4 focus:ring-orange-200 font-medium text-base sm:text-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
             Créer un compte
         </button>
 
-        <div class="text-center">
-            <span class="text-gray-600">Vous avez déjà un compte ? </span>
-            <a href="/login" class="text-[#2C2D5B] hover:text-orange-500 font-medium">Connectez-vous</a>
+        <div class="text-center mt-4">
+            <span class="text-gray-600 text-xs sm:text-sm">Vous avez déjà un compte ? </span>
+            <a href="/login"
+                class="text-[#2C2D5B] hover:text-orange-500 font-medium text-xs sm:text-sm">Connectez-vous</a>
         </div>
     </form>
 </app-auth-layout>

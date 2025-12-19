@@ -1,10 +1,10 @@
 <app-auth-layout>
     <!-- Title -->
-    <div class="mb-6">
-        <h1 class="text-3xl lg:text-4xl font-semibold text-gray-800 font-Inter mb-4">
+    <div class="mb-5 sm:mb-6">
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-semibold text-gray-800 font-Inter mb-3 sm:mb-4">
             Plateforme d'achat coopératif pour salariés
         </h1>
-        <p class="text-[#49475A] font-light">
+        <p class="text-[#49475A] font-light text-sm sm:text-base">
             Accédez à des milliers de produits à prix préférentiels grâce à notre programme d'achat groupé.
         </p>
     </div>
@@ -20,41 +20,25 @@
     </div> -->
 
     <!-- Form -->
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-5 sm:space-y-6">
         <div>
-            <label class="block text-sm font-medium mb-2">
-                Nom d'utilisateur
-            </label>
+            <label class="block text-sm font-medium mb-2">Nom d'utilisateur</label>
             <input type="text" formControlName="username" placeholder="Email ou téléphone"
-                class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all duration-200 text-[#9C9AA5] bg-transparent">
+                class="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all duration-200 text-[#9C9AA5] bg-transparent">
         </div>
         <div>
-            <label class="block text-sm font-medium mb-2">
-                Mot de passe
-            </label>
+            <label class="block text-sm font-medium mb-2">Mot de passe</label>
             <div class="flex items-center justify-between relative">
                 <input [type]="showPassword ? 'text' : 'password'" formControlName="password" placeholder="*******"
-                    class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all duration-200 text-[#9C9AA5] bg-transparent">
+                    class="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all duration-200 text-[#9C9AA5] bg-transparent">
                 <button type="button" (click)="togglePassword()"
                     class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    <svg *ngIf="!showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
-                        </path>
-                    </svg>
-                    <svg *ngIf="showPassword" width="20" height="20" viewBox="0 0 20 20" fill="none"
-                        xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M8.55967 8.56189C8.18466 8.93704 7.97403 9.4458 7.97412 9.97624C7.97421 10.5067 8.18502 11.0154 8.56017 11.3904C8.93532 11.7654 9.44408 11.976 9.97453 11.9759C10.505 11.9758 11.0137 11.765 11.3887 11.3899M14.6556 14.648C13.2528 15.5257 11.6293 15.9859 9.97461 15.975C6.37461 15.975 3.37461 13.975 0.974609 9.97501C2.24661 7.85501 3.68661 6.29701 5.29461 5.30101M8.15461 4.15501C8.75365 4.03374 9.36342 3.97343 9.97461 3.97501C13.5746 3.97501 16.5746 5.97501 18.9746 9.97501C18.3086 11.085 17.5956 12.042 16.8366 12.845M0.974609 0.974976L18.9746 18.975"
-                            stroke="#ACB5BB" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
+                    <!-- ...svg... -->
                 </button>
             </div>
         </div>
 
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <label class="flex items-center">
                 <input type="checkbox" formControlName="rememberMe"
                     class="w-4 h-4 text-orange-600 bg-transparent border-gray-300 rounded-sm focus:ring-orange-500 focus:ring-2">
@@ -68,18 +52,18 @@
 
         <div>
             <button type="submit"
-                class="w-full bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white p-4 rounded-lg hover:from-orange-600 hover:to-orange-700 focus:ring-4 focus:ring-orange-200 font-medium text-lg transition-all duration-200 transform hover:scale-[1.02]">
+                class="w-full bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white p-3 sm:p-4 rounded-lg hover:from-orange-600 hover:to-orange-700 focus:ring-4 focus:ring-orange-200 font-medium text-base sm:text-lg transition-all duration-200 transform hover:scale-[1.02]">
                 Se connecter
             </button>
         </div>
 
         <div class="text-center">
             <span
-                class="flex items-center text-xs text-gray-500 before:flex-1 before:border-t before:border-[#EFF0F6] before:me-6 after:flex-1 after:border-t after:border-[#EFF0F6] after:ms-6">Ou</span>
+                class="flex items-center text-xs sm:text-sm text-gray-500 before:flex-1 before:border-t before:border-[#EFF0F6] before:me-4 sm:before:me-6 after:flex-1 after:border-t after:border-[#EFF0F6] after:ms-4 sm:after:ms-6">Ou</span>
         </div>
 
         <!-- Social Login -->
-        <div class="flex space-x-4">
+        <div class="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <button type="button"
                 class="w-full flex items-center justify-center px-4 py-3 border border-[#EFF0F6] rounded-lg bg-white transition-colors duration-200">
                 <svg class="w-5 h-5 mr-3" viewBox="0 0 24 24">
@@ -96,7 +80,7 @@
             </button>
 
             <button type="button"
-                class="w-full flex items-center justify-center px-4 py-3 border border-[#EFF0F6] rounded-lg bg-white transition-colors duration-200 gap-2">
+                class="w-full flex items-center justify-center px-4 py-3 border border-[#EFF0F6] rounded-lg bg-white transition-colors duration-200 gap-4">
                 <svg width="19" height="18" viewBox="0 0 19 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
                         d="M12.9639 0C13.0058 0 13.0477 0 13.092 0C13.1947 1.2694 12.7102 2.21789 12.1213 2.90476C11.5435 3.58688 10.7523 4.24845 9.47267 4.14807C9.38731 2.89685 9.87262 2.01871 10.4607 1.33342C11.0061 0.69477 12.0059 0.126466 12.9639 0Z"
@@ -109,9 +93,10 @@
             </button>
         </div>
 
-        <div class="text-center">
-            <span class="text-[#6C7278]">Vous n'avez pas de compte? </span>
-            <a href="/register" class="text-[#2C2D5B] hover:text-orange-500 font-medium">S'inscrire</a>
+        <div class="text-center mt-4">
+            <span class="text-[#6C7278] text-xs sm:text-sm">Vous n'avez pas de compte? </span>
+            <a href="/register"
+                class="text-[#2C2D5B] hover:text-orange-500 font-medium text-xs sm:text-sm">S'inscrire</a>
         </div>
     </form>
 </app-auth-layout>

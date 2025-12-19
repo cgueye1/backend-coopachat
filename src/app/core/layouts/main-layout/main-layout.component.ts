@@ -20,6 +20,16 @@ export class MainLayoutComponent {
   @Input() role?: Role;
   @ViewChild(SidebarComponent) sidebar!: SidebarComponent;
 
+  isSidebarOpen = false;
+
+  toggleSidebar() {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
+  closeSidebar() {
+    this.isSidebarOpen = false;
+  }
+
   /** Normalisation du rôle */
   get normalizedRole(): 'log' | 'com' | 'admin' {
     if (!this.role) return 'log';
