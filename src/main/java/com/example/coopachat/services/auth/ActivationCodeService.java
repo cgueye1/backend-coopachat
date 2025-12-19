@@ -33,6 +33,14 @@ public interface ActivationCodeService {
      */
     boolean verifyActivationCode(String email, String code);
 
+    /**
+     * Vérifie si un code d'activation a été utilisé pour un email
+     *
+     * @param email L'email de l'utilisateur
+     * @return true si un code a été utilisé, false sinon
+     */
+    boolean hasUsedActivationCode(String email);
+
 
     /**
      * Marque un code d'activation comme utilisé
@@ -43,8 +51,15 @@ public interface ActivationCodeService {
     void markCodeAsUsed(String email, String code);
 
     /**
-     * Supprime tous les codes d'activation expirés de la base de données
+     * Supprime tous les codes d'activation expirés et non utilisés de la base de données
      */
     void cleanupExpiredCodes();
+
+    /**
+     * Supprime les codes utilisés anciens (créés il y a plus de 24 heures)
+     */
+    void cleanupOldUsedCodes();
+
+
 
 }

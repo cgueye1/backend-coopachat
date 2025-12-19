@@ -101,6 +101,15 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
         return activationCodeOpt.isPresent();
     }
 
+    /**
+     * Vérifie si un code d'activation a été utilisé pour un email (utile pour la création d'un mot de passe )
+     */
+    @Override
+    public boolean hasUsedActivationCode(String email) {
+        Boolean hasUsed= activationCodeRepository.hasUsedCode(email);
+        return hasUsed;
+    }
+
 
     /**
      * Marque un code d'activation comme utilisé
@@ -117,7 +126,7 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
     }
 
     // ============================================================================
-    // 🗑️ NETTOYAGE DES CODES EXPIRÉS
+    // 🗑️ NETTOYAGE DES CODES EXPIRÉS ET NON UTILISÉS
     // ============================================================================
     @Override
     @Transactional
@@ -128,5 +137,17 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
         log.info("Nettoyage des codes d'activation expirés effectué");
     }
 
+    // ============================================================================
+    // 🗑️ NETTOYAGE DES CODES UTILISÉS ANCIENS
+    // ============================================================================
+    @Override
+    @Transactional
+    @Scheduled(cron = "0 0 0 * * *") // Tous les jours à minuit
+    public void cleanupOldUsedCodes() {
+        // Supprimer les codes utilisés créés il y a plus de 24 heures
+        LocalDateTime oldDate = LocalDateTime.now().minusHours(24);
+        activationCodeRepository.deleteOldUsedCodes(oldDate);
+        log.info("Nettoyage des codes d'activation utilisés anciens effectué");
+    }
 
 }
