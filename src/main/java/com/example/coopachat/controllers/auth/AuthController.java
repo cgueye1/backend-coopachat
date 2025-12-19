@@ -4,6 +4,7 @@ import com.example.coopachat.dtos.UserDto;
 import com.example.coopachat.dtos.auth.LoginRequestDTO;
 import com.example.coopachat.dtos.auth.LoginResponseDTO;
 import com.example.coopachat.dtos.auth.SendActivationCodeRequestDTO;
+import com.example.coopachat.dtos.auth.VerifyActivationCodeRequestDTO;
 import com.example.coopachat.services.auth.AuthService;
 import com.example.coopachat.services.auth.JwtServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -75,8 +76,19 @@ public class AuthController {
                     "Le code expire dans 15 minutes."
     )
     @PostMapping("/send-activation-code")
-    public ResponseEntity <String> sendActivationCode(@RequestBody @Valid SendActivationCodeRequestDTO requestDTO){
+    public ResponseEntity<String> sendActivationCode(@RequestBody @Valid SendActivationCodeRequestDTO requestDTO) {
         authService.sendActivationCode(requestDTO.getEmail());
         return ResponseEntity.ok("Code d'activation envoyé avec succès par email");
+    }
+
+    @Operation(
+            summary = "Vérifier un code d'activation",
+            description = "Vérifie le code d'activation de 6 chiffres reçu par email. " +
+                    "Le code doit être valide et non expiré."
+    )
+    @PostMapping("/verify-activation-code")
+    public ResponseEntity<String> verifyActivationCode(@RequestBody @Valid VerifyActivationCodeRequestDTO requestDTO) {
+        authService.verifyActivationCode(requestDTO.getEmail(), requestDTO.getCode());
+        return ResponseEntity.ok("Code d'activation vérifié avec succès");
     }
 }

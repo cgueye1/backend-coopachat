@@ -110,6 +110,26 @@ public class AuthServiceImpl implements AuthService {
         emailService.sendActivationCode(email,code, users.getFirstName());
 
     }
+    /**
+     * Vérifie un code d'activation pour un utilisateur
+     */
+    @Override
+    public void verifyActivationCode(String email, String code) {
+
+        // Vérifier si l'utilisateur existe
+        Users user = getUserByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
+
+        // Vérifier le code d'activation
+        boolean isValid = activationCodeService.verifyActivationCode(email, code);
+
+        if(!isValid){
+            throw new RuntimeException("Code d'activation invalide ou expiré");
+        }
+        // Sinon, Marquer le code comme utilisé
+        activationCodeService.markCodeAsUsed(email, code);
+
+    }
 
     // ============================================================================
     // 🔄 MAPPING DTO <-> ENTITY

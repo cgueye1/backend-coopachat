@@ -37,7 +37,14 @@ public interface AuthService {
      */
     void sendActivationCode(String email);
 
-
+    /**
+     * Vérifie un code d'activation pour un utilisateur
+     *
+     * @param email L'email de l'utilisateur
+     * @param code  Le code d'activation à 6 chiffres
+     * @throws RuntimeException si l'utilisateur n'existe pas ou si le code est invalide
+     */
+    void verifyActivationCode(String email , String code);
 
 
 }
