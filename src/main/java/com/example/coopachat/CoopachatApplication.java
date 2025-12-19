@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
-@EnableScheduling
+@EnableScheduling // permet d'activer le scheduling (planification des tâches)
 public class CoopachatApplication {
 
 	public static void main(String[] args) {

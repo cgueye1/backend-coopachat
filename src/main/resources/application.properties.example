@@ -19,3 +19,20 @@ jwt.expiration=86400000
 
 #Temps d'expiration du code d'activation lors de l'inscription
 activation.code.expiration.minutes=15
+
+# ============================================================================
+# 📧 CONFIGURATION EMAIL
+# ============================================================================
+
+# Configuration Email Gmail
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=${MAIL_USERNAME:your-email@gmail.com}
+spring.mail.password=${MAIL_PASSWORD:your-app-password}
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+spring.mail.properties.mail.smtp.ssl.trust=smtp.gmail.com
+
+# Configuration des emails
+mail.from=${MAIL_FROM:admincoopachat@yopmail.com}
+mail.app.name=CoopAchat

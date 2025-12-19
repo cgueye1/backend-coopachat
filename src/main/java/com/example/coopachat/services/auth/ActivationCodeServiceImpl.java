@@ -19,7 +19,7 @@ import java.util.Random;
  */
 @Service
 @RequiredArgsConstructor
-@Slf4j
+@Slf4j// permet de logger les messages 
 public class ActivationCodeServiceImpl implements ActivationCodeService {
 
     // ============================================================================
@@ -121,7 +121,7 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
     // ============================================================================
     @Override
     @Transactional
-    @Scheduled(cron = "0 0 * * * *") // Toutes les heures à la minute 0 on exécute la méthode (Seconde 0, Minute 0, * tous les heures, * tous les jours, * tous les mois, * tous les jours de la semaine )
+    @Scheduled(cron = "0 0 * * * *") // Toutes les heures à la minute 0 on exécute la méthode (Seconde 0, Minute 0, * tous les heures, * tous les jours, * tous les mois, * tous les jours de la semaine ) ,  marque une méthode à exécuter automatiquement
      public void cleanupExpiredCodes(){
         LocalDateTime now = LocalDateTime.now();
         activationCodeRepository.deleteExpiredCodes(now);
