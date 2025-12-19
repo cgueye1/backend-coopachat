@@ -29,6 +29,14 @@ public interface AuthService {
      */
     LoginResponseDTO authenticateCredentialsUser(String email, String password);
 
+    /**
+     * Envoie un code d'activation par email à un utilisateur
+     *
+     * @param email L'email de l'utilisateur
+     * @throws RuntimeException si l'utilisateur n'existe pas
+     */
+    void sendActivationCode(String email);
+
 
 
 

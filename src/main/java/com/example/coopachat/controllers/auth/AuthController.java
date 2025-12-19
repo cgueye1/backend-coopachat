@@ -3,6 +3,7 @@ package com.example.coopachat.controllers.auth;
 import com.example.coopachat.dtos.UserDto;
 import com.example.coopachat.dtos.auth.LoginRequestDTO;
 import com.example.coopachat.dtos.auth.LoginResponseDTO;
+import com.example.coopachat.dtos.auth.SendActivationCodeRequestDTO;
 import com.example.coopachat.services.auth.AuthService;
 import com.example.coopachat.services.auth.JwtServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -62,5 +63,20 @@ public class AuthController {
                 loginRequest.getPassword()
         );
         return ResponseEntity.ok(response);
+    }
+
+    // ============================================================================
+    // 🔐 ACTIVATION DE COMPTE
+    // ============================================================================
+
+    @Operation(
+            summary = "Envoyer un code d'activation",
+            description = "Envoie un code d'activation de 6 chiffres par email à un utilisateur. " +
+                    "Le code expire dans 15 minutes."
+    )
+    @PostMapping("/send-activation-code")
+    public ResponseEntity <String> sendActivationCode(@RequestBody @Valid SendActivationCodeRequestDTO requestDTO){
+        authService.sendActivationCode(requestDTO.getEmail());
+        return ResponseEntity.ok("Code d'activation envoyé avec succès par email");
     }
 }

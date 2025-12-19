@@ -28,6 +28,8 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final ActivationCodeService activationCodeService;
+    private final EmailService emailService;
 
     // ============================================================================
     // 👤 GESTION DES UTILISATEURS
@@ -83,7 +85,30 @@ public class AuthServiceImpl implements AuthService {
         //Générer le token
         String accessToken = jwtService.generateToken(user.getEmail(), user.getRole().name(), user.getId() );
 
-        return new LoginResponseDTO(accessToken, user.getEmail(), user.getRole(), user.getId());
+        return new LoginResponseDTO(accessToken, user.getEmail(), user.getRole().getLabel(), user.getId());
+    }
+
+
+    // ============================================================================
+    // 🔐 ACTIVATION DE COMPTE
+    // ============================================================================
+
+    /**
+     * Envoie un code d'activation par email à un utilisateur
+     */
+    @Override
+    public void sendActivationCode(String email) {
+
+        // Vérifier si l'utilisateur existe
+        Users users = getUserByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
+
+        // Générer et stocker le code d'activation
+        String code = activationCodeService.generateAndStoreCode(email);
+
+        // Envoyer l'email avec le code
+        emailService.sendActivationCode(email,code, users.getFirstName());
+
     }
 
     // ============================================================================
