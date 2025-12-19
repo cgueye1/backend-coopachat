@@ -26,4 +26,3 @@ public class SetPasswordRequestDTO {
     @NotBlank(message = "La confirmation du mot de passe est obligatoire")
     private String confirmPassword;
 }
-

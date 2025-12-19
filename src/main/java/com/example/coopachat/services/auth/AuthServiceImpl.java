@@ -6,6 +6,7 @@ import com.example.coopachat.entities.Users;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
 import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
+import com.example.coopachat.repositories.ActivationCodeRepository;
 import com.example.coopachat.repositories.UserRepository;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final ActivationCodeService activationCodeService;
     private final EmailService emailService;
+    private final ActivationCodeRepository activationCodeRepository;
 
     // ============================================================================
     // 👤 GESTION DES UTILISATEURS
@@ -128,6 +130,41 @@ public class AuthServiceImpl implements AuthService {
         }
         // Sinon, Marquer le code comme utilisé
         activationCodeService.markCodeAsUsed(email, code);
+
+    }
+
+    /**
+     * Crée le mot de passe et active le compte d'un utilisateur
+     */
+    @Override
+    public void setPassword(String email, String password, String confirmPassword) {
+
+        // Vérifier si l'utilisateur existe
+        Users user = getUserByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
+
+        // Vérifier qu'un code d'activation a été vérifié
+        if(!activationCodeService.hasUsedActivationCode(email)){
+            throw new RuntimeException("Vous devez d'abord vérifier votre code d'activation");
+        }
+
+        // Vérifier que les mots de passe correspondent
+        if (!password.equals(confirmPassword)) {
+            throw new RuntimeException("Les mots de passe ne correspondent pas");
+        }
+
+        // Hasher le mot de passe
+        String hashedPassword = passwordEncoder.encode(password);
+        user.setPassword(hashedPassword);
+
+        // Activer le compte
+        user.setIsActive(true);
+
+        // Sauvegarder l'utilisateur
+        userRepository.save(user);
+
+        // Supprimer le code utilisé on en a plus besoin
+        activationCodeRepository.deleteByEmail(email);
 
     }
 

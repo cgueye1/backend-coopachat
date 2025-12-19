@@ -1,10 +1,7 @@
 package com.example.coopachat.controllers.auth;
 
 import com.example.coopachat.dtos.UserDto;
-import com.example.coopachat.dtos.auth.LoginRequestDTO;
-import com.example.coopachat.dtos.auth.LoginResponseDTO;
-import com.example.coopachat.dtos.auth.SendActivationCodeRequestDTO;
-import com.example.coopachat.dtos.auth.VerifyActivationCodeRequestDTO;
+import com.example.coopachat.dtos.auth.*;
 import com.example.coopachat.services.auth.AuthService;
 import com.example.coopachat.services.auth.JwtServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -90,5 +87,16 @@ public class AuthController {
     public ResponseEntity<String> verifyActivationCode(@RequestBody @Valid VerifyActivationCodeRequestDTO requestDTO) {
         authService.verifyActivationCode(requestDTO.getEmail(), requestDTO.getCode());
         return ResponseEntity.ok("Code d'activation vérifié avec succès");
+    }
+
+    @Operation(
+            summary = "Créer un mot de passe",
+            description = "Crée le mot de passe d'un utilisateur après vérification du code d'activation. " +
+                    "Active automatiquement le compte."
+    )
+    @PostMapping("/set-password")
+    public ResponseEntity<String> setPassword(@RequestBody @Valid SetPasswordRequestDTO requestDTO) {
+        authService.setPassword(requestDTO.getEmail(), requestDTO.getPassword(),requestDTO.getConfirmPassword());
+        return ResponseEntity.ok("Mot de passe créé avec succès. Votre compte est maintenant actif.");
     }
 }

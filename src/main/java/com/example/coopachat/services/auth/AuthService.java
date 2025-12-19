@@ -46,5 +46,15 @@ public interface AuthService {
      */
     void verifyActivationCode(String email , String code);
 
+    /**
+     * Crée le mot de passe et active le compte d'un utilisateur
+     *
+     * @param email L'email de l'utilisateur
+     * @param password Le mot de passe à définir
+     * @param confirmPassword  la confirmation
+     * @throws RuntimeException si l'utilisateur n'existe pas, si le code n'a pas été vérifié, ou si les mots de passe ne correspondent pas
+     */
+    void setPassword(String email, String password, String confirmPassword);
+
 
 }
