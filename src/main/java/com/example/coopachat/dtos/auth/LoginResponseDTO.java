@@ -16,7 +16,6 @@ public class LoginResponseDTO {
     private String accessToken;     // Token d’accès
 
     // Gestion 2FA
-    private String sessionId;       // ID de session temporaire
     private boolean requiresOtp;    // Indique si un code OTP est demandé
 
     // Cooldown pour renvoi OTP (en secondes)
@@ -31,11 +30,11 @@ public class LoginResponseDTO {
     private Long id;                // ID de l'utilisateur
 
     // Connexion avec vérification OTP
-    public LoginResponseDTO(String sessionId, String email, boolean requiresOtp) {
-        this.sessionId = sessionId;
+    public LoginResponseDTO( String email, boolean requiresOtp) {
         this.email = email;
         this.requiresOtp = requiresOtp;
         this.success = true;
+        //si un code OTP est requis, le message indique qu'un code a été envoyé, sinon il indique que la connexion a réussi.
         this.message = requiresOtp ? "Code OTP envoyé par email" : "Connexion réussie ✅";
     }
 

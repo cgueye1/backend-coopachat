@@ -183,5 +183,148 @@ public class EmailServiceImpl implements EmailService {
             </html>
             """, appName, appName, firstName, appName, code, appName, appName, java.time.Year.now().getValue(), appName);
     }
+
+    /**
+     * Envoie un code OTP par email à un administrateur pour l'authentification 2FA
+     */
+    @Override
+    public void sendOtpCode(String email, String code, String firstName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            // Configuration de l'email
+            helper.setFrom(mailFrom);
+            helper.setTo(email);
+            helper.setSubject("🔐 Code OTP de vérification - " + appName);
+
+            // Génération du template HTML
+            String emailBody = generateOtpEmailTemplate(firstName, code);
+
+            helper.setText(emailBody, true); // true = HTML
+            mailSender.send(message);
+
+            log.info("Code OTP envoyé avec succès à l'administrateur: {}", email);
+
+        } catch (Exception e) {
+            log.error("Erreur lors de l'envoi du code OTP à {}: {}", 
+                    email, e.getMessage(), e);
+            throw new RuntimeException("Impossible d'envoyer l'email OTP", e);
+        }
+    }
+
+    /**
+     * Génère le template HTML pour l'email OTP (2FA administrateur)
+     *
+     * @param firstName Le prénom de l'administrateur
+     * @param code      Le code OTP à 6 chiffres
+     * @return Le template HTML formaté
+     */
+    private String generateOtpEmailTemplate(String firstName, String code) {
+        return String.format("""
+            <!DOCTYPE html>
+            <html lang="fr">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Code OTP de vérification - %s</title>
+            </head>
+            <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
+                <table role="presentation" style="width: 100%%; border-collapse: collapse; background-color: #f4f4f4;">
+                    <tr>
+                        <td style="padding: 20px 0;">
+                            <table role="presentation" style="width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                
+                                <!-- Header avec logo -->
+                                <tr>
+                                    <td style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                                        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
+                                            🛒 %s
+                                        </h1>
+                                        <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">
+                                            Plateforme E-commerce Coopérative
+                                        </p>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Contenu principal -->
+                                <tr>
+                                    <td style="padding: 40px 30px;">
+                                        <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;">
+                                            Bonjour %s,
+                                        </h2>
+                                        
+                                        <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                                            Vous avez demandé à vous connecter à votre compte <strong>administrateur</strong> sur <strong>%s</strong>. 
+                                            Pour finaliser votre connexion, veuillez utiliser le code OTP de vérification ci-dessous.
+                                        </p>
+                                        
+                                        <!-- Code OTP en grand -->
+                                        <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px; border-radius: 10px; text-align: center; margin: 30px 0;">
+                                            <p style="color: #ffffff; margin: 0 0 10px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9;">
+                                                Votre code OTP de vérification
+                                            </p>
+                                            <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; display: inline-block; margin: 10px 0;">
+                                                <span style="color: #667eea; font-size: 36px; font-weight: 700; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                                                    %s
+                                                </span>
+                                            </div>
+                                            <p style="color: #ffffff; margin: 15px 0 0 0; font-size: 12px; opacity: 0.8;">
+                                                ⏱️ Ce code expire dans 15 minutes
+                                            </p>
+                                        </div>
+                                        
+                                        <!-- Instructions -->
+                                        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; margin: 30px 0;">
+                                            <h3 style="color: #333333; margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">
+                                                📋 Instructions :
+                                            </h3>
+                                            <ol style="color: #666666; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
+                                                <li>Copiez le code OTP ci-dessus</li>
+                                                <li>Retournez sur la page de connexion</li>
+                                                <li>Entrez le code dans le champ prévu à cet effet</li>
+                                                <li>Votre connexion sera finalisée automatiquement</li>
+                                            </ol>
+                                        </div>
+                                        
+                                        <!-- Avertissement de sécurité -->
+                                        <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin: 30px 0;">
+                                            <p style="color: #856404; margin: 0; font-size: 13px; line-height: 1.6;">
+                                                <strong>🔒 Sécurité :</strong> Ne partagez jamais ce code avec qui que ce soit. 
+                                                L'équipe %s ne vous demandera jamais votre code OTP par email ou téléphone.
+                                            </p>
+                                        </div>
+                                        
+                                        <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0;">
+                                            Si vous n'avez pas demandé à vous connecter, ignorez cet email et contactez immédiatement le support.
+                                        </p>
+                                        
+                                        <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
+                                            Cordialement,<br>
+                                            <strong style="color: #333333;">L'équipe %s</strong>
+                                        </p>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Footer -->
+                                <tr>
+                                    <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 10px 10px; border-top: 1px solid #e0e0e0;">
+                                        <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">
+                                            Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+                                        </p>
+                                        <p style="color: #999999; font-size: 12px; margin: 0;">
+                                            © %d %s - Tous droits réservés
+                                        </p>
+                                    </td>
+                                </tr>
+                                
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+            """, appName, appName, firstName, appName, code, appName, appName, java.time.Year.now().getValue(), appName);
+    }
 }
 

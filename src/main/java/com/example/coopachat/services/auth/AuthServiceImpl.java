@@ -90,6 +90,70 @@ public class AuthServiceImpl implements AuthService {
         return new LoginResponseDTO(accessToken, user.getEmail(), user.getRole().getLabel(), user.getId());
     }
 
+    @Override
+    public LoginResponseDTO authenticateAdminWithOtp(String email, String password) {
+
+        // Vérifier si l'utilisateur existe
+        Users user = getUserByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Email ou mot de passe incorrect"));
+
+        //Vérifier que c'est un administrateur
+        if (user.getRole() != UserRole.ADMINISTRATOR){
+            throw new RuntimeException("Accès réservé aux administrateurs");
+        }
+
+        if(!passwordEncoder.matches(password, user.getPassword())){
+            throw new RuntimeException("Email ou mot de passe incorrect");
+        }
+
+        // Vérifier si le compte est actif
+        if (!user.getIsActive()) {
+            throw new RuntimeException("Votre compte n'est pas actif");
+        }
+
+        // Générer et stocker le code OTP
+        String otpCode = activationCodeService.generateAndStoreCode(email);
+
+        // Envoyer le code OTP par email
+        emailService.sendOtpCode(email, otpCode, user.getFirstName());
+
+        // Retourner la réponse avec requiresOtp = true
+        return new LoginResponseDTO(email, true);
+    }
+
+    /**
+     * Vérifie le code OTP et génère le token JWT pour un administrateur
+     */
+    @Override
+    public LoginResponseDTO verifyOtpAndGenerateToken(String email, String otp) {
+        // Vérifier si l'utilisateur existe
+        Users user = getUserByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
+
+        // Vérifier que c'est un administrateur
+        if (user.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Accès réservé aux administrateurs");
+        }
+
+        // Vérifier le code OTP
+        boolean isValid = activationCodeService.verifyActivationCode(email, otp);
+        
+        if (!isValid) {
+            throw new RuntimeException("Code OTP invalide ou expiré");
+        }
+
+        // Marquer le code OTP comme utilisé
+        activationCodeService.markCodeAsUsed(email, otp);
+
+        // Générer le token JWT
+        String accessToken = jwtService.generateToken(user.getEmail(), user.getRole().name(), user.getId());
+
+        // Supprimer le code OTP utilisé (plus besoin de le garder)
+        activationCodeRepository.deleteByEmail(email);
+
+        // Retourner le token JWT avec les informations utilisateur
+        return new LoginResponseDTO(accessToken, user.getEmail(), user.getRole().getLabel(), user.getId());
+    }
 
     // ============================================================================
     // 🔐 ACTIVATION DE COMPTE

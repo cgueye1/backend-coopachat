@@ -14,5 +14,14 @@ public interface EmailService {
      * @param firstName Le prénom de l'utilisateur (pour personnaliser l'email)
      */
     void sendActivationCode(String email, String code, String firstName);
+
+    /**
+     * Envoie un code OTP par email à un administrateur pour l'authentification 2FA
+     *
+     * @param email L'email de l'administrateur
+     * @param code  Le code OTP à 6 chiffres
+     * @param firstName Le prénom de l'administrateur (pour personnaliser l'email)
+     */
+    void sendOtpCode(String email, String code, String firstName);
 }
 

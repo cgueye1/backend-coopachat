@@ -99,4 +99,35 @@ public class AuthController {
         authService.setPassword(requestDTO.getEmail(), requestDTO.getPassword(),requestDTO.getConfirmPassword());
         return ResponseEntity.ok("Mot de passe créé avec succès. Votre compte est maintenant actif.");
     }
+
+    // ============================================================================
+    // 🔐 AUTHENTIFICATION ADMINISTRATEUR (2FA)
+    // ============================================================================
+
+    @Operation(
+            summary = "Connexion administrateur avec 2FA",
+            description = "Permet à un administrateur de se connecter avec son email et son mot de passe. " +
+                    "Envoie un code OTP par email pour l'authentification à deux facteurs."
+    )
+    @PostMapping("/admin/login")
+    public ResponseEntity<LoginResponseDTO> adminLogin(@RequestBody @Valid LoginRequestDTO loginRequest) {
+        LoginResponseDTO response = authService.authenticateAdminWithOtp(
+                loginRequest.getEmail(),
+                loginRequest.getPassword()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Vérifier le code OTP administrateur",
+            description = "Vérifie le code OTP reçu par email et génère le token JWT pour finaliser la connexion administrateur."
+    )
+    @PostMapping("/admin/verify-otp")
+    public ResponseEntity<LoginResponseDTO> verifyOtp(@RequestBody @Valid VerifyActivationCodeRequestDTO requestDTO) {
+        LoginResponseDTO response = authService.verifyOtpAndGenerateToken(
+                requestDTO.getEmail(),
+                requestDTO.getCode()
+        );
+        return ResponseEntity.ok(response);
+    }
 }

@@ -30,6 +30,26 @@ public interface AuthService {
     LoginResponseDTO authenticateCredentialsUser(String email, String password);
 
     /**
+     * Authentifie un administrateur avec email et mot de passe, puis envoie un code OTP
+     *
+     * @param email L'email de l'administrateur
+     * @param password Le mot de passe
+     * @return LoginResponseDTO avec requiresOtp = true et message "Code OTP envoyé par email"
+     * @throws RuntimeException si l'authentification échoue ou si l'utilisateur n'est pas administrateur
+     */
+    LoginResponseDTO authenticateAdminWithOtp(String email, String password);
+
+    /**
+     * Vérifie le code OTP et génère le token JWT pour un administrateur
+     *
+     * @param email L'email de l'administrateur
+     * @param otp   Le code OTP à 6 chiffres
+     * @return LoginResponseDTO avec accessToken JWT si succès
+     * @throws RuntimeException si l'utilisateur n'existe pas, n'est pas administrateur, ou si le code OTP est invalide
+     */
+    LoginResponseDTO verifyOtpAndGenerateToken(String email, String otp);
+
+    /**
      * Envoie un code d'activation par email à un utilisateur
      *
      * @param email L'email de l'utilisateur
