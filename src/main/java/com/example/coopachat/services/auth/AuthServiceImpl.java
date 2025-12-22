@@ -243,6 +243,26 @@ public class AuthServiceImpl implements AuthService {
 
     }
 
+    /**  Renvoie un code d'activation avec vérification du cooldown */
+    @Override
+    public void resendActivationCode(String email) {
+
+        // Vérifier si l'utilisateur existe
+        Users user = getUserByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
+
+        // Vérifier le cooldown restant
+        long remainingSeconds = activationCodeService.getRemainingCooldownSecond(email,CodeType.ACTIVATION);
+
+        if (remainingSeconds > 0) {
+            throw new RuntimeException("Veuillez attendre " + remainingSeconds + " secondes avant de renvoyer le code");
+        }
+        // Cooldown terminé, générer et envoyer un nouveau code
+        String code = activationCodeService.generateAndStoreCode(email);
+        emailService.sendActivationCode(email,code, user.getFirstName());
+
+    }
+
     // ============================================================================
     // 🔐REINITIALISATION DE MOT DE PASSE
     // ============================================================================

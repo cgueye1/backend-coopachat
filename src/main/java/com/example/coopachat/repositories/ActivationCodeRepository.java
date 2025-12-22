@@ -35,6 +35,10 @@ public interface ActivationCodeRepository extends JpaRepository<ActivationCode, 
     @Query("SELECT ac FROM ActivationCode ac WHERE ac.code = :code AND ac.type = :type AND ac.used = false AND ac.expiresAt > :now")
     Optional<ActivationCode> findValidTokenByCodeAndType(String code, CodeType type, LocalDateTime now);
 
+    /** Recherche le dernier code envoyé pour un email et un type (trié par date de création décroissante) */
+    @Query ("SELECT ac FROM ActivationCode ac WHERE ac.email= :email AND ac.type = :type ORDER BY ac.createdAt desc ")
+    Optional <ActivationCode> findTopByEmailAndTypeOrderByCreatedAtDesc(String email, CodeType type);
+
     // ============================================================================
     // 🗑️ NETTOYAGE
     // ============================================================================

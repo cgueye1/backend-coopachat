@@ -39,3 +39,6 @@ mail.app.name=CoopAchat
 
 # Frontend base URL used in emails
 app.frontend.base-url=http://localhost:4200
+
+#Compte à rebours
+activation.code.resend.cooldown.seconds= 30

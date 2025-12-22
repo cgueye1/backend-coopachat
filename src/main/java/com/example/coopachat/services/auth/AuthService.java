@@ -95,4 +95,13 @@ public interface AuthService {
     void resetPassword(String token, String newPassword, String confirmPassword);
 
 
+    /**
+     * Renvoie un code d'activation avec vérification du cooldown
+     *
+     * @param email L'email de l'utilisateur
+     * @throws RuntimeException si le cooldown est actif (avec le temps restant dans le message) ou si l'utilisateur n'existe pas
+     */
+    void resendActivationCode(String email);
+
+
 }

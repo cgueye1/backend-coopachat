@@ -100,6 +100,18 @@ public class AuthController {
         return ResponseEntity.ok("Mot de passe créé avec succès. Votre compte est maintenant actif.");
     }
 
+    @Operation(
+            summary = "Renvoyer un code d'activation",
+            description = "Renvoie un code d'activation par email. " +
+                    "Un délai de 30 secondes doit être respecté entre chaque envoi."
+    )
+    @PostMapping("/resend-activation-code")
+    public ResponseEntity<String> resendActivationCode(@RequestBody @Valid SendActivationCodeRequestDTO requestDTO) {
+        authService.resendActivationCode(requestDTO.getEmail());
+        return ResponseEntity.ok("Code d'activation renvoyé avec succès");
+    }
+
+
     // ============================================================================
     // 🔐 AUTHENTIFICATION ADMINISTRATEUR (2FA)
     // ============================================================================

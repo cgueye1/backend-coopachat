@@ -1,5 +1,7 @@
 package com.example.coopachat.services.auth;
 
+import com.example.coopachat.enums.CodeType;
+
 /**
  * Interface pour le service de gestion des codes d'activation
  * Gère la génération, le stockage, la validation et le nettoyage des codes d'activation
@@ -59,6 +61,15 @@ public interface ActivationCodeService {
      * Supprime les codes utilisés anciens (créés il y a plus de 24 heures)
      */
     void cleanupOldUsedCodes();
+
+    /**
+     * Calcule le temps restant (en secondes) avant de pouvoir renvoyer un code
+     *
+     * @param email L'email de l'utilisateur
+     * @param type Le type de code (ACTIVATION )
+     * @return Le nombre de secondes à attendre (0 si on peut renvoyer immédiatement)
+     */
+    long getRemainingCooldownSecond (String email, CodeType type);
 
 
 

@@ -10,6 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
@@ -36,6 +37,9 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
     private static final int CODE_LENGTH = 6;
     @Value("${activation.code.expiration.minutes:15}")
     private int expirationMinutes;  // 15 minutes
+
+    @Value("${activation.code.resend.cooldown.seconds:30}")
+    private int resendCooldownSeconds;  // 30 secondes par défaut
 
 
     // ============================================================================
@@ -112,7 +116,6 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
         return hasUsed;
     }
 
-
     /**
      * Marque un code d'activation comme utilisé
      */
@@ -126,6 +129,43 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
             log.info("Code d'activation marqué comme utilisé pour l'email: {}", email);
         }
     }
+
+    /**
+    * Calcule le temps restant (en secondes) avant de pouvoir renvoyer un code
+    */
+    @Override
+    public long getRemainingCooldownSecond(String email, CodeType type) {
+        try{
+            // Récupérer le dernier code envoyé
+            Optional<ActivationCode> lastCodeOpt = activationCodeRepository
+                    .findTopByEmailAndTypeOrderByCreatedAtDesc(email, type);
+
+            if (lastCodeOpt.isEmpty()) {
+                return 0;
+            }
+
+            ActivationCode lastCode = lastCodeOpt.get();
+            // Calculer le temps écoulé depuis le dernier envoi (en secondes)
+            long secondsSinceLastCode = Duration
+                    .between(lastCode.getCreatedAt(), LocalDateTime.now())
+                    .getSeconds();
+
+
+            // Si le délai minimum n'est pas encore écoulé, retourner le temps restant
+            if (secondsSinceLastCode < resendCooldownSeconds) {
+                return resendCooldownSeconds - secondsSinceLastCode;
+            }
+
+            // On peut renvoyer immédiatement
+            return 0;
+
+        } catch (Exception e) {
+            log.error("Erreur lors du calcul du cooldown pour {}: {}", email, e.getMessage());
+            // En cas d'erreur, retourner un délai par défaut
+            return resendCooldownSeconds;
+        }
+    }
+
 
     // ============================================================================
     // 🗑️ NETTOYAGE DES CODES EXPIRÉS ET NON UTILISÉS
@@ -151,5 +191,7 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
         activationCodeRepository.deleteOldUsedCodes(oldDate);
         log.info("Nettoyage des codes d'activation utilisés anciens effectué");
     }
+
+
 
 }
