@@ -23,5 +23,14 @@ public interface EmailService {
      * @param firstName Le prénom de l'administrateur (pour personnaliser l'email)
      */
     void sendOtpCode(String email, String code, String firstName);
+
+    /**
+     * Envoie un lien de réinitialisation de mot de passe par email
+     *
+     * @param email L'email de l'utilisateur
+     * @param token Le token unique de réinitialisation
+     * @param firstName Le prénom de l'utilisateur (pour personnaliser l'email)
+     */
+    void sendPasswordResetLink(String email, String token, String firstName);
 }
 

@@ -130,4 +130,34 @@ public class AuthController {
         );
         return ResponseEntity.ok(response);
     }
+
+    // ============================================================================
+    // 🔑 RÉINITIALISATION DE MOT DE PASSE
+    // ============================================================================
+
+    @Operation(
+            summary = "Demander la réinitialisation de mot de passe",
+            description = "Génère un token de réinitialisation et l'envoie par email à l'utilisateur. " +
+                    "Le token expire dans 15 minutes."
+    )
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestBody @Valid ForgotPasswordRequestDTO requestDTO) {
+        authService.generatePasswordResetToken(requestDTO.getEmail());
+        return ResponseEntity.ok("Un lien de réinitialisation a été envoyé à votre adresse email");
+    }
+
+    @Operation(
+            summary = "Réinitialiser le mot de passe",
+            description = "Réinitialise le mot de passe d'un utilisateur avec un token valide reçu par email. " +
+                    "Le token doit être valide et non expiré."
+    )
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody @Valid ResetPasswordRequestDTO requestDTO) {
+        authService.resetPassword(
+                requestDTO.getToken(),
+                requestDTO.getNewPassword(),
+                requestDTO.getConfirmPassword()
+        );
+        return ResponseEntity.ok("Mot de passe réinitialisé avec succès");
+    }
 }

@@ -36,3 +36,6 @@ spring.mail.properties.mail.smtp.ssl.trust=smtp.gmail.com
 # Configuration des emails
 mail.from=${MAIL_FROM:admincoopachat@yopmail.com}
 mail.app.name=CoopAchat
+
+# Frontend base URL used in emails
+app.frontend.base-url=http://localhost:4200

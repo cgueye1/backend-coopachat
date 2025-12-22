@@ -1,6 +1,7 @@
 package com.example.coopachat.services.auth;
 
 import com.example.coopachat.entities.auth.ActivationCode;
+import com.example.coopachat.enums.CodeType;
 import com.example.coopachat.repositories.ActivationCodeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -76,6 +77,7 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
         activationCode.setCode(code);
         activationCode.setExpiresAt(expiresAt);
         activationCode.setEmail(email);
+        activationCode.setType(CodeType.ACTIVATION);
         activationCode.setUsed(false);
         activationCodeRepository.save(activationCode);
 

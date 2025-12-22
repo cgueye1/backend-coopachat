@@ -3,6 +3,8 @@ package com.example.coopachat.services.auth;
 import com.example.coopachat.dtos.UserDto;
 import com.example.coopachat.dtos.auth.LoginResponseDTO;
 import com.example.coopachat.entities.Users;
+import com.example.coopachat.entities.auth.ActivationCode;
+import com.example.coopachat.enums.CodeType;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
 import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
@@ -10,17 +12,26 @@ import com.example.coopachat.repositories.ActivationCodeRepository;
 import com.example.coopachat.repositories.UserRepository;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Implémentation du service d'authentification
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
+
+    @Value("${activation.code.expiration.minutes:15}")
+    private int expirationMinutes;  // 15 minutes
 
     // ============================================================================
     // 📦 DEPENDENCIES
@@ -230,6 +241,87 @@ public class AuthServiceImpl implements AuthService {
         // Supprimer le code utilisé on en a plus besoin
         activationCodeRepository.deleteByEmail(email);
 
+    }
+
+    // ============================================================================
+    // 🔐REINITIALISATION DE MOT DE PASSE
+    // ============================================================================
+    /**
+     * Démarre le processus de réinitialisation de mot de passe
+     * Génère un token unique et envoie un email avec le lien
+     */
+    @Override
+    @Transactional
+    public void generatePasswordResetToken(String email) {
+
+        //vérifier si l'email existe
+        Users user = getUserByEmail(email)
+                .orElseThrow(()-> new RuntimeException("Utilisateur introuvable avec cet email"));
+
+        // Vérifier si le compte est actif
+        if (!user.getIsActive()) {
+            throw new RuntimeException("Votre compte n'est pas actif");
+        }
+
+        //Supprimer les tokens existants pour cet email
+        activationCodeRepository.deleteByEmailAndType(email, CodeType.PASSWORD_RESET);
+
+        //Générer un token unique pour la réinitialisation
+        String  resetToken = UUID.randomUUID().toString();
+
+        //Calculer la date d'expiration du token
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(expirationMinutes);
+
+        //Créer et sauvegarder le token dans la base
+        ActivationCode activationCode = new ActivationCode();
+        activationCode.setType(CodeType.PASSWORD_RESET);
+        activationCode.setUsed(false);
+        activationCode.setExpiresAt(expiresAt);
+        activationCode.setCode(resetToken);
+        activationCode.setEmail(email);
+
+        activationCodeRepository.save(activationCode);
+
+        //Envoyer l'email avec le lien de réinitialisation
+        emailService.sendPasswordResetLink(email, resetToken, user.getFirstName());
+
+    }
+    /**
+     * Réinitialise le mot de passe avec le token fourni
+     * Vérifie la validité du token et met à jour le mot de passe
+     */
+    @Override
+    @Transactional
+    public void resetPassword(String token, String newPassword, String confirmPassword) {
+
+        //Vérifier que les deux mots de passe sont identiques
+        if(!newPassword.equals(confirmPassword)){
+            throw new RuntimeException("Les mots de passe ne correspondent pas");
+        }
+
+        // Récupérer le token depuis la base de données
+       ActivationCode activationCode = activationCodeRepository.findByCodeAndTypeAndUsedFalse(token,CodeType.PASSWORD_RESET)
+               .orElseThrow(() -> new RuntimeException("Token invalide ou expiré"));
+
+
+        //Vérifier que le token n'est pas expiré
+        if(activationCode.getExpiresAt().isBefore(LocalDateTime.now())){
+            throw new RuntimeException("Token expiré");
+        }
+
+        // Récupérer l'utilisateur associé au token
+        Users user = userRepository.findByEmail(activationCode.getEmail())
+                .orElseThrow(()-> new RuntimeException("Utilisateur introuvable avec cet email"));
+
+        //Encoder et sauvegarder le nouveau mot de passe
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        //Marquer le token comme utilisé pour éviter la réutilisation
+        activationCode.setUsed(true);
+        activationCodeRepository.save(activationCode);
+
+        log.info("Mot de passe réinitialisé pour: {}", user.getEmail());
     }
 
     // ============================================================================

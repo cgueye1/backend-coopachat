@@ -1,5 +1,6 @@
 package com.example.coopachat.entities.auth;
 
+import com.example.coopachat.enums.CodeType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -22,7 +23,7 @@ public class ActivationCode {
     @Column(unique = true, nullable = false)
     private String email;  // Email de l'utilisateur
 
-    @Column(nullable = false, length = 6)
+    @Column(nullable = false, length = 255)//255 pour UUID
     private String code;   // Code à 6 chiffres
 
     @Column(nullable = false)
@@ -31,7 +32,13 @@ public class ActivationCode {
     @Column(nullable = false)
     private Boolean used = false;  // Code déjà utilisé ?
 
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private CodeType type;// Type de code
+
     @CreationTimestamp
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime createdAt;
+
+
 }
