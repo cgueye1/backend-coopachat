@@ -1,6 +1,7 @@
 package com.example.coopachat.config;
 
 import com.example.coopachat.services.auth.JwtService;
+import com.example.coopachat.services.auth.TokenBlacklistService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -34,6 +35,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     // ============================================================================
 
     private final JwtService jwtService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     // ============================================================================
     // 🔍 FILTRAGE DES REQUÊTES
@@ -51,8 +53,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (isPublicPath(requestPath)) {
             filterChain.doFilter(request, response);// Laisser passer sans validation JWT
-            return;
+            return; // on s'arrête là
         }
+
         //si le chemin n'est pas public, on continue
 
         // Récupérer le token depuis le header Authorization
@@ -62,12 +65,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Vérifier si le header contient un token Bearer
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
+            sendUnauthorizedResponse(response, "Token manquant. Veuillez vous connecter.");
             return;
         }
 
+        // si oui , on fait : 
         // Extraire le token (enlever "Bearer ")
         jwt = authHeader.substring(7);
+
+        // Vérifier si le token est blacklisté, si oui, on envoie une réponse d'erreur 401 , sinon on continue
+        if (tokenBlacklistService.isBlackListed(jwt)) {
+            sendUnauthorizedResponse(response, "Token invalide. Veuillez vous reconnecter.");
+            return;
+        }
 
         try {
             // Extraire l'email depuis le token
@@ -138,11 +148,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * Vérifie si le chemin de la requête est une route publique
      *
      * @param path Le chemin de la requête
-     * @return true si c'est une route publique, false sinon
+     * @return true si c'est une route publique (il peut accèder à cette fonctionnalité sans token ), false sinon
      */
     private boolean isPublicPath(String path) {
-        // Routes d'authentification publiques
-        if (path.startsWith("/api/auth/")) {
+        // Routes d'authentification publiques sauf (/api/auth/logout  continet un token à blacklister si nécessaire)
+        if (path.startsWith("/api/auth/") && !path.equals("/api/auth/logout")) {
             return true;
         }
 

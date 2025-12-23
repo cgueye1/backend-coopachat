@@ -123,6 +123,12 @@ public class JwtServiceImpl implements JwtService {
         return extractEmail(token);
     }
 
+    @Override
+    public Date extractExpiration(String token) {
+        final Claims claims = extractAllClaims(token);
+        return claims.getExpiration();
+    }
+
     // ============================================================================
     // ✅ VALIDATION DE TOKENS
     // ============================================================================
@@ -144,15 +150,15 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public Boolean isTokenValid(String token) {
         try {
-            // Vérifier que le token n'est pas vide et est structuré
+            // Vérifier que le token n'est pas vide et est bien structuré
+            //token.split("\\.") : découpe le token par . , Si ce n'est pas 3 parties → invalide
             if (token == null || token.split("\\.").length != 3) {
                 return false;
             }
-            return !isTokenExpired(token);
+            return !isTokenExpired(token); //si le token est expiré (true) alors on retourne (false) le token n'est pas valide sinon on retourne (true).
         } catch (Exception e) {
             return false;
         }
     }
-
 
 }

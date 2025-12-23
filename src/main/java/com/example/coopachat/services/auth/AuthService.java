@@ -103,5 +103,13 @@ public interface AuthService {
      */
     void resendActivationCode(String email);
 
+    /**
+     * Déconnecte un utilisateur en invalidant son token JWT
+     *
+     * @param token Le token JWT à invalider
+     * @throws RuntimeException si le token est invalide
+     */
+    void logout (String token);
+
 
 }

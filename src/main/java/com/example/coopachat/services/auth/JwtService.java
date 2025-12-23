@@ -1,5 +1,7 @@
 package com.example.coopachat.services.auth;
 
+import java.util.Date;
+
 /**
  * Contrat de service pour les opérations sur les tokens JWT
  * Définit les méthodes essentielles pour la gestion du cycle de vie des tokens
@@ -46,5 +48,12 @@ public interface JwtService {
      */
     Boolean isTokenValid(String token);
 
+    /**
+     * Extrait la date d'expiration d'un token
+     *
+     * @param token Le token JWT
+     * @return La date d'expiration
+     */
+    Date extractExpiration(String token);
 
 }

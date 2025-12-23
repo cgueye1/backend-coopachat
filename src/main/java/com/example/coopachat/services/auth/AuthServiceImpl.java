@@ -43,6 +43,7 @@ public class AuthServiceImpl implements AuthService {
     private final ActivationCodeService activationCodeService;
     private final EmailService emailService;
     private final ActivationCodeRepository activationCodeRepository;
+    private final TokenBlacklistService tokenBlacklistService;
 
     // ============================================================================
     // 👤 GESTION DES UTILISATEURS
@@ -260,6 +261,27 @@ public class AuthServiceImpl implements AuthService {
         // Cooldown terminé, générer et envoyer un nouveau code
         String code = activationCodeService.generateAndStoreCode(email);
         emailService.sendActivationCode(email,code, user.getFirstName());
+
+    }
+
+    // ============================================================================
+    // 🔐DECONNEXION
+    // ============================================================================
+    /**
+     * Déconnecte un utilisateur en invalidant son token JWT
+     */
+    @Override
+    @Transactional
+    public void logout(String token) {
+
+        // Vérifier que le token est valide avant de le blacklister
+        if (token == null || token.isEmpty() || !jwtService.isTokenValid(token)) {
+            throw new RuntimeException("Token invalide");
+        }
+        // Ajouter le token à la blacklist
+        tokenBlacklistService.addToBlackList(token);
+
+        log.info("Utilisateur déconnecté avec succès");
 
     }
 
