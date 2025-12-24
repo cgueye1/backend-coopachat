@@ -7,55 +7,50 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
+/**
+ * Entity représentant un salarié d'une entreprise
+ */
 @Entity
 @Table(name = "employees")
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
 public class Employee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
-    private String employeeCode; // Code unique du salarié
+    // Relation avec l'entreprise
+    @ManyToOne
+    @JoinColumn(name = "company_id", nullable = false)
+    private Company company;
 
+    // Relation avec Users (pour l'authentification)
+    @OneToOne
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private Users user;
+
+    // Adresse du salarié
     @Column(nullable = false)
     @NotBlank(message = "L'adresse est obligatoire")
-    private String address; // Adresse du salarié
+    private String address;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "json")
-    private Map<String, Object> deliveryPreferences; // Préférences de livraison
-
+    // Commercial qui a créé ce salarié
+    @ManyToOne
+    @JoinColumn(name = "commercial_id", nullable = false)
+    private Users createdBy;
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @CreationTimestamp
-    private LocalDateTime createdAt; // Date d'inscription
+    private LocalDateTime createdAt; // Date de création
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @UpdateTimestamp
     private LocalDateTime updatedAt; // Date de modification
 
-    // Relations
-    @OneToOne
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
-    private Users user; // L'utilisateur salarié
-
-    @ManyToOne
-    @JoinColumn(name = "company_id", nullable = false)
-    private Company company; // L'entreprise associée
-
-    @ManyToOne
-    @JoinColumn(name = "enrolled_by_commercial_id", nullable = false)
-    private Users enrolledBy; // Commercial qui a inscrit le salarié
 }

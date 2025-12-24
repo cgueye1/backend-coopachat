@@ -33,8 +33,11 @@ public class EmailServiceImpl implements EmailService {
     @Value("${mail.app.name:CoopAchat}")
     private String appName;
 
-    @Value("${app.frontend.base-url:http://localhost:4200}")
-    private String frontendBaseUrl;
+    @Value("${app.frontend.reset-password-url:http://localhost:4200/reset-password?token=}")
+    private String resetPasswordUrl;
+
+    @Value("${app.frontend.activate-employee-url:http://localhost:4200/activate?token=}")
+    private String activateEmployeeUrl;
 
     // ============================================================================
     // 📧 ENVOI D'EMAILS
@@ -368,8 +371,8 @@ public class EmailServiceImpl implements EmailService {
      */
     private String generatePasswordResetEmailTemplate(String firstName, String token) {
 
-        // URL du frontend pour la réinitialisation
-        String resetUrl = frontendBaseUrl + "/reset-password?token=" + token;
+        // URL complète avec le token
+        String resetUrl = resetPasswordUrl + token;
         
         return String.format("""
             <!DOCTYPE html>
@@ -478,6 +481,160 @@ public class EmailServiceImpl implements EmailService {
             </body>
             </html>
             """, appName, appName, firstName, appName, resetUrl, resetUrl, resetUrl, appName, java.time.Year.now().getValue(), appName);
+    }
+
+    /**
+     * Envoie un lien d'invitation par email à un salarié créé par un commercial
+     */
+    @Override
+    public void sendEmployeeInvitation(String email, String token, String firstName, String commercialName, String companyName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            // Configuration de l'email
+            helper.setFrom(mailFrom);
+            helper.setTo(email);
+            helper.setSubject("🎉 Invitation à rejoindre " + companyName + " - " + appName);
+
+            // Génération du template HTML
+            String emailBody = generateEmployeeInvitationEmailTemplate(firstName, token, commercialName, companyName);
+
+            helper.setText(emailBody, true); // true = HTML
+            mailSender.send(message);
+
+            log.info("Lien d'invitation envoyé avec succès au salarié: {}", email);
+
+        } catch (Exception e) {
+            log.error("Erreur lors de l'envoi du lien d'invitation à {}: {}", 
+                    email, e.getMessage(), e);
+            throw new RuntimeException("Impossible d'envoyer l'email d'invitation", e);
+        }
+    }
+
+    /**
+     * Génère le template HTML pour l'email d'invitation salarié
+     *
+     * @param firstName Le prénom du salarié
+     * @param token Le token unique d'invitation
+     * @param commercialName Le nom du commercial
+     * @param companyName Le nom de l'entreprise
+     * @return Le template HTML formaté
+     */
+    private String generateEmployeeInvitationEmailTemplate(String firstName, String token, String commercialName, String companyName) {
+
+        // URL complète avec le token
+        String activationUrl = activateEmployeeUrl + token;
+        
+        return String.format("""
+            <!DOCTYPE html>
+            <html lang="fr">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Invitation - %s</title>
+            </head>
+            <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
+                <table role="presentation" style="width: 100%%; border-collapse: collapse; background-color: #f4f4f4;">
+                    <tr>
+                        <td style="padding: 20px 0;">
+                            <table role="presentation" style="width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                
+                                <!-- Header avec logo -->
+                                <tr>
+                                    <td style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                                        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
+                                            🛒 %s
+                                        </h1>
+                                        <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">
+                                            Plateforme E-commerce Coopérative
+                                        </p>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Contenu principal -->
+                                <tr>
+                                    <td style="padding: 40px 30px;">
+                                        <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;">
+                                            Bonjour %s,
+                                        </h2>
+                                        
+                                        <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                                            Vous avez été invité par <strong>%s</strong> à rejoindre <strong>%s</strong> sur la plateforme <strong>%s</strong>.
+                                        </p>
+                                        
+                                        <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+                                            Pour activer votre compte et créer votre mot de passe, cliquez sur le bouton ci-dessous.
+                                        </p>
+                                        
+                                        <!-- Bouton d'activation -->
+                                        <div style="text-align: center; margin: 40px 0;">
+                                            <a href="%s" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">
+                                                🎉 Activer mon compte
+                                            </a>
+                                        </div>
+                                        
+                                        <!-- Lien alternatif -->
+                                        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 30px 0;">
+                                            <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 0 0 10px 0;">
+                                                <strong>Le bouton ne fonctionne pas ?</strong>
+                                            </p>
+                                            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 0; word-break: break-all;">
+                                                Copiez et collez ce lien dans votre navigateur :<br>
+                                                <a href="%s" style="color: #667eea; text-decoration: underline;">%s</a>
+                                            </p>
+                                        </div>
+                                        
+                                        <!-- Instructions -->
+                                        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; margin: 30px 0;">
+                                            <h3 style="color: #333333; margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">
+                                                📋 Instructions :
+                                            </h3>
+                                            <ol style="color: #666666; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
+                                                <li>Cliquez sur le bouton "Activer mon compte" ci-dessus</li>
+                                                <li>Vous serez redirigé vers une page sécurisée</li>
+                                                <li>Créez votre mot de passe sécurisé</li>
+                                                <li>Confirmez votre mot de passe</li>
+                                                <li>Votre compte sera activé automatiquement</li>
+                                            </ol>
+                                        </div>
+                                        
+                                        <!-- Avertissement de sécurité -->
+                                        <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin: 30px 0;">
+                                            <p style="color: #856404; margin: 0 0 10px 0; font-size: 13px; line-height: 1.6;">
+                                                <strong>🔒 Sécurité :</strong> Ce lien est valide pendant <strong>15 minutes</strong> uniquement.
+                                            </p>
+                                            <p style="color: #856404; margin: 0; font-size: 13px; line-height: 1.6;">
+                                                Si vous n'avez pas reçu cette invitation, ignorez cet email.
+                                            </p>
+                                        </div>
+                                        
+                                        <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
+                                            Cordialement,<br>
+                                            <strong style="color: #333333;">L'équipe %s</strong>
+                                        </p>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Footer -->
+                                <tr>
+                                    <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 10px 10px; border-top: 1px solid #e0e0e0;">
+                                        <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">
+                                            Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+                                        </p>
+                                        <p style="color: #999999; font-size: 12px; margin: 0;">
+                                            © %d %s - Tous droits réservés
+                                        </p>
+                                    </td>
+                                </tr>
+                                
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+            """, appName, appName, firstName, commercialName, companyName, appName, activationUrl, activationUrl, activationUrl, appName, java.time.Year.now().getValue(), appName);
     }
 }
 

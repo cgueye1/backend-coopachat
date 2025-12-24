@@ -32,5 +32,16 @@ public interface EmailService {
      * @param firstName Le prénom de l'utilisateur (pour personnaliser l'email)
      */
     void sendPasswordResetLink(String email, String token, String firstName);
+
+    /**
+     * Envoie un lien d'invitation par email à un salarié créé par un commercial
+     *
+     * @param email L'email du salarié
+     * @param token Le token unique d'invitation
+     * @param firstName Le prénom du salarié
+     * @param commercialName Le nom du commercial qui a créé l'invitation
+     * @param companyName Le nom de l'entreprise
+     */
+    void sendEmployeeInvitation(String email, String token, String firstName, String commercialName, String companyName);
 }
 
