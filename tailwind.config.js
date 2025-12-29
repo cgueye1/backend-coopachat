@@ -5,6 +5,7 @@ module.exports = {
   ],
   theme: {
     extend: {
+
       colors: {
         primary: {
           50: '#f0f4ff',
@@ -43,8 +44,22 @@ module.exports = {
       boxShadow: {
         'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
         'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)'
+      },
+      keyframes: {
+        scroll: {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' }
+        }
+      },
+      animation: {
+        scroll: 'scroll 20s linear infinite'
       }
     },
+  },
+  variants: {
+    extend: {
+      animationPlayState: ['hover']
+    }
   },
   plugins: [
     require('@tailwindcss/forms'),

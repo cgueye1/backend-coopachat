@@ -1,0 +1,840 @@
+<!-- portail.component.html -->
+<div class="min-h-screen bg-white">
+  <!-- Header / Navigation -->
+  <header class="sticky top-0 z-50 bg-white">
+    <nav class="container mx-auto px-4 sm:px-6 lg:px-12 py-6">
+      <div class="flex items-center justify-between">
+        <!-- Logo -->
+        <div class="flex-shrink-0">
+          <img [src]="logo" alt="Coop Achat Salarié" class="h-10 sm:h-12 md:h-14 w-auto">
+        </div>
+
+        <!-- Desktop Navigation -->
+        <div class="hidden lg:flex items-center space-x-8">
+          <button *ngFor="let item of navigationItems" (click)="scrollToSection(item.sectionId)"
+            class="text-[#646B78] hover:text-gray-600 font-medium text-base transition-colors cursor-pointer">
+            {{ item.label }}
+          </button>
+        </div>
+
+        <!-- CTA Buttons -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button (click)="goToLogin()"
+            class=" px-4 md:px-6 py-2 md:py-2.5 border border-orange-500 text-orange-500 rounded-full font-medium hover:bg-orange-50 transition-colors text-sm 2xl:text-base">
+            Se connecter
+          </button>
+          <button
+            class="hidden lg:inline-flex px-4 sm:px-6 md:px-8 py-2 md:py-2.5 bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white rounded-full font-medium hover:from-[#FF6B00] hover:to-[#FF914D] transition-all shadow-md text-sm 2xl:text-base">
+            Essayer gratuitement
+          </button>
+        </div>
+
+        <!-- Mobile Menu Button -->
+        <button (click)="toggleMobileMenu()" class="lg:hidden ml-2 p-2 text-gray-700">
+          <!-- Hamburger Icon -->
+          <svg *ngIf="!isMobileMenuOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <!-- Close Icon -->
+          <svg *ngIf="isMobileMenuOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Mobile Navigation Menu -->
+      <div *ngIf="isMobileMenuOpen" class="lg:hidden mt-4 pb-4 border-t border-gray-100">
+        <div class="flex flex-col space-y-3 pt-4">
+          <button *ngFor="let item of navigationItems" (click)="scrollToSection(item.sectionId)"
+            class="text-left text-[#646B78] hover:text-gray-900 font-medium text-base py-2 px-2 rounded-lg hover:bg-gray-50 transition-colors">
+            {{ item.label }}
+          </button>
+          <div class="pt-3 border-t border-gray-100">
+           <button
+            class="px-4 sm:px-6 md:px-8 py-2 md:py-2.5 bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white rounded-full font-medium hover:from-[#FF6B00] hover:to-[#FF914D] transition-all shadow-md text-sm 2xl:text-base">
+            Essayer gratuitement
+          </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Hero Section -->
+  <section id="accueil" class="relative max-w-6xl mx-auto rounded-2xl bg-cover bg-end bg-no-repeat overflow-hidden"
+    style="background-image: url('/images/portail-image.png');">
+    <div class="container mx-auto px-4 sm:px-6 py-12 sm:py-20">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-center">
+
+        <!-- Left Content -->
+        <div class="text-center lg:text-left">
+          <h1 class="text-xl lg:text-4xl font-bold text-[#111827] leading-tight mb-6">
+            Vos achats salariés, simplifiés.<br>
+            <span class="">Commandez, suivez, recevez.</span>
+          </h1>
+
+          <p class="text-sm sm:text-base text-[#4B5563] mb-8 max-w-2xl font-medium mx-auto lg:mx-0">
+            Un portail unique pour découvrir nos offres négociées, comparer les produits, passer commande en toute
+            sécurité et suivre la livraison — pour les clients, livreurs, commerciaux et responsables logistique.
+          </p>
+
+          <!-- Features Tags -->
+          <div class="flex flex-wrap justify-center lg:justify-start gap-3 sm:gap-4 mb-8">
+            <div *ngFor="let feature of features"
+              class="px-4 sm:px-6 py-2 2xl:py-3 bg-white rounded-full shadow-sm text-xs 2xl:text-sm font-medium text-[#2C2D5B]">
+              {{ feature.label }}
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <button (click)="scrollToSection('fonctionnalites')"
+              class="w-full sm:w-auto px-6 2xl:px-8 py-3 sm:py-4 bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white rounded-full font-medium hover:from-orange-500 hover:to-orange-600 transition-all shadow-lg text-sm sm:text-base">
+              Voir les fonctionnalités
+            </button>
+            <button (click)="scrollToSection('telechargement')"
+              class="w-full sm:w-auto px-6 2xl:px-8 py-3 sm:py-4 bg-transparent text-[#2C2D5B] rounded-full font-medium transition-colors border border-[#D8E1EE] text-sm sm:text-base ">
+              Télécharger l'application
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Partners Logo Carousel Section -->
+  <section class="py-8 sm:py-12 md:py-16 bg-white overflow-hidden">
+    <!-- Infinite Scroll Container -->
+    <div class="relative">
+      <div class="flex animate-[scroll_20s_linear_infinite] hover:pause">
+        <!-- First Set -->
+        <div class="flex items-center gap-8 sm:gap-12 md:gap-16 lg:gap-20 px-4 sm:px-8 flex-shrink-0">
+          <div *ngFor="let logo of partnerLogos"
+            class="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 flex items-center justify-center  rounded-full transition-shadow flex-shrink-0">
+            <img [src]="logo.src" [alt]="logo.alt"
+              class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain rounded-full">
+          </div>
+        </div>
+
+        <!-- Duplicate Set for Seamless Loop -->
+        <div class="flex items-center gap-8 sm:gap-12 md:gap-16 lg:gap-20 px-4 sm:px-8 flex-shrink-0">
+          <div *ngFor="let logo of partnerLogos"
+            class="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 flex items-center justify-center  rounded-full transition-shadow flex-shrink-0">
+            <img [src]="logo.src" [alt]="logo.alt" class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="fonctionnalites" class="py-8 bg-white">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+
+      <!-- Section Header -->
+      <div class="text-center mb-4">
+        <p class="text-xs 2xl:text-sm font-semibold text-[#318F3F] uppercase tracking-wide mb-3">
+          FONCTIONNALITÉS CLÉS
+        </p>
+        <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#111827] mb-4">
+          Tout pour faciliter l'achat et la livraison
+        </h2>
+        <p class="text-sm sm:text-base text-[#4B5563] max-w-3xl mx-auto">
+          Gérez vos commandes en toute sécurité où que vous soyez<br class="hidden sm:inline">
+          grâce à notre application intuitive et sécurisée.
+        </p>
+      </div>
+
+      <!-- Features Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 2xl:gap-8 items-center text-center mb-3 sm:mb-4">
+
+        <div *ngFor="let card of featureCards" class="bg-[#FFF9F0] rounded-2xl sm:rounded-3xl p-6 pb-0 flex flex-col">
+          <div class="mb-4">
+            <span class="inline-block items-center text-xs 2xl:text-sm font-semibold text-[#FF6B00] tracking-wide">
+              {{ card.badge }}
+            </span>
+          </div>
+
+          <h3 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2 2xl:mb-4">
+            {{ card.title }}
+          </h3>
+
+          <p class="text-sm sm:text-base">
+            {{ card.description }}
+          </p>
+
+          <div class="-mt-4 flex justify-center p-0">
+            <div class="relative w-full max-w-[280px] sm:max-w-[320px]">
+              <img [src]="card.image" [alt]="card.title" class="w-full h-auto object-contain">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features Grid - Second Row (2 cards desktop) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 2xl:gap-8 items-center text-center">
+        <div *ngFor="let card of logisticsCards" class="bg-[#FFF9F0] rounded-2xl sm:rounded-3xl p-6 pb-0 flex flex-col">
+          <div class="mb-4">
+            <span class="inline-block text-xs 2xl:text-sm font-semibold text-[#FF6B00] tracking-wide">
+              {{ card.badge }}
+            </span>
+          </div>
+
+          <h3 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2 2xl:mb-4">
+            {{ card.title }}
+          </h3>
+
+          <p class="text-sm sm:text-base px-16">
+            {{ card.description }}
+          </p>
+
+          <div class="-mt-10 flex justify-center">
+            <div class="relative w-full">
+              <img [src]="card.image" [alt]="card.title" class="w-full h-auto object-contain">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Profiles Section -->
+  <section id="profils" class="py-12 bg-white">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+
+      <!-- Section Header -->
+      <div class="text-center mb-12 sm:mb-16">
+        <p class="text-xs 2xl:text-sm font-semibold text-[#318F3F] uppercase tracking-wide mb-3">
+          POUR QUI ?
+        </p>
+        <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#111827] mb-4">
+          Des parcours clairs pour chaque rôle
+        </h2>
+        <p class="text-sm sm:text-base text-[#4B5563] max-w-3xl mx-auto">
+          Coop Achat offre une interface pensée spécifiquement pour chaque acteur :<br class="hidden sm:inline">
+          Responsable logistique, Commercial, Client et Livreur.
+        </p>
+      </div>
+
+      <!-- Profiles Grid -->
+      <div class="flex flex-col lg:flex-row gap-4 lg:justify-center">
+
+        <div *ngFor="let profile of profiles" class="group relative overflow-hidden rounded-2xl lg:rounded-3xl
+                  h-[300px] sm:h-[350px] lg:h-[400px]
+                  lg:w-[228px] lg:hover:w-[500px] 
+                  transition-all duration-500 ease-in-out cursor-pointer">
+
+          <!-- Background Image -->
+          <img [src]="profile.image" [alt]="profile.title"
+            class="absolute inset-0 w-full h-full object-cover rounded-2xl">
+
+          <!-- Dark Overlay -->
+          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent 
+                    lg:group-hover:from-black/90 lg:group-hover:via-black/60
+                    transition-all duration-500"></div>
+
+          <!-- Content -->
+          <div class="absolute inset-0 flex flex-col justify-end p-6 sm:p-8">
+
+            <!-- Title - Always visible -->
+            <h3 class="text-2xl 2xl:text-3xl font-bold text-white mb-3 sm:mb-4
+                     transform transition-transform duration-500
+                     lg:group-hover:translate-y-0">
+              {{ profile.title }}
+            </h3>
+
+            <!-- Description - Mobile: always visible, Desktop: on hover -->
+            <p class="text-sm sm:text-base text-white/90 leading-relaxed
+                    opacity-100 lg:opacity-0 
+                    max-h-full lg:max-h-0
+                    lg:group-hover:opacity-100 lg:group-hover:max-h-40
+                    transition-all duration-500 ease-in-out
+                    transform lg:translate-y-4 lg:group-hover:translate-y-0">
+              {{ profile.description }}
+            </p>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </section>
+  <!-- How It Works Section -->
+  <section class="py-12 bg-[#FFF9F0]">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Section Header -->
+      <div class="mb-8">
+        <p class="text-xs 2xl:text-sm font-semibold text-green-600 uppercase tracking-wide mb-3">
+          PARCOURS
+        </p>
+        <h2 class="text-3xl 2xl:text-4xl font-bold text-[#2C2D5B] mb-2">
+          Comment ça marche ?
+        </h2>
+        <p class="text-base 2xl:text-lg text-[#4B5563]">
+          Un parcours fluide, pensé pour réduire les frictions.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+
+        <!-- Left Content - Steps -->
+        <div class="">
+          <!-- Steps List -->
+          <div class="space-y-4 sm:space-y-6">
+
+            <div *ngFor="let step of howItWorksSteps" class="flex items-start gap-4 sm:gap-6 p-4 sm:p-5 bg-white rounded-xl border border-[#9FB0C933]
+                      shadow-sm hover:shadow-md transition-shadow duration-300">
+
+              <!-- Step Number -->
+              <div class="flex-shrink-0 w-10 h-10 2xl:w-12 2xl:h-12 
+                        bg-[#2C2D5B] rounded-lg
+                        flex items-center justify-center">
+                <span class="text-sm sm:text-base font-bold text-white">
+                  {{ step.number }}
+                </span>
+              </div>
+
+              <!-- Step Content -->
+              <div class="flex-1">
+                <h3 class="text-lg sm:text-xl font-bold text-[#2C2D5B]">
+                  {{ step.title }}
+                </h3>
+                <p class="text-sm sm:text-base text-[#4B5563] leading-relaxed">
+                  {{ step.description }}
+                </p>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Right Content - Image -->
+        <div class="relative">
+          <!-- Main Image -->
+          <div class="relative z-10 overflow-hidden
+                      transform hover:scale-105 transition-transform duration-500">
+            <img [src]="howItWorksImage" alt="Comment ça marche" class="w-full h-auto object-cover">
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section -->
+  <section id="tarifs" class="py-12 bg-white">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+
+      <!-- Section Header -->
+      <div class="mb-12">
+        <p class="text-xs 2xl:text-sm font-bold text-green-600 uppercase tracking-wide mb-3">
+          OFFRES & ABONNEMENTS
+        </p>
+        <h2 class="text-3xl 2xl:text-4xl font-bold text-gray-900 mb-2">
+          Offres & abonnements
+        </h2>
+        <p class="text-sm sm:text-base text-[#4B5563]">
+          Une tarification claire, adaptée à chaque usage.
+        </p>
+      </div>
+
+      <!-- Pricing Cards Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+
+        <div *ngFor="let plan of pricingPlans" [class.lg:z-10]="plan.popular" class="relative bg-white rounded-2xl sm:rounded-3xl px-6 py-4 
+                  border-2 transition-all duration-300 hover:shadow-lg" [class.border-orange-500]="plan.popular"
+          [class.border-[#F4F6F9]]="!plan.popular">
+
+          <!-- Popular Badge -->
+          <div *ngIf="plan.popular"
+            class="absolute -top-0 right-0 px-4 py-2
+                    bg-gradient-to-r from-[#FF6B00] to-[#FF914D] 
+                    text-white text-xs 2xl:text-sm font-semibold rounded-tl-none rounded-br-none rounded-3xl shadow-md">
+            Populaire
+          </div>
+
+          <!-- Plan Header -->
+          <div class="mb-6">
+            <h3 class="text-xl sm:text-2xl font-bold text-[#39383D] mb-2">
+              {{ plan.name }}
+            </h3>
+            <p class="text-sm 2xl:text-base text-[#4B5563]">
+              {{ plan.subtitle }}
+            </p>
+          </div>
+
+          <!-- Price -->
+          <div class="mb-6">
+            <div class="flex items-baseline gap-2">
+              <span class="text-2xl 2xl:text-3xl font-bold text-[#333333]">
+                {{ plan.price }}
+              </span>
+              <span class="text-xl sm:text-2xl font-semibold text-[#333333]">
+                {{ plan.currency }}
+              </span>
+              <span *ngIf="plan.period" class="text-sm 2xl:text-base text-[#6B7280]ml-1">
+                {{ plan.period }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Features List -->
+          <div class="mb-8 sm:mb-10 space-y-3">
+            <div *ngFor="let feature of plan.features" class="flex items-start gap-3">
+              <!-- Checkmark Icon -->
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-orange-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-sm 2xl:text-base text-[#4B5563]">
+                {{ feature }}
+              </span>
+            </div>
+          </div>
+
+          <!-- CTA Button -->
+          <button *ngIf="plan.buttonStyle === 'solid'" class="w-full py-3 sm:py-4 px-6 
+                       bg-gradient-to-r from-[#FF6B00] to-[#FF914D] 
+                       hover:from-orange-500 hover:to-orange-600
+                       text-white font-medium rounded-full 
+                       transition-all duration-300 
+                       shadow-md hover:shadow-lg
+                       transform hover:scale-105
+                       text-sm">
+            {{ plan.buttonText }}
+          </button>
+
+          <button *ngIf="plan.buttonStyle === 'outline'" class="w-full py-3 sm:py-4 px-6 
+                       bg-transparent border border-orange-500 
+                       text-transparent bg-clip-text bg-gradient-to-r from-[#FF6B00] to-[#FF914D] hover:bg-orange-50
+                       font-medium rounded-full 
+                       transition-all duration-300
+                       hover:shadow-md
+                       text-sm">
+            {{ plan.buttonText }}
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Download App Section -->
+  <section id="telechargement" class="relative py-12 bg-white overflow-hidden">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+
+        <!-- Left Content -->
+        <div class="">
+
+          <!-- Section Header -->
+          <div class="mb-8 sm:mb-10">
+            <h2 class="text-3xl font-bold text-[#111827] mb-4 sm:mb-6">
+              Téléchargez l'application
+            </h2>
+            <p class="text-base 2xl:text-lg text-[#7C7C7C]">
+              Rejoignez CoopAchat et gagnez du temps au quotidien.
+            </p>
+          </div>
+
+          <!-- App Store Badges -->
+          <div class="flex flex-col sm:flex-row gap-4 mb-12 sm:mb-16">
+            <a [href]="appStoreLink" target="_blank" rel="noopener noreferrer"
+              class="inline-flex transform hover:scale-105 transition-transform duration-300">
+              <img [src]="appStoreBadge" alt="Download on the App Store" class="h-12 sm:h-14 w-auto">
+            </a>
+
+            <a [href]="playStoreLink" target="_blank" rel="noopener noreferrer"
+              class="inline-flex transform hover:scale-105 transition-transform duration-300">
+              <img [src]="playStoreBadge" alt="Get it on Google Play" class="h-12 sm:h-14 w-auto">
+            </a>
+          </div>
+
+          <!-- Stats -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
+
+            <div *ngFor="let stat of stats; let i = index" class="text-center sm:text-left"
+              [class.sm:border-r-2]="i < stats.length - 1" [class.sm:border-gray-200]="i < stats.length - 1">
+
+              <div class="text-4xl font-bold text-[#2C2D5B] mb-2 sm:mb-3">
+                {{ stat.value }}
+              </div>
+
+              <div class="text-base sm:text-lg text-[#2C2D5B] font-semibold">
+                {{ stat.label }}
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Right Content - Mobile Preview -->
+        <div class="relative flex justify-center lg:justify-end">
+
+          <!-- Mobile Phone Mockup -->
+          <div class="relative w-full max-w-[280px] sm:max-w-[320px] lg:max-w-[380px]">
+            <img [src]="mobileAppPreview" alt="Application mobile CoopAchat" class="w-full h-auto">
+          </div>
+
+
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Ils en parlent - Testimonials Section -->
+  <section id="temoignages" class="py-12 bg-gradient-to-r from-[#FFFFFF] to-[#FFF9F0]">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+
+        <!-- Left Content - Title & Navigation -->
+        <div class="lg:col-span-4">
+          <p class="text-xs 2xl:text-sm font-bold text-[#318F3F] uppercase tracking-wide mb-3">
+            ILS EN PARLENT
+          </p>
+          <h2 class="text-2xl sm:text-3xl font-bold text-[#111827] mb-4">
+            Témoignages clients
+          </h2>
+          <p class="text-sm sm:text-base text-[#4B5563] mb-8">
+            Des milliers d'utilisateurs satisfaits.
+          </p>
+
+          <!-- Navigation Arrows -->
+          <div class="flex items-center gap-3">
+            <button (click)="prevTestimonial()" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full
+                     flex items-center justify-center
+                     hover:border-orange-500 hover:text-orange-500 
+                     transition-all duration-300">
+              <svg width="12" height="20" viewBox="0 0 12 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M10.9844 1.5C10.9843 1.76505 10.8788 2.01958 10.6914 2.20703L2.91309 9.98535L10.6855 17.7578C10.8676 17.9464 10.9681 18.1988 10.9658 18.4609C10.9635 18.723 10.859 18.9738 10.6738 19.1592C10.4884 19.3446 10.2368 19.4499 9.97461 19.4521C9.7126 19.4543 9.45999 19.3539 9.27148 19.1719L0.791992 10.6924C0.604594 10.5049 0.500045 10.2504 0.5 9.98535C0.5 9.72029 0.604661 9.46583 0.791992 9.27832L9.27734 0.792969C9.4648 0.605573 9.71933 0.500085 9.98437 0.5C10.2495 0.5 10.5039 0.605531 10.6914 0.792969C10.8788 0.980491 10.9844 1.23486 10.9844 1.5Z"
+                  fill="#95A5A6" stroke="#95A5A6" />
+              </svg>
+            </button>
+            <button (click)="nextTestimonial()" class="w-10 h-10 rounded-full 
+                     bg-gradient-to-r from-[#FF6B00] to-[#FF914D]
+                     flex items-center justify-center text-white 
+                     hover:from-orange-500 hover:to-orange-600
+                     transition-all duration-300 shadow-md">
+              <svg width="12" height="20" viewBox="0 0 12 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M0.5 18.4521C0.500085 18.1871 0.605573 17.9326 0.792969 17.7451L8.57129 9.9668L0.798827 2.19434C0.616755 2.00575 0.516276 1.75334 0.518554 1.49121C0.520832 1.22917 0.625336 0.978345 0.810546 0.792969C0.995953 0.607562 1.24757 0.502279 1.50976 0.5C1.77178 0.497813 2.02438 0.598276 2.21289 0.780273L10.6924 9.25977C10.8798 9.44725 10.9843 9.70172 10.9844 9.9668C10.9844 10.2319 10.8797 10.4863 10.6924 10.6738L2.20703 19.1592C2.01958 19.3466 1.76505 19.4521 1.5 19.4521C1.23486 19.4521 0.980491 19.3466 0.792969 19.1592C0.605531 18.9717 0.5 18.7173 0.5 18.4521Z"
+                  fill="white" stroke="white" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Content - Testimonials Cards -->
+        <div class="lg:col-span-8 overflow-hidden">
+          <div class="flex gap-4 sm:gap-6 transition-transform duration-500 ease-in-out"
+            [style.transform]="'translateX(-' + (currentTestimonialIndex * 100 / 2) + '%)'">
+
+            <div *ngFor="let testimonial of testimonials; let i = index" class="flex-shrink-0 w-full sm:w-[calc(50%-12px)] lg:w-[calc(50%-12px)]
+                     bg-white rounded-2xl p-6 sm:p-8 shadow-sm
+                     transition-all duration-300 hover:shadow-lg">
+
+              <!-- Stars & Quote Icon Row -->
+              <div class="flex items-start justify-between mb-4">
+                <!-- Stars -->
+                <div class="flex gap-1">
+                  <svg *ngFor="let star of [1,2,3,4,5]" width="19" height="18" viewBox="0 0 19 18" fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M8.939 1.24574C8.97552 1.17196 9.03193 1.10986 9.10188 1.06643C9.17182 1.02301 9.25251 1 9.33483 1C9.41716 1 9.49785 1.02301 9.56779 1.06643C9.63773 1.10986 9.69415 1.17196 9.73067 1.24574L11.6557 5.14491C11.7825 5.40155 11.9697 5.62358 12.2012 5.79196C12.4327 5.96033 12.7016 6.07001 12.9848 6.11158L17.2898 6.74158C17.3714 6.7534 17.448 6.7878 17.5111 6.84091C17.5741 6.89402 17.621 6.9637 17.6465 7.04208C17.672 7.12047 17.6751 7.20442 17.6553 7.28444C17.6356 7.36447 17.5938 7.43737 17.5348 7.49491L14.4215 10.5266C14.2162 10.7267 14.0626 10.9736 13.9739 11.2463C13.8852 11.5189 13.8641 11.809 13.9123 12.0916L14.6473 16.3749C14.6617 16.4564 14.6529 16.5404 14.6219 16.6171C14.5909 16.6939 14.5389 16.7604 14.472 16.8091C14.405 16.8577 14.3256 16.8866 14.2431 16.8923C14.1605 16.8981 14.0779 16.8805 14.0048 16.8416L10.1565 14.8182C9.90293 14.6851 9.62082 14.6155 9.33442 14.6155C9.04802 14.6155 8.7659 14.6851 8.51233 14.8182L4.66483 16.8416C4.59178 16.8803 4.50933 16.8977 4.42688 16.8918C4.34442 16.8859 4.26526 16.857 4.19841 16.8084C4.13156 16.7598 4.07969 16.6934 4.04871 16.6168C4.01773 16.5401 4.00888 16.4563 4.02317 16.3749L4.75733 12.0924C4.80583 11.8097 4.78482 11.5194 4.69611 11.2466C4.60741 10.9738 4.45367 10.7267 4.24817 10.5266L1.13483 7.49574C1.07533 7.43827 1.03316 7.36524 1.01314 7.28497C0.993109 7.2047 0.996031 7.12043 1.02157 7.04174C1.0471 6.96305 1.09422 6.89311 1.15756 6.8399C1.22091 6.78668 1.29792 6.75233 1.37983 6.74074L5.684 6.11158C5.96755 6.07033 6.23682 5.96079 6.46865 5.7924C6.70048 5.62401 6.88792 5.4018 7.01483 5.14491L8.939 1.24574Z"
+                      fill="black" stroke="#FACC15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+                <!-- Quote Icon -->
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M26.6663 5C25.7823 5 24.9344 5.35119 24.3093 5.97631C23.6842 6.60143 23.333 7.44928 23.333 8.33333V18.3333C23.333 19.2174 23.6842 20.0652 24.3093 20.6904C24.9344 21.3155 25.7823 21.6667 26.6663 21.6667C27.1084 21.6667 27.5323 21.8423 27.8449 22.1548C28.1574 22.4674 28.333 22.8913 28.333 23.3333V25C28.333 25.8841 27.9818 26.7319 27.3567 27.357C26.7316 27.9821 25.8837 28.3333 24.9997 28.3333C24.5576 28.3333 24.1337 28.5089 23.8212 28.8215C23.5086 29.134 23.333 29.558 23.333 30V33.3333C23.333 33.7754 23.5086 34.1993 23.8212 34.5118C24.1337 34.8244 24.5576 35 24.9997 35C27.6518 35 30.1954 33.9464 32.0707 32.0711C33.9461 30.1957 34.9997 27.6522 34.9997 25V8.33333C34.9997 7.44928 34.6485 6.60143 34.0234 5.97631C33.3982 5.35119 32.5504 5 31.6663 5H26.6663Z"
+                    stroke="#FED7AA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path
+                    d="M8.33333 5C7.44928 5 6.60143 5.35119 5.97631 5.97631C5.35119 6.60143 5 7.44928 5 8.33333V18.3333C5 19.2174 5.35119 20.0652 5.97631 20.6904C6.60143 21.3155 7.44928 21.6667 8.33333 21.6667C8.77536 21.6667 9.19928 21.8423 9.51184 22.1548C9.82441 22.4674 10 22.8913 10 23.3333V25C10 25.8841 9.64881 26.7319 9.02369 27.357C8.39857 27.9821 7.55072 28.3333 6.66667 28.3333C6.22464 28.3333 5.80072 28.5089 5.48816 28.8215C5.17559 29.134 5 29.558 5 30V33.3333C5 33.7754 5.17559 34.1993 5.48816 34.5118C5.80072 34.8244 6.22464 35 6.66667 35C9.31883 35 11.8624 33.9464 13.7377 32.0711C15.6131 30.1957 16.6667 27.6522 16.6667 25V8.33333C16.6667 7.44928 16.3155 6.60143 15.6904 5.97631C15.0652 5.35119 14.2174 5 13.3333 5H8.33333Z"
+                    stroke="#FED7AA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+
+              </div>
+
+              <!-- Quote Text -->
+              <p class="text-sm 2xl:text-base text-[#374151] mb-6 leading-relaxed">
+                {{ testimonial.quote }}
+              </p>
+
+              <!-- Author Info -->
+              <div class="flex items-center gap-3">
+                <img [src]="testimonial.avatar" [alt]="testimonial.company"
+                  class="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover">
+                <div>
+                  <h4 class="text-sm 2xl:text-base font-semibold text-[#111827]">
+                    {{ testimonial.company }}
+                  </h4>
+                  <p class="text-xs 2xl:text-sm text-[#6B7280]">
+                    {{ testimonial.role }}
+                  </p>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section id="faq" class="py-12 sm:py-14 bg-white">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-14">
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-20 items-start">
+
+        <!-- Left Content - FAQ Questions -->
+        <div class="">
+          <p class="text-xs 2xl:text-sm font-bold text-[#318F3F] uppercase tracking-wide mb-3">
+            FAQ
+          </p>
+          <h2 class="text-2xl sm:text-3xl font-bold text-[#111827] mb-8">
+            Questions fréquentes
+          </h2>
+
+          <!-- FAQ Accordion -->
+          <div class="space-y-4">
+            <div *ngFor="let faq of faqItems; let i = index"
+              class="border border-gray-200 rounded-xl overflow-hidden transition-all duration-300"
+              [class.border-[#B53C3A]]="faq.isOpen">
+
+              <!-- Question Header -->
+              <button (click)="toggleFaq(i)" class="w-full flex items-center justify-between p-5 sm:p-6 text-left
+                       bg-white hover:bg-gray-50 transition-colors duration-200">
+                <span class="text-sm sm:text-base font-semibold text-[#111827] pr-4">
+                  {{ faq.question }}
+                </span>
+                <!-- Toggle Icon -->
+                <div class="flex-shrink-0 w-8 h-8 rounded-full border
+                            flex items-center justify-center transition-all duration-300"
+                  [class.border-[#B53C3A]]="faq.isOpen" [class.border-[#9FB0C9]]="!faq.isOpen">
+                  <!-- Open: Upward chevron -->
+                  <svg *ngIf="faq.isOpen" width="7" height="4" viewBox="0 0 7 4" fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6.5 3.5L3.5 0.5L0.5 3.5" stroke="#B53C3A" stroke-linecap="round"
+                      stroke-linejoin="round" />
+                  </svg>
+                  <!-- Closed: Right chevron -->
+                  <svg *ngIf="!faq.isOpen" width="4" height="7" viewBox="0 0 4 7" fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path d="M0.5 6.5L3.5 3.5L0.5 0.5" stroke="#9FB0C9" stroke-linecap="round"
+                      stroke-linejoin="round" />
+                  </svg>
+                </div>
+              </button>
+
+              <!-- Answer Content -->
+              <div class="overflow-hidden transition-all duration-300" [class.max-h-0]="!faq.isOpen"
+                [class.max-h-30]="faq.isOpen">
+                <div class="px-5 sm:px-6 pb-5">
+                  <p class="text-sm sm:text-base text-[#4B5563] leading-relaxed">
+                    <span *ngIf="i === 0">
+                      Cliquez sur <span class="text-[#FF6B00] font-bold">« Créer mon compte »</span> puis suivez les
+                      étapes. Un email de validation vous sera envoyé.
+                    </span>
+                    <span *ngIf="i !== 0">{{ faq.answer }}</span>
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Content - Contact CTA Card -->
+        <div class=" relative">
+          <!-- Decorative Corner - Behind the card -->
+          <div class="absolute -top-4 -left-4 w-20 h-20 sm:w-24 sm:h-24 bg-[#2C2D5B] rounded-2xl z-0"></div>
+
+          <div
+            class="relative z-10 bg-gradient-to-br from-[#FF6B00] to-[#FF914D] rounded-2xl sm:rounded-3xl p-8 sm:p-10">
+
+            <!-- Icon -->
+            <div class="relative z-10 mb-6 items-center justify-center flex">
+              <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
+                <svg width="31" height="29" viewBox="0 0 31 29" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M3.8498 12.9498L3.1708 13.1192C2.56505 13.2706 2.02729 13.6202 1.64299 14.1123C1.25869 14.6044 1.0499 15.2108 1.0498 15.8352V18.463C1.0499 19.0874 1.25869 19.6938 1.64299 20.1859C2.02729 20.6781 2.56505 21.0276 3.1708 21.179L5.6068 21.788C5.73059 21.8188 5.85977 21.8211 5.98454 21.7945C6.10931 21.768 6.2264 21.7134 6.32693 21.6349C6.42745 21.5563 6.50877 21.4559 6.56472 21.3413C6.62066 21.2266 6.64976 21.1008 6.6498 20.9732V13.325C6.64981 13.1973 6.6207 13.0713 6.56467 12.9565C6.50865 12.8417 6.42719 12.7412 6.3265 12.6627C6.2258 12.5841 6.10852 12.5295 5.98357 12.5031C5.85861 12.4767 5.72928 12.4791 5.6054 12.5102L3.8498 12.9498ZM3.8498 12.9498V12.2498C3.8498 9.27938 5.0298 6.43062 7.13021 4.33021C9.23062 2.2298 12.0794 1.0498 15.0498 1.0498C18.0202 1.0498 20.869 2.2298 22.9694 4.33021C25.0698 6.43062 26.2498 9.27938 26.2498 12.2498V12.9498M26.2498 12.9498L26.9288 13.1192C27.5346 13.2706 28.0723 13.6202 28.4566 14.1123C28.8409 14.6044 29.0497 15.2108 29.0498 15.8352V18.463C29.0497 19.0874 28.8409 19.6938 28.4566 20.1859C28.0723 20.6781 27.5346 21.0276 26.9288 21.179L26.2498 21.3498M26.2498 12.9498L24.4928 12.5102C24.369 12.4794 24.2398 12.4771 24.1151 12.5037C23.9903 12.5302 23.8732 12.5848 23.7727 12.6634C23.6722 12.7419 23.5908 12.8423 23.5349 12.9569C23.4789 13.0716 23.4499 13.1974 23.4498 13.325V20.9732C23.4499 21.1008 23.4789 21.2266 23.5349 21.3413C23.5908 21.4559 23.6722 21.5563 23.7727 21.6349C23.8732 21.7134 23.9903 21.768 24.1151 21.7945C24.2398 21.8211 24.369 21.8188 24.4928 21.788L26.2498 21.3498M26.2498 21.3498V22.7498C26.2498 23.4924 25.9548 24.2046 25.4297 24.7297C24.9046 25.2548 24.1924 25.5498 23.4498 25.5498H19.2498M19.2498 25.5498C19.2498 24.9928 19.0286 24.4587 18.6347 24.0649C18.2409 23.6711 17.7068 23.4498 17.1498 23.4498H12.9498C12.3928 23.4498 11.8587 23.6711 11.4649 24.0649C11.0711 24.4587 10.8498 24.9928 10.8498 25.5498C10.8498 26.1068 11.0711 26.6409 11.4649 27.0347C11.8587 27.4286 12.3928 27.6498 12.9498 27.6498H17.1498C17.7068 27.6498 18.2409 27.4286 18.6347 27.0347C19.0286 26.6409 19.2498 26.1068 19.2498 25.5498Z"
+                    stroke="url(#paint0_linear_1483_3201)" stroke-width="2.1" />
+                  <defs>
+                    <linearGradient id="paint0_linear_1483_3201" x1="1.0498" y1="14.3498" x2="29.0498" y2="14.3498"
+                      gradientUnits="userSpaceOnUse">
+                      <stop stop-color="#FF6B00" />
+                      <stop offset="1" stop-color="#FF914D" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Text Content -->
+            <div class="relative z-10 items-center justify-center text-center">
+              <h3 class="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-4 leading-tight">
+                Besoin d'une démo, d'un devis ou d'infos ?
+              </h3>
+              <p class="text-sm sm:text-base text-white/90 mb-8 leading-relaxed">
+                Votre message compte pour nous. Notre équipe vous répondra dans les meilleurs délais.
+              </p>
+
+              <!-- CTA Button -->
+              <button class="px-6 sm:px-8 py-3 sm:py-4 bg-white text-[#285D90] font-semibold rounded-full
+                           hover:bg-gray-100 transition-colors duration-300
+                           text-sm 2xl:text-base">
+                Nous contacter
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer Section -->
+  <footer class="bg-[#2C2D5B] pt-12 sm:pt-16 pb-6">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+
+      <!-- Footer Main Content -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-16 mb-12">
+
+        <!-- Column 1: Logo, Description & Social -->
+        <div class="px-6">
+          <!-- Logo -->
+          <img [src]="footerLogo" alt="Coop Achat Salarié" class="h-8 w-auto mb-6">
+
+          <!-- Description -->
+          <p class="text-sm 2xl:text-base text-[#9CA3AF] leading-relaxed mb-8 ">
+            Plateforme d'achat coopératif pour salariés. Accédez à des milliers de produits à prix préférentiels grâce à
+            notre programme d'achat groupé.
+          </p>
+
+          <!-- Social Media Icons -->
+          <div class="flex items-center gap-3">
+            <a *ngFor="let social of socialLinks" [href]="social.url" target="_blank" rel="noopener noreferrer"
+              class="w-10 h-10 rounded-full bg-[#FF6B00] flex items-center justify-center transition-all duration-300 hover:opacity-80 ">
+              <!-- Facebook -->
+              <svg *ngIf="social.icon === 'facebook'" width="10" height="18" viewBox="0 0 10 18" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M8.6623 9.73558L9.14299 6.60329H6.13747V4.57065C6.13747 3.71372 6.55732 2.87842 7.9034 2.87842H9.26976V0.211614C9.26976 0.211614 8.02982 0 6.84431 0C4.36918 0 2.75131 1.50023 2.75131 4.21605V6.60329H0V9.73558H2.75131V17.3077H6.13747V9.73558H8.6623Z"
+                  fill="#2C2D5B" />
+              </svg>
+              <!-- Instagram -->
+              <svg *ngIf="social.icon === 'instagram'" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M7.57803 3.69056C5.42809 3.69056 3.69394 5.42471 3.69394 7.57465C3.69394 9.72459 5.42809 11.4587 7.57803 11.4587C9.72797 11.4587 11.4621 9.72459 11.4621 7.57465C11.4621 5.42471 9.72797 3.69056 7.57803 3.69056ZM7.57803 10.0998C6.18868 10.0998 5.05287 8.96738 5.05287 7.57465C5.05287 6.18192 6.1853 5.04949 7.57803 5.04949C8.97076 5.04949 10.1032 6.18192 10.1032 7.57465C10.1032 8.96738 8.96738 10.0998 7.57803 10.0998ZM12.5269 3.53168C12.5269 4.03536 12.1213 4.43763 11.621 4.43763C11.1173 4.43763 10.715 4.03198 10.715 3.53168C10.715 3.03138 11.1207 2.62573 11.621 2.62573C12.1213 2.62573 12.5269 3.03138 12.5269 3.53168ZM15.0994 4.45115C15.042 3.23759 14.7648 2.16262 13.8757 1.27695C12.9901 0.391282 11.9151 0.114089 10.7015 0.0532414C9.45078 -0.0177471 5.7019 -0.0177471 4.45115 0.0532414C3.24097 0.110708 2.166 0.387902 1.27695 1.27357C0.387902 2.15924 0.114089 3.23421 0.0532414 4.44777C-0.0177471 5.69852 -0.0177471 9.4474 0.0532414 10.6981C0.110708 11.9117 0.387902 12.9867 1.27695 13.8724C2.166 14.758 3.23759 15.0352 4.45115 15.0961C5.7019 15.167 9.45078 15.167 10.7015 15.0961C11.9151 15.0386 12.9901 14.7614 13.8757 13.8724C14.7614 12.9867 15.0386 11.9117 15.0994 10.6981C15.1704 9.4474 15.1704 5.7019 15.0994 4.45115ZM13.4836 12.0402C13.2199 12.7027 12.7095 13.2132 12.0436 13.4802C11.0463 13.8757 8.68004 13.7845 7.57803 13.7845C6.47602 13.7845 4.10635 13.8724 3.11251 13.4802C2.44995 13.2166 1.93951 12.7061 1.67246 12.0402C1.27695 11.043 1.36822 8.67666 1.36822 7.57465C1.36822 6.47264 1.28033 4.10297 1.67246 3.10913C1.93613 2.44657 2.44657 1.93613 3.11251 1.66908C4.10973 1.27357 6.47602 1.36484 7.57803 1.36484C8.68004 1.36484 11.0497 1.27695 12.0436 1.66908C12.7061 1.93275 13.2166 2.44319 13.4836 3.10913C13.8791 4.10635 13.7878 6.47264 13.7878 7.57465C13.7878 8.67666 13.8791 11.0463 13.4836 12.0402Z"
+                  fill="#2C2D5B" />
+              </svg>
+              <!-- Twitter -->
+              <svg *ngIf="social.icon === 'twitter'" width="18" height="15" viewBox="0 0 18 15" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M15.5286 3.50325C15.5396 3.65699 15.5396 3.81077 15.5396 3.96451C15.5396 8.65381 11.9704 14.057 5.44709 14.057C3.43737 14.057 1.57044 13.4749 0 12.4646C0.285543 12.4975 0.560066 12.5085 0.856596 12.5085C2.51485 12.5085 4.04138 11.9485 5.26039 10.993C3.70094 10.9601 2.39407 9.93874 1.9438 8.53303C2.16346 8.56596 2.38309 8.58793 2.61373 8.58793C2.9322 8.58793 3.2507 8.54398 3.5472 8.46715C1.92186 8.13766 0.702821 6.71001 0.702821 4.98583V4.94192C1.17503 5.20549 1.72418 5.37022 2.30618 5.39216C1.35074 4.75519 0.724793 3.66798 0.724793 2.43798C0.724793 1.77908 0.900473 1.17506 1.20799 0.647923C2.95414 2.8004 5.57886 4.20607 8.52201 4.35985C8.46711 4.09628 8.43415 3.82175 8.43415 3.5472C8.43415 1.59238 10.0156 0 11.9814 0C13.0027 0 13.9252 0.428298 14.5731 1.12017C15.3748 0.966425 16.1435 0.669896 16.8244 0.26357C16.5608 1.08724 16.0008 1.77911 15.265 2.21836C15.9788 2.14152 16.6707 1.9438 17.3076 1.66928C16.8245 2.3721 16.2205 2.99805 15.5286 3.50325Z"
+                  fill="#2C2D5B" />
+              </svg>
+              <!-- LinkedIn -->
+              <svg *ngIf="social.icon === 'linkedin'" width="13" height="13" viewBox="0 0 13 13" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M2.49023 3.46443V12.2427H0.145583V3.46443H2.49023ZM-0.000450698 1.17657C-0.000450698 0.835825 0.11854 0.554575 0.35652 0.33282C0.594501 0.111065 0.913612 0.000187476 1.31385 0.000187476C1.70868 0.000187476 2.02509 0.111065 2.26307 0.33282C2.50646 0.554575 2.62816 0.835825 2.62816 1.17657C2.62816 1.51731 2.50646 1.79856 2.26307 2.02032C2.02509 2.24207 1.70868 2.35295 1.31385 2.35295C0.913612 2.35295 0.594501 2.24207 0.35652 2.02032C0.11854 1.79856 -0.000450698 1.51731 -0.000450698 1.17657ZM7.04129 5.33853V12.2427H4.70475V3.46443H6.89526L7.04129 5.33853ZM6.70055 7.54526H6.06773C6.06773 6.89622 6.15157 6.31209 6.31924 5.79286C6.48691 5.26822 6.72218 4.822 7.02507 4.45421C7.32795 4.08102 7.68763 3.79706 8.10409 3.60235C8.52597 3.40223 8.99652 3.30217 9.51575 3.30217C9.92681 3.30217 10.3027 3.36167 10.6435 3.48066C10.9842 3.59965 11.2763 3.78895 11.5197 4.04856C11.7685 4.30818 11.9578 4.65163 12.0876 5.07891C12.2228 5.5062 12.2904 6.02813 12.2904 6.64472V12.2427H9.93763V6.63661C9.93763 6.24718 9.88354 5.9443 9.77537 5.72795C9.66719 5.51161 9.50764 5.36016 9.2967 5.27363C9.09117 5.18168 8.83697 5.1357 8.53408 5.1357C8.22038 5.1357 7.94724 5.1979 7.71467 5.3223C7.48751 5.4467 7.2982 5.61978 7.14676 5.84153C7.00073 6.05788 6.88985 6.31209 6.81413 6.60415C6.73841 6.89622 6.70055 7.20992 6.70055 7.54526Z"
+                  fill="#2C2D5B" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Column 2: Product Links -->
+        <div>
+          <h4 class="text-base font-semibold text-white mb-6">Produit</h4>
+          <ul class="space-y-4">
+            <li *ngFor="let link of footerProductLinks">
+              <button (click)="scrollToSection(link.sectionId)"
+                class="text-sm 2xl:text-base text-[#9CA3AF] hover:text-white transition-colors duration-200 cursor-pointer">
+                {{ link.label }}
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Column 3: Contact -->
+        <div>
+          <h4 class="text-base font-semibold text-white mb-6">Contact</h4>
+          <ul class="space-y-4">
+            <!-- Phone -->
+            <li class="flex items-center gap-3">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M4.56809 1.66037C4.4943 1.56545 4.40115 1.48731 4.29484 1.43115C4.18853 1.37499 4.07149 1.34209 3.95149 1.33465C3.83149 1.3272 3.71127 1.34537 3.59883 1.38795C3.48639 1.43053 3.3843 1.49655 3.29934 1.58162L2.00684 2.87537C1.40309 3.48037 1.18059 4.33662 1.44434 5.08787C2.54025 8.19676 4.32078 11.0196 6.65434 13.3479C8.98258 15.6814 11.8055 17.462 14.9143 18.5579C15.6656 18.8216 16.5218 18.5991 17.1268 17.9954L18.4193 16.7029C18.5044 16.6179 18.5704 16.5158 18.613 16.4034C18.6556 16.2909 18.6738 16.1707 18.6663 16.0507C18.6589 15.9307 18.626 15.8137 18.5698 15.7074C18.5136 15.6011 18.4355 15.5079 18.3406 15.4341L15.4568 13.1916C15.3553 13.1131 15.2374 13.0586 15.1118 13.0322C14.9863 13.0058 14.8564 13.0082 14.7318 13.0391L11.9943 13.7229C11.6289 13.8136 11.2462 13.8084 10.8834 13.7079C10.5205 13.6074 10.1898 13.4149 9.92309 13.1491L6.85309 10.0779C6.58706 9.81132 6.39436 9.48061 6.29362 9.11774C6.19289 8.75488 6.18754 8.37216 6.27809 8.00662L6.96309 5.26912C6.99404 5.1446 6.99639 5.01469 6.96998 4.88913C6.94357 4.76357 6.88908 4.64562 6.81059 4.54412L4.56809 1.66037ZM2.35559 0.639119C2.57433 0.420306 2.83712 0.250532 3.12651 0.14107C3.4159 0.0316089 3.72527 -0.0150353 4.03407 0.00423504C4.34286 0.0235054 4.64403 0.108249 4.91756 0.25284C5.1911 0.39743 5.43075 0.598558 5.62059 0.842869L7.86309 3.72537C8.27434 4.25412 8.41934 4.94287 8.25684 5.59287L7.57309 8.33037C7.53798 8.47217 7.54002 8.62062 7.57899 8.76141C7.61796 8.90219 7.69256 9.03056 7.79559 9.13412L10.8668 12.2054C10.9705 12.3086 11.0991 12.3833 11.2401 12.4223C11.3812 12.4613 11.5299 12.4632 11.6718 12.4279L14.4081 11.7441C14.7289 11.6644 15.0636 11.6584 15.387 11.7266C15.7105 11.7948 16.0143 11.9354 16.2756 12.1379L19.1581 14.3804C20.1943 15.1866 20.2893 16.7179 19.3618 17.6441L18.0693 18.9366C17.1443 19.8616 15.7618 20.2679 14.4731 19.8141C11.1739 18.6548 8.17876 16.7663 5.71059 14.2891C3.23355 11.8213 1.34503 8.82658 0.185589 5.52787C-0.266911 4.24037 0.139339 2.85662 1.06434 1.93162L2.35559 0.639119Z"
+                  fill="#B53C3A" />
+              </svg>
+              <span class="text-sm 2xl:text-base text-[#9CA3AF]">+221 77 123 45 67</span>
+            </li>
+            <!-- Email -->
+            <li class="flex items-center gap-3">
+              <svg width="20" height="15" viewBox="0 0 20 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M0 2.5C0 1.83696 0.263392 1.20107 0.732233 0.732233C1.20107 0.263392 1.83696 0 2.5 0H17.5C18.163 0 18.7989 0.263392 19.2678 0.732233C19.7366 1.20107 20 1.83696 20 2.5V12.5C20 13.163 19.7366 13.7989 19.2678 14.2678C18.7989 14.7366 18.163 15 17.5 15H2.5C1.83696 15 1.20107 14.7366 0.732233 14.2678C0.263392 13.7989 0 13.163 0 12.5V2.5ZM2.5 1.25C2.16848 1.25 1.85054 1.3817 1.61612 1.61612C1.3817 1.85054 1.25 2.16848 1.25 2.5V2.77125L10 8.02125L18.75 2.77125V2.5C18.75 2.16848 18.6183 1.85054 18.3839 1.61612C18.1495 1.3817 17.8315 1.25 17.5 1.25H2.5ZM18.75 4.22875L12.865 7.76L18.75 11.3812V4.22875ZM18.7075 12.8237L11.6575 8.485L10 9.47875L8.3425 8.485L1.2925 12.8225C1.36353 13.0885 1.5204 13.3236 1.73874 13.4913C1.95708 13.659 2.22468 13.75 2.5 13.75H17.5C17.7752 13.75 18.0426 13.6593 18.261 13.4918C18.4793 13.3243 18.6362 13.0895 18.7075 12.8237ZM1.25 11.3812L7.135 7.76L1.25 4.22875V11.3812Z"
+                  fill="#B53C3A" />
+              </svg>
+              <span class="text-sm 2xl:text-base text-[#9CA3AF]">contact&#64;coopachat.sn</span>
+            </li>
+            <!-- Address -->
+            <li class="flex items-center gap-3">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M3.875 14C3.93322 13.9224 4.00871 13.8594 4.09549 13.816C4.18228 13.7726 4.27797 13.75 4.375 13.75H7.5C7.66576 13.75 7.82473 13.8158 7.94194 13.9331C8.05915 14.0503 8.125 14.2092 8.125 14.375C8.125 14.5408 8.05915 14.6997 7.94194 14.8169C7.82473 14.9342 7.66576 15 7.5 15H4.6875L1.875 18.75H18.125L15.3125 15H12.5C12.3342 15 12.1753 14.9342 12.0581 14.8169C11.9408 14.6997 11.875 14.5408 11.875 14.375C11.875 14.2092 11.9408 14.0503 12.0581 13.9331C12.1753 13.8158 12.3342 13.75 12.5 13.75H15.625C15.722 13.75 15.8177 13.7726 15.9045 13.816C15.9913 13.8594 16.0668 13.9224 16.125 14L19.875 19C19.9446 19.0929 19.9871 19.2033 19.9975 19.3189C20.0079 19.4345 19.9859 19.5507 19.934 19.6545C19.8821 19.7583 19.8023 19.8456 19.7036 19.9067C19.6048 19.9677 19.4911 20 19.375 20H0.625C0.50893 20 0.395153 19.9677 0.296418 19.9067C0.197683 19.8456 0.117891 19.7583 0.0659833 19.6545C0.0140752 19.5507 -0.00789801 19.4345 0.00252572 19.3189C0.0129495 19.2033 0.0553583 19.0929 0.125 19L3.875 14Z"
+                  fill="#B53C3A" />
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M10 1.24954C9.50754 1.24954 9.01991 1.34653 8.56494 1.53499C8.10997 1.72344 7.69657 1.99967 7.34835 2.34789C7.00013 2.69611 6.72391 3.1095 6.53545 3.56447C6.347 4.01944 6.25 4.50708 6.25 4.99954C6.25 5.49199 6.347 5.97963 6.53545 6.4346C6.72391 6.88957 7.00013 7.30297 7.34835 7.65119C7.69657 7.99941 8.10997 8.27563 8.56494 8.46408C9.01991 8.65254 9.50754 8.74954 10 8.74954C10.9946 8.74954 11.9484 8.35445 12.6517 7.65119C13.3549 6.94793 13.75 5.9941 13.75 4.99954C13.75 4.00497 13.3549 3.05115 12.6517 2.34789C11.9484 1.64462 10.9946 1.24954 10 1.24954ZM5 4.99954C5.00009 4.03732 5.27782 3.09556 5.79987 2.28728C6.32192 1.47899 7.0661 0.838501 7.94313 0.44267C8.82016 0.0468386 9.79278 -0.087523 10.7443 0.0557075C11.6958 0.198938 12.5857 0.613676 13.3074 1.25016C14.029 1.88664 14.5517 2.71782 14.8126 3.64398C15.0736 4.57013 15.0617 5.55192 14.7786 6.47152C14.4954 7.39112 13.9529 8.20948 13.2161 8.8284C12.4794 9.44732 11.5797 9.84051 10.625 9.96079V16.8745C10.625 17.0403 10.5592 17.1993 10.4419 17.3165C10.3247 17.4337 10.1658 17.4995 10 17.4995C9.83424 17.4995 9.67527 17.4337 9.55806 17.3165C9.44085 17.1993 9.375 17.0403 9.375 16.8745V9.96204C8.16621 9.80974 7.05461 9.22133 6.24902 8.30733C5.44343 7.39333 4.99928 6.21789 5 4.99954Z"
+                  fill="#B53C3A" />
+              </svg>
+              <span class="text-sm 2xl:text-base text-[#9CA3AF]">Fann, Point E</span>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Footer Bottom Bar -->
+      <div class="border-t border-gray-700 pt-6">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+          <!-- Copyright -->
+          <p class="text-xs text-[#9CA3AF]">
+            © 2025 CoopAchat. Tous droits réservés.
+          </p>
+
+          <!-- Legal Links -->
+          <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+            <a *ngFor="let link of footerLegalLinks" [href]="link.route"
+              class="text-xs text-[#9CA3AF] hover:text-white transition-colors duration-200">
+              {{ link.label }}
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
