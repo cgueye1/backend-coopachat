@@ -2,11 +2,12 @@
 import { Component, OnInit, OnDestroy, PLATFORM_ID, inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Router } from '@angular/router';
+import { ChatbotComponent } from './chatbot/chatbot.component';
 
 @Component({
   selector: 'app-portail',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ChatbotComponent],
   templateUrl: './portail.component.html',
   styleUrls: ['./portail.component.css']
 })

@@ -3,7 +3,7 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: '/login',
+    redirectTo: '/portail',
     pathMatch: 'full'
   },
 
@@ -96,12 +96,13 @@ export const routes: Routes = [
     path: 'com/promotions',
     loadComponent: () => import('./features/commercial/promotions/promotions.component').then(c => c.PromotionsManagementComponent)
   },
-  { 
+  {
     path: 'portail',
-    loadComponent: () => import('./features/portail/portail.component').then(c => c.PortailComponent)},
+    loadComponent: () => import('./features/portail/portail.component').then(c => c.PortailComponent)
+  },
   {
     path: '**',
-    redirectTo: '/login'
+    redirectTo: '/portail'
   }
 ];
 
