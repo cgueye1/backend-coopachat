@@ -30,10 +30,11 @@ interface Livraison {
   statut: 'Planifié' | 'Confirmé' | 'Annulé' | 'À confirmer' | 'Livrée';
 }
 
+
 @Component({
   selector: 'app-livraisons',
   standalone: true,
-  imports: [CommonModule, FormsModule, MainLayoutComponent],
+  imports: [MainLayoutComponent, CommonModule, FormsModule],
   templateUrl: './livraisons.component.html',
   styles: []
 })

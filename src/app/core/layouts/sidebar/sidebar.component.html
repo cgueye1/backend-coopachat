@@ -1,11 +1,11 @@
 <!-- Overlay backdrop (mobile only) -->
-<div *ngIf="mobileOpen" class="lg:hidden fixed inset-0 bg-black/50 z-30 transition-opacity duration-300"
+<div *ngIf="isOpen" class="lg:hidden fixed inset-0 bg-black/50 z-30 transition-opacity duration-300"
   (click)="toggleMobile()" aria-hidden="true"></div>
 
 <!-- SIDEBAR Responsive (Mobile-First) -->
 <aside
   class="fixed inset-y-0 left-0 w-64 z-40 flex flex-col bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white shadow-xl transform -translate-x-full transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 lg:w-[240px] lg:h-[calc(100vh-2rem)] lg:m-4 lg:rounded-xl lg:shadow-md"
-  [class.translate-x-0]="mobileOpen" role="navigation" aria-label="Sidebar navigation">
+  [class.translate-x-0]="isOpen" role="navigation" aria-label="Sidebar navigation">
 
   <!-- Close button (mobile only) -->
   <div class="lg:hidden p-3 flex justify-end">
@@ -27,7 +27,7 @@
   <nav class="flex-1 px-2 py-2 overflow-auto sm:px-3 lg:pr-1 lg:pl-2">
     <ul class="space-y-2 md:space-y-3 lg:space-y-4">
       <li *ngFor="let item of filteredMenuItems">
-        <a [routerLink]="item.link" (click)="mobileOpen && toggleMobile()"
+        <a [routerLink]="item.link" (click)="isOpen && toggleMobile()"
           class="group flex items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5 lg:py-3 transition-all duration-150 w-full rounded-md"
           [ngClass]="{ 
             'opacity-100': item.active,

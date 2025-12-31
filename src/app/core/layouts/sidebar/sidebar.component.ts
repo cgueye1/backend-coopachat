@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges, OnInit } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd, RouterModule } from '@angular/router';
 import { filter } from 'rxjs/operators';
@@ -14,8 +14,9 @@ type Role = 'log' | 'com' | 'admin' | 'commercial';
 })
 export class SidebarComponent implements OnChanges, OnInit {
   @Input() role: Role = 'log';
+  @Input() isOpen: boolean = false;
+  @Output() closeSidebar = new EventEmitter<void>();
 
-  mobileOpen = false;
   userMenuOpen = false;
 
   constructor(private router: Router) { }
@@ -93,7 +94,7 @@ export class SidebarComponent implements OnChanges, OnInit {
 
   // Toggle mobile menu
   toggleMobile() {
-    this.mobileOpen = !this.mobileOpen;
+    this.closeSidebar.emit();
   }
 
   // Toggle user menu
@@ -103,7 +104,7 @@ export class SidebarComponent implements OnChanges, OnInit {
 
   // Close all menus
   closeMenus() {
-    this.mobileOpen = false;
+    this.closeSidebar.emit();
     this.userMenuOpen = false;
   }
 

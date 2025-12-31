@@ -34,6 +34,7 @@ interface SupplierOrder {
   productId: string;
 }
 
+
 @Component({
   selector: 'app-gestion-stock',
   standalone: true,

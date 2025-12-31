@@ -37,8 +37,4 @@ export class MainLayoutComponent {
     if (this.role === 'com' || this.role === 'log' || this.role === 'admin') return this.role;
     return 'log';
   }
-
-  onMobileMenuToggle() {
-    this.sidebar?.toggleMobile();
-  }
 }
