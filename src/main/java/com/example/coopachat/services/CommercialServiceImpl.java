@@ -4,6 +4,7 @@ import com.example.coopachat.dtos.CompanyListResponseDTO;
 import com.example.coopachat.dtos.CreateCompanyDTO;
 import com.example.coopachat.dtos.CreateEmployeeDTO;
 import com.example.coopachat.dtos.CompanyListItemDTO;
+import com.example.coopachat.dtos.CompanyDetailsDTO;
 import com.example.coopachat.entities.Company;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Users;
@@ -151,6 +152,50 @@ public class CommercialServiceImpl implements CommercialService {
 
         return response;
     }
+
+    @Override
+    public CompanyDetailsDTO getCompanyById(Long id) {
+
+        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String userEmail = authentication.getName();
+
+        if (userEmail == null) {
+            throw new RuntimeException("Email utilisateur introuvable");
+        }
+
+        // Récupérer le commercial connecté
+        Users commercial = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+
+        // Vérifier que l'utilisateur est bien un commercial
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter leurs entreprises");
+        }
+
+        // Récupérer l'entreprise par son ID
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
+
+        // Vérifier que l'entreprise appartient au commercial connecté
+        if (!company.getCommercial().getId().equals(commercial.getId())) {
+            throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
+        }
+
+        // Mapper l'entité Company vers CompanyDetailsDTO
+        CompanyDetailsDTO companyDetails = mapToCompanyDetailsDTO(company);
+
+        log.info("Détails de l'entreprise {} récupérés par le commercial {}", 
+                company.getName(), commercial.getEmail());
+
+        return companyDetails;
+    }
+
     /**
      * Convertit le booléen isActive en statut textuel pour l'affichage
      *
@@ -179,6 +224,28 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setContactPhone(company.getContactPhone());
         dto.setCreatedAt(company.getCreatedAt());
         dto.setStatus(status(company.getIsActive())); // Convertit isActive en "Actif" ou "Inactif"
+        return dto;
+    }
+
+    /**
+     * Mappe une entité Company vers un CompanyDetailsDTO
+     *
+     * @param company L'entité Company à mapper
+     * @return Le DTO de détails correspondant
+     */
+    private CompanyDetailsDTO mapToCompanyDetailsDTO(Company company) {
+        CompanyDetailsDTO dto = new CompanyDetailsDTO();
+        dto.setId(company.getId());
+        dto.setName(company.getName());
+        dto.setLocation(company.getLocation());
+        dto.setContactName(company.getContactName());
+        dto.setContactPhone(company.getContactPhone());
+        dto.setContactEmail(company.getContactEmail());
+        dto.setCreatedAt(company.getCreatedAt());
+        dto.setStatus(status(company.getIsActive())); // Convertit isActive en "Actif" ou "Inactif"
+        dto.setCompanyCode(company.getCompanyCode());
+        dto.setSector(company.getSector());
+        dto.setNote(company.getNote());
         return dto;
     }
 

@@ -3,6 +3,7 @@ package com.example.coopachat.controllers;
 import com.example.coopachat.dtos.CreateCompanyDTO;
 import com.example.coopachat.dtos.CreateEmployeeDTO;
 import com.example.coopachat.dtos.CompanyListResponseDTO;
+import com.example.coopachat.dtos.CompanyDetailsDTO;
 import com.example.coopachat.dtos.auth.ResetPasswordRequestDTO;
 import com.example.coopachat.services.CommercialService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -53,6 +54,17 @@ public class CommercialController {
     ) {
         CompanyListResponseDTO response = commercialService.getAllCompanies(page, size);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Récupérer les détails d'une entreprise",
+            description = "Récupère les détails complets d'une entreprise spécifique par son ID. " +
+                         "L'entreprise doit appartenir au commercial connecté."
+    )
+    @GetMapping("/companies/{id}")
+    public ResponseEntity<CompanyDetailsDTO> getCompanyById(@PathVariable Long id) {
+        CompanyDetailsDTO companyDetails = commercialService.getCompanyById(id);
+        return ResponseEntity.ok(companyDetails);
     }
 
     // ============================================================================

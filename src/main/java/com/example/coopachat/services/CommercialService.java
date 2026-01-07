@@ -3,6 +3,7 @@ package com.example.coopachat.services;
 import com.example.coopachat.dtos.CreateCompanyDTO;
 import com.example.coopachat.dtos.CreateEmployeeDTO;
 import com.example.coopachat.dtos.CompanyListResponseDTO;
+import com.example.coopachat.dtos.CompanyDetailsDTO;
 
 /**
  * Interface pour le service de gestion des actions du commercial
@@ -26,6 +27,15 @@ public interface CommercialService {
      * @throws RuntimeException si le commercial n'existe pas ou si une erreur survient
      */
     CompanyListResponseDTO getAllCompanies(int page, int size);
+
+    /**
+     * Récupère les détails d'une entreprise spécifique par son ID
+     *
+     * @param id L'identifiant de l'entreprise
+     * @return Les détails complets de l'entreprise
+     * @throws RuntimeException si l'entreprise n'existe pas, n'appartient pas au commercial connecté, ou si une erreur survient
+     */
+    CompanyDetailsDTO getCompanyById(Long id);
 
     /**
      * Crée un nouvel employé et envoie une invitation par email
