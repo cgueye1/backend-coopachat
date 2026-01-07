@@ -5,6 +5,8 @@ import com.example.coopachat.dtos.CreateCompanyDTO;
 import com.example.coopachat.dtos.CreateEmployeeDTO;
 import com.example.coopachat.dtos.CompanyListItemDTO;
 import com.example.coopachat.dtos.CompanyDetailsDTO;
+import com.example.coopachat.dtos.UpdateCompanyDTO;
+import com.example.coopachat.dtos.UpdateCompanyStatusDTO;
 import com.example.coopachat.entities.Company;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Users;
@@ -194,6 +196,123 @@ public class CommercialServiceImpl implements CommercialService {
                 company.getName(), commercial.getEmail());
 
         return companyDetails;
+    }
+
+    @Override
+    public void updateCompany(Long id, UpdateCompanyDTO updateCompanyDTO) {
+
+        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String userEmail = authentication.getName();
+
+        if (userEmail == null) {
+            throw new RuntimeException("Email utilisateur introuvable");
+        }
+
+        // Récupérer le commercial connecté
+        Users commercial = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+
+        // Vérifier que l'utilisateur est bien un commercial
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent modifier leurs entreprises");
+        }
+
+        // Récupérer l'entreprise par son ID
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
+
+        // Vérifier que l'entreprise appartient au commercial connecté
+        if (!company.getCommercial().getId().equals(commercial.getId())) {
+            throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
+        }
+
+        // Mettre à jour les champs de l'entreprise (seulement si non null)
+        if (updateCompanyDTO.getName() != null) {
+            company.setName(updateCompanyDTO.getName());
+        }
+        if (updateCompanyDTO.getSector() != null) {
+            company.setSector(updateCompanyDTO.getSector());
+        }
+        if (updateCompanyDTO.getLocation() != null) {
+            company.setLocation(updateCompanyDTO.getLocation());
+        }
+        if (updateCompanyDTO.getContactName() != null) {
+            company.setContactName(updateCompanyDTO.getContactName());
+        }
+        if (updateCompanyDTO.getContactEmail() != null) {
+            company.setContactEmail(updateCompanyDTO.getContactEmail());
+        }
+        if (updateCompanyDTO.getContactPhone() != null) {
+            company.setContactPhone(updateCompanyDTO.getContactPhone());
+        }
+        if (updateCompanyDTO.getStatus() != null) {
+            company.setStatus(updateCompanyDTO.getStatus());
+        }
+        if (updateCompanyDTO.getNote() != null) {
+            company.setNote(updateCompanyDTO.getNote());
+        }
+
+        // Sauvegarder les modifications
+        companyRepository.save(company);
+
+        log.info("Entreprise {} modifiée avec succès par le commercial {}", 
+                company.getName(), commercial.getEmail());
+    }
+
+    @Override
+    public void updateCompanyStatus(Long id, UpdateCompanyStatusDTO updateCompanyStatusDTO) {
+
+        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String userEmail = authentication.getName();
+
+        if (userEmail == null) {
+            throw new RuntimeException("Email utilisateur introuvable");
+        }
+
+        // Récupérer le commercial connecté
+        Users commercial = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+
+        // Vérifier que l'utilisateur est bien un commercial
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent modifier le statut de leurs entreprises");
+        }
+
+        // Récupérer l'entreprise par son ID
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
+
+        // Vérifier que l'entreprise appartient au commercial connecté
+        if (!company.getCommercial().getId().equals(commercial.getId())) {
+            throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
+        }
+
+        // Sauvegarder l'ancien statut pour le log
+        Boolean oldStatus = company.getIsActive();
+
+        // Mettre à jour le statut
+        company.setIsActive(updateCompanyStatusDTO.getIsActive());
+
+        // Sauvegarder les modifications
+        companyRepository.save(company);
+
+        // Log avec l'ancien et le nouveau statut
+        //statusChange = activée si true, désactivée si false 
+        String statusChange = updateCompanyStatusDTO.getIsActive() ? "activée" : "désactivée";
+        log.info("Entreprise {} {} par le commercial {} (ancien statut: {}, nouveau statut: {})", 
+                company.getName(), statusChange, commercial.getEmail(), oldStatus, updateCompanyStatusDTO.getIsActive());
     }
 
     /**

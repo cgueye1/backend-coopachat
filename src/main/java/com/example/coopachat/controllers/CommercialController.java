@@ -4,6 +4,8 @@ import com.example.coopachat.dtos.CreateCompanyDTO;
 import com.example.coopachat.dtos.CreateEmployeeDTO;
 import com.example.coopachat.dtos.CompanyListResponseDTO;
 import com.example.coopachat.dtos.CompanyDetailsDTO;
+import com.example.coopachat.dtos.UpdateCompanyDTO;
+import com.example.coopachat.dtos.UpdateCompanyStatusDTO;
 import com.example.coopachat.dtos.auth.ResetPasswordRequestDTO;
 import com.example.coopachat.services.CommercialService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -65,6 +67,42 @@ public class CommercialController {
     public ResponseEntity<CompanyDetailsDTO> getCompanyById(@PathVariable Long id) {
         CompanyDetailsDTO companyDetails = commercialService.getCompanyById(id);
         return ResponseEntity.ok(companyDetails);
+    }
+
+    @Operation(
+            summary = "Modifier une entreprise",
+            description = "Met à jour les informations d'une entreprise existante. " +
+                         "L'entreprise doit appartenir au commercial connecté. " +
+                         "Les champs id, companyCode, createdAt et commercial ne peuvent pas être modifiés."
+    )
+    @PutMapping("/companies/{id}")
+    public ResponseEntity<String> updateCompany(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateCompanyDTO updateCompanyDTO
+    ) {
+        commercialService.updateCompany(id, updateCompanyDTO);
+        return ResponseEntity.ok("Entreprise modifiée avec succès");
+    }
+
+    @Operation(
+            summary = "Activer/Désactiver une entreprise",
+            description = "Active ou désactive une entreprise. " +
+                         "L'entreprise doit appartenir au commercial connecté. " +
+                         "Le body doit contenir 'isActive' (true pour activer, false pour désactiver)."
+    )
+    @PatchMapping("/companies/{id}/status")
+    public ResponseEntity<String> updateCompanyStatus(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateCompanyStatusDTO updateCompanyStatusDTO
+    ) {
+        commercialService.updateCompanyStatus(id, updateCompanyStatusDTO);
+        
+        //message = entreprise activée avec succès si isActive = true, entreprise désactivée avec succès si isActive = false
+        String message = updateCompanyStatusDTO.getIsActive() 
+                ? "Entreprise activée avec succès" 
+                : "Entreprise désactivée avec succès";
+        
+        return ResponseEntity.ok(message);
     }
 
     // ============================================================================

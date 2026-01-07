@@ -4,6 +4,8 @@ import com.example.coopachat.dtos.CreateCompanyDTO;
 import com.example.coopachat.dtos.CreateEmployeeDTO;
 import com.example.coopachat.dtos.CompanyListResponseDTO;
 import com.example.coopachat.dtos.CompanyDetailsDTO;
+import com.example.coopachat.dtos.UpdateCompanyDTO;
+import com.example.coopachat.dtos.UpdateCompanyStatusDTO;
 
 /**
  * Interface pour le service de gestion des actions du commercial
@@ -36,6 +38,24 @@ public interface CommercialService {
      * @throws RuntimeException si l'entreprise n'existe pas, n'appartient pas au commercial connecté, ou si une erreur survient
      */
     CompanyDetailsDTO getCompanyById(Long id);
+
+    /**
+     * Met à jour une entreprise existante
+     *
+     * @param id L'identifiant de l'entreprise à modifier
+     * @param updateCompanyDTO Les nouvelles informations de l'entreprise
+     * @throws RuntimeException si l'entreprise n'existe pas, n'appartient pas au commercial connecté, ou si une erreur survient
+     */
+    void updateCompany(Long id, UpdateCompanyDTO updateCompanyDTO);
+
+    /**
+     * Active ou désactive une entreprise
+     *
+     * @param id L'identifiant de l'entreprise
+     * @param updateCompanyStatusDTO Le nouveau statut actif/inactif
+     * @throws RuntimeException si l'entreprise n'existe pas, n'appartient pas au commercial connecté, ou si une erreur survient
+     */
+    void updateCompanyStatus(Long id, UpdateCompanyStatusDTO updateCompanyStatusDTO);
 
     /**
      * Crée un nouvel employé et envoie une invitation par email
