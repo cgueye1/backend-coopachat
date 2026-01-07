@@ -1,0 +1,61 @@
+package com.example.coopachat.controllers;
+
+import com.example.coopachat.dtos.CreateCompanyDTO;
+import com.example.coopachat.dtos.CreateEmployeeDTO;
+import com.example.coopachat.dtos.auth.ResetPasswordRequestDTO;
+import com.example.coopachat.services.CommercialService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * Contrôleur pour la gestion des actions du commercial
+ * Regroupe toutes les fonctionnalités liées au rôle Commercial
+ */
+@RestController
+@RequestMapping("/api/commercial")
+@RequiredArgsConstructor
+@Tag(name = "Commercial", description = "API pour la gestion des actions du commercial (entreprises et employés)")
+public class CommercialController {
+
+    private final CommercialService commercialService;
+
+    // ============================================================================
+    // 🏢 GESTION DES ENTREPRISES
+    // ============================================================================
+
+    @Operation(
+            summary = "Créer une entreprise",
+            description = "Permet à un commercial de créer une nouvelle entreprise. " +
+                         "L'entreprise est automatiquement associée au commercial connecté."
+    )
+    @PostMapping("/companies")
+    public ResponseEntity<String> createCompany(@RequestBody @Valid CreateCompanyDTO createCompanyDTO) {
+        commercialService.createCompany(createCompanyDTO);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body("Entreprise créée avec succès");
+    }
+
+    // ============================================================================
+    // 👤 GESTION DES EMPLOYÉS
+    // ============================================================================
+
+    @Operation(
+            summary = "Créer un nouveau salarié",
+            description = "Permet à un commercial d'ajouter un nouveau salarié à une entreprise. " +
+                    "Un email d'invitation avec un lien d'activation sera envoyé au salarié."
+    )
+    @PostMapping("/employees")
+    public ResponseEntity<String> createEmployee(@RequestBody @Valid CreateEmployeeDTO createEmployeeDTO) {
+        commercialService.createEmployee(createEmployeeDTO);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body("Salarié créé avec succès. Un email d'invitation a été envoyé.");
+    }
+
+
+}
+

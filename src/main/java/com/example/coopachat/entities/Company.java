@@ -22,7 +22,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class Company {
+public class  Company {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

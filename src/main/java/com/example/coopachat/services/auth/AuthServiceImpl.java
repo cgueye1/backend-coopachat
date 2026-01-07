@@ -65,19 +65,22 @@ public class AuthServiceImpl implements AuthService {
             throw new PhoneAlreadyExistsException("Ce téléphone est déjà utilisé");
         }
 
-        if(userDto.getRole() == UserRole.COMMERCIAL){
-          if(userDto.getCompanyCommercial() == null || userDto.getCompanyCommercial().isEmpty()){
-              throw new ValidationException("L'entreprise est obligatoire pour un commercial");
-          }
+        if (userDto.getRole() == UserRole.COMMERCIAL) {
+            if (userDto.getCompanyCommercial() == null || userDto.getCompanyCommercial().isEmpty()) {
+                throw new ValidationException("L'entreprise est obligatoire pour un commercial");
+            }
         }
 
         // Mapping : convertir le DTO en entité
         Users user = convertToEntity(userDto);
-        
 
         // Sauvegarde : enregistrer l'utilisateur en base de données
         userRepository.save(user);
     }
+
+    // ============================================================================
+    // 🔐 AUTHENTIFICATION
+    // ============================================================================
 
     @Override
     public LoginResponseDTO authenticateCredentialsUser(String email, String password) {
@@ -87,17 +90,17 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new RuntimeException("Email ou mot de passe incorrect"));
 
         // Vérifier les mots de passe
-        if(!passwordEncoder.matches(password, user.getPassword())){
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new RuntimeException("Email ou mot de passe incorrect");
         }
 
         // Vérifier si le compte est actif
-        if (!user.getIsActive()){
+        if (!user.getIsActive()) {
             throw new RuntimeException("Votre compte n'est pas actif");
         }
 
-        //Générer le token
-        String accessToken = jwtService.generateToken(user.getEmail(), user.getRole().name(), user.getId() );
+        // Générer le token
+        String accessToken = jwtService.generateToken(user.getEmail(), user.getRole().name(), user.getId());
 
         return new LoginResponseDTO(accessToken, user.getEmail(), user.getRole().getLabel(), user.getId());
     }
@@ -109,12 +112,12 @@ public class AuthServiceImpl implements AuthService {
         Users user = getUserByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Email ou mot de passe incorrect"));
 
-        //Vérifier que c'est un administrateur
-        if (user.getRole() != UserRole.ADMINISTRATOR){
+        // Vérifier que c'est un administrateur
+        if (user.getRole() != UserRole.ADMINISTRATOR) {
             throw new RuntimeException("Accès réservé aux administrateurs");
         }
 
-        if(!passwordEncoder.matches(password, user.getPassword())){
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new RuntimeException("Email ou mot de passe incorrect");
         }
 
@@ -149,7 +152,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Vérifier le code OTP
         boolean isValid = activationCodeService.verifyActivationCode(email, otp);
-        
+
         if (!isValid) {
             throw new RuntimeException("Code OTP invalide ou expiré");
         }
@@ -244,7 +247,10 @@ public class AuthServiceImpl implements AuthService {
 
     }
 
-    /**  Renvoie un code d'activation avec vérification du cooldown */
+
+    /**
+     * Renvoie un code d'activation avec vérification du cooldown
+     */
     @Override
     public void resendActivationCode(String email) {
 
@@ -253,41 +259,41 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
 
         // Vérifier le cooldown restant
-        long remainingSeconds = activationCodeService.getRemainingCooldownSecond(email,CodeType.ACTIVATION);
+        long remainingSeconds = activationCodeService.getRemainingCooldownSecond(email, CodeType.ACTIVATION);
 
         if (remainingSeconds > 0) {
             throw new RuntimeException("Veuillez attendre " + remainingSeconds + " secondes avant de renvoyer le code");
         }
         // Cooldown terminé, générer et envoyer un nouveau code
         String code = activationCodeService.generateAndStoreCode(email);
-        emailService.sendActivationCode(email,code, user.getFirstName());
-
+        emailService.sendActivationCode(email, code, user.getFirstName());
     }
 
     // ============================================================================
-    // 🔐DECONNEXION
+    // 🔐 DÉCONNEXION
     // ============================================================================
+
     /**
      * Déconnecte un utilisateur en invalidant son token JWT
      */
     @Override
     @Transactional
     public void logout(String token) {
-
         // Vérifier que le token est valide avant de le blacklister
         if (token == null || token.isEmpty() || !jwtService.isTokenValid(token)) {
             throw new RuntimeException("Token invalide");
         }
+
         // Ajouter le token à la blacklist
         tokenBlacklistService.addToBlackList(token);
 
         log.info("Utilisateur déconnecté avec succès");
-
     }
 
     // ============================================================================
-    // 🔐REINITIALISATION DE MOT DE PASSE
+    // 🔑 RÉINITIALISATION DE MOT DE PASSE
     // ============================================================================
+
     /**
      * Démarre le processus de réinitialisation de mot de passe
      * Génère un token unique et envoie un email avec le lien
@@ -296,25 +302,25 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void generatePasswordResetToken(String email) {
 
-        //vérifier si l'email existe
+        // Vérifier si l'email existe
         Users user = getUserByEmail(email)
-                .orElseThrow(()-> new RuntimeException("Utilisateur introuvable avec cet email"));
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
 
         // Vérifier si le compte est actif
         if (!user.getIsActive()) {
             throw new RuntimeException("Votre compte n'est pas actif");
         }
 
-        //Supprimer les tokens existants pour cet email
+        // Supprimer les tokens existants pour cet email
         activationCodeRepository.deleteByEmailAndType(email, CodeType.PASSWORD_RESET);
 
-        //Générer un token unique pour la réinitialisation
-        String  resetToken = UUID.randomUUID().toString();
+        // Générer un token unique pour la réinitialisation
+        String resetToken = UUID.randomUUID().toString();
 
-        //Calculer la date d'expiration du token
+        // Calculer la date d'expiration du token
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(expirationMinutes);
 
-        //Créer et sauvegarder le token dans la base
+        // Créer et sauvegarder le token dans la base
         ActivationCode activationCode = new ActivationCode();
         activationCode.setType(CodeType.PASSWORD_RESET);
         activationCode.setUsed(false);
@@ -324,10 +330,10 @@ public class AuthServiceImpl implements AuthService {
 
         activationCodeRepository.save(activationCode);
 
-        //Envoyer l'email avec le lien de réinitialisation
+        // Envoyer l'email avec le lien de réinitialisation
         emailService.sendPasswordResetLink(email, resetToken, user.getFirstName());
-
     }
+
     /**
      * Réinitialise le mot de passe avec le token fourni
      * Vérifie la validité du token et met à jour le mot de passe
@@ -336,30 +342,29 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void resetPassword(String token, String newPassword, String confirmPassword) {
 
-        //Vérifier que les deux mots de passe sont identiques
-        if(!newPassword.equals(confirmPassword)){
+        // Vérifier que les deux mots de passe sont identiques
+        if (!newPassword.equals(confirmPassword)) {
             throw new RuntimeException("Les mots de passe ne correspondent pas");
         }
 
         // Récupérer le token depuis la base de données
-       ActivationCode activationCode = activationCodeRepository.findByCodeAndTypeAndUsedFalse(token,CodeType.PASSWORD_RESET)
-               .orElseThrow(() -> new RuntimeException("Token invalide ou expiré"));
+        ActivationCode activationCode = activationCodeRepository.findByCodeAndTypeAndUsedFalse(token, CodeType.PASSWORD_RESET)
+                .orElseThrow(() -> new RuntimeException("Token invalide ou expiré"));
 
-
-        //Vérifier que le token n'est pas expiré
-        if(activationCode.getExpiresAt().isBefore(LocalDateTime.now())){
+        // Vérifier que le token n'est pas expiré
+        if (activationCode.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Token expiré");
         }
 
         // Récupérer l'utilisateur associé au token
         Users user = userRepository.findByEmail(activationCode.getEmail())
-                .orElseThrow(()-> new RuntimeException("Utilisateur introuvable avec cet email"));
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
 
-        //Encoder et sauvegarder le nouveau mot de passe
+        // Encoder et sauvegarder le nouveau mot de passe
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        //Marquer le token comme utilisé pour éviter la réutilisation
+        // Marquer le token comme utilisé pour éviter la réutilisation
         activationCode.setUsed(true);
         activationCodeRepository.save(activationCode);
 
@@ -372,7 +377,7 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * Convertit un DTO UserDto en entité Users
-     * 
+     *
      * @param userDto Le DTO à convertir
      * @return L'entité Users créée
      */

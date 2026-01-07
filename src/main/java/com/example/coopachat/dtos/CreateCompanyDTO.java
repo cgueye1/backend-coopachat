@@ -1,3 +1,4 @@
+
 package com.example.coopachat.dtos;
 
 import com.example.coopachat.enums.CompanySector;
@@ -18,7 +19,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateCompanyDTO {
-    
+
     @JsonProperty (access = JsonProperty.Access.READ_ONLY)
     private Long id; // ID de l'entreprise (généré après création)
 
@@ -37,7 +38,7 @@ public class CreateCompanyDTO {
     private String contactName; // Nom du contact
 
     @Email(message = "L'email du contact doit être valide")
-    private String contactEmail; // Email du contact (optionnel)
+    private String contactEmail; // Email du contact
 
     @NotBlank(message = "Le téléphone du contact est obligatoire")
     @Pattern(regexp = "^[0-9]{8,15}$",
@@ -49,4 +50,3 @@ public class CreateCompanyDTO {
 
     private String note; // Commentaire ou note (optionnel)
 }
-

@@ -1,20 +1,7 @@
 package com.example.coopachat.services;
 
-import com.example.coopachat.dtos.CreateEmployeeDTO;
-
-
 public interface EmployeeService {
 
-    /**
-     * Ajoute un nouveau salarié à une entreprise
-     * Crée un utilisateur avec le rôle EMPLOYEE, l'associe à une entreprise,
-     * génère un token d'invitation et envoie un email d'activation au salarié
-     *
-     * @param employee Les informations du salarié à créer
-     * @throws RuntimeException si l'email ou le téléphone existe déjà, si l'entreprise n'existe pas ...
-
-     */
-    void addEmployee(CreateEmployeeDTO employee);
 
     /**
      * Active le compte d'un salarié et crée son mot de passe via le token d'invitation

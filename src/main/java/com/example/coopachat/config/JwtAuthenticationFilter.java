@@ -69,7 +69,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // si oui , on fait : 
+        // si oui , on fait :
         // Extraire le token (enlever "Bearer ")
         jwt = authHeader.substring(7);
 
@@ -158,8 +158,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Documentation API
         if (path.startsWith("/swagger-ui") ||
-            path.startsWith("/v3/api-docs") ||
-            path.startsWith("/swagger-ui.html")) {
+                path.startsWith("/v3/api-docs") ||
+                path.startsWith("/swagger-ui.html")) {
             return true;
         }
 

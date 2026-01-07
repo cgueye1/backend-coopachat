@@ -43,5 +43,13 @@ public interface EmailService {
      * @param companyName Le nom de l'entreprise
      */
     void sendEmployeeInvitation(String email, String token, String firstName, String commercialName, String companyName);
+    /**
+     * Envoie un code d'activation à 4 chiffres par email à un livreur
+     *
+     * @param email L'email du livreur
+     * @param code  Le code d'activation à 4 chiffres
+     * @param firstName Le prénom du livreur
+     */
+    void sendDriverActivationCode(String email, String code, String firstName);
 }
 

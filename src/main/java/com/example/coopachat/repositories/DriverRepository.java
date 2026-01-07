@@ -1,9 +1,9 @@
 package com.example.coopachat.repositories;
 
-import com.example.coopachat.entities.Employee;
+import com.example.coopachat.entities.Driver;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface EmployeeRepository  extends JpaRepository <Employee , Long> {
+public interface DriverRepository extends JpaRepository <Driver , Long> {
 }

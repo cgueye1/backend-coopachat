@@ -50,9 +50,6 @@ public interface JwtService {
 
     /**
      * Extrait la date d'expiration d'un token
-     *
-     * @param token Le token JWT
-     * @return La date d'expiration
      */
     Date extractExpiration(String token);
 

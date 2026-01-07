@@ -8,13 +8,23 @@ import com.example.coopachat.enums.CodeType;
  */
 public interface ActivationCodeService {
 
+    // ============================================================================
+    // 🔢 GÉNÉRATION DE CODES
+    // ============================================================================
+
     /**
      * Génère un code d'activation à 6 chiffres
      *
      * @return Le code d'activation généré
      */
-    String generateActivationCode ();
+    String generateActivationCode();
 
+    /**
+     * Génère un code d'activation à 4 chiffres (pour mobile)
+     *
+     * @return Le code d'activation généré
+     */
+    String generateActivationCodeMoblie();
 
     /**
      * Génère et stocke un code d'activation pour un email
@@ -25,6 +35,18 @@ public interface ActivationCodeService {
      */
     String generateAndStoreCode(String email);
 
+    /**
+     * Génère et stocke un code d'activation pour un email par mobile
+     * Supprime les anciens codes de cet email avant de créer un nouveau
+     *
+     * @param email L'email de l'utilisateur
+     * @return Le code d'activation généré
+     */
+    String generateAndStoreCodeMobile(String email);
+
+    // ============================================================================
+    // ✅ VALIDATION DE CODES
+    // ============================================================================
 
     /**
      * Valide un code d'activation pour un email
@@ -43,7 +65,6 @@ public interface ActivationCodeService {
      */
     boolean hasUsedActivationCode(String email);
 
-
     /**
      * Marque un code d'activation comme utilisé
      *
@@ -51,6 +72,23 @@ public interface ActivationCodeService {
      * @param code  Le code à marquer comme utilisé
      */
     void markCodeAsUsed(String email, String code);
+
+    // ============================================================================
+    // ⏱️ GESTION DU COOLDOWN
+    // ============================================================================
+
+    /**
+     * Calcule le temps restant (en secondes) avant de pouvoir renvoyer un code
+     *
+     * @param email L'email de l'utilisateur
+     * @param type  Le type de code (ACTIVATION)
+     * @return Le nombre de secondes à attendre (0 si on peut renvoyer immédiatement)
+     */
+    long getRemainingCooldownSecond(String email, CodeType type);
+
+    // ============================================================================
+    // 🗑️ NETTOYAGE DES CODES
+    // ============================================================================
 
     /**
      * Supprime tous les codes d'activation expirés et non utilisés de la base de données
@@ -61,16 +99,4 @@ public interface ActivationCodeService {
      * Supprime les codes utilisés anciens (créés il y a plus de 24 heures)
      */
     void cleanupOldUsedCodes();
-
-    /**
-     * Calcule le temps restant (en secondes) avant de pouvoir renvoyer un code
-     *
-     * @param email L'email de l'utilisateur
-     * @param type Le type de code (ACTIVATION )
-     * @return Le nombre de secondes à attendre (0 si on peut renvoyer immédiatement)
-     */
-    long getRemainingCooldownSecond (String email, CodeType type);
-
-
-
 }

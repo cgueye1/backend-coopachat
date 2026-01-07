@@ -21,7 +21,7 @@ public class UserDto {
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Boolean isActive;
-    
+
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long id;
 

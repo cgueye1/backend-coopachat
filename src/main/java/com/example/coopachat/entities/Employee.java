@@ -1,3 +1,4 @@
+
 package com.example.coopachat.entities;
 
 import com.fasterxml.jackson.annotation.JsonFormat;

@@ -3,18 +3,13 @@ package com.example.coopachat.controllers.auth;
 import com.example.coopachat.dtos.UserDto;
 import com.example.coopachat.dtos.auth.*;
 import com.example.coopachat.services.auth.AuthService;
-import com.example.coopachat.services.auth.JwtServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * Contrôleur pour la gestion de l'authentification
@@ -77,7 +72,6 @@ public class AuthController {
     // ============================================================================
     // 🔐 ACTIVATION DE COMPTE
     // ============================================================================
-
     @Operation(
             summary = "Envoyer un code d'activation",
             description = "Envoie un code d'activation de 6 chiffres par email à un utilisateur. " +
@@ -121,8 +115,6 @@ public class AuthController {
         authService.resendActivationCode(requestDTO.getEmail());
         return ResponseEntity.ok("Code d'activation renvoyé avec succès");
     }
-
-
     // ============================================================================
     // 🔐 AUTHENTIFICATION ADMINISTRATEUR (2FA)
     // ============================================================================

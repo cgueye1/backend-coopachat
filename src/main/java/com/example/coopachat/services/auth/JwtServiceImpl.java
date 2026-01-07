@@ -155,7 +155,7 @@ public class JwtServiceImpl implements JwtService {
             if (token == null || token.split("\\.").length != 3) {
                 return false;
             }
-            return !isTokenExpired(token); //si le token est expiré (true) alors on retourne (false) le token n'est pas valide sinon on retourne (true).
+            return !isTokenExpired(token); //si le token est expiré (true) alors on retourne (false) ,le token n'est pas valide ,sinon on retourne (true).
         } catch (Exception e) {
             return false;
         }

@@ -81,8 +81,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/employees/**").hasAnyRole("COMMERCIAL", "ADMINISTRATOR")
 
                         // Responsable Logistique + Admin
-                        .requestMatchers("/api/orders/**").hasAnyRole("LOGISTICS_MANAGER", "ADMINISTRATOR")
-                        .requestMatchers("/api/stocks/**").hasAnyRole("LOGISTICS_MANAGER", "ADMINISTRATOR")
+                        .requestMatchers("/api/logistics/**").hasAnyRole("LOGISTICS_MANAGER", "ADMINISTRATOR")
 
                         // Livreur + Admin
                         .requestMatchers("/api/deliveries/**").hasAnyRole("DELIVERY_DRIVER", "ADMINISTRATOR")
@@ -135,4 +134,3 @@ public class SecurityConfig {
         return source;
     }
 }
-

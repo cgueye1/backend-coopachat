@@ -77,8 +77,8 @@ public class GlobalExceptionHandler {
         String message = ex.getMessage();
         if (message != null && (
                 message.contains("Email ou mot de passe incorrect") ||
-                message.contains("compte n'est pas actif") ||
-                message.contains("compte est inactif")
+                        message.contains("compte n'est pas actif") ||
+                        message.contains("compte est inactif")
         )) {
             ErrorResponseDTO error = new ErrorResponseDTO(
                     ex.getMessage(),
@@ -88,7 +88,7 @@ public class GlobalExceptionHandler {
             );
             return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
         }
-        
+
         // Pour les autres RuntimeException, retourner 500
         ErrorResponseDTO error = new ErrorResponseDTO(
                 "Une erreur inattendue s'est produite: " + ex.getMessage(),
@@ -111,4 +111,3 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
-

@@ -11,10 +11,10 @@ import java.util.Optional;
 
 @Repository
 public interface TokenBlacklistRepository extends JpaRepository<TokenBlacklist, Long> {
-    
+
     /** Vérifie si un token est dans la blacklist */
     Optional<TokenBlacklist> findByToken(String token);
-    
+
     /** Supprime tous les tokens expirés de la blacklist */
     @Modifying(clearAutomatically = true)
     @Query("DELETE FROM TokenBlacklist tb WHERE tb.expiresAt < :now")

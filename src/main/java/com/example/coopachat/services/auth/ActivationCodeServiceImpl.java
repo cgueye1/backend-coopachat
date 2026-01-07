@@ -21,7 +21,7 @@ import java.util.Random;
  */
 @Service
 @RequiredArgsConstructor
-@Slf4j// permet de logger les messages 
+@Slf4j
 public class ActivationCodeServiceImpl implements ActivationCodeService {
 
     // ============================================================================
@@ -35,6 +35,8 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
     // ============================================================================
 
     private static final int CODE_LENGTH = 6;
+    private static final int CODE_LENGTH_MOBILE = 4;
+
     @Value("${activation.code.expiration.minutes:15}")
     private int expirationMinutes;  // 15 minutes
 
@@ -49,29 +51,71 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
     /**
      * Génère un code d'activation à 6 chiffres
      */
-     @Override
-     public String generateActivationCode() {
-         Random random = new Random();
-         StringBuilder code = new StringBuilder(); //permet de construire le code d'activation en concaténant les chiffres générés aléatoirement
-         for (int i = 0; i < CODE_LENGTH; i++) {
+    @Override
+    public String generateActivationCode() {
+        Random random = new Random();
+        StringBuilder code = new StringBuilder(); //permet de construire le code d'activation en concaténant les chiffres générés aléatoirement
+        for (int i = 0; i < CODE_LENGTH; i++) {
             code.append(random.nextInt(10));
-         }
-         return code.toString();//retourne le code d'activation sous forme de chaîne de caractères
-      }
+        }
+        return code.toString();//retourne le code d'activation sous forme de chaîne de caractères
+    }
 
+    /**
+     * Génère un code d'activation à 4 chiffres (pour mobile)
+     */
+    @Override
+    public String generateActivationCodeMoblie() {
+        Random random = new Random();
+        StringBuilder code = new StringBuilder(); //permet de construire le code d'activation en concaténant les chiffres générés aléatoirement
+        for (int i = 0; i < CODE_LENGTH_MOBILE; i++) {
+            code.append(random.nextInt(10));
+        }
+        return code.toString();//retourne le code d'activation sous forme de chaîne de caractères
+    }
 
     /**
      * Génère et stocke un code d'activation pour un email
      */
     @Override
     @Transactional
-    public String generateAndStoreCode(String email){
+    public String generateAndStoreCode(String email) {
+
+        // Supprimer les anciens codes de cet email (pour éviter les doublons)
+        activationCodeRepository.deleteByEmail(email);
+        activationCodeRepository.flush();
+        log.info("Codes supprimés pour {}", email);
+
+        // Générer un nouveau code
+        String code = generateActivationCode();
+
+        // Calculer la date d'expiration (15 minutes à partir de maintenant)
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(expirationMinutes);
+
+        // Créer et sauvegarder le code d'activation
+        ActivationCode activationCode = new ActivationCode();
+        activationCode.setCode(code);
+        activationCode.setExpiresAt(expiresAt);
+        activationCode.setEmail(email);
+        activationCode.setType(CodeType.ACTIVATION);
+        activationCode.setUsed(false);
+        activationCodeRepository.save(activationCode);
+
+        return code;
+    }
+
+    /**
+     * Génère et stocke un code d'activation pour un email par mobile
+     */
+    @Override
+    @Transactional
+    public String generateAndStoreCodeMobile(String email) {
 
         // Supprimer les anciens codes de cet email (pour éviter les doublons)
         activationCodeRepository.deleteByEmail(email);
 
         // Générer un nouveau code
-        String code = generateActivationCode();
+        String code = generateActivationCodeMoblie();
 
         // Calculer la date d'expiration (15 minutes à partir de maintenant)
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(expirationMinutes);
@@ -96,7 +140,7 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
      * Valide un code d'activation pour un email
      */
     @Override
-    public boolean verifyActivationCode(String email, String code){
+    public boolean verifyActivationCode(String email, String code) {
 
         //Rechercher un code valide (non utilisé et non expiré)
         Optional<ActivationCode> activationCodeOpt = activationCodeRepository.findValidCode(
@@ -108,11 +152,11 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
     }
 
     /**
-     * Vérifie si un code d'activation a été utilisé pour un email (utile pour la création d'un mot de passe )
+     * Vérifie si un code d'activation a été utilisé pour un email (utile pour la création d'un mot de passe)
      */
     @Override
     public boolean hasUsedActivationCode(String email) {
-        Boolean hasUsed= activationCodeRepository.hasUsedCode(email);
+        Boolean hasUsed = activationCodeRepository.hasUsedCode(email);
         return hasUsed;
     }
 
@@ -121,8 +165,8 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
      */
     @Override
     @Transactional
-    public void markCodeAsUsed(String email, String code){
-        Optional <ActivationCode> activationCodeOpt = activationCodeRepository.findByEmailAndCode(email, code);
+    public void markCodeAsUsed(String email, String code) {
+        Optional<ActivationCode> activationCodeOpt = activationCodeRepository.findByEmailAndCode(email, code);
         if (activationCodeOpt.isPresent()) {
             activationCodeOpt.get().setUsed(true);
             activationCodeRepository.save(activationCodeOpt.get());
@@ -130,9 +174,13 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
         }
     }
 
+    // ============================================================================
+    // ⏱️ GESTION DU COOLDOWN
+    // ============================================================================
+
     /**
-    * Calcule le temps restant (en secondes) avant de pouvoir renvoyer un code
-    */
+     * Calcule le temps restant (en secondes) avant de pouvoir renvoyer un code
+     */
     @Override
     public long getRemainingCooldownSecond(String email, CodeType type) {
         try{
@@ -149,7 +197,6 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
             long secondsSinceLastCode = Duration
                     .between(lastCode.getCreatedAt(), LocalDateTime.now())
                     .getSeconds();
-
 
             // Si le délai minimum n'est pas encore écoulé, retourner le temps restant
             if (secondsSinceLastCode < resendCooldownSeconds) {
@@ -168,20 +215,26 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
 
 
     // ============================================================================
-    // 🗑️ NETTOYAGE DES CODES EXPIRÉS ET NON UTILISÉS
+    // 🗑️ NETTOYAGE DES CODES
     // ============================================================================
+
+    /**
+     * Nettoie les codes d'activation expirés et non utilisés
+     * Exécuté automatiquement toutes les heures à la minute 0
+     */
     @Override
     @Transactional
-    @Scheduled(cron = "0 0 * * * *") // Toutes les heures à la minute 0 on exécute la méthode (Seconde 0, Minute 0, * tous les heures, * tous les jours, * tous les mois, * tous les jours de la semaine ) ,  marque une méthode à exécuter automatiquement
-     public void cleanupExpiredCodes(){
+    @Scheduled(cron = "0 0 * * * *") // Toutes les heures à la minute 0
+    public void cleanupExpiredCodes() {
         LocalDateTime now = LocalDateTime.now();
         activationCodeRepository.deleteExpiredCodes(now);
         log.info("Nettoyage des codes d'activation expirés effectué");
     }
 
-    // ============================================================================
-    // 🗑️ NETTOYAGE DES CODES UTILISÉS ANCIENS
-    // ============================================================================
+    /**
+     * Nettoie les codes d'activation utilisés anciens (plus de 24 heures)
+     * Exécuté automatiquement tous les jours à minuit
+     */
     @Override
     @Transactional
     @Scheduled(cron = "0 0 0 * * *") // Tous les jours à minuit
@@ -189,7 +242,7 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
         // Supprimer les codes utilisés créés il y a plus de 24 heures
         LocalDateTime oldDate = LocalDateTime.now().minusHours(24);
         activationCodeRepository.deleteOldUsedCodes(oldDate);
-        log.info("Nettoyage des codes d'activation utilisés anciens effectué");
+        log.info("Nettoyage des anciens codes d'activation utilisés  effectué");
     }
 
 

@@ -78,15 +78,16 @@ public interface AuthService {
 
     /**
      * Génère un token de réinitialisation de mot de passe et l'envoie par email
-     * 
+     *
      * @param email L'email de l'utilisateur qui demande la réinitialisation
      * @throws RuntimeException si l'utilisateur n'existe pas ou si le compte n'est pas actif
      */
     void generatePasswordResetToken(String email);
 
+
     /**
      * Réinitialise le mot de passe d'un utilisateur avec un token valide
-     * 
+     *
      * @param token Le token de réinitialisation reçu par email
      * @param newPassword Le nouveau mot de passe à définir
      * @param confirmPassword La confirmation du nouveau mot de passe
@@ -110,5 +111,6 @@ public interface AuthService {
      * @throws RuntimeException si le token est invalide
      */
     void logout (String token);
+
 
 }

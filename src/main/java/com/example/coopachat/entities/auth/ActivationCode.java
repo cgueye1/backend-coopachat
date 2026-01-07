@@ -27,7 +27,7 @@ public class ActivationCode {
     private String code;   // Code à 6 chiffres
 
     @Column(nullable = false)
-    private LocalDateTime expiresAt;  // Expiration (15 minutes)
+    private LocalDateTime expiresAt;  // Expiration
 
     @Column(nullable = false)
     private Boolean used = false;  // Code déjà utilisé ?

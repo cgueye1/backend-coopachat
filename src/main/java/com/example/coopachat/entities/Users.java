@@ -33,8 +33,8 @@ public class Users {
     private String lastName;
 
 
-    @Pattern(regexp = "^[0-9]{8,15}$",
-            message = "Le numéro de téléphone doit contenir entre 8 et 15 chiffres uniquement")
+    @Pattern(regexp = "^[+]?[0-9\\s\\-\\(\\)]{8,25}$",
+            message = "Le numéro de téléphone doit contenir entre 8 et 15 chiffres")
     @Column(unique = true)
     private String phone;
 
@@ -43,9 +43,6 @@ public class Users {
     private String email;
 
     @Column(name = "password")
-    @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caractères")
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
-            message = "Le mot de passe doit contenir au moins une minuscule, une majuscule, un chiffre et un caractère spécial")
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -53,7 +50,7 @@ public class Users {
     private UserRole role;
 
     @Column(nullable = true)
-    private String companyCommercial;  //Entreprisé liée (commercial)
+    private String companyCommercial;  //Entreprise liée (commercial)
 
 
     @Column (nullable = false)
@@ -61,6 +58,5 @@ public class Users {
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @CreationTimestamp
-    private LocalDateTime createdAt = LocalDateTime.now();
-
+    private LocalDateTime createdAt ;
 }

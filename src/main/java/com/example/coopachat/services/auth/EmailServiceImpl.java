@@ -1,9 +1,11 @@
+
 package com.example.coopachat.services.auth;
 
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -40,7 +42,7 @@ public class EmailServiceImpl implements EmailService {
     private String activateEmployeeUrl;
 
     // ============================================================================
-    // 📧 ENVOI D'EMAILS
+    // 📧 ENVOI D'EMAILS - ACTIVATION DE COMPTE
     // ============================================================================
 
     /**
@@ -57,6 +59,10 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(email);
             helper.setSubject("🔐 Code d'activation - " + appName);
 
+            // Attacher le logo
+            ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");
+            helper.addInline("logo", logoResource);
+
             // Génération du template HTML
             String emailBody = generateActivationEmailTemplate(firstName, code);
 
@@ -72,10 +78,6 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-    // ============================================================================
-    // 🎨 TEMPLATES HTML
-    // ============================================================================
-
     /**
      * Génère le template HTML pour l'email d'activation
      *
@@ -85,110 +87,125 @@ public class EmailServiceImpl implements EmailService {
      */
     private String generateActivationEmailTemplate(String firstName, String code) {
         return String.format("""
-            <!DOCTYPE html>
-            <html lang="fr">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Code d'activation - %s</title>
-            </head>
-            <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
-                <table role="presentation" style="width: 100%%; border-collapse: collapse; background-color: #f4f4f4;">
-                    <tr>
-                        <td style="padding: 20px 0;">
-                            <table role="presentation" style="width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                
-                                <!-- Header avec logo -->
-                                <tr>
-                                    <td style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                                        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
-                                            🛒 %s
-                                        </h1>
-                                        <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">
-                                            Plateforme E-commerce Coopérative
-                                        </p>
-                                    </td>
-                                </tr>
-                                
-                                <!-- Contenu principal -->
-                                <tr>
-                                    <td style="padding: 40px 30px;">
-                                        <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;">
-                                            Bonjour %s,
-                                        </h2>
-                                        
-                                        <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                                            Bienvenue sur <strong>%s</strong> ! Pour activer votre compte et finaliser votre inscription, 
-                                            veuillez utiliser le code d'activation ci-dessous.
-                                        </p>
-                                        
-                                        <!-- Code d'activation en grand -->
-                                        <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px; border-radius: 10px; text-align: center; margin: 30px 0;">
-                                            <p style="color: #ffffff; margin: 0 0 10px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9;">
-                                                Votre code d'activation
-                                            </p>
-                                            <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; display: inline-block; margin: 10px 0;">
-                                                <span style="color: #667eea; font-size: 36px; font-weight: 700; letter-spacing: 8px; font-family: 'Courier New', monospace;">
-                                                    %s
-                                                </span>
-                                            </div>
-                                            <p style="color: #ffffff; margin: 15px 0 0 0; font-size: 12px; opacity: 0.8;">
-                                                ⏱️ Ce code expire dans 15 minutes
-                                            </p>
-                                        </div>
-                                        
-                                        <!-- Instructions -->
-                                        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; margin: 30px 0;">
-                                            <h3 style="color: #333333; margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">
-                                                📋 Instructions :
-                                            </h3>
-                                            <ol style="color: #666666; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
-                                                <li>Copiez le code d'activation ci-dessus</li>
-                                                <li>Retournez sur la page d'activation de votre compte</li>
-                                                <li>Entrez le code dans le champ prévu à cet effet</li>
-                                                <li>Créez votre mot de passe pour finaliser votre inscription</li>
-                                            </ol>
-                                        </div>
-                                        
-                                        <!-- Avertissement de sécurité -->
-                                        <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin: 30px 0;">
-                                            <p style="color: #856404; margin: 0; font-size: 13px; line-height: 1.6;">
-                                                <strong>🔒 Sécurité :</strong> Ne partagez jamais ce code avec qui que ce soit. 
-                                                L'équipe %s ne vous demandera jamais votre code d'activation par email ou téléphone.
-                                            </p>
-                                        </div>
-                                        
-                                        <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0;">
-                                            Si vous n'avez pas demandé ce code, vous pouvez ignorer cet email en toute sécurité.
-                                        </p>
-                                        
-                                        <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
-                                            Cordialement,<br>
-                                            <strong style="color: #333333;">L'équipe %s</strong>
-                                        </p>
-                                    </td>
-                                </tr>
-                                
-                                <!-- Footer -->
-                                <tr>
-                                    <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 10px 10px; border-top: 1px solid #e0e0e0;">
-                                        <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">
-                                            Cet email a été envoyé automatiquement, merci de ne pas y répondre.
-                                        </p>
-                                        <p style="color: #999999; font-size: 12px; margin: 0;">
-                                            © %d %s - Tous droits réservés
-                                        </p>
-                                    </td>
-                                </tr>
-                                
-                            </table>
-                        </td>
-                    </tr>
-                </table>
-            </body>
-            </html>
-            """, appName, appName, firstName, appName, code, appName, appName, java.time.Year.now().getValue(), appName);
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Activez votre compte %s</title>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+            </style>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background-color: #f8fafc; line-height: 1.6;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <!-- Carte principale -->
+                <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);">
+                    
+                    <!-- En-tête avec logo -->
+                    <div style="background: #ffffff; padding: 30px 30px 15px 30px; text-align: center;">
+                        <div style="margin-bottom: 10px;">
+                            <img src="cid:logo" alt="%s Logo" style="max-width: 180px; height: auto; display: block; margin: 0 auto;">
+                        </div>
+                    </div>
+                    
+                    <!-- Contenu -->
+                    <div style="padding: 0 30px 25px 30px;">
+                        
+                        <!-- Message d'accueil -->
+                        <div style="margin-bottom: 20px;">
+                            <h2 style="color: #1F2937; margin: 0 0 10px 0; font-size: 22px; font-weight: 600;">
+                                Bonjour %s 👋
+                            </h2>
+                            <p style="color: #6B7280; margin: 0; font-size: 15px;">
+                                Votre inscription sur <strong style="color: #F97316;">%s</strong> est presque terminée ! 
+                                Utilisez le code ci-dessous pour activer votre compte.
+                            </p>
+                        </div>
+                        
+                        <!-- Code d'activation -->
+                        <div style="background: linear-gradient(135deg, #3B82F6 0%%, #8B5CF6 100%%); padding: 25px; border-radius: 12px; text-align: center; margin: 25px 0;">
+                            <p style="color: rgba(255, 255, 255, 0.9); margin: 0 0 12px 0; font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">
+                                Code d'Activation
+                            </p>
+                            <div style="background: white; padding: 20px; border-radius: 10px; display: inline-block; margin: 8px 0;">
+                                <div style="background: #F3F4F6; padding: 20px 30px; border-radius: 8px; display: inline-block;">
+                                    <span style="font-size: 36px; font-weight: 700; color: #1F2937; font-family: 'Courier New', monospace; letter-spacing: 4px;">
+                                        %s
+                                    </span>
+                                </div>
+                            </div>
+                          <!-- Durée d'expiration-->
+                             <div style="margin: 16px 0 0 0; text-align: center;">
+                                  <span style="color: #1F2937; font-size: 13px; font-weight: 500;">
+                                       <span 
+                                          style="margin-right: 6px; opacity: 0.9;">⏱️
+                                       </span>
+                                       Expire dans 15 minutes
+                                  </span>
+                             </div>
+                        </div>
+                        
+                                               
+                        <!-- Note de sécurité -->
+                        <div style="background-color: #FEF3C7; padding: 16px; border-radius: 10px; margin: 20px 0; border: 1px solid #FCD34D;">
+                            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                                <svg style="width: 18px; height: 18px; color: #D97706; flex-shrink: 0; margin-top: 2px;" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                                </svg>
+                                <div>
+                                    <p style="color: #92400E; margin: 0 0 5px 0; font-size: 14px; font-weight: 600;">
+                                        Sécurité importante
+                                    </p>
+                                    <p style="color: #92400E; margin: 0; font-size: 13px; line-height: 1.5;">
+                                        Ne partagez jamais ce code. Aucun membre de l'équipe %s ne vous demandera votre code d'activation par email, téléphone ou message.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Signature -->
+                        <div style="padding-top: 18px; border-top: 1px solid #E5E7EB;">
+                            <p style="color: #6B7280; margin: 0 0 5px 0; font-size: 14px;">
+                                Bien à vous,
+                            </p>
+                            <p style="color: #F97316; margin: 0; font-size: 15px; font-weight: 600;">
+                                L'équipe %s
+                            </p>
+                        </div>
+                        
+                    </div>
+                    
+                    <!-- Pied de page -->
+                    <div style="background-color: #F9FAFB; padding: 18px 30px; text-align: center; border-top: 1px solid #E5E7EB;">
+                        <p style="color: #9CA3AF; margin: 0 0 8px 0; font-size: 12px;">
+                            Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
+                        </p>
+                        <p style="color: #9CA3AF; margin: 0; font-size: 12px;">
+                            © %d %s • Tous droits réservés
+                        </p>
+                    </div>
+                    
+                </div>
+            </div>
+        </body>
+        </html>
+        """,
+                appName,
+                appName,
+                firstName,
+                appName,
+                code,
+                appName,
+                appName,
+                java.time.Year.now().getValue(),
+                appName
+        );
     }
+
+    // ============================================================================
+    // 📧 ENVOI D'EMAILS - AUTHENTIFICATION 2FA (ADMIN)
+    // ============================================================================
 
     /**
      * Envoie un code OTP par email à un administrateur pour l'authentification 2FA
@@ -203,6 +220,11 @@ public class EmailServiceImpl implements EmailService {
             helper.setFrom(mailFrom);
             helper.setTo(email);
             helper.setSubject("🔐 Code OTP de vérification - " + appName);
+
+            // Attacher le logo
+            ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");
+            helper.addInline("logo", logoResource);
+
 
             // Génération du template HTML
             String emailBody = generateOtpEmailTemplate(firstName, code);
@@ -228,110 +250,122 @@ public class EmailServiceImpl implements EmailService {
      */
     private String generateOtpEmailTemplate(String firstName, String code) {
         return String.format("""
-            <!DOCTYPE html>
-            <html lang="fr">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Code OTP de vérification - %s</title>
-            </head>
-            <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
-                <table role="presentation" style="width: 100%%; border-collapse: collapse; background-color: #f4f4f4;">
-                    <tr>
-                        <td style="padding: 20px 0;">
-                            <table role="presentation" style="width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                
-                                <!-- Header avec logo -->
-                                <tr>
-                                    <td style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                                        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
-                                            🛒 %s
-                                        </h1>
-                                        <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">
-                                            Plateforme E-commerce Coopérative
-                                        </p>
-                                    </td>
-                                </tr>
-                                
-                                <!-- Contenu principal -->
-                                <tr>
-                                    <td style="padding: 40px 30px;">
-                                        <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;">
-                                            Bonjour %s,
-                                        </h2>
-                                        
-                                        <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                                            Vous avez demandé à vous connecter à votre compte <strong>administrateur</strong> sur <strong>%s</strong>. 
-                                            Pour finaliser votre connexion, veuillez utiliser le code OTP de vérification ci-dessous.
-                                        </p>
-                                        
-                                        <!-- Code OTP en grand -->
-                                        <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px; border-radius: 10px; text-align: center; margin: 30px 0;">
-                                            <p style="color: #ffffff; margin: 0 0 10px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9;">
-                                                Votre code OTP de vérification
-                                            </p>
-                                            <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; display: inline-block; margin: 10px 0;">
-                                                <span style="color: #667eea; font-size: 36px; font-weight: 700; letter-spacing: 8px; font-family: 'Courier New', monospace;">
-                                                    %s
-                                                </span>
-                                            </div>
-                                            <p style="color: #ffffff; margin: 15px 0 0 0; font-size: 12px; opacity: 0.8;">
-                                                ⏱️ Ce code expire dans 15 minutes
-                                            </p>
-                                        </div>
-                                        
-                                        <!-- Instructions -->
-                                        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; margin: 30px 0;">
-                                            <h3 style="color: #333333; margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">
-                                                📋 Instructions :
-                                            </h3>
-                                            <ol style="color: #666666; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
-                                                <li>Copiez le code OTP ci-dessus</li>
-                                                <li>Retournez sur la page de connexion</li>
-                                                <li>Entrez le code dans le champ prévu à cet effet</li>
-                                                <li>Votre connexion sera finalisée automatiquement</li>
-                                            </ol>
-                                        </div>
-                                        
-                                        <!-- Avertissement de sécurité -->
-                                        <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin: 30px 0;">
-                                            <p style="color: #856404; margin: 0; font-size: 13px; line-height: 1.6;">
-                                                <strong>🔒 Sécurité :</strong> Ne partagez jamais ce code avec qui que ce soit. 
-                                                L'équipe %s ne vous demandera jamais votre code OTP par email ou téléphone.
-                                            </p>
-                                        </div>
-                                        
-                                        <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0;">
-                                            Si vous n'avez pas demandé à vous connecter, ignorez cet email et contactez immédiatement le support.
-                                        </p>
-                                        
-                                        <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
-                                            Cordialement,<br>
-                                            <strong style="color: #333333;">L'équipe %s</strong>
-                                        </p>
-                                    </td>
-                                </tr>
-                                
-                                <!-- Footer -->
-                                <tr>
-                                    <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 10px 10px; border-top: 1px solid #e0e0e0;">
-                                        <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">
-                                            Cet email a été envoyé automatiquement, merci de ne pas y répondre.
-                                        </p>
-                                        <p style="color: #999999; font-size: 12px; margin: 0;">
-                                            © %d %s - Tous droits réservés
-                                        </p>
-                                    </td>
-                                </tr>
-                                
-                            </table>
-                        </td>
-                    </tr>
-                </table>
-            </body>
-            </html>
-            """, appName, appName, firstName, appName, code, appName, appName, java.time.Year.now().getValue(), appName);
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Code OTP de vérification - %s</title>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+            </style>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background-color: #f8fafc; line-height: 1.6;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <!-- Carte principale -->
+                <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);">
+                    
+                    <!-- En-tête avec logo -->
+                    <div style="background: #ffffff; padding: 30px 30px 15px 30px; text-align: center;">
+                        <div style="margin-bottom: 10px;">
+                            <img src="cid:logo" alt="%s Logo" style="max-width: 180px; height: auto; display: block; margin: 0 auto;">
+                        </div>
+                    </div>
+                    
+                    <!-- Contenu -->
+                    <div style="padding: 0 30px 25px 30px;">
+                        
+                        <!-- Message d'accueil -->
+                        <div style="margin-bottom: 20px;">
+                            <h2 style="color: #1F2937; margin: 0 0 10px 0; font-size: 22px; font-weight: 600;">
+                                Authentification à deux facteurs 🔒
+                            </h2>
+                            <p style="color: #6B7280; margin: 0; font-size: 15px;">
+                                Bonjour <strong style="color: #F97316;">%s</strong>,<br>
+                                Une connexion à votre compte <strong>administrateur</strong> a été demandée. 
+                                Voici votre code OTP pour finaliser l'authentification.
+                            </p>
+                        </div>
+                        
+                        <!-- Code OTP -->
+                        <div style="background: linear-gradient(135deg, #3B82F6 0%%, #8B5CF6 100%%); padding: 25px; border-radius: 12px; text-align: center; margin: 25px 0;">
+                            <p style="color: rgba(255, 255, 255, 0.9); margin: 0 0 12px 0; font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">
+                                Code OTP de Sécurité
+                            </p>
+                            <div style="background: white; padding: 20px; border-radius: 10px; display: inline-block; margin: 8px 0;">
+                                <div style="background: #F3F4F6; padding: 20px 30px; border-radius: 8px; display: inline-block;">
+                                    <span style="font-size: 36px; font-weight: 700; color: #1F2937; font-family: 'Courier New', monospace; letter-spacing: 4px;">
+                                        %s
+                                    </span>
+                                </div>
+                            </div>
+                            <!-- Durée d'expiration -->
+                            <div style="margin: 16px 0 0 0; text-align: center;">
+                                <span style="color: #1F2937; font-size: 13px; font-weight: 500;">
+                                    <span style="margin-right: 6px;">⏱️</span>
+                                    Expire dans 15 minutes
+                                </span>
+                            </div>
+                        </div>
+                        
+                                               
+                        <!-- Note de sécurité -->
+                        <div style="background-color: #FEF3C7; padding: 16px; border-radius: 10px; margin: 20px 0; border: 1px solid #FCD34D;">
+                            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                                <div style="color: #D97706; font-size: 18px; flex-shrink: 0; margin-top: 2px;">⚠️</div>
+                                <div>
+                                    <p style="color: #92400E; margin: 0 0 5px 0; font-size: 14px; font-weight: 600;">
+                                        Attention - Tentative de connexion détectée
+                                    </p>
+                                    <p style="color: #92400E; margin: 0; font-size: 13px; line-height: 1.5;">
+                                        Si vous n'êtes pas à l'origine de cette demande, <strong>ignorez cet email</strong>.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                
+                        
+                        <!-- Signature -->
+                        <div style="padding-top: 18px; border-top: 1px solid #E5E7EB;">
+                            <p style="color: #6B7280; margin: 0 0 5px 0; font-size: 14px;">
+                               Bien à vous,
+                            </p>
+                            <p style="color: #F97316; margin: 0; font-size: 15px; font-weight: 600;">
+                                L'équipe Sécurité %s
+                            </p>
+                        </div>
+                        
+                    </div>
+                    
+                    <!-- Pied de page -->
+                    <div style="background-color: #F9FAFB; padding: 18px 30px; text-align: center; border-top: 1px solid #E5E7EB;">
+                        <p style="color: #9CA3AF; margin: 0 0 8px 0; font-size: 12px;">
+                            Cet email a été envoyé automatiquement suite à une tentative de connexion.
+                        </p>
+                        <p style="color: #9CA3AF; margin: 0; font-size: 12px;">
+                            © %d %s • Sécurité des administrateurs
+                        </p>
+                    </div>
+                    
+                </div>
+            </div>
+        </body>
+        </html>
+        """,
+                appName,
+                appName,
+                firstName,
+                code,
+                appName,
+                java.time.Year.now().getValue(),
+                appName
+        );
     }
+
+    // ============================================================================
+    // 📧 ENVOI D'EMAILS - RÉINITIALISATION DE MOT DE PASSE
+    // ============================================================================
 
     /**
      * Envoie un lien de réinitialisation de mot de passe par email
@@ -347,6 +381,10 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(email);
             helper.setSubject("🔑 Réinitialisation de votre mot de passe - " + appName);
 
+            // Attacher le logo
+            ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");
+            helper.addInline("logo", logoResource);
+
             // Génération du template HTML
             String emailBody = generatePasswordResetEmailTemplate(firstName, token);
 
@@ -356,7 +394,7 @@ public class EmailServiceImpl implements EmailService {
             log.info("Lien de réinitialisation de mot de passe envoyé avec succès à: {}", email);
 
         } catch (Exception e) {
-            log.error("Erreur lors de l'envoi du lien de réinitialisation à {}: {}", 
+            log.error("Erreur lors de l'envoi du lien de réinitialisation à {}: {}",
                     email, e.getMessage(), e);
             throw new RuntimeException("Impossible d'envoyer l'email de réinitialisation", e);
         }
@@ -373,115 +411,125 @@ public class EmailServiceImpl implements EmailService {
 
         // URL complète avec le token
         String resetUrl = resetPasswordUrl + token;
-        
+
         return String.format("""
-            <!DOCTYPE html>
-            <html lang="fr">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Réinitialisation de mot de passe - %s</title>
-            </head>
-            <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
-                <table role="presentation" style="width: 100%%; border-collapse: collapse; background-color: #f4f4f4;">
-                    <tr>
-                        <td style="padding: 20px 0;">
-                            <table role="presentation" style="width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                
-                                <!-- Header avec logo -->
-                                <tr>
-                                    <td style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                                        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
-                                            🛒 %s
-                                        </h1>
-                                        <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">
-                                            Plateforme E-commerce Coopérative
-                                        </p>
-                                    </td>
-                                </tr>
-                                
-                                <!-- Contenu principal -->
-                                <tr>
-                                    <td style="padding: 40px 30px;">
-                                        <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;">
-                                            Bonjour %s,
-                                        </h2>
-                                        
-                                        <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                                            Vous avez demandé à réinitialiser votre mot de passe sur <strong>%s</strong>. 
-                                            Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe.
-                                        </p>
-                                        
-                                        <!-- Bouton de réinitialisation -->
-                                        <div style="text-align: center; margin: 40px 0;">
-                                            <a href="%s" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">
-                                                🔑 Réinitialiser mon mot de passe
-                                            </a>
-                                        </div>
-                                        
-                                        <!-- Lien alternatif -->
-                                        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 30px 0;">
-                                            <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 0 0 10px 0;">
-                                                <strong>Le bouton ne fonctionne pas ?</strong>
-                                            </p>
-                                            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 0; word-break: break-all;">
-                                                Copiez et collez ce lien dans votre navigateur :<br>
-                                                <a href="%s" style="color: #667eea; text-decoration: underline;">%s</a>
-                                            </p>
-                                        </div>
-                                        
-                                        <!-- Instructions -->
-                                        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; margin: 30px 0;">
-                                            <h3 style="color: #333333; margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">
-                                                📋 Instructions :
-                                            </h3>
-                                            <ol style="color: #666666; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
-                                                <li>Cliquez sur le bouton "Réinitialiser mon mot de passe" ci-dessus</li>
-                                                <li>Vous serez redirigé vers une page sécurisée</li>
-                                                <li>Créez un nouveau mot de passe sécurisé</li>
-                                                <li>Confirmez votre nouveau mot de passe</li>
-                                            </ol>
-                                        </div>
-                                        
-                                        <!-- Avertissement de sécurité -->
-                                        <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin: 30px 0;">
-                                            <p style="color: #856404; margin: 0 0 10px 0; font-size: 13px; line-height: 1.6;">
-                                                <strong>🔒 Sécurité :</strong> Ce lien est valide pendant <strong>15 minutes</strong> uniquement.
-                                            </p>
-                                            <p style="color: #856404; margin: 0; font-size: 13px; line-height: 1.6;">
-                                                Si vous n'avez pas demandé à réinitialiser votre mot de passe, ignorez cet email. 
-                                                Votre mot de passe actuel restera inchangé.
-                                            </p>
-                                        </div>
-                                        
-                                                                              
-                                        <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
-                                            Cordialement,<br>
-                                            <strong style="color: #333333;">L'équipe %s</strong>
-                                        </p>
-                                    </td>
-                                </tr>
-                                
-                                <!-- Footer -->
-                                <tr>
-                                    <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 10px 10px; border-top: 1px solid #e0e0e0;">
-                                        <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">
-                                            Cet email a été envoyé automatiquement, merci de ne pas y répondre.
-                                        </p>
-                                        <p style="color: #999999; font-size: 12px; margin: 0;">
-                                            © %d %s - Tous droits réservés
-                                        </p>
-                                    </td>
-                                </tr>
-                                
-                            </table>
-                        </td>
-                    </tr>
-                </table>
-            </body>
-            </html>
-            """, appName, appName, firstName, appName, resetUrl, resetUrl, resetUrl, appName, java.time.Year.now().getValue(), appName);
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Réinitialisation de mot de passe - %s</title>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+            </style>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background-color: #f8fafc; line-height: 1.6;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <!-- Carte principale -->
+                <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);">
+                    
+                       <!-- En-tête avec logo -->
+                    <div style="background: #ffffff; padding: 30px 30px 15px 30px; text-align: center;">
+                        <div style="margin-bottom: 10px;">
+                            <img src="cid:logo" alt="%s Logo" style="max-width: 180px; height: auto; display: block; margin: 0 auto;">
+                        </div>
+                    </div>
+                    
+                    <!-- Contenu -->
+                    <div style="padding: 0 30px 25px 30px;">
+                        
+                        <!-- Message -->
+                        <div style="margin-bottom: 20px;">
+                            <h2 style="color: #1F2937; margin: 0 0 10px 0; font-size: 22px; font-weight: 600;">
+                                Réinitialisation de mot de passe
+                            </h2>
+                            <p style="color: #6B7280; margin: 0; font-size: 15px;">
+                                Bonjour <strong style="color: #F97316;">%s</strong>,<br>
+                                Nous avons reçu une demande pour réinitialiser le mot de passe de votre compte.
+                            </p>
+                        </div>
+                        <!-- Instruction pour le bouton -->
+                                            <div style="text-align: center; margin: 20px 0 10px 0;">
+                                                <p style="color: #4B5563; margin: 0; font-size: 14px; font-weight: 500;">
+                                                    Cliquez sur le bouton ci-dessous pour procéder à la réinitialisation :
+                                                </p>
+                                            </div>
+                        
+                        <!-- Bouton principal -->
+                       <div style="text-align: center; margin: 30px 0;">
+                                                  <a href="%s" style="display: inline-block; background: linear-gradient(135deg, #F97316 0%%, #FB923C 100%%); color: #111827;; text-decoration: none; padding: 18px 45px; border-radius: 12px; font-size: 16px; font-weight: 700; box-shadow: 0 6px 20px rgba(249, 115, 22, 0.3); transition: all 0.3s; border: none; cursor: pointer;">
+                                                      <span style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                                          <span style="font-size: 20px;">🔑</span>
+                                                          <span>RÉINITIALISER MON MOT DE PASSE</span>
+                                                      </span>
+                                                  </a>
+                                          
+                                              </div>
+                        
+                       <!-- Durée d'expiration -->
+                            <div style="margin: 16px 0 0 0; text-align: center;">
+                                <span style="color: #1F2937; font-size: 13px; font-weight: 500;">
+                                    <span style="margin-right: 6px;">⏱️</span>
+                                    Expire dans 15 minutes
+                                </span>
+                            </div>
+                        
+         
+                              <!-- Note de sécurité -->
+                        <div style="background-color: #FEF3C7; padding: 16px; border-radius: 10px; margin: 20px 0; border: 1px solid #FCD34D;">
+                            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                                <div style="color: #D97706; font-size: 18px; flex-shrink: 0; margin-top: 2px;">⚠️</div>
+                                <div>
+                                    <p style="color: #92400E; margin: 0 0 5px 0; font-size: 14px; font-weight: 600;">
+                                        Vous n'êtes pas à l'origine de cette demande ?
+                                    </p>
+                                    <p style="color: #92400E; margin: 0; font-size: 13px; line-height: 1.5;">
+                                        Ignorez simplement cet email. <strong>Votre mot de passe actuel reste inchangé.</strong> Pour plus de sécurité, nous vous recommandons de vérifier l'activité de votre compte. </strong>.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Signature -->
+                        <div style="padding-top: 20px; border-top: 1px solid #E5E7EB;">
+                            <p style="color: #6B7280; margin: 0 0 6px 0; font-size: 14px;">
+                                Restez en sécurité,
+                            </p>
+                            <p style="color: #F97316; margin: 0; font-size: 15px; font-weight: 600;">
+                                L'équipe Support %s
+                            </p>
+                        </div>
+                        
+                    </div>
+                    
+                    <!-- Pied de page -->
+                    <div style="background-color: #F9FAFB; padding: 18px 30px; text-align: center; border-top: 1px solid #E5E7EB;">
+                        <p style="color: #9CA3AF; margin: 0 0 8px 0; font-size: 12px;">
+                            Cet email a été envoyé suite à une demande de réinitialisation.
+                        </p>
+                        <p style="color: #9CA3AF; margin: 0; font-size: 12px;">
+                            © %d %s • Support sécurité
+                        </p>
+                    </div>
+                    
+                </div>
+            </div>
+        </body>
+        </html>
+        """,
+                appName,
+                appName,
+                firstName,
+                resetUrl,
+                appName,
+                java.time.Year.now().getValue(),
+                appName
+        );
     }
+
+    // ============================================================================
+    // 📧 ENVOI D'EMAILS - INVITATION SALARIÉ
+    // ============================================================================
 
     /**
      * Envoie un lien d'invitation par email à un salarié créé par un commercial
@@ -497,6 +545,10 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(email);
             helper.setSubject("🎉 Invitation à rejoindre " + companyName + " - " + appName);
 
+            // Attacher le logo
+            ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");
+            helper.addInline("logo", logoResource);
+
             // Génération du template HTML
             String emailBody = generateEmployeeInvitationEmailTemplate(firstName, token, commercialName, companyName);
 
@@ -506,7 +558,7 @@ public class EmailServiceImpl implements EmailService {
             log.info("Lien d'invitation envoyé avec succès au salarié: {}", email);
 
         } catch (Exception e) {
-            log.error("Erreur lors de l'envoi du lien d'invitation à {}: {}", 
+            log.error("Erreur lors de l'envoi du lien d'invitation à {}: {}",
                     email, e.getMessage(), e);
             throw new RuntimeException("Impossible d'envoyer l'email d'invitation", e);
         }
@@ -515,126 +567,284 @@ public class EmailServiceImpl implements EmailService {
     /**
      * Génère le template HTML pour l'email d'invitation salarié
      *
-     * @param firstName Le prénom du salarié
-     * @param token Le token unique d'invitation
+     * @param firstName      Le prénom du salarié
+     * @param token          Le token d'invitation
      * @param commercialName Le nom du commercial
-     * @param companyName Le nom de l'entreprise
+     * @param companyName    Le nom de l'entreprise
      * @return Le template HTML formaté
      */
     private String generateEmployeeInvitationEmailTemplate(String firstName, String token, String commercialName, String companyName) {
 
         // URL complète avec le token
         String activationUrl = activateEmployeeUrl + token;
-        
+
         return String.format("""
-            <!DOCTYPE html>
-            <html lang="fr">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Invitation - %s</title>
-            </head>
-            <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
-                <table role="presentation" style="width: 100%%; border-collapse: collapse; background-color: #f4f4f4;">
-                    <tr>
-                        <td style="padding: 20px 0;">
-                            <table role="presentation" style="width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                
-                                <!-- Header avec logo -->
-                                <tr>
-                                    <td style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                                        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
-                                            🛒 %s
-                                        </h1>
-                                        <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">
-                                            Plateforme E-commerce Coopérative
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Invitation Salarié - %s</title>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+            
+            /* Fallback pour les clients email */
+            @media only screen and (max-width: 600px) {
+                .container {
+                    width: 100%% !important;
+                    padding: 10px !important;
+                }
+                .button {
+                    padding: 14px 30px !important;
+                    font-size: 14px !important;
+                }
+            }
+        </style>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background-color: #f8fafc; line-height: 1.6;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <!-- Carte principale -->
+            <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);">
+                
+                <!-- En-tête avec logo -->
+                <div style="background: #ffffff; padding: 30px 30px 15px 30px; text-align: center; border-bottom: 1px solid #E5E7EB;">
+                    <div style="margin-bottom: 10px;">
+                        <img src="cid:logo" alt="%s Logo" style="max-width: 180px; height: auto; display: block; margin: 0 auto;">
+                    </div>
+                </div>
+                
+                <!-- Contenu -->
+                <div style="padding: 0 30px 25px 30px;">
+                    
+                    <!-- Message de bienvenue -->
+                    <div style="margin-bottom: 20px;">
+                        <h2 style="color: #1F2937; margin: 0 0 10px 0; font-size: 22px; font-weight: 600;">
+                            Bienvenue sur %s
+                        </h2>
+                        <p style="color: #6B7280; margin: 0; font-size: 15px;">
+                            Bonjour <strong style="color: #F97316;">%s</strong>,<br>
+                            Votre entreprise <strong>%s</strong> utilise désormais notre plateforme %s pour ses achats. 
+                            Notre commercial <strong>%s</strong> a paramétré votre compte utilisateur.
+                        </p>
+                    </div>
+                    
+                  
+                    
+                    <!-- Instruction principale -->
+                    <div style="text-align: center; margin: 30px 0;">
+                        <p style="color: #1F2937; margin: 0 0 20px 0; font-size: 16px; font-weight: 600;">
+                            Activez votre espace personnel pour accéder à tous les services et avantages
+                        </p>
+                        
+                        <!-- Bouton principal -->
+                        <a href="%s" style="display: inline-block; background: linear-gradient(135deg, #F97316 0%%, #FB923C 100%%); color: #1F2937; text-decoration: none; padding: 18px 45px; border-radius: 12px; font-size: 16px; font-weight: 700; box-shadow: 0 6px 20px rgba(249, 115, 22, 0.3); transition: all 0.3s; border: none; cursor: pointer;" class="button">
+                            <span style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                <span style="font-size: 20px;">🎉</span>
+                                <span>ACTIVER MON COMPTE</span>
+                            </span>
+                        </a>
+                        
+                        <!-- Informations supplémentaires -->
+                        <div style="margin-top: 15px;">
+                            <p style="color: #9CA3AF; font-size: 12px; margin: 8px 0;">
+                                Ce lien vous redirigera vers une page sécurisée
+                            </p>
+                            <p style="color: #6B7280; font-size: 13px; margin: 8px 0; font-weight: 500;">
+                                <span style="margin-right: 6px;">⏱️</span>
+                                Lien valide pendant 15 minutes
+                            </p>
+                        </div>
+                    </div>
+                    
+                             <!-- Note de sécurité -->
+                        <div style="background-color: #FEF3C7; padding: 16px; border-radius: 10px; margin: 20px 0; border: 1px solid #FCD34D;">
+                            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                                <div style="color: #D97706; font-size: 18px; flex-shrink: 0; margin-top: 2px;">⚠️</div>
+                                <div>
+                                    <p style="color: #92400E; margin: 0 0 5px 0; font-size: 14px; font-weight: 600;">
+                                        Vous ne reconnaissez pas cette invitation ?
+                                    </p>
+                                     <p style="color: #991B1B; margin: 0; font-size: 14px; line-height: 1.5;">
+                                    Ignorez simplement cet email. Si vous pensez qu'il s'agit d'une erreur, contactez votre responsable ou notre support.
+                                </p>
+                                </div>
+                            </div>
+                        </div>
+                    
+                 
+               
+                    <!-- Signature -->
+                    <div style="padding-top: 20px; border-top: 1px solid #E5E7EB;">
+                        <p style="color: #6B7280; margin: 0 0 6px 0; font-size: 14px;">
+                            Bienvenue dans notre communauté,
+                        </p>
+                        <p style="color: #F97316; margin: 0; font-size: 15px; font-weight: 600;">
+                            L'équipe Support %s
+                        </p>
+                    </div>
+                    
+                </div>
+                
+                <!-- Pied de page -->
+                <div style="background-color: #F9FAFB; padding: 18px 30px; text-align: center; border-top: 1px solid #E5E7EB;">
+                    <p style="color: #9CA3AF; margin: 0 0 8px 0; font-size: 12px;">
+                        Cet email a été envoyé suite à une invitation d'un commercial.
+                    </p>
+                    <p style="color: #9CA3AF; margin: 0; font-size: 12px;">
+                        © %d %s • Support salariés
+                    </p>
+                </div>
+                
+            </div>
+        </div>
+    </body>
+    </html>
+    """,
+                appName,                    // %s - titre
+                appName,                    // %s - alt du logo
+                appName,                    // %s - nom de la plateforme
+                firstName,                  // %s - prénom du salarié
+                companyName,                // %s - nom de l'entreprise
+                appName,                    // %s - nom plateforme (dans le message)
+                commercialName,             // %s - nom du commercial
+
+                activationUrl,              // %s - URL d'activation
+                appName,                    // %s - nom dans signature
+                java.time.Year.now().getValue(), // %d - année
+                appName                     // %s - nom dans footer
+        );
+    }
+
+    // ============================================================================
+    // 📧 ENVOI D'EMAILS - ACTIVATION LIVREUR
+    // ============================================================================
+
+    @Override
+    public void sendDriverActivationCode(String email, String code, String firstName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(mailFrom);
+            helper.setTo(email);
+            helper.setSubject("🚚 Code d'activation Livreur - " + appName);
+
+            String emailBody = generateDriverActivationEmailTemplate(firstName, code);
+
+            helper.setText(emailBody, true);
+            mailSender.send(message);
+
+            log.info("Code d'activation livreur envoyé avec succès à: {}", email);
+
+        } catch (Exception e) {
+            log.error("Erreur lors de l'envoi du code d'activation livreur à {}: {}",
+                    email, e.getMessage(), e);
+            throw new RuntimeException("Impossible d'envoyer l'email d'activation", e);
+        }
+    }
+    /**
+     * Génère le template HTML pour l'email d'activation livreur
+     *
+     * @param firstName Le prénom du livreur
+     * @param code      Le code d'activation à 4 chiffres
+     * @return Le template HTML formaté
+     */
+    private String generateDriverActivationEmailTemplate(String firstName, String code) {
+        return String.format("""
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Code d'activation Livreur - %s</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
+            <table role="presentation" style="width: 100%%; border-collapse: collapse; background-color: #f4f4f4;">
+                <tr>
+                    <td style="padding: 20px 0;">
+                        <table role="presentation" style="width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            
+                            <!-- Header -->
+                            <tr>
+                                <td style="background: linear-gradient(135deg, #FF6B35 0%%, #F7931E 100%%); padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
+                                        🚚 %s
+                                    </h1>
+                                    <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">
+                                        Espace Livreur
+                                    </p>
+                                </td>
+                            </tr>
+                            
+                            <!-- Contenu principal -->
+                            <tr>
+                                <td style="padding: 40px 30px;">
+                                    <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;">
+                                        Bonjour %s,
+                                    </h2>
+                                    
+                                    <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                                        Bienvenue dans l'équipe de livraison de <strong>%s</strong> ! 
+                                        Pour activer votre compte livreur et commencer vos tournées, 
+                                        utilisez le code d'activation ci-dessous.
+                                    </p>
+                                    
+                                    <!-- Code d'activation -->
+                                    <div style="background: linear-gradient(135deg, #FF6B35 0%%, #F7931E 100%%); padding: 30px; border-radius: 10px; text-align: center; margin: 30px 0;">
+                                        <p style="color: #ffffff; margin: 0 0 10px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9;">
+                                            🔐 Votre code d'activation
                                         </p>
-                                    </td>
-                                </tr>
-                                
-                                <!-- Contenu principal -->
-                                <tr>
-                                    <td style="padding: 40px 30px;">
-                                        <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;">
-                                            Bonjour %s,
-                                        </h2>
-                                        
-                                        <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                                            Vous avez été invité par <strong>%s</strong> à rejoindre <strong>%s</strong> sur la plateforme <strong>%s</strong>.
-                                        </p>
-                                        
-                                        <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
-                                            Pour activer votre compte et créer votre mot de passe, cliquez sur le bouton ci-dessous.
-                                        </p>
-                                        
-                                        <!-- Bouton d'activation -->
-                                        <div style="text-align: center; margin: 40px 0;">
-                                            <a href="%s" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">
-                                                🎉 Activer mon compte
-                                            </a>
+                                        <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; display: inline-block; margin: 10px 0;">
+                                            <span style="color: #FF6B35; font-size: 42px; font-weight: 700; letter-spacing: 12px; font-family: 'Courier New', monospace;">
+                                                %s
+                                            </span>
                                         </div>
-                                        
-                                        <!-- Lien alternatif -->
-                                        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 30px 0;">
-                                            <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 0 0 10px 0;">
-                                                <strong>Le bouton ne fonctionne pas ?</strong>
-                                            </p>
-                                            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 0; word-break: break-all;">
-                                                Copiez et collez ce lien dans votre navigateur :<br>
-                                                <a href="%s" style="color: #667eea; text-decoration: underline;">%s</a>
-                                            </p>
-                                        </div>
-                                        
-                                        <!-- Instructions -->
-                                        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; margin: 30px 0;">
-                                            <h3 style="color: #333333; margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">
-                                                📋 Instructions :
-                                            </h3>
-                                            <ol style="color: #666666; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
-                                                <li>Cliquez sur le bouton "Activer mon compte" ci-dessus</li>
-                                                <li>Vous serez redirigé vers une page sécurisée</li>
-                                                <li>Créez votre mot de passe sécurisé</li>
-                                                <li>Confirmez votre mot de passe</li>
-                                                <li>Votre compte sera activé automatiquement</li>
-                                            </ol>
-                                        </div>
-                                        
-                                        <!-- Avertissement de sécurité -->
-                                        <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin: 30px 0;">
-                                            <p style="color: #856404; margin: 0 0 10px 0; font-size: 13px; line-height: 1.6;">
-                                                <strong>🔒 Sécurité :</strong> Ce lien est valide pendant <strong>15 minutes</strong> uniquement.
-                                            </p>
-                                            <p style="color: #856404; margin: 0; font-size: 13px; line-height: 1.6;">
-                                                Si vous n'avez pas reçu cette invitation, ignorez cet email.
-                                            </p>
-                                        </div>
-                                        
-                                        <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
-                                            Cordialement,<br>
-                                            <strong style="color: #333333;">L'équipe %s</strong>
+                                        <p style="color: #ffffff; margin: 15px 0 0 0; font-size: 12px; opacity: 0.8;">
+                                            ⏱️ Ce code expire dans 15 minutes
                                         </p>
-                                    </td>
-                                </tr>
-                                
-                                <!-- Footer -->
-                                <tr>
-                                    <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 10px 10px; border-top: 1px solid #e0e0e0;">
-                                        <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">
-                                            Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+                                    </div>
+                                    
+                               
+                                    
+                                    <!-- Sécurité -->
+                                    <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin: 30px 0;">
+                                        <p style="color: #856404; margin: 0; font-size: 13px; line-height: 1.6;">
+                                            <strong>🔒 Sécurité :</strong> Ne partagez jamais ce code. 
+                                            L'équipe %s ne vous demandera jamais votre code par email ou téléphone.
                                         </p>
-                                        <p style="color: #999999; font-size: 12px; margin: 0;">
-                                            © %d %s - Tous droits réservés
-                                        </p>
-                                    </td>
-                                </tr>
-                                
-                            </table>
-                        </td>
-                    </tr>
-                </table>
-            </body>
-            </html>
-            """, appName, appName, firstName, commercialName, companyName, appName, activationUrl, activationUrl, activationUrl, appName, java.time.Year.now().getValue(), appName);
+                                    </div>
+                                    
+                                    <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0;">
+                                        Si vous n'avez pas demandé ce code, ignorez cet email.
+                                    </p>
+                                    
+                                    <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
+                                        Bonne route ! 🚚<br>
+                                        <strong style="color: #333333;">L'équipe %s</strong>
+                                    </p>
+                                </td>
+                            </tr>
+                            
+                            <!-- Footer -->
+                            <tr>
+                                <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 10px 10px; border-top: 1px solid #e0e0e0;">
+                                    <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">
+                                        Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+                                    </p>
+                                    <p style="color: #999999; font-size: 12px; margin: 0;">
+                                        © %d %s - Tous droits réservés
+                                    </p>
+                                </td>
+                            </tr>
+                            
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        """, appName, appName, firstName, appName, code, appName, appName,
+                java.time.Year.now().getValue(), appName);
     }
 }
 

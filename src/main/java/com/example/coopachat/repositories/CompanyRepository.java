@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface CompanyRepository extends JpaRepository<Company, Long> {
-    
+
     /**
      * Vérifie si un code d'entreprise existe déjà
      *
@@ -18,4 +18,3 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
      */
     boolean existsByCompanyCode(String companyCode);
 }
-

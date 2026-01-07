@@ -1,3 +1,4 @@
+
 package com.example.coopachat.dtos.auth;
 
 import jakarta.validation.constraints.Email;
@@ -15,5 +16,3 @@ public class SendActivationCodeRequestDTO {
     @Email(message = "Format d'email invalide")
     private String email;
 }
-
-

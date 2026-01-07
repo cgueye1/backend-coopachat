@@ -1,21 +1,13 @@
-
 package com.example.coopachat.dtos;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
-/**
- * DTO pour la création d'un salarié par un commercial
- */
+//DTO pour la requête d'inscription d'un livreur
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class CreateEmployeeDTO {
+public class RegisterDriverRequestDTO {
 
     @NotBlank(message = "Le prénom est obligatoire")
     private String firstName; // Prénom
@@ -32,9 +24,4 @@ public class CreateEmployeeDTO {
             message = "Le numéro de téléphone doit contenir entre 8 et 15 chiffres uniquement")
     private String phone; // Numéro de téléphone
 
-    @NotBlank(message = "L'adresse est obligatoire")
-    private String address; // Adresse
-
-    @NotNull(message = "L'entreprise est obligatoire")
-    private Long companyId; // ID de l'entreprise associée
 }

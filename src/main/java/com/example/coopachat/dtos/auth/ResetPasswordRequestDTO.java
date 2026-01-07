@@ -1,3 +1,4 @@
+
 package com.example.coopachat.dtos.auth;
 
 import jakarta.validation.constraints.NotBlank;
@@ -35,4 +36,3 @@ public class ResetPasswordRequestDTO {
     @NotBlank(message = "La confirmation du mot de passe est obligatoire")
     private String confirmPassword;
 }
-

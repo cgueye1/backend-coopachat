@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -30,7 +29,7 @@ public interface ActivationCodeRepository extends JpaRepository<ActivationCode, 
 
     /** Recherche un token par code et type (non utilisé) */
     Optional<ActivationCode> findByCodeAndTypeAndUsedFalse(String code, CodeType type);
-    
+
     /** Recherche un token valide (non utilisé et non expiré) par code et type */
     @Query("SELECT ac FROM ActivationCode ac WHERE ac.code = :code AND ac.type = :type AND ac.used = false AND ac.expiresAt > :now")
     Optional<ActivationCode> findValidTokenByCodeAndType(String code, CodeType type, LocalDateTime now);
@@ -43,11 +42,11 @@ public interface ActivationCodeRepository extends JpaRepository<ActivationCode, 
     // 🗑️ NETTOYAGE
     // ============================================================================
     /** Supprime tous les codes expirés pour un utilisateur spécifique*/
-     @Modifying(clearAutomatically = true)
-     void deleteByEmail(String email);
+    @Modifying(clearAutomatically = true)
+    void deleteByEmail(String email);
 
-     @Modifying(clearAutomatically = true)
-     void deleteByEmailAndType(String email, CodeType type);
+    @Modifying(clearAutomatically = true)
+    void deleteByEmailAndType(String email, CodeType type);
 
     /**
      * Supprime tous les codes expirés ET non utilisés

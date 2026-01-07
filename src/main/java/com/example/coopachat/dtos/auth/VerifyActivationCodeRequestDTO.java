@@ -20,5 +20,3 @@ public class VerifyActivationCodeRequestDTO {
     @Pattern(regexp = "^[0-9]{6}$", message = "Le code doit contenir exactement 6 chiffres")
     private String code;
 }
-
-
