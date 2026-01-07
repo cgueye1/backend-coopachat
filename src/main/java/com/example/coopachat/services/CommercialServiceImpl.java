@@ -1,7 +1,9 @@
 package com.example.coopachat.services;
 
+import com.example.coopachat.dtos.CompanyListResponseDTO;
 import com.example.coopachat.dtos.CreateCompanyDTO;
 import com.example.coopachat.dtos.CreateEmployeeDTO;
+import com.example.coopachat.dtos.CompanyListItemDTO;
 import com.example.coopachat.entities.Company;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Users;
@@ -14,6 +16,9 @@ import com.example.coopachat.services.auth.ActivationCodeService;
 import com.example.coopachat.services.auth.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,7 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Implémentation du service de gestion des actions du commercial
@@ -91,6 +98,88 @@ public class CommercialServiceImpl implements CommercialService {
 
         log.info("Entreprise créée avec succès: {} (code: {}) par le commercial {}",
                 company.getName(), companyCode, commercial.getEmail());
+    }
+
+    @Override
+    public CompanyListResponseDTO getAllCompanies(int page, int size) {
+
+        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String userEmail = authentication.getName();
+
+        if (userEmail == null) {
+            throw new RuntimeException("Email utilisateur introuvable");
+        }
+
+        // Récupérer le commercial connecté
+        Users commercial = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+
+        // Vérifier que l'utilisateur est bien un commercial
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter leurs entreprises");
+        }
+
+        // Créer l'objet Pageable pour la pagination
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Récupérer la page d'entreprises du commercial
+        Page<Company> companyPage = companyRepository.findByCommercial(commercial, pageable);
+
+        // Mapper les entités Company vers CompanyListItemDTO
+        List<CompanyListItemDTO> companyList = companyPage.getContent().stream()
+                .map(this::mapToCompanyListItemDTO)
+                .collect(Collectors.toList());
+
+        // Créer la réponse avec pagination
+        CompanyListResponseDTO response = new CompanyListResponseDTO();
+        response.setContent(companyList);
+        response.setTotalElements(companyPage.getTotalElements());
+        response.setTotalPages(companyPage.getTotalPages());
+        response.setCurrentPage(companyPage.getNumber());
+        response.setPageSize(companyPage.getSize());
+        response.setHasNext(companyPage.hasNext());
+        response.setHasPrevious(companyPage.hasPrevious());
+
+        log.info("Page {} de {} entreprises récupérée pour le commercial {} (total: {} entreprises)", 
+                page + 1, companyPage.getTotalPages(), commercial.getEmail(), companyPage.getTotalElements());
+
+        return response;
+    }
+    /**
+     * Convertit le booléen isActive en statut textuel pour l'affichage
+     *
+     * @param isActive L'état actif/inactif de l'entreprise
+     * @return "Actif" si true, "Inactif" si false
+     */
+    private String status(Boolean isActive) {
+        if (isActive != null && isActive) {
+            return "Actif";
+        }
+        return "Inactif";
+    }
+
+    /**
+     * Mappe une entité Company vers un CompanyListItemDTO
+     *
+     * @param company L'entité Company à mapper
+     * @return Le DTO correspondant
+     */
+    private CompanyListItemDTO mapToCompanyListItemDTO(Company company) {
+        CompanyListItemDTO dto = new CompanyListItemDTO();
+        dto.setId(company.getId());
+        dto.setName(company.getName());
+        dto.setLocation(company.getLocation());
+        dto.setContactName(company.getContactName());
+        dto.setContactPhone(company.getContactPhone());
+        dto.setCreatedAt(company.getCreatedAt());
+        dto.setStatus(status(company.getIsActive())); // Convertit isActive en "Actif" ou "Inactif"
+        return dto;
     }
 
     // ============================================================================

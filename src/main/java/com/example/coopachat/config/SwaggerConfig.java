@@ -2,6 +2,8 @@ package com.example.coopachat.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,7 +20,22 @@ public class SwaggerConfig {
                 .info(new Info()
                         .title("CoopAchat Back Office API")
                         .description("API pour la gestion du système CoopAchat")
-                        .version("1.0.0"));
+                        .version("1.0.0"))
+                .addSecurityItem(new SecurityRequirement()
+                        .addList("Bearer Authentication"))
+                .components(new io.swagger.v3.oas.models.Components()
+                        .addSecuritySchemes("Bearer Authentication", createAPIKeyScheme()));
+    }
+
+    /**
+     * Crée le schéma de sécurité JWT pour Swagger
+     * Permet d'utiliser le token JWT dans Swagger UI via le bouton "Authorize"
+     */
+    private SecurityScheme createAPIKeyScheme() {
+        return new SecurityScheme()
+                .type(SecurityScheme.Type.HTTP)
+                .bearerFormat("JWT")
+                .scheme("bearer");
     }
 
     @Bean

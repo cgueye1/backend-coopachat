@@ -2,6 +2,7 @@ package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.CreateCompanyDTO;
 import com.example.coopachat.dtos.CreateEmployeeDTO;
+import com.example.coopachat.dtos.CompanyListResponseDTO;
 import com.example.coopachat.dtos.auth.ResetPasswordRequestDTO;
 import com.example.coopachat.services.CommercialService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,6 +39,20 @@ public class CommercialController {
         commercialService.createCompany(createCompanyDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body("Entreprise créée avec succès");
+    }
+
+    @Operation(
+            summary = "Lister les entreprises (paginé)",
+            description = "Récupère la liste paginée de toutes les entreprises créées par le commercial connecté. " +
+                         "Les paramètres 'page' (défaut: 0) et 'size' (défaut: 6) permettent de contrôler la pagination."
+    )
+    @GetMapping("/companies")
+    public ResponseEntity<CompanyListResponseDTO> getAllCompanies(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size
+    ) {
+        CompanyListResponseDTO response = commercialService.getAllCompanies(page, size);
+        return ResponseEntity.ok(response);
     }
 
     // ============================================================================
