@@ -4,9 +4,10 @@ import com.example.coopachat.dtos.CreateCompanyDTO;
 import com.example.coopachat.dtos.CreateEmployeeDTO;
 import com.example.coopachat.dtos.CompanyListResponseDTO;
 import com.example.coopachat.dtos.CompanyDetailsDTO;
+import com.example.coopachat.dtos.CompanyStatsDTO;
 import com.example.coopachat.dtos.UpdateCompanyDTO;
 import com.example.coopachat.dtos.UpdateCompanyStatusDTO;
-import com.example.coopachat.dtos.auth.ResetPasswordRequestDTO;
+import com.example.coopachat.enums.CompanySector;
 import com.example.coopachat.services.CommercialService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,16 +46,31 @@ public class CommercialController {
     }
 
     @Operation(
-            summary = "Lister les entreprises (paginé)",
+            summary = "Récupérer les statistiques des entreprises",
+            description = "Récupère les statistiques des entreprises du commercial connecté " +
+                         "(total, actives, inactives)."
+    )
+    @GetMapping("/companies/stats")
+    public ResponseEntity<CompanyStatsDTO> getCompanyStats() {
+        CompanyStatsDTO stats = commercialService.getCompanyStats();
+        return ResponseEntity.ok(stats);
+    }
+
+    @Operation(
+            summary = "Lister les entreprises (paginé avec recherche et filtres)",
             description = "Récupère la liste paginée de toutes les entreprises créées par le commercial connecté. " +
-                         "Les paramètres 'page' (défaut: 0) et 'size' (défaut: 6) permettent de contrôler la pagination."
+                         "Les paramètres 'page' (défaut: 0) et 'size' (défaut: 6) permettent de contrôler la pagination. " +
+                         "Les paramètres 'search' (recherche par nom), 'sector' (filtre par secteur) et 'isActive' (filtre actif/inactif: true/false) sont optionnels."
     )
     @GetMapping("/companies")
     public ResponseEntity<CompanyListResponseDTO> getAllCompanies(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "6") int size
+            @RequestParam(defaultValue = "6") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) CompanySector sector,
+            @RequestParam(required = false) Boolean isActive
     ) {
-        CompanyListResponseDTO response = commercialService.getAllCompanies(page, size);
+        CompanyListResponseDTO response = commercialService.getAllCompanies(page, size, search, sector, isActive);
         return ResponseEntity.ok(response);
     }
 

@@ -32,3 +32,4 @@ public class CompanyDetailsDTO {
     private String note; // Commentaires ou notes
 }
 
+

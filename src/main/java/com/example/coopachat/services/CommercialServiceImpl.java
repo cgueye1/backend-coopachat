@@ -1,17 +1,12 @@
 package com.example.coopachat.services;
 
-import com.example.coopachat.dtos.CompanyListResponseDTO;
-import com.example.coopachat.dtos.CreateCompanyDTO;
-import com.example.coopachat.dtos.CreateEmployeeDTO;
-import com.example.coopachat.dtos.CompanyListItemDTO;
-import com.example.coopachat.dtos.CompanyDetailsDTO;
-import com.example.coopachat.dtos.UpdateCompanyDTO;
-import com.example.coopachat.dtos.UpdateCompanyStatusDTO;
+import com.example.coopachat.dtos.*;
 import com.example.coopachat.entities.Company;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Users;
 import com.example.coopachat.enums.CodeType;
 import com.example.coopachat.enums.UserRole;
+import com.example.coopachat.enums.CompanySector;
 import com.example.coopachat.repositories.CompanyRepository;
 import com.example.coopachat.repositories.EmployeeRepository;
 import com.example.coopachat.repositories.UserRepository;
@@ -93,7 +88,7 @@ public class CommercialServiceImpl implements CommercialService {
         company.setContactPhone(createCompanyDTO.getContactPhone());
         company.setStatus(createCompanyDTO.getStatus());
         company.setNote(createCompanyDTO.getNote());
-        company.setIsActive(true);
+        company.setIsActive(false);
         company.setCommercial(commercial);
 
         // Sauvegarder l'entreprise en base
@@ -104,7 +99,7 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     @Override
-    public CompanyListResponseDTO getAllCompanies(int page, int size) {
+    public CompanyListResponseDTO getAllCompanies(int page, int size, String search, CompanySector sector, Boolean isActive) {
 
         // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -131,8 +126,50 @@ public class CommercialServiceImpl implements CommercialService {
         // Créer l'objet Pageable pour la pagination
         Pageable pageable = PageRequest.of(page, size);
 
-        // Récupérer la page d'entreprises du commercial
-        Page<Company> companyPage = companyRepository.findByCommercial(commercial, pageable);
+        // Normaliser le terme de recherche (supprimer les espaces)
+        //Si search != null et non vide, alors on récupère le terme de recherche sinon on met null
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        // Récupérer la page d'entreprises selon les filtres fournis
+        Page<Company> companyPage;
+
+        // Cas 1 : Recherche + Secteur + isActive
+        if (searchTerm != null && sector != null && isActive != null) {
+            companyPage = companyRepository.findByCommercialAndNameContainingIgnoreCaseAndSectorAndIsActive(
+                    commercial, searchTerm, sector, isActive, pageable);
+        }
+        // Cas 2 : Recherche + Secteur (pas de isActive)
+        else if (searchTerm != null && sector != null) {
+            companyPage = companyRepository.findByCommercialAndNameContainingIgnoreCaseAndSector(
+                    commercial, searchTerm, sector, pageable);
+        }
+        // Cas 3 : Recherche + isActive (pas de secteur)
+        else if (searchTerm != null && isActive != null) {
+            companyPage = companyRepository.findByCommercialAndNameContainingIgnoreCaseAndIsActive(
+                    commercial, searchTerm, isActive, pageable);
+        }
+        // Cas 4 : Recherche seulement (pas de secteur, pas de isActive)
+        else if (searchTerm != null) {
+            companyPage = companyRepository.findByCommercialAndNameContainingIgnoreCase(
+                    commercial, searchTerm, pageable);
+        }
+        // Cas 5 : Secteur + isActive (pas de recherche)
+        else if (sector != null && isActive != null) {
+            companyPage = companyRepository.findByCommercialAndSectorAndIsActive(
+                    commercial, sector, isActive, pageable);
+        }
+        // Cas 6 : Secteur seulement (pas de recherche, pas de isActive)
+        else if (sector != null) {
+            companyPage = companyRepository.findByCommercialAndSector(commercial, sector, pageable);
+        }
+        // Cas 7 : isActive seulement (pas de recherche, pas de secteur)
+        else if (isActive != null) {
+            companyPage = companyRepository.findByCommercialAndIsActive(commercial, isActive, pageable);
+        }
+        // Cas 8 : Aucun filtre (toutes les entreprises)
+        else {
+            companyPage = companyRepository.findByCommercial(commercial, pageable);
+        }
 
         // Mapper les entités Company vers CompanyListItemDTO
         List<CompanyListItemDTO> companyList = companyPage.getContent().stream()
@@ -149,8 +186,9 @@ public class CommercialServiceImpl implements CommercialService {
         response.setHasNext(companyPage.hasNext());
         response.setHasPrevious(companyPage.hasPrevious());
 
-        log.info("Page {} de {} entreprises récupérée pour le commercial {} (total: {} entreprises)", 
-                page + 1, companyPage.getTotalPages(), commercial.getEmail(), companyPage.getTotalElements());
+        log.info("Page {} de {} entreprises récupérée pour le commercial {} (total: {} entreprises, recherche: '{}', secteur: {}, isActive: {})", 
+                page + 1, companyPage.getTotalPages(), commercial.getEmail(), companyPage.getTotalElements(), 
+                searchTerm != null ? searchTerm : "aucune", sector != null ? sector : "tous", isActive != null ? isActive : "tous");
 
         return response;
     }
@@ -315,58 +353,6 @@ public class CommercialServiceImpl implements CommercialService {
                 company.getName(), statusChange, commercial.getEmail(), oldStatus, updateCompanyStatusDTO.getIsActive());
     }
 
-    /**
-     * Convertit le booléen isActive en statut textuel pour l'affichage
-     *
-     * @param isActive L'état actif/inactif de l'entreprise
-     * @return "Actif" si true, "Inactif" si false
-     */
-    private String status(Boolean isActive) {
-        if (isActive != null && isActive) {
-            return "Actif";
-        }
-        return "Inactif";
-    }
-
-    /**
-     * Mappe une entité Company vers un CompanyListItemDTO
-     *
-     * @param company L'entité Company à mapper
-     * @return Le DTO correspondant
-     */
-    private CompanyListItemDTO mapToCompanyListItemDTO(Company company) {
-        CompanyListItemDTO dto = new CompanyListItemDTO();
-        dto.setId(company.getId());
-        dto.setName(company.getName());
-        dto.setLocation(company.getLocation());
-        dto.setContactName(company.getContactName());
-        dto.setContactPhone(company.getContactPhone());
-        dto.setCreatedAt(company.getCreatedAt());
-        dto.setStatus(status(company.getIsActive())); // Convertit isActive en "Actif" ou "Inactif"
-        return dto;
-    }
-
-    /**
-     * Mappe une entité Company vers un CompanyDetailsDTO
-     *
-     * @param company L'entité Company à mapper
-     * @return Le DTO de détails correspondant
-     */
-    private CompanyDetailsDTO mapToCompanyDetailsDTO(Company company) {
-        CompanyDetailsDTO dto = new CompanyDetailsDTO();
-        dto.setId(company.getId());
-        dto.setName(company.getName());
-        dto.setLocation(company.getLocation());
-        dto.setContactName(company.getContactName());
-        dto.setContactPhone(company.getContactPhone());
-        dto.setContactEmail(company.getContactEmail());
-        dto.setCreatedAt(company.getCreatedAt());
-        dto.setStatus(status(company.getIsActive())); // Convertit isActive en "Actif" ou "Inactif"
-        dto.setCompanyCode(company.getCompanyCode());
-        dto.setSector(company.getSector());
-        dto.setNote(company.getNote());
-        return dto;
-    }
 
     // ============================================================================
     // 👤 GESTION DES EMPLOYÉS
@@ -440,6 +426,48 @@ public class CommercialServiceImpl implements CommercialService {
                 employee.getFirstName() + " " + employee.getLastName(), employee.getEmail(), commercial.getEmail());
     }
 
+    @Override
+    public CompanyStatsDTO getCompanyStats() {
+
+        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String userEmail = authentication.getName();
+
+        if (userEmail == null) {
+            throw new RuntimeException("Email utilisateur introuvable");
+        }
+
+        // Récupérer le commercial connecté
+        Users commercial = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+
+        // Vérifier que l'utilisateur est bien un commercial
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter les statistiques de leurs entreprises");
+        }
+
+        // Calculer les statistiques
+        long totalCompanies = companyRepository.countByCommercial(commercial);
+        long activeCompanies = companyRepository.countByCommercialAndIsActive(commercial, true);
+        long inactiveCompanies = companyRepository.countByCommercialAndIsActive(commercial, false);
+
+        // Créer et remplir le DTO
+        CompanyStatsDTO stats = new CompanyStatsDTO();
+        stats.setTotalCompanies(totalCompanies);
+        stats.setActiveCompanies(activeCompanies);
+        stats.setInactiveCompanies(inactiveCompanies);
+
+        log.info("Statistiques des entreprises récupérées pour le commercial {}: Total={}, Actives={}, Inactives={}", 
+                commercial.getEmail(), totalCompanies, activeCompanies, inactiveCompanies);
+
+        return stats;
+    }
+
 
     // ============================================================================
     // 🔧 MÉTHODES UTILITAIRES
@@ -465,6 +493,60 @@ public class CommercialServiceImpl implements CommercialService {
         }
 
         return companyCode;
+    }
+
+
+    /**
+     * Convertit le booléen isActive en statut textuel pour l'affichage
+     *
+     * @param isActive L'état actif/inactif de l'entreprise
+     * @return "Actif" si true, "Inactif" si false
+     */
+    private String status(Boolean isActive) {
+        if (isActive != null && isActive) {
+            return "Actif";
+        }
+        return "Inactif";
+    }
+
+    /**
+     * Mappe une entité Company vers un CompanyListItemDTO
+     *
+     * @param company L'entité Company à mapper
+     * @return Le DTO correspondant
+     */
+    private CompanyListItemDTO mapToCompanyListItemDTO(Company company) {
+        CompanyListItemDTO dto = new CompanyListItemDTO();
+        dto.setId(company.getId());
+        dto.setName(company.getName());
+        dto.setLocation(company.getLocation());
+        dto.setContactName(company.getContactName());
+        dto.setContactPhone(company.getContactPhone());
+        dto.setCreatedAt(company.getCreatedAt());
+        dto.setStatus(status(company.getIsActive())); // Convertit isActive en "Actif" ou "Inactif"
+        return dto;
+    }
+
+    /**
+     * Mappe une entité Company vers un CompanyDetailsDTO
+     *
+     * @param company L'entité Company à mapper
+     * @return Le DTO de détails correspondant
+     */
+    private CompanyDetailsDTO mapToCompanyDetailsDTO(Company company) {
+        CompanyDetailsDTO dto = new CompanyDetailsDTO();
+        dto.setId(company.getId());
+        dto.setName(company.getName());
+        dto.setLocation(company.getLocation());
+        dto.setContactName(company.getContactName());
+        dto.setContactPhone(company.getContactPhone());
+        dto.setContactEmail(company.getContactEmail());
+        dto.setCreatedAt(company.getCreatedAt());
+        dto.setStatus(status(company.getIsActive())); // Convertit isActive en "Actif" ou "Inactif"
+        dto.setCompanyCode(company.getCompanyCode());
+        dto.setSector(company.getSector());
+        dto.setNote(company.getNote());
+        return dto;
     }
 }
 

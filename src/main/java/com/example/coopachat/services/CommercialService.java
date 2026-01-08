@@ -1,11 +1,7 @@
 package com.example.coopachat.services;
 
-import com.example.coopachat.dtos.CreateCompanyDTO;
-import com.example.coopachat.dtos.CreateEmployeeDTO;
-import com.example.coopachat.dtos.CompanyListResponseDTO;
-import com.example.coopachat.dtos.CompanyDetailsDTO;
-import com.example.coopachat.dtos.UpdateCompanyDTO;
-import com.example.coopachat.dtos.UpdateCompanyStatusDTO;
+import com.example.coopachat.dtos.*;
+import com.example.coopachat.enums.CompanySector;
 
 /**
  * Interface pour le service de gestion des actions du commercial
@@ -22,13 +18,17 @@ public interface CommercialService {
 
     /**
      * Récupère la liste paginée de toutes les entreprises créées par le commercial connecté
+     * avec possibilité de recherche et filtres
      *
      * @param page Numéro de la page (0-indexed, par défaut 0)
      * @param size Taille de la page (par défaut 6)
+     * @param search Terme de recherche pour le nom de l'entreprise (optionnel, recherche partielle insensible à la casse)
+     * @param sector Filtre par secteur d'activité (optionnel)
+     * @param isActive Filtre par statut actif/inactif (optionnel, true pour actives, false pour inactives)
      * @return Réponse paginée contenant la liste des entreprises et les métadonnées de pagination
      * @throws RuntimeException si le commercial n'existe pas ou si une erreur survient
      */
-    CompanyListResponseDTO getAllCompanies(int page, int size);
+    CompanyListResponseDTO getAllCompanies(int page, int size, String search, CompanySector sector, Boolean isActive);
 
     /**
      * Récupère les détails d'une entreprise spécifique par son ID
@@ -58,15 +58,19 @@ public interface CommercialService {
     void updateCompanyStatus(Long id, UpdateCompanyStatusDTO updateCompanyStatusDTO);
 
     /**
+     * Récupère les statistiques des entreprises du commercial connecté
+     *
+     * @return Les statistiques (total, actives, inactives)
+     * @throws RuntimeException si le commercial n'existe pas ou si une erreur survient
+     */
+    CompanyStatsDTO getCompanyStats();
+
+    /**
      * Crée un nouvel employé et envoie une invitation par email
      *
      * @param createEmployeeDTO Les informations de l'employé à créer
      * @throws RuntimeException si l'entreprise n'existe pas ou si une erreur survient
      */
     void createEmployee(CreateEmployeeDTO createEmployeeDTO);
-
-    
-
-
 }
 

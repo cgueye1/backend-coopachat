@@ -43,3 +43,4 @@ public class UpdateCompanyDTO {
     private String note; // Commentaire ou note (optionnel)
 }
 
+

@@ -51,3 +51,4 @@ public class CompanyListResponseDTO {
     private boolean hasPrevious;
 }
 
+
