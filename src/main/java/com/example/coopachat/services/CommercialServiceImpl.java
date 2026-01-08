@@ -397,12 +397,16 @@ public class CommercialServiceImpl implements CommercialService {
 
         Users userSaved = userRepository.save(user);
 
+        // Générer le code unique de l'employé
+        String employeeCode = generateUniqueEmployeeCode();
+
         // Créer l'employé
         Employee employeeEntity = new Employee();
         employeeEntity.setCompany(company);
         employeeEntity.setAddress(employee.getAddress());
         employeeEntity.setUser(userSaved);
         employeeEntity.setCreatedBy(commercial);
+        employeeEntity.setEmployeeCode(employeeCode);
 
         employeeRepository.save(employeeEntity);
 
@@ -422,8 +426,8 @@ public class CommercialServiceImpl implements CommercialService {
                 company.getName()
         );
 
-        log.info("Employé créé avec succès: {} (email: {}) par le commercial {}",
-                employee.getFirstName() + " " + employee.getLastName(), employee.getEmail(), commercial.getEmail());
+        log.info("Employé créé avec succès: {} (email: {}, code: {}) par le commercial {}",
+                employee.getFirstName() + " " + employee.getLastName(), employee.getEmail(), employeeCode, commercial.getEmail());
     }
 
     @Override
@@ -495,6 +499,27 @@ public class CommercialServiceImpl implements CommercialService {
         return companyCode;
     }
 
+    /**
+     * Génère un code unique pour l'employé
+     * Format: SAL-YYYY-XX (ex: SAL-2025-05)
+     *
+     * @return Le code unique généré
+     */
+    private String generateUniqueEmployeeCode() {
+        String year = String.valueOf(LocalDateTime.now().getYear());
+        String baseCode = "SAL-" + year + "-";
+        String employeeCode;
+        int counter = 1;
+
+        // Tant que le code existe déjà, incrémenter le compteur et générer un nouveau code
+        do {
+            // Formater le numéro séquentiel sur 2 chiffres (01, 02, 03...)
+            employeeCode = baseCode + String.format("%02d", counter);
+            counter++;
+        } while (employeeRepository.existsByEmployeeCode(employeeCode));
+
+        return employeeCode;
+    }
 
     /**
      * Convertit le booléen isActive en statut textuel pour l'affichage

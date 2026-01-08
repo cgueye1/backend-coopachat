@@ -26,6 +26,9 @@ public class Employee {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = true)
+    private String employeeCode; // Code unique du salarié 
+
     // Relation avec l'entreprise
     @ManyToOne
     @JoinColumn(name = "company_id", nullable = false)
