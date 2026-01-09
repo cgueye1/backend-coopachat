@@ -72,5 +72,27 @@ public interface CommercialService {
      * @throws RuntimeException si l'entreprise n'existe pas ou si une erreur survient
      */
     void createEmployee(CreateEmployeeDTO createEmployeeDTO);
+
+    /**
+     * Récupère la liste paginée de tous les employés créés par le commercial connecté
+     * avec possibilité de recherche et filtres
+     *
+     * @param page Numéro de la page (0-indexed, par défaut 0)
+     * @param size Taille de la page (par défaut 6)
+     * @param search Terme de recherche pour le prénom ou nom de l'employé (optionnel, recherche partielle insensible à la casse)
+     * @param companyId Filtre par entreprise (optionnel, ID de l'entreprise)
+     * @param isActive Filtre par statut actif/inactif (optionnel, true pour actifs, false pour inactifs)
+     * @return Réponse paginée contenant la liste des employés et les métadonnées de pagination
+     * @throws RuntimeException si le commercial n'existe pas ou si une erreur survient
+     */
+    EmployeeListResponseDTO getAllEmployees(int page, int size, String search, Long companyId, Boolean isActive);
+
+    /**
+     * Récupère les statistiques des employés du commercial connecté
+     *
+     * @return Les statistiques (total, actifs, en attente d'activation)
+     * @throws RuntimeException si le commercial n'existe pas ou si une erreur survient
+     */
+    EmployeeStatsDTO getEmployeeStats();
 }
 

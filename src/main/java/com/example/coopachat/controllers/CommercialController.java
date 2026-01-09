@@ -7,6 +7,8 @@ import com.example.coopachat.dtos.CompanyDetailsDTO;
 import com.example.coopachat.dtos.CompanyStatsDTO;
 import com.example.coopachat.dtos.UpdateCompanyDTO;
 import com.example.coopachat.dtos.UpdateCompanyStatusDTO;
+import com.example.coopachat.dtos.EmployeeListResponseDTO;
+import com.example.coopachat.dtos.EmployeeStatsDTO;
 import com.example.coopachat.enums.CompanySector;
 import com.example.coopachat.services.CommercialService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -137,6 +139,34 @@ public class CommercialController {
                 .body("Salarié créé avec succès. Un email d'invitation a été envoyé.");
     }
 
+    @Operation(
+            summary = "Récupérer les statistiques des salariés",
+            description = "Récupère les statistiques des salariés du commercial connecté " +
+                         "(total, actifs, en attente d'activation)."
+    )
+    @GetMapping("/employees/stats")
+    public ResponseEntity<EmployeeStatsDTO> getEmployeeStats() {
+        EmployeeStatsDTO stats = commercialService.getEmployeeStats();
+        return ResponseEntity.ok(stats);
+    }
+
+    @Operation(
+            summary = "Lister les salariés (paginé avec recherche et filtres)",
+            description = "Récupère la liste paginée de tous les salariés créés par le commercial connecté. " +
+                         "Les paramètres 'page' (défaut: 0) et 'size' (défaut: 6) permettent de contrôler la pagination. " +
+                         "Les paramètres 'search' (recherche par prénom ou nom), 'companyId' (filtre par entreprise) et 'isActive' (filtre actif/inactif: true/false) sont optionnels."
+    )
+    @GetMapping("/employees")
+    public ResponseEntity<EmployeeListResponseDTO> getAllEmployees(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false) Boolean isActive
+    ) {
+        EmployeeListResponseDTO response = commercialService.getAllEmployees(page, size, search, companyId, isActive);
+        return ResponseEntity.ok(response);
+    }
 
 }
 

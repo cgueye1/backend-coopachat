@@ -353,6 +353,48 @@ public class CommercialServiceImpl implements CommercialService {
                 company.getName(), statusChange, commercial.getEmail(), oldStatus, updateCompanyStatusDTO.getIsActive());
     }
 
+    @Override
+    public CompanyStatsDTO getCompanyStats() {
+
+        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String userEmail = authentication.getName();
+
+        if (userEmail == null) {
+            throw new RuntimeException("Email utilisateur introuvable");
+        }
+
+        // Récupérer le commercial connecté
+        Users commercial = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+
+        // Vérifier que l'utilisateur est bien un commercial
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter les statistiques de leurs entreprises");
+        }
+
+        // Calculer les statistiques
+        long totalCompanies = companyRepository.countByCommercial(commercial);
+        long activeCompanies = companyRepository.countByCommercialAndIsActive(commercial, true);
+        long inactiveCompanies = companyRepository.countByCommercialAndIsActive(commercial, false);
+
+        // Créer et remplir le DTO
+        CompanyStatsDTO stats = new CompanyStatsDTO();
+        stats.setTotalCompanies(totalCompanies);
+        stats.setActiveCompanies(activeCompanies);
+        stats.setInactiveCompanies(inactiveCompanies);
+
+        log.info("Statistiques des entreprises récupérées pour le commercial {}: Total={}, Actives={}, Inactives={}",
+                commercial.getEmail(), totalCompanies, activeCompanies, inactiveCompanies);
+
+        return stats;
+    }
+
 
     // ============================================================================
     // 👤 GESTION DES EMPLOYÉS
@@ -431,7 +473,7 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     @Override
-    public CompanyStatsDTO getCompanyStats() {
+    public EmployeeListResponseDTO getAllEmployees(int page, int size, String search, Long companyId, Boolean isActive) {
 
         // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -452,22 +494,127 @@ public class CommercialServiceImpl implements CommercialService {
 
         // Vérifier que l'utilisateur est bien un commercial
         if (commercial.getRole() != UserRole.COMMERCIAL) {
-            throw new RuntimeException("Seuls les commerciaux peuvent consulter les statistiques de leurs entreprises");
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter leurs employés");
+        }
+
+        // Créer l'objet Pageable pour la pagination
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Normaliser le terme de recherche (supprimer les espaces)
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        // Récupérer l'entreprise si companyId est fourni
+        Company company = null;
+        if (companyId != null) {
+            company = companyRepository.findById(companyId)
+                    .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
+            // Vérifier que l'entreprise appartient au commercial
+            if (!company.getCommercial().getId().equals(commercial.getId())) {
+                throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
+            }
+        }
+
+        // Récupérer la page d'employés selon les filtres fournis
+        Page<Employee> employeePage;
+
+        // Cas 1 : Recherche + Entreprise + isActive
+        if (searchTerm != null && company != null && isActive != null) {
+            employeePage = employeeRepository.findByCreatedByAndUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndCompanyAndUserIsActive(
+                    commercial, searchTerm, searchTerm, company, isActive, pageable);
+        }
+        // Cas 2 : Recherche + Entreprise (pas de isActive)
+        else if (searchTerm != null && company != null) {
+            employeePage = employeeRepository.findByCreatedByAndUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndCompany(
+                    commercial, searchTerm, searchTerm, company, pageable);
+        }
+        // Cas 3 : Recherche + isActive (pas d'entreprise)
+        else if (searchTerm != null && isActive != null) {
+            employeePage = employeeRepository.findByCreatedByAndUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndUserIsActive(
+                    commercial, searchTerm, searchTerm, isActive, pageable);
+        }
+        // Cas 4 : Recherche seulement (pas d'entreprise, pas de isActive)
+        else if (searchTerm != null) {
+            employeePage = employeeRepository.findByCreatedByAndUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCase(
+                    commercial, searchTerm, searchTerm, pageable);
+        }
+        // Cas 5 : Entreprise + isActive (pas de recherche)
+        else if (company != null && isActive != null) {
+            employeePage = employeeRepository.findByCreatedByAndCompanyAndUserIsActive(
+                    commercial, company, isActive, pageable);
+        }
+        // Cas 6 : Entreprise seulement (pas de recherche, pas de isActive)
+        else if (company != null) {
+            employeePage = employeeRepository.findByCreatedByAndCompany(commercial, company, pageable);
+        }
+        // Cas 7 : isActive seulement (pas de recherche, pas d'entreprise)
+        else if (isActive != null) {
+            employeePage = employeeRepository.findByCreatedByAndUserIsActive(commercial, isActive, pageable);
+        }
+        // Cas 8 : Aucun filtre (tous les employés)
+        else {
+            employeePage = employeeRepository.findByCreatedBy(commercial, pageable);
+        }
+
+        // Mapper les entités Employee vers EmployeeListItemDTO
+        List<EmployeeListItemDTO> employeeList = employeePage.getContent().stream()
+                .map(this::mapToEmployeeListItemDTO)
+                .collect(Collectors.toList());
+
+        // Créer la réponse avec pagination
+        EmployeeListResponseDTO response = new EmployeeListResponseDTO();
+        response.setContent(employeeList);
+        response.setTotalElements(employeePage.getTotalElements());
+        response.setTotalPages(employeePage.getTotalPages());
+        response.setCurrentPage(employeePage.getNumber());
+        response.setPageSize(employeePage.getSize());
+        response.setHasNext(employeePage.hasNext());
+        response.setHasPrevious(employeePage.hasPrevious());
+
+        log.info("Page {} de {} employés récupérée pour le commercial {} (total: {} employés, recherche: '{}', entreprise: {}, isActive: {})",
+                page + 1, employeePage.getTotalPages(), commercial.getEmail(), employeePage.getTotalElements(),
+                searchTerm != null ? searchTerm : "aucune", companyId != null ? company.getName() : "toutes", isActive != null ? isActive : "tous");
+
+        return response;
+    }
+
+    @Override
+    public EmployeeStatsDTO getEmployeeStats() {
+
+        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String userEmail = authentication.getName();
+
+        if (userEmail == null) {
+            throw new RuntimeException("Email utilisateur introuvable");
+        }
+
+        // Récupérer le commercial connecté
+        Users commercial = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+
+        // Vérifier que l'utilisateur est bien un commercial
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter les statistiques de leurs employés");
         }
 
         // Calculer les statistiques
-        long totalCompanies = companyRepository.countByCommercial(commercial);
-        long activeCompanies = companyRepository.countByCommercialAndIsActive(commercial, true);
-        long inactiveCompanies = companyRepository.countByCommercialAndIsActive(commercial, false);
+        long totalEmployees = employeeRepository.countByCreatedBy(commercial);
+        long activeEmployees = employeeRepository.countByCreatedByAndUserIsActive(commercial, true);
+        long pendingEmployees = employeeRepository.countByCreatedByAndUserIsActive(commercial, false);
 
         // Créer et remplir le DTO
-        CompanyStatsDTO stats = new CompanyStatsDTO();
-        stats.setTotalCompanies(totalCompanies);
-        stats.setActiveCompanies(activeCompanies);
-        stats.setInactiveCompanies(inactiveCompanies);
+        EmployeeStatsDTO stats = new EmployeeStatsDTO();
+        stats.setTotalEmployees(totalEmployees);
+        stats.setActiveEmployees(activeEmployees);
+        stats.setPendingEmployees(pendingEmployees);
 
-        log.info("Statistiques des entreprises récupérées pour le commercial {}: Total={}, Actives={}, Inactives={}", 
-                commercial.getEmail(), totalCompanies, activeCompanies, inactiveCompanies);
+        log.info("Statistiques des employés récupérées pour le commercial {}: Total={}, Actifs={}, En attente={}",
+                commercial.getEmail(), totalEmployees, activeEmployees, pendingEmployees);
 
         return stats;
     }
@@ -571,6 +718,25 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setCompanyCode(company.getCompanyCode());
         dto.setSector(company.getSector());
         dto.setNote(company.getNote());
+        return dto;
+    }
+
+    /**
+     * Mappe une entité Employee vers un EmployeeListItemDTO
+     *
+     * @param employee L'entité Employee à mapper
+     * @return Le DTO correspondant
+     */
+    private EmployeeListItemDTO mapToEmployeeListItemDTO(Employee employee) {
+        EmployeeListItemDTO dto = new EmployeeListItemDTO();
+        dto.setId(employee.getId());
+        dto.setFirstName(employee.getUser().getFirstName());
+        dto.setLastName(employee.getUser().getLastName());
+        dto.setEmail(employee.getUser().getEmail());
+        dto.setCompanyName(employee.getCompany().getName());
+        dto.setCreatedAt(employee.getCreatedAt());
+        dto.setStatus(status(employee.getUser().getIsActive())); // Convertit isActive en "Actif" ou "Inactif"
+        dto.setEmployeeCode(employee.getEmployeeCode());
         return dto;
     }
 }
