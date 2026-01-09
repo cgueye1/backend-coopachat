@@ -619,6 +619,49 @@ public class CommercialServiceImpl implements CommercialService {
         return stats;
     }
 
+    @Override
+    public EmployeeDetailsDTO getEmployeeById(Long id) {
+
+        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String userEmail = authentication.getName();
+
+        if (userEmail == null) {
+            throw new RuntimeException("Email utilisateur introuvable");
+        }
+
+        // Récupérer le commercial connecté
+        Users commercial = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+
+        // Vérifier que l'utilisateur est bien un commercial
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter leurs employés");
+        }
+
+        // Récupérer l'employé par son ID
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employé introuvable"));
+
+        // Vérifier que l'employé appartient au commercial connecté
+        if (!employee.getCreatedBy().getId().equals(commercial.getId())) {
+            throw new RuntimeException("Vous n'avez pas accès à cet employé");
+        }
+
+        // Mapper l'entité Employee vers EmployeeDetailsDTO
+        EmployeeDetailsDTO employeeDetails = mapToEmployeeDetailsDTO(employee);
+
+        log.info("Détails de l'employé {} récupérés par le commercial {}",
+                employee.getUser().getFirstName() + " " + employee.getUser().getLastName(), commercial.getEmail());
+
+        return employeeDetails;
+    }
+
 
     // ============================================================================
     // 🔧 MÉTHODES UTILITAIRES
@@ -737,6 +780,28 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setCreatedAt(employee.getCreatedAt());
         dto.setStatus(status(employee.getUser().getIsActive())); // Convertit isActive en "Actif" ou "Inactif"
         dto.setEmployeeCode(employee.getEmployeeCode());
+        return dto;
+    }
+
+    /**
+     * Mappe une entité Employee vers un EmployeeDetailsDTO
+     *
+     * @param employee L'entité Employee à mapper
+     * @return Le DTO de détails correspondant
+     */
+    private EmployeeDetailsDTO mapToEmployeeDetailsDTO(Employee employee) {
+        EmployeeDetailsDTO dto = new EmployeeDetailsDTO();
+        dto.setId(employee.getId());
+        dto.setEmployeeCode(employee.getEmployeeCode());
+        dto.setFirstName(employee.getUser().getFirstName());
+        dto.setLastName(employee.getUser().getLastName());
+        dto.setEmail(employee.getUser().getEmail());
+        dto.setPhone(employee.getUser().getPhone());
+        dto.setAddress(employee.getAddress());
+        dto.setCompanyName(employee.getCompany().getName());
+        dto.setCompanyId(employee.getCompany().getId());
+        dto.setCreatedAt(employee.getCreatedAt());
+        dto.setStatus(status(employee.getUser().getIsActive())); // Convertit isActive en "Actif" ou "Inactif"
         return dto;
     }
 }

@@ -94,5 +94,14 @@ public interface CommercialService {
      * @throws RuntimeException si le commercial n'existe pas ou si une erreur survient
      */
     EmployeeStatsDTO getEmployeeStats();
+
+    /**
+     * Récupère les détails d'un employé spécifique par son ID
+     *
+     * @param id L'identifiant de l'employé
+     * @return Les détails complets de l'employé
+     * @throws RuntimeException si l'employé n'existe pas, n'appartient pas au commercial connecté, ou si une erreur survient
+     */
+    EmployeeDetailsDTO getEmployeeById(Long id);
 }
 

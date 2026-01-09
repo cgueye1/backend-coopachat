@@ -9,6 +9,7 @@ import com.example.coopachat.dtos.UpdateCompanyDTO;
 import com.example.coopachat.dtos.UpdateCompanyStatusDTO;
 import com.example.coopachat.dtos.EmployeeListResponseDTO;
 import com.example.coopachat.dtos.EmployeeStatsDTO;
+import com.example.coopachat.dtos.EmployeeDetailsDTO;
 import com.example.coopachat.enums.CompanySector;
 import com.example.coopachat.services.CommercialService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -166,6 +167,17 @@ public class CommercialController {
     ) {
         EmployeeListResponseDTO response = commercialService.getAllEmployees(page, size, search, companyId, isActive);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Récupérer les détails d'un salarié",
+            description = "Récupère les détails complets d'un salarié spécifique par son ID. " +
+                         "Le salarié doit appartenir au commercial connecté."
+    )
+    @GetMapping("/employees/{id}")
+    public ResponseEntity<EmployeeDetailsDTO> getEmployeeById(@PathVariable Long id) {
+        EmployeeDetailsDTO employeeDetails = commercialService.getEmployeeById(id);
+        return ResponseEntity.ok(employeeDetails);
     }
 
 }
