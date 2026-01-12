@@ -10,6 +10,7 @@ import com.example.coopachat.dtos.UpdateCompanyStatusDTO;
 import com.example.coopachat.dtos.EmployeeListResponseDTO;
 import com.example.coopachat.dtos.EmployeeStatsDTO;
 import com.example.coopachat.dtos.EmployeeDetailsDTO;
+import com.example.coopachat.dtos.UpdateEmployeeDTO;
 import com.example.coopachat.enums.CompanySector;
 import com.example.coopachat.services.CommercialService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -178,6 +179,22 @@ public class CommercialController {
     public ResponseEntity<EmployeeDetailsDTO> getEmployeeById(@PathVariable Long id) {
         EmployeeDetailsDTO employeeDetails = commercialService.getEmployeeById(id);
         return ResponseEntity.ok(employeeDetails);
+    }
+
+    @Operation(
+            summary = "Modifier un salarié",
+            description = "Met à jour les informations d'un salarié existant. " +
+                         "Le salarié doit appartenir au commercial connecté. " +
+                         "Les champs id, employeeCode, createdAt et createdBy ne peuvent pas être modifiés. " +
+                         "Si l'email ou le téléphone est modifié, il sera vérifié qu'il n'existe pas déjà."
+    )
+    @PutMapping("/employees/{id}")
+    public ResponseEntity<String> updateEmployee(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateEmployeeDTO updateEmployeeDTO
+    ) {
+        commercialService.updateEmployee(id, updateEmployeeDTO);
+        return ResponseEntity.ok("Salarié modifié avec succès");
     }
 
 }

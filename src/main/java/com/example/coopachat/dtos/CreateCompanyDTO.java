@@ -41,8 +41,8 @@ public class CreateCompanyDTO {
     private String contactEmail; // Email du contact
 
     @NotBlank(message = "Le téléphone du contact est obligatoire")
-    @Pattern(regexp = "^[0-9]{8,15}$",
-            message = "Le numéro de téléphone doit contenir entre 8 et 15 chiffres uniquement")
+    @Pattern(regexp = "^[+]?[0-9\\s\\-\\(\\)]{8,25}$",
+            message = "Le numéro de téléphone doit contenir entre 8 et 15 chiffres")
     private String contactPhone; // Téléphone du contact
 
     @NotNull(message = "Le statut de prospection est obligatoire")

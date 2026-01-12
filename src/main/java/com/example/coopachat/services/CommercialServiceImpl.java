@@ -7,6 +7,8 @@ import com.example.coopachat.entities.Users;
 import com.example.coopachat.enums.CodeType;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.enums.CompanySector;
+import com.example.coopachat.exceptions.EmailAlreadyExistsException;
+import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
 import com.example.coopachat.repositories.CompanyRepository;
 import com.example.coopachat.repositories.EmployeeRepository;
 import com.example.coopachat.repositories.UserRepository;
@@ -660,6 +662,90 @@ public class CommercialServiceImpl implements CommercialService {
                 employee.getUser().getFirstName() + " " + employee.getUser().getLastName(), commercial.getEmail());
 
         return employeeDetails;
+    }
+
+    @Override
+    public void updateEmployee(Long id, UpdateEmployeeDTO updateEmployeeDTO) {
+
+        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String userEmail = authentication.getName();
+
+        if (userEmail == null) {
+            throw new RuntimeException("Email utilisateur introuvable");
+        }
+
+        // Récupérer le commercial connecté
+        Users commercial = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+
+        // Vérifier que l'utilisateur est bien un commercial
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent modifier leurs employés");
+        }
+
+        // Récupérer l'employé par son ID
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employé introuvable"));
+
+        // Vérifier que l'employé appartient au commercial connecté
+        if (!employee.getCreatedBy().getId().equals(commercial.getId())) {
+            throw new RuntimeException("Vous n'avez pas accès à cet employé");
+        }
+        //Récupérer le compte lié à cet employé
+        Users user = employee.getUser();
+
+        // Vérifier et mettre à jour l'email si fourni et différent
+        if (updateEmployeeDTO.getEmail() != null && !updateEmployeeDTO.getEmail().equals(user.getEmail())) {
+            // Vérifier que le nouvel email n'existe pas déjà
+            if (userRepository.existsByEmail(updateEmployeeDTO.getEmail())) {
+                throw new EmailAlreadyExistsException ("Cet email est déjà utilisé");
+            }
+            user.setEmail(updateEmployeeDTO.getEmail());
+        }
+
+        // Vérifier et mettre à jour le téléphone si fourni et différent
+        if (updateEmployeeDTO.getPhone() != null && !updateEmployeeDTO.getPhone().equals(user.getPhone())) {
+            // Vérifier que le nouveau téléphone n'existe pas déjà
+            if (userRepository.existsByPhone(updateEmployeeDTO.getPhone())) {
+                throw new PhoneAlreadyExistsException("Ce numéro de téléphone est déjà utilisé");
+            }
+            user.setPhone(updateEmployeeDTO.getPhone());
+        }
+
+        // Mettre à jour les autres champs (seulement si non null)
+        if (updateEmployeeDTO.getFirstName() != null) {
+            user.setFirstName(updateEmployeeDTO.getFirstName());
+        }
+        if (updateEmployeeDTO.getLastName() != null) {
+            user.setLastName(updateEmployeeDTO.getLastName());
+        }
+        if (updateEmployeeDTO.getAddress() != null) {
+            employee.setAddress(updateEmployeeDTO.getAddress());
+        }
+
+        // Mettre à jour l'entreprise si companyId est fourni
+        if (updateEmployeeDTO.getCompanyId() != null) {
+            Company company = companyRepository.findById(updateEmployeeDTO.getCompanyId())
+                    .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
+            // Vérifier que l'entreprise appartient au commercial
+            if (!company.getCommercial().getId().equals(commercial.getId())) {
+                throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
+            }
+            employee.setCompany(company);
+        }
+
+        // Sauvegarder les modifications
+        userRepository.save(user);
+        employeeRepository.save(employee);
+
+        log.info("Employé {} modifié avec succès par le commercial {}",
+                user.getFirstName() + " " + user.getLastName(), commercial.getEmail());
     }
 
 

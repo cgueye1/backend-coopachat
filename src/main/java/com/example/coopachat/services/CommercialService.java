@@ -103,5 +103,14 @@ public interface CommercialService {
      * @throws RuntimeException si l'employé n'existe pas, n'appartient pas au commercial connecté, ou si une erreur survient
      */
     EmployeeDetailsDTO getEmployeeById(Long id);
+
+    /**
+     * Met à jour un employé existant
+     *
+     * @param id L'identifiant de l'employé à modifier
+     * @param updateEmployeeDTO Les nouvelles informations de l'employé
+     * @throws RuntimeException si l'employé n'existe pas, n'appartient pas au commercial connecté, si l'email ou le téléphone existe déjà, ou si une erreur survient
+     */
+    void updateEmployee(Long id, UpdateEmployeeDTO updateEmployeeDTO);
 }
 

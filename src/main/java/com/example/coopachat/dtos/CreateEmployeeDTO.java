@@ -28,8 +28,8 @@ public class CreateEmployeeDTO {
     private String email; // Adresse e-mail professionnelle
 
     @NotBlank(message = "Le numéro de téléphone est obligatoire")
-    @Pattern(regexp = "^[0-9]{8,15}$",
-            message = "Le numéro de téléphone doit contenir entre 8 et 15 chiffres uniquement")
+    @Pattern(regexp = "^[+]?[0-9\\s\\-\\(\\)]{8,25}$",
+            message = "Le numéro de téléphone doit contenir entre 8 et 15 chiffres")
     private String phone; // Numéro de téléphone
 
     @NotBlank(message = "L'adresse est obligatoire")
