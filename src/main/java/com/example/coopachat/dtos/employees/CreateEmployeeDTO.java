@@ -1,5 +1,5 @@
 
-package com.example.coopachat.dtos;
+package com.example.coopachat.dtos.employees;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

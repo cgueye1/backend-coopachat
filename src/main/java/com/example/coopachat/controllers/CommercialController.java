@@ -1,16 +1,17 @@
 package com.example.coopachat.controllers;
 
-import com.example.coopachat.dtos.CreateCompanyDTO;
-import com.example.coopachat.dtos.CreateEmployeeDTO;
-import com.example.coopachat.dtos.CompanyListResponseDTO;
-import com.example.coopachat.dtos.CompanyDetailsDTO;
-import com.example.coopachat.dtos.CompanyStatsDTO;
-import com.example.coopachat.dtos.UpdateCompanyDTO;
-import com.example.coopachat.dtos.UpdateCompanyStatusDTO;
-import com.example.coopachat.dtos.EmployeeListResponseDTO;
-import com.example.coopachat.dtos.EmployeeStatsDTO;
-import com.example.coopachat.dtos.EmployeeDetailsDTO;
-import com.example.coopachat.dtos.UpdateEmployeeDTO;
+import com.example.coopachat.dtos.companies.CreateCompanyDTO;
+import com.example.coopachat.dtos.employees.CreateEmployeeDTO;
+import com.example.coopachat.dtos.companies.CompanyListResponseDTO;
+import com.example.coopachat.dtos.companies.CompanyDetailsDTO;
+import com.example.coopachat.dtos.companies.CompanyStatsDTO;
+import com.example.coopachat.dtos.companies.UpdateCompanyDTO;
+import com.example.coopachat.dtos.companies.UpdateCompanyStatusDTO;
+import com.example.coopachat.dtos.employees.EmployeeListResponseDTO;
+import com.example.coopachat.dtos.employees.EmployeeStatsDTO;
+import com.example.coopachat.dtos.employees.EmployeeDetailsDTO;
+import com.example.coopachat.dtos.employees.UpdateEmployeeDTO;
+import com.example.coopachat.dtos.employees.UpdateEmployeeStatusDTO;
 import com.example.coopachat.enums.CompanySector;
 import com.example.coopachat.services.CommercialService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -195,6 +196,25 @@ public class CommercialController {
     ) {
         commercialService.updateEmployee(id, updateEmployeeDTO);
         return ResponseEntity.ok("Salarié modifié avec succès");
+    }
+
+    @Operation(
+            summary = "Activer/Désactiver un salarié",
+            description = "Active ou désactive un salarié. " +
+                         "Le salarié doit appartenir au commercial connecté. " +
+                         "Le body doit contenir 'isActive' (true pour activer, false pour désactiver)."
+    )
+    @PatchMapping("/employees/{id}/status")
+    public ResponseEntity<String> updateEmployeeStatus(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateEmployeeStatusDTO updateEmployeeStatusDTO
+    ) {
+        commercialService.updateEmployeeStatus(id, updateEmployeeStatusDTO);
+        //message = salarié activé avec succès si isActive = true, salarié désactivé avec succès si isActive = false
+        String message = updateEmployeeStatusDTO.getIsActive()
+                ? "Salarié activé avec succès"
+                : "Salarié désactivé avec succès";
+        return ResponseEntity.ok(message);
     }
 
 }

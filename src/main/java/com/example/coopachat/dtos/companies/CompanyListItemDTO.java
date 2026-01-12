@@ -1,4 +1,4 @@
-package com.example.coopachat.dtos;
+package com.example.coopachat.dtos.companies;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;

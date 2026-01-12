@@ -1,4 +1,4 @@
-package com.example.coopachat.dtos;
+package com.example.coopachat.dtos.companies;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;

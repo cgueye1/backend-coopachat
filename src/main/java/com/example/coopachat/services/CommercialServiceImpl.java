@@ -1,10 +1,10 @@
 package com.example.coopachat.services;
 
-import com.example.coopachat.dtos.*;
+import com.example.coopachat.dtos.companies.*;
+import com.example.coopachat.dtos.employees.*;
 import com.example.coopachat.entities.Company;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Users;
-import com.example.coopachat.enums.CodeType;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.enums.CompanySector;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
@@ -746,6 +746,57 @@ public class CommercialServiceImpl implements CommercialService {
 
         log.info("Employé {} modifié avec succès par le commercial {}",
                 user.getFirstName() + " " + user.getLastName(), commercial.getEmail());
+    }
+
+    @Override
+    public void updateEmployeeStatus(Long id, UpdateEmployeeStatusDTO updateEmployeeStatusDTO) {
+
+        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String userEmail = authentication.getName();
+
+        if (userEmail == null) {
+            throw new RuntimeException("Email utilisateur introuvable");
+        }
+
+        // Récupérer le commercial connecté
+        Users commercial = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+
+        // Vérifier que l'utilisateur est bien un commercial
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent modifier le statut de leurs employés");
+        }
+
+        // Récupérer l'employé par son ID
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employé introuvable"));
+
+        // Vérifier que l'employé appartient au commercial connecté
+        if (!employee.getCreatedBy().getId().equals(commercial.getId())) {
+            throw new RuntimeException("Vous n'avez pas accès à cet employé");
+        }
+
+        // Sauvegarder l'ancien statut pour le log
+        Boolean oldStatus = employee.getUser().getIsActive();
+
+        // Mettre à jour le statut
+        employee.getUser().setIsActive(updateEmployeeStatusDTO.getIsActive());
+
+        // Sauvegarder les modifications
+        userRepository.save(employee.getUser());
+
+        // Log avec l'ancien et le nouveau statut
+        //si le statut est actif, on affiche "activé", sinon on affiche "désactivé"
+        String statusChange = updateEmployeeStatusDTO.getIsActive() ? "activé" : "désactivé";
+        log.info("Employé {} {} par le commercial {} (ancien statut: {}, nouveau statut: {})",
+                employee.getUser().getFirstName() + " " + employee.getUser().getLastName(),
+                statusChange, commercial.getEmail(), oldStatus, updateEmployeeStatusDTO.getIsActive());
     }
 
 

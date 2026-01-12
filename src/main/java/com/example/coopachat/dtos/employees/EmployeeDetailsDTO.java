@@ -1,4 +1,4 @@
-package com.example.coopachat.dtos;
+package com.example.coopachat.dtos.employees;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
@@ -8,23 +8,26 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * DTO pour la liste des employés
+ * DTO pour les détails complets d'un employé
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class EmployeeListItemDTO {
+public class EmployeeDetailsDTO {
 
     private Long id;
+    private String employeeCode; // Code unique de l'employé
     private String firstName;
     private String lastName;
     private String email;
-    private String companyName;
+    private String phone;
+    private String address;
+    private String companyName; // Nom de l'entreprise
+    private Long companyId; // ID de l'entreprise pour le frondEnd
     
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt; // Date d'inscription
     
     private String status; // État actif/inactif de l'employé
-    private String employeeCode; // Code unique de l'employé
 }
 

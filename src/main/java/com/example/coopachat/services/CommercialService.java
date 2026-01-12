@@ -1,6 +1,7 @@
 package com.example.coopachat.services;
 
-import com.example.coopachat.dtos.*;
+import com.example.coopachat.dtos.companies.*;
+import com.example.coopachat.dtos.employees.*;
 import com.example.coopachat.enums.CompanySector;
 
 /**
@@ -112,5 +113,14 @@ public interface CommercialService {
      * @throws RuntimeException si l'employé n'existe pas, n'appartient pas au commercial connecté, si l'email ou le téléphone existe déjà, ou si une erreur survient
      */
     void updateEmployee(Long id, UpdateEmployeeDTO updateEmployeeDTO);
+
+    /**
+     * Active ou désactive un employé
+     *
+     * @param id L'identifiant de l'employé
+     * @param updateEmployeeStatusDTO Le nouveau statut actif/inactif
+     * @throws RuntimeException si l'employé n'existe pas, n'appartient pas au commercial connecté, ou si une erreur survient
+     */
+    void updateEmployeeStatus(Long id, UpdateEmployeeStatusDTO updateEmployeeStatusDTO);
 }
 

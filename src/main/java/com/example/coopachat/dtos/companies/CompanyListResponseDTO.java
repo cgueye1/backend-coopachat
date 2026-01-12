@@ -1,4 +1,4 @@
-package com.example.coopachat.dtos;
+package com.example.coopachat.dtos.companies;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
