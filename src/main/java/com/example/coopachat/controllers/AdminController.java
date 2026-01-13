@@ -2,6 +2,7 @@ package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
+import com.example.coopachat.dtos.products.ProductListResponseDTO;
 import com.example.coopachat.services.admin.AdminService;
 import com.example.coopachat.util.FileTransferUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -123,5 +124,24 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(e.getMessage());
         }
+    }
+
+    @Operation(
+            summary = "Lister les produits (paginé avec recherche et filtres)",
+            description = "Récupère la liste paginée de tous les produits. " +
+                         "Les paramètres 'page' (défaut: 0) et 'size' (défaut: 6) permettent de contrôler la pagination. " +
+                         "Les paramètres 'search' (recherche par nom ou code produit), 'categoryId' (filtre par  catégorie) et 'status' (filtre actif/inactif: true/false) sont optionnels."
+    )
+    @GetMapping("/products")
+    public ResponseEntity<ProductListResponseDTO> getAllProducts(
+
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Boolean status
+    ) {
+        ProductListResponseDTO response = adminService.getAllProducts(page, size, search, categoryId, status);
+        return ResponseEntity.ok(response);
     }
 }

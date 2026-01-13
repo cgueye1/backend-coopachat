@@ -2,6 +2,8 @@ package com.example.coopachat.services.admin;
 
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
+import com.example.coopachat.dtos.products.ProductListItemDTO;
+import com.example.coopachat.dtos.products.ProductListResponseDTO;
 import com.example.coopachat.entities.Category;
 import com.example.coopachat.entities.Product;
 import com.example.coopachat.entities.Users;
@@ -11,12 +13,17 @@ import com.example.coopachat.repositories.ProductRepository;
 import com.example.coopachat.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Implémentation du service de gestion des actions de l'administrateur
@@ -140,5 +147,131 @@ public class AdminServiceImpl implements AdminService {
         } while (productRepository.existsByProductCode(productCode));
 
         return productCode;
+    }
+
+    @Override
+    public ProductListResponseDTO getAllProducts(int page, int size, String search, Long categoryId, Boolean status) {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users admin = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Administrateur
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut consulter la liste des produits");
+        }
+
+        // Créer l'objet Pageable pour la pagination
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Normaliser le terme de recherche
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        // Récupérer la catégorie si categoryId est fourni
+        Category category = null;
+        if (categoryId != null) {
+            category = categoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new RuntimeException("Catégorie introuvable"));
+        }
+
+        // Récupérer la page de produits selon les filtres fournis
+        Page<Product> productPage;
+
+        // Cas 1 : Recherche + Catégorie + Statut
+        if (searchTerm != null && category != null && status != null) {
+            productPage = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndCategoryAndStatus(
+                    searchTerm, searchTerm, category, status, pageable);
+        }
+        // Cas 2 : Recherche + Catégorie (pas de statut)
+        else if (searchTerm != null && category != null) {
+            productPage = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndCategory(
+                    searchTerm, searchTerm, category, pageable);
+        }
+        // Cas 3 : Recherche + Statut (pas de catégorie)
+        else if (searchTerm != null && status != null) {
+            productPage = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndStatus(
+                    searchTerm, searchTerm, status, pageable);
+        }
+        // Cas 4 : Recherche seulement (pas de catégorie, pas de statut)
+        else if (searchTerm != null) {
+            productPage = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCase(
+                    searchTerm, searchTerm, pageable);
+        }
+        // Cas 5 : Catégorie + Statut (pas de recherche)
+        else if (category != null && status != null) {
+            productPage = productRepository.findByCategoryAndStatus(category, status, pageable);
+        }
+        // Cas 6 : Catégorie seulement (pas de recherche, pas de statut)
+        else if (category != null) {
+            productPage = productRepository.findByCategory(category, pageable);
+        }
+        // Cas 7 : Statut seulement (pas de recherche, pas de catégorie)
+        else if (status != null) {
+            productPage = productRepository.findByStatus(status, pageable);
+        }
+        // Cas 8 : Aucun filtre (tous les produits)
+        else {
+            productPage = productRepository.findAll(pageable);
+        }
+
+        // Mapper les entités Product vers ProductListItemDTO
+        List<ProductListItemDTO> productList = productPage.getContent().stream()
+                .map(this::mapToProductListItemDTO)
+                .collect(Collectors.toList());
+
+        // Créer la réponse avec pagination
+        ProductListResponseDTO response = new ProductListResponseDTO();
+        response.setContent(productList);
+        response.setTotalElements(productPage.getTotalElements());
+        response.setTotalPages(productPage.getTotalPages());
+        response.setCurrentPage(productPage.getNumber());
+        response.setPageSize(productPage.getSize());
+        response.setHasNext(productPage.hasNext());
+        response.setHasPrevious(productPage.hasPrevious());
+
+        log.info("Page {} de {} produits récupérée par l'administrateur {} (total: {} produits, recherche: '{}', catégorie: {}, statut: {})",
+                page + 1, productPage.getTotalPages(), admin.getEmail(), productPage.getTotalElements(),
+                searchTerm != null ? searchTerm : "aucune", categoryId != null ? category.getName() : "toutes", status != null ? status : "tous");
+
+        return response;
+    }
+
+    /**
+     * Convertit le booléen status en statut textuel pour l'affichage
+     *
+     * @param status L'état actif/inactif du produit
+     * @return "Actif" si true, "Inactif" si false
+     */
+    private String status(Boolean status) {
+        if (status != null && status) {
+            return "Actif";
+        }
+        return "Inactif";
+    }
+
+    /**
+     * Mappe une entité Product vers un ProductListItemDTO
+     *
+     * @param product L'entité Product à mapper
+     * @return Le DTO correspondant
+     */
+    private ProductListItemDTO mapToProductListItemDTO(Product product) {
+        ProductListItemDTO dto = new ProductListItemDTO();
+        dto.setId(product.getId());
+        dto.setName(product.getName());
+        dto.setProductCode(product.getProductCode());
+        dto.setCategoryName(product.getCategory().getName());
+        dto.setPrice(product.getPrice());
+        dto.setCurrentStock(product.getCurrentStock());
+        dto.setImage(product.getImage());
+        dto.setUpdatedAt(product.getUpdatedAt());
+        dto.setStatus(status(product.getStatus())); // Convertit status en "Actif" ou "Inactif"
+        return dto;
     }
 }
