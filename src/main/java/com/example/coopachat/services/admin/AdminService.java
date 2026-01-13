@@ -4,6 +4,8 @@ import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
+import com.example.coopachat.dtos.products.UpdateProductDTO;
+import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
 
 /**
  * Interface pour le service de gestion des actions de l'administrateur
@@ -46,4 +48,22 @@ public interface AdminService {
      * @throws RuntimeException si le produit n'existe pas ou si une erreur survient
      */
     ProductDetailsDTO getProductById(Long id);
+
+    /**
+     * Met à jour un produit existant
+     *
+     * @param id ID du produit à modifier
+     * @param updateProductDTO Les informations à mettre à jour (tous les champs sont optionnels)
+     * @throws RuntimeException si le produit n'existe pas, si le nom existe déjà, si la catégorie n'existe pas ou si une erreur survient
+     */
+    void updateProduct(Long id, UpdateProductDTO updateProductDTO);
+
+    /**
+     * Active ou désactive un produit
+     *
+     * @param id ID du produit à activer/désactiver
+     * @param updateProductStatusDTO Le statut à appliquer (true = actif, false = inactif)
+     * @throws RuntimeException si le produit n'existe pas ou si une erreur survient
+     */
+    void updateProductStatus(Long id, UpdateProductStatusDTO updateProductStatusDTO);
 }

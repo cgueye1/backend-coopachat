@@ -5,6 +5,8 @@ import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListItemDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
+import com.example.coopachat.dtos.products.UpdateProductDTO;
+import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
 import com.example.coopachat.entities.Category;
 import com.example.coopachat.entities.Product;
 import com.example.coopachat.entities.Users;
@@ -43,7 +45,9 @@ public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
 
     // ============================================================================
+    // ============================================================================
     // 📁 GESTION DES CATÉGORIES
+    // ============================================================================
     // ============================================================================
 
     @Override
@@ -81,7 +85,9 @@ public class AdminServiceImpl implements AdminService {
     }
 
     // ============================================================================
+    // ============================================================================
     // 📦 GESTION DES PRODUITS
+    // ============================================================================
     // ============================================================================
 
     @Override
@@ -133,6 +139,10 @@ public class AdminServiceImpl implements AdminService {
                 admin.getEmail(), product.getName(), productCode);
     }
 
+    // ----------------------------------------------------------------------------
+    // 🔧 MÉTHODES UTILITAIRES POUR LES PRODUITS
+    // ----------------------------------------------------------------------------
+
     /**
      * Génère un code produit unique au format "CP-YYYY-XXX"
      */
@@ -149,6 +159,10 @@ public class AdminServiceImpl implements AdminService {
 
         return productCode;
     }
+
+    // ----------------------------------------------------------------------------
+    // 📋 LISTER LES PRODUITS
+    // ----------------------------------------------------------------------------
 
     @Override
     public ProductListResponseDTO getAllProducts(int page, int size, String search, Long categoryId, Boolean status) {
@@ -243,18 +257,9 @@ public class AdminServiceImpl implements AdminService {
         return response;
     }
 
-    /**
-     * Convertit le booléen status en statut textuel pour l'affichage
-     *
-     * @param status L'état actif/inactif du produit
-     * @return "Actif" si true, "Inactif" si false
-     */
-    private String status(Boolean status) {
-        if (status != null && status) {
-            return "Actif";
-        }
-        return "Inactif";
-    }
+    // ----------------------------------------------------------------------------
+    // 👁️ VOIR LES DÉTAILS D'UN PRODUIT
+    // ----------------------------------------------------------------------------
 
     @Override
     public ProductDetailsDTO getProductById(Long id) {
@@ -285,6 +290,23 @@ public class AdminServiceImpl implements AdminService {
                 product.getName(), admin.getEmail());
 
         return productDetails;
+    }
+
+    // ----------------------------------------------------------------------------
+    // 🔧 MÉTHODES UTILITAIRES DE MAPPING
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Convertit le booléen status en statut textuel pour l'affichage
+     *
+     * @param status L'état actif/inactif du produit
+     * @return "Actif" si true, "Inactif" si false
+     */
+    private String status(Boolean status) {
+        if (status != null && status) {
+            return "Actif";
+        }
+        return "Inactif";
     }
 
     /**
@@ -337,5 +359,121 @@ public class AdminServiceImpl implements AdminService {
             return "En stock";
         }
         return "Rupture de stock";
+    }
+
+    // ============================================================================
+    // ============================================================================
+    // 🔄 MODIFICATION D'UN PRODUIT
+    // ============================================================================
+    // ============================================================================
+
+    @Override
+    @Transactional
+    public void updateProduct(Long id, UpdateProductDTO updateProductDTO) {
+        
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users admin = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Administrateur
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut modifier un produit");
+        }
+
+        // Récupérer le produit par son ID
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Produit introuvable"));
+
+        // Vérifier si le nom est modifié et s'il existe déjà (sauf si c'est le même nom)
+        if (updateProductDTO.getName() != null && !updateProductDTO.getName().trim().isEmpty()) {
+            String newName = updateProductDTO.getName().trim();
+            // Si le nouveau nom est différent de l'ancien, vérifier l'unicité
+            if (!newName.equals(product.getName())) {
+                if (productRepository.existsByName(newName)) {
+                    throw new RuntimeException("Un produit avec ce nom existe déjà");
+                }
+                product.setName(newName);
+            }
+        }
+
+        // Mettre à jour la description si fournie
+        if (updateProductDTO.getDescription() != null) {
+            product.setDescription(updateProductDTO.getDescription());
+        }
+
+        // Vérifier et mettre à jour la catégorie si fournie
+        if (updateProductDTO.getCategoryId() != null) {
+            Category category = categoryRepository.findById(updateProductDTO.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Catégorie introuvable"));
+            product.setCategory(category);
+        }
+
+        // Mettre à jour le prix si fourni
+        if (updateProductDTO.getPrice() != null) {
+            product.setPrice(updateProductDTO.getPrice());
+        }
+
+        // Mettre à jour le seuil minimum si fourni
+        if (updateProductDTO.getMinThreshold() != null) {
+            product.setMinThreshold(updateProductDTO.getMinThreshold());
+        }
+
+        // Mettre à jour l'image si fournie
+        if (updateProductDTO.getImage() != null && !updateProductDTO.getImage().trim().isEmpty()) {
+            product.setImage(updateProductDTO.getImage());
+        }
+
+        // Sauvegarder les modifications
+        productRepository.save(product);
+
+        log.info("Produit {} modifié avec succès par l'administrateur {}",
+                product.getName(), admin.getEmail());
+    }
+
+    // ============================================================================
+    // ============================================================================
+    // 🔄 ACTIVATION/DÉSACTIVATION D'UN PRODUIT
+    // ============================================================================
+    // ============================================================================
+
+    @Override
+    @Transactional
+    public void updateProductStatus(Long id, UpdateProductStatusDTO updateProductStatusDTO) {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users admin = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Administrateur
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut modifier le statut d'un produit");
+        }
+
+        // Récupérer le produit par son ID
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Produit introuvable"));
+
+        // Mettre à jour le statut
+        Boolean oldStatus = product.getStatus();
+        product.setStatus(updateProductStatusDTO.getStatus());
+
+        // Sauvegarder la modification
+        productRepository.save(product);
+
+        String statusChange = updateProductStatusDTO.getStatus() ? "activé" : "désactivé";
+        log.info("Produit {} {} par l'administrateur {} (ancien statut: {}, nouveau statut: {})",
+                product.getName(), statusChange, admin.getEmail(), oldStatus, updateProductStatusDTO.getStatus());
     }
 }

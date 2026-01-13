@@ -4,6 +4,8 @@ import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
+import com.example.coopachat.dtos.products.UpdateProductDTO;
+import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
 import com.example.coopachat.services.admin.AdminService;
 import com.example.coopachat.util.FileTransferUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -156,5 +158,99 @@ public class AdminController {
     ) {
         ProductDetailsDTO productDetails = adminService.getProductById(id);
         return ResponseEntity.ok(productDetails);
+    }
+
+    @Operation(
+            summary = "Modifier un produit",
+            description = "Met à jour les informations d'un produit existant. " +
+                         "Tous les champs sont optionnels - seuls les champs fournis seront mis à jour. " +
+                         "L'image est optionnelle (formats acceptés: JPG, PNG, max 5MB). " +
+                         "Le nom du produit doit être unique si modifié."
+    )
+    @PutMapping("/products/{id}")
+    public ResponseEntity<String> updateProduct(
+
+            @Parameter(description = "ID du produit à modifier")
+            @PathVariable Long id,
+
+            @Parameter(description = "Nom du produit")
+            @RequestParam(required = false) String name,
+
+            @Parameter(description = "Description du produit")
+            @RequestParam(required = false) String description,
+
+            @Parameter(description = "ID de la catégorie")
+            @RequestParam(required = false) Long categoryId,
+
+            @Parameter(description = "Prix unitaire")
+            @RequestParam(required = false) BigDecimal price,
+
+            @Parameter(description = "Seuil minimum de réapprovisionnement")
+            @RequestParam(required = false) Integer minThreshold,
+
+            @Parameter(description = "Image du produit (JPG, PNG, max 5MB)")
+            @RequestParam(required = false) MultipartFile image
+    ) {
+        try {
+            // 1. Upload de l'image si présente
+            String imageFileName = null;
+            if (image != null && !image.isEmpty()) {
+                // Vérifier le format de l'image (JPG, PNG)
+                String originalFilename = image.getOriginalFilename();
+                if (originalFilename != null) {
+                    String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+                    if (!extension.equals("jpg") && !extension.equals("jpeg") && !extension.equals("png")) {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body("Format d'image non supporté. Formats acceptés: JPG, PNG");
+                    }
+                }
+                imageFileName = FileTransferUtil.handleFileUpload(image);
+            }
+
+            // 2. Créer le DTO avec tous les champs
+            UpdateProductDTO updateProductDTO = new UpdateProductDTO();
+            updateProductDTO.setName(name);
+            updateProductDTO.setDescription(description);
+            updateProductDTO.setCategoryId(categoryId);
+            updateProductDTO.setPrice(price);
+            updateProductDTO.setMinThreshold(minThreshold);
+            updateProductDTO.setImage(imageFileName);
+
+            // 3. Appeler le service
+            adminService.updateProduct(id, updateProductDTO);
+
+            return ResponseEntity.ok("Produit modifié avec succès");
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur lors de l'upload de l'image: " + e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
+        }
+    }
+
+    @Operation(
+            summary = "Activer/Désactiver un produit",
+            description = "Active ou désactive un produit. " +
+                         "Le body doit contenir 'status' (true pour activer, false pour désactiver). " +
+                         "Un produit désactivé reste visible pour les administrateurs mais n'est plus affichable ni commandable par les salariés."
+    )
+    @PatchMapping("/products/{id}/status")
+    public ResponseEntity<String> updateProductStatus(
+            @Parameter(description = "ID du produit à activer/désactiver")
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateProductStatusDTO updateProductStatusDTO
+    ) {
+        try {
+            adminService.updateProductStatus(id, updateProductStatusDTO);
+            String message = updateProductStatusDTO.getStatus()
+                    ? "Produit activé avec succès"
+                    : "Produit désactivé avec succès";
+            return ResponseEntity.ok(message);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
+        }
     }
 }
