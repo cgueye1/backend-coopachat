@@ -32,7 +32,7 @@ public class Product {
     @Column(unique = true, nullable = true)
     private String productCode; // Code unique du produit
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     @NotBlank(message = "Le nom du produit est obligatoire")
     private String name; // Nom du produit
 

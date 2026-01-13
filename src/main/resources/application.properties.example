@@ -47,3 +47,6 @@ app.frontend.activate-employee-url=http://localhost:4200/activate?token=
 
 #Compte à rebours
 activation.code.resend.cooldown.seconds= 30
+
+spring.servlet.multipart.max-file-size=5MB
+spring.servlet.multipart.max-request-size=5MB
