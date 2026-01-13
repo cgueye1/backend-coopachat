@@ -2,6 +2,7 @@ package com.example.coopachat.services.admin;
 
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
+import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
 
 /**
@@ -36,4 +37,13 @@ public interface AdminService {
      * @return Réponse paginée contenant la liste des produits
      */
     ProductListResponseDTO getAllProducts(int page, int size, String search, Long categoryId, Boolean status);
+
+    /**
+     * Récupère les détails d'un produit par son ID
+     *
+     * @param id ID du produit
+     * @return DTO contenant les détails du produit
+     * @throws RuntimeException si le produit n'existe pas ou si une erreur survient
+     */
+    ProductDetailsDTO getProductById(Long id);
 }

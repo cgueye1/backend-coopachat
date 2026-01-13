@@ -2,6 +2,7 @@ package com.example.coopachat.services.admin;
 
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
+import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListItemDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
 import com.example.coopachat.entities.Category;
@@ -255,6 +256,37 @@ public class AdminServiceImpl implements AdminService {
         return "Inactif";
     }
 
+    @Override
+    public ProductDetailsDTO getProductById(Long id) {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users admin = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Administrateur
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut consulter les détails d'un produit");
+        }
+
+        // Récupérer le produit par son ID
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Produit introuvable"));
+
+        // Mapper vers ProductDetailsDTO
+        ProductDetailsDTO productDetails = mapToProductDetailsDTO(product);
+
+        log.info("Détails du produit {} récupérés par l'administrateur {}",
+                product.getName(), admin.getEmail());
+
+        return productDetails;
+    }
+
     /**
      * Mappe une entité Product vers un ProductListItemDTO
      *
@@ -273,5 +305,37 @@ public class AdminServiceImpl implements AdminService {
         dto.setUpdatedAt(product.getUpdatedAt());
         dto.setStatus(status(product.getStatus())); // Convertit status en "Actif" ou "Inactif"
         return dto;
+    }
+
+    /**
+     * Mappe une entité Product vers un ProductDetailsDTO
+     *
+     * @param product L'entité Product à mapper
+     * @return Le DTO de détails correspondant
+     */
+    private ProductDetailsDTO mapToProductDetailsDTO(Product product) {
+        ProductDetailsDTO dto = new ProductDetailsDTO();
+        dto.setProductCode(product.getProductCode());
+        dto.setImage(product.getImage());
+        dto.setName(product.getName());
+        dto.setDescription(product.getDescription());
+        dto.setCategoryName(product.getCategory().getName());
+        dto.setPrice(product.getPrice());
+        dto.setStatus(product.getStatus());
+        dto.setCurrentStockStatus(getStockStatus(product.getCurrentStock())); // "En stock" ou "Rupture de stock"
+        return dto;
+    }
+
+    /**
+     * Détermine le statut du stock en fonction de la quantité disponible
+     *
+     * @param currentStock La quantité en stock
+     * @return "En stock" si stock > 0, "Rupture de stock" sinon
+     */
+    private String getStockStatus(Integer currentStock) {
+        if (currentStock != null && currentStock > 0) {
+            return "En stock";
+        }
+        return "Rupture de stock";
     }
 }

@@ -2,6 +2,7 @@ package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
+import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
 import com.example.coopachat.services.admin.AdminService;
 import com.example.coopachat.util.FileTransferUtil;
@@ -134,7 +135,7 @@ public class AdminController {
     )
     @GetMapping("/products")
     public ResponseEntity<ProductListResponseDTO> getAllProducts(
-
+ 
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "6") int size,
             @RequestParam(required = false) String search,
@@ -143,5 +144,17 @@ public class AdminController {
     ) {
         ProductListResponseDTO response = adminService.getAllProducts(page, size, search, categoryId, status);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Récupérer les détails d'un produit",
+            description = "Récupère les détails complets d'un produit spécifique par son ID."
+    )
+    @GetMapping("/products/{id}")
+    public ResponseEntity<ProductDetailsDTO> getProductById(
+            @PathVariable Long id
+    ) {
+        ProductDetailsDTO productDetails = adminService.getProductById(id);
+        return ResponseEntity.ok(productDetails);
     }
 }
