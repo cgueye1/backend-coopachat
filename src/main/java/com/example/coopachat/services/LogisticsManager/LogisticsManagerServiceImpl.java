@@ -1,4 +1,4 @@
-package com.example.coopachat.services;
+package com.example.coopachat.services.LogisticsManager;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
 import com.example.coopachat.entities.Driver;

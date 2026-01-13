@@ -1,4 +1,4 @@
-package com.example.coopachat.services;
+package com.example.coopachat.services.Employee;
 
 public interface EmployeeService {
 

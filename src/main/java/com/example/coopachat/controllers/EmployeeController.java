@@ -2,7 +2,7 @@ package com.example.coopachat.controllers;
 
 
 import com.example.coopachat.dtos.auth.ResetPasswordRequestDTO;
-import com.example.coopachat.services.EmployeeService;
+import com.example.coopachat.services.Employee.EmployeeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

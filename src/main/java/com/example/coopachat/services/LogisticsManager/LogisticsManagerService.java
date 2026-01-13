@@ -1,4 +1,4 @@
-package com.example.coopachat.services;
+package com.example.coopachat.services.LogisticsManager;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
 
@@ -6,6 +6,10 @@ import com.example.coopachat.dtos.RegisterDriverRequestDTO;
  * Interface pour le service de gestion des actions du Responsable Logistique
  */
 public interface LogisticsManagerService {
+
+    // ============================================================================
+    // 🚚 GESTION DES LIVREURS
+    // ============================================================================
 
     /**
      * Crée un nouveau livreur et envoie une invitation par email

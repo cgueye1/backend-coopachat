@@ -1,4 +1,4 @@
-package com.example.coopachat.services;
+package com.example.coopachat.services.commercial;
 
 import com.example.coopachat.dtos.companies.*;
 import com.example.coopachat.dtos.employees.*;

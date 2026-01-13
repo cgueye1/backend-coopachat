@@ -13,7 +13,7 @@ import com.example.coopachat.dtos.employees.EmployeeDetailsDTO;
 import com.example.coopachat.dtos.employees.UpdateEmployeeDTO;
 import com.example.coopachat.dtos.employees.UpdateEmployeeStatusDTO;
 import com.example.coopachat.enums.CompanySector;
-import com.example.coopachat.services.CommercialService;
+import com.example.coopachat.services.commercial.CommercialService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
