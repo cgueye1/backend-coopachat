@@ -2,6 +2,7 @@ package com.example.coopachat.services.LogisticsManager;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.supplierOrders.CreateSupplierOrderDTO;
+import com.example.coopachat.dtos.supplierOrders.UpdateSupplierOrderDTO;
 
 /**
  * Interface pour le service de gestion des actions du Responsable Logistique
@@ -31,6 +32,16 @@ public interface LogisticsManagerService {
      * @throws RuntimeException si le fournisseur n'existe pas, si un produit n'existe pas ou si une erreur survient
      */
     void createSupplierOrder (CreateSupplierOrderDTO createSupplierOrderDTO);
+
+    /**
+     * Modifie une commande fournisseur existante
+     * Seules les commandes avec le statut "En attente" peuvent être modifiées
+     *
+     * @param id ID de la commande à modifier
+     * @param updateSupplierOrderDTO  Les informations à mettre à jour (tous les champs sont optionnels)
+     * @throws RuntimeException si la commande n'existe pas, si le statut ne permet pas la modification, si un produit n'existe pas ou si une erreur survient
+     */
+    void updateSupplierOrder (Long id , UpdateSupplierOrderDTO updateSupplierOrderDTO);
 }
 
 

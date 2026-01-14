@@ -3,6 +3,7 @@ package com.example.coopachat.services.LogisticsManager;
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.supplierOrders.CreateSupplierOrderDTO;
 import com.example.coopachat.dtos.supplierOrders.SupplierOrderItemDTO;
+import com.example.coopachat.dtos.supplierOrders.UpdateSupplierOrderDTO;
 import com.example.coopachat.entities.*;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import com.example.coopachat.enums.UserRole;
@@ -101,6 +102,8 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // ============================================================================
     // 📦 GESTION DES COMMANDES FOURNISSEURS
     // ============================================================================
+    @Override
+    @Transactional
     public void createSupplierOrder (CreateSupplierOrderDTO createSupplierOrderDTO){
 
         // Récupérer l'utilisateur connecté
@@ -139,29 +142,28 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         String orderNumber = generateUniqueOrderNumber();
         supplierOrder.setOrderNumber(orderNumber);
 
-        // Sauvegarder la commande
+        // Créer les items (produits) de la commande
+        for (SupplierOrderItemDTO itemDTO : createSupplierOrderDTO.getItems()) {
+            // Vérifier que le produit existe
+            Product product = productRepository.findById(itemDTO.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Produit introuvable (ID: " + itemDTO.getProductId() + ")"));
+
+            // Créer l'item de la commande
+            SupplierOrderItem orderItem = new SupplierOrderItem();
+            orderItem.setSupplierOrder(supplierOrder);
+            orderItem.setProduct(product);
+            orderItem.setQuantityOrdered(itemDTO.getQuantity());
+            orderItem.setQuantityReceived(null); // Pas encore reçu
+
+            // Ajouter l'item à la liste (le cascade s'occupera de la sauvegarde) et l'ajoutera directement dans la table SupplierOrderItems
+            supplierOrder.getItems().add(orderItem);
+        }
+
+        // Sauvegarder la commande (le cascade sauvegarde automatiquement tous les items)
         supplierOrderRepository.save(supplierOrder);
-        
-        //createSupplierOrderDTO.getItems() retourne la liste des produits (le dto SupplierOrderItemDTO) dans la commande, on va parcourir la liste et vérifier si:
-       for (SupplierOrderItemDTO itemDTO: createSupplierOrderDTO.getItems()){
-           // Vérifier que le produit existe déjà
-           Product product = productRepository.findById(itemDTO.getProductId())
-                   .orElseThrow(() -> new RuntimeException("Produit introuvable (ID: " + itemDTO.getProductId() + ")"));
 
-           // si le produit existe, on crée chaque produit de la commande comme un élément de la commande (référençant la commande qu'il appartient)
-           SupplierOrderItem orderItem = new SupplierOrderItem();
-           orderItem.setSupplierOrder(supplierOrder);
-           orderItem.setProduct(product);
-           orderItem.setQuantityOrdered(itemDTO.getQuantity());
-           orderItem.setQuantityReceived(null); // Pas encore reçu
-
-           // Sauvegarder l'item
-           supplierOrderItemRepository.save(orderItem);
-           
-           log.info("Commande fournisseur créée avec succès par {} : {} ({} produits)",
-                   user.getEmail(), orderNumber, createSupplierOrderDTO.getItems().size());
-
-       }
+        log.info("Commande fournisseur créée avec succès par {} : {} ({} produits)",
+                user.getEmail(), orderNumber, createSupplierOrderDTO.getItems().size());
     }
 
     private String generateUniqueOrderNumber() {
@@ -178,6 +180,78 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         return orderNumber;
     }
 
+    // ============================================================================
+    // 🔄 MODIFICATION D'UNE COMMANDE FOURNISSEUR
+    // ============================================================================
+    @Override
+    @Transactional
+    public void updateSupplierOrder(Long id , UpdateSupplierOrderDTO updateSupplierOrderDTO) {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut modifier une commande fournisseur");
+        }
+
+        // Récupérer la commande par son ID
+        SupplierOrder supplierOrder = supplierOrderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Commande fournisseur introuvable"));
+
+        // Vérifier que le statut permet la modification (seulement "En attente")
+        if (supplierOrder.getStatus() != SupplierOrderStatus.EN_ATTENTE) {
+            throw new RuntimeException("Seules les commandes en attente peuvent être modifiées");
+        }
+
+        // Mettre à jour la date prévue si fournie
+        if (updateSupplierOrderDTO.getExpectedDate() != null) {
+            supplierOrder.setExpectedDate(updateSupplierOrderDTO.getExpectedDate());
+        }
+
+        // Mettre à jour les notes si fournies
+        if (updateSupplierOrderDTO.getNotes() != null) {
+            supplierOrder.setNotes(updateSupplierOrderDTO.getNotes());
+        }
+
+        // Mettre à jour les items si fournis (remplacer toute la liste)
+        if (updateSupplierOrderDTO.getItems() != null) {
+
+            // Supprimer tous les anciens items (grâce à orphanRemoval = true)
+            supplierOrder.getItems().clear();
+
+            // Créer les nouveaux items
+            for (SupplierOrderItemDTO itemDTO : updateSupplierOrderDTO.getItems()) {
+
+                // Vérifier que le produit existe
+                Product product = productRepository.findById(itemDTO.getProductId())
+                        .orElseThrow(() -> new RuntimeException("Produit introuvable (ID: " + itemDTO.getProductId() + ")"));
+
+                // Créer le nouvel item
+                SupplierOrderItem orderItem = new SupplierOrderItem();
+                orderItem.setSupplierOrder(supplierOrder);
+                orderItem.setProduct(product);
+                orderItem.setQuantityOrdered(itemDTO.getQuantity());
+                orderItem.setQuantityReceived(null); // Pas encore reçu
+
+                // Ajouter l'item à la liste (le cascade s'occupera de la sauvegarde) et l'ajoutera directement dans la table SupplierOrderItems
+                supplierOrder.getItems().add(orderItem);
+            }
+
+
+        }
+        // Sauvegarder la commande (le cascade sauvegarde automatiquement les nouveaux items)
+        supplierOrderRepository.save(supplierOrder);
+        log.info("Commande fournisseur {} modifiée avec succès par {}",
+                supplierOrder.getOrderNumber(), user.getEmail());
+    }
 
 
 }

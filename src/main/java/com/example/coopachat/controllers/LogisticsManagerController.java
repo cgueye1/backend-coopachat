@@ -2,6 +2,7 @@ package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.supplierOrders.CreateSupplierOrderDTO;
+import com.example.coopachat.dtos.supplierOrders.UpdateSupplierOrderDTO;
 import com.example.coopachat.services.LogisticsManager.LogisticsManagerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -55,6 +56,27 @@ public class LogisticsManagerController {
             logisticsManagerService.createSupplierOrder(createSupplierOrderDTO);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body("Commande fournisseur créée avec succès");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
+        }
+    }
+
+    @Operation(
+            summary = "Modifier une commande fournisseur",
+            description = "Met à jour les informations d'une commande fournisseur existante. " +
+                         "Seules les commandes avec le statut 'En attente' peuvent être modifiées. " +
+                         "Tous les champs sont optionnels - seuls les champs fournis seront mis à jour. " +
+                         "Si 'items' est fourni, il remplace toute la liste des produits."
+    )
+    @PutMapping("/supplier-orders/{id}")
+    public ResponseEntity<String> updateSupplierOrder(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateSupplierOrderDTO updateSupplierOrderDTO
+    ) {
+        try {
+            logisticsManagerService.updateSupplierOrder(id, updateSupplierOrderDTO);
+            return ResponseEntity.ok("Commande fournisseur modifiée avec succès");
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(e.getMessage());
