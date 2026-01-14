@@ -3,10 +3,7 @@ package com.example.coopachat.entities;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,6 +11,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Entity représentant une commande fournisseur
@@ -30,25 +29,15 @@ public class SupplierOrder {
     private Long id;
 
     @Column(unique = true, nullable = true)
-    private String orderNumber; // Code unique de la commande (ex: "CMD-2025-001")
-
-    @Column(nullable = false)
-    @NotBlank(message = "Le nom du fournisseur est obligatoire")
-    private String supplierName; // Nom du fournisseur (saisie libre)
+    private String orderNumber; // Code unique de la commande
 
     @ManyToOne
-    @JoinColumn(name = "product_id", nullable = false)
-    @NotNull(message = "Le produit est obligatoire")
-    private Product product; // Produit commandé (un seul produit par commande)
+    @JoinColumn(name = "supplier_id", nullable = false)
+    @NotNull(message = "Le fournisseur est obligatoire")
+    private Supplier supplier; // Fournisseur référencé (dropdown)
 
-    @Column(nullable = false)
-    @NotNull(message = "La quantité commandée est obligatoire")
-    @Positive(message = "La quantité commandée doit être positive")
-    private Integer quantityOrdered; // Quantité commandée
-
-    @Column(nullable = true)
-    @PositiveOrZero(message = "La quantité reçue ne peut pas être négative")
-    private Integer quantityReceived; // Quantité reçue (peut être différent de quantityOrdered)
+    @OneToMany(mappedBy = "supplierOrder", cascade = CascadeType.ALL, orphanRemoval = true) //la suppression de la commande supprime automatiquement tous ses items.
+    private List<SupplierOrderItem> items = new ArrayList<>(); // Liste des produits dans la commande
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @CreationTimestamp

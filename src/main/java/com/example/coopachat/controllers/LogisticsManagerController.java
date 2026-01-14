@@ -1,6 +1,7 @@
 package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
+import com.example.coopachat.dtos.supplierOrders.CreateSupplierOrderDTO;
 import com.example.coopachat.services.LogisticsManager.LogisticsManagerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,6 +37,28 @@ public class LogisticsManagerController {
         logisticsManagerService.createDriver(driverDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body("Livreur créé avec succès. Un email d'invitation a été envoyé.");
+    }
+
+    // ============================================================================
+    // 📦 GESTION DES COMMANDES FOURNISSEURS
+    // ============================================================================
+
+    @Operation(
+            summary = "Créer une nouvelle commande fournisseur",
+            description = "Permet à un Responsable Logistique de créer une nouvelle commande fournisseur. " +
+                         "La commande peut contenir un ou plusieurs produits. " +
+                         "Chaque produit doit avoir une quantité commandée."
+    )
+    @PostMapping("/supplier-orders")
+    public ResponseEntity<String> createSupplierOrder(@RequestBody @Valid CreateSupplierOrderDTO createSupplierOrderDTO) {
+        try {
+            logisticsManagerService.createSupplierOrder(createSupplierOrderDTO);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body("Commande fournisseur créée avec succès");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
+        }
     }
 }
 

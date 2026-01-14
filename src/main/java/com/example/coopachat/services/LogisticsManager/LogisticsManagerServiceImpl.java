@@ -1,11 +1,12 @@
 package com.example.coopachat.services.LogisticsManager;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
-import com.example.coopachat.entities.Driver;
-import com.example.coopachat.entities.Users;
+import com.example.coopachat.dtos.supplierOrders.CreateSupplierOrderDTO;
+import com.example.coopachat.dtos.supplierOrders.SupplierOrderItemDTO;
+import com.example.coopachat.entities.*;
+import com.example.coopachat.enums.SupplierOrderStatus;
 import com.example.coopachat.enums.UserRole;
-import com.example.coopachat.repositories.DriverRepository;
-import com.example.coopachat.repositories.UserRepository;
+import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.auth.ActivationCodeService;
 import com.example.coopachat.services.auth.EmailService;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 /**
  * Implémentation du service de gestion des actions du Responsable Logistique
@@ -31,7 +34,10 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     private final UserRepository userRepository;
     private final ActivationCodeService activationCodeService;
     private final EmailService emailService;
-
+    private final SupplierRepository supplierRepository;
+    private final SupplierOrderRepository supplierOrderRepository;
+    private  final ProductRepository productRepository;
+    private final SupplierOrderItemRepository supplierOrderItemRepository;
     // ============================================================================
     // 🚚CRÉER UN LIVREUR
     // ============================================================================
@@ -91,5 +97,88 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
         log.info("Livreur créé avec succès par le Responsable Logistique: {}", logisticsManager.getEmail());
     }
+
+    // ============================================================================
+    // 📦 GESTION DES COMMANDES FOURNISSEURS
+    // ============================================================================
+    public void createSupplierOrder (CreateSupplierOrderDTO createSupplierOrderDTO){
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut créer une commande fournisseur");
+        }
+
+        // Vérifier que le fournisseur existe
+        Supplier supplier = supplierRepository.findById(createSupplierOrderDTO.getSupplierId())
+                .orElseThrow(() -> new RuntimeException("Fournisseur introuvable"));
+
+        // Vérifier que le fournisseur est actif
+        if (!supplier.getIsActive()) {
+            throw new RuntimeException("Le fournisseur sélectionné est inactif");
+        }
+
+        // Créer la commande fournisseur
+        SupplierOrder supplierOrder = new SupplierOrder();
+        supplierOrder.setSupplier(supplier);
+        supplierOrder.setExpectedDate(createSupplierOrderDTO.getExpectedDate());
+        supplierOrder.setNotes(createSupplierOrderDTO.getNotes());
+        supplierOrder.setStatus(SupplierOrderStatus.EN_ATTENTE);//statut par défaut
+        supplierOrder.setCreatedBy(user);
+
+        // Générer le numéro de commande unique (ex: "CMD-2025-001")
+        String orderNumber = generateUniqueOrderNumber();
+        supplierOrder.setOrderNumber(orderNumber);
+
+        // Sauvegarder la commande
+        supplierOrderRepository.save(supplierOrder);
+        
+        //createSupplierOrderDTO.getItems() retourne la liste des produits (le dto SupplierOrderItemDTO) dans la commande, on va parcourir la liste et vérifier si:
+       for (SupplierOrderItemDTO itemDTO: createSupplierOrderDTO.getItems()){
+           // Vérifier que le produit existe déjà
+           Product product = productRepository.findById(itemDTO.getProductId())
+                   .orElseThrow(() -> new RuntimeException("Produit introuvable (ID: " + itemDTO.getProductId() + ")"));
+
+           // si le produit existe, on crée chaque produit de la commande comme un élément de la commande (référençant la commande qu'il appartient)
+           SupplierOrderItem orderItem = new SupplierOrderItem();
+           orderItem.setSupplierOrder(supplierOrder);
+           orderItem.setProduct(product);
+           orderItem.setQuantityOrdered(itemDTO.getQuantity());
+           orderItem.setQuantityReceived(null); // Pas encore reçu
+
+           // Sauvegarder l'item
+           supplierOrderItemRepository.save(orderItem);
+           
+           log.info("Commande fournisseur créée avec succès par {} : {} ({} produits)",
+                   user.getEmail(), orderNumber, createSupplierOrderDTO.getItems().size());
+
+       }
+    }
+
+    private String generateUniqueOrderNumber() {
+        String year = String.valueOf(LocalDateTime.now().getYear());
+        String baseCode = "CMD-" + year + "-";
+        String orderNumber;
+        int counter = 1;
+
+        do {
+            orderNumber = baseCode + String.format("%03d", counter);
+            counter++;
+        } while (supplierOrderRepository.existsByOrderNumber(orderNumber));
+
+        return orderNumber;
+    }
+
+
+
 }
 

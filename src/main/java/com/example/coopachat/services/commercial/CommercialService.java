@@ -122,5 +122,7 @@ public interface CommercialService {
      * @throws RuntimeException si l'employé n'existe pas, n'appartient pas au commercial connecté, ou si une erreur survient
      */
     void updateEmployeeStatus(Long id, UpdateEmployeeStatusDTO updateEmployeeStatusDTO);
+
+
 }
 

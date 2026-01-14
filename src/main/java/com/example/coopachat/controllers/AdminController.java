@@ -266,6 +266,7 @@ public class AdminController {
                     "Les paramètres 'search' (recherche par nom ou code produit), 'categoryId' (filtre par catégorie) " +
                     "et 'status' (filtre actif/inactif: true/false) sont optionnels."
     )
+    @GetMapping("/products/export")
     public  ResponseEntity <Resource>  exportProducts(
 
             @Parameter(description = "Recherche par nom ou code produit")
