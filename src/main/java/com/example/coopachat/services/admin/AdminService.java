@@ -6,6 +6,7 @@ import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
 import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
+import org.springframework.core.io.ByteArrayResource;
 
 /**
  * Interface pour le service de gestion des actions de l'administrateur
@@ -66,4 +67,17 @@ public interface AdminService {
      * @throws RuntimeException si le produit n'existe pas ou si une erreur survient
      */
     void updateProductStatus(Long id, UpdateProductStatusDTO updateProductStatusDTO);
+
+    /**
+     * Exporte la liste des produits en fichier Excel selon les filtres.
+     * Le service retourne les données brutes (ByteArrayResource).
+     * Le controller ajoute les headers HTTP (Content-Disposition, Content-Type) pour le téléchargement et retourne ResponseEntity<Resource> (la réponse complète).
+     *
+     * @param search Terme de recherche (nom ou code produit)
+     * @param categoryId ID de la catégorie pour filtrer
+     * @param status Statut actif/inactif pour filtrer (true = actif, false = inactif)
+     * @return ByteArrayResource contenant les données brutes du fichier Excel
+     * @throws RuntimeException si une erreur survient lors de la génération du fichier
+     */
+    ByteArrayResource exportProducts(String search, Long categoryId, Boolean status);
 }

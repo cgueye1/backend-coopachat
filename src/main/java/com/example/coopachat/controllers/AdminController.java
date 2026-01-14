@@ -13,13 +13,19 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Contrôleur pour la gestion des actions de l'administrateur
@@ -252,5 +258,41 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(e.getMessage());
         }
+    }
+
+    @Operation(
+            summary = "Exporter la liste des produits en Excel",
+            description = "Exporte la liste des produits en fichier Excel (.xlsx) selon les filtres appliqués. " +
+                    "Les paramètres 'search' (recherche par nom ou code produit), 'categoryId' (filtre par catégorie) " +
+                    "et 'status' (filtre actif/inactif: true/false) sont optionnels."
+    )
+    public  ResponseEntity <Resource>  exportProducts(
+
+            @Parameter(description = "Recherche par nom ou code produit")
+            @RequestParam(required = false) String search,
+
+            @Parameter(description = "ID de la catégorie pour filtrer")
+            @RequestParam(required = false) Long categoryId,
+
+            @Parameter(description = "Statut actif/inactif pour filtrer (true = actif, false = inactif)")
+            @RequestParam(required = false) Boolean status
+
+    ){
+        try{
+            ByteArrayResource resource = adminService.exportProducts(search, categoryId, status);
+
+            // Générer le nom du fichier avec la date et l'heure actuelles
+            String fileName = "produits_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HHmm")) + ".xlsx";
+
+            // Retourner le fichier avec les headers appropriés pour le téléchargement
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(resource);
+        }catch (RuntimeException e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(null);
+        }
+
     }
 }

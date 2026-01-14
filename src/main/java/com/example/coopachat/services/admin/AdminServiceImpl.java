@@ -16,6 +16,9 @@ import com.example.coopachat.repositories.ProductRepository;
 import com.example.coopachat.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,7 +27,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -475,5 +481,151 @@ public class AdminServiceImpl implements AdminService {
         String statusChange = updateProductStatusDTO.getStatus() ? "activé" : "désactivé";
         log.info("Produit {} {} par l'administrateur {} (ancien statut: {}, nouveau statut: {})",
                 product.getName(), statusChange, admin.getEmail(), oldStatus, updateProductStatusDTO.getStatus());
+    }
+
+    // ============================================================================
+    // 📤 EXPORT DES PRODUITS EN EXCEL
+    // ============================================================================
+    @Override
+    public ByteArrayResource exportProducts(String search, Long categoryId, Boolean status) {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users admin = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Administrateur
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut exporter les produits");
+        }
+
+        // Normaliser le terme de recherche
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        // Récupérer la catégorie si categoryId est fourni
+        Category category = null;
+        if (categoryId != null) {
+            category = categoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new RuntimeException("Catégorie introuvable"));
+        }
+
+        // Récupérer tous les produits selon les filtres (sans pagination)
+        List<Product> products;
+
+        // Application des mêmes filtres que getAllProducts
+        if (searchTerm != null && category != null && status != null) {
+            products = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndCategoryAndStatus(
+                    searchTerm, searchTerm, category, status, Pageable.unpaged()).getContent();
+        } else if (searchTerm != null && category != null) {
+            products = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndCategory(
+                    searchTerm, searchTerm, category, Pageable.unpaged()).getContent();
+        } else if (searchTerm != null && status != null) {
+            products = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndStatus(
+                    searchTerm, searchTerm, status, Pageable.unpaged()).getContent();
+        } else if (searchTerm != null) {
+            products = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCase(
+                    searchTerm, searchTerm, Pageable.unpaged()).getContent();
+        } else if (category != null && status != null) {
+            products = productRepository.findByCategoryAndStatus(category, status, Pageable.unpaged()).getContent();
+        } else if (category != null) {
+            products = productRepository.findByCategory(category, Pageable.unpaged()).getContent();
+        } else if (status != null) {
+            products = productRepository.findByStatus(status, Pageable.unpaged()).getContent();
+        } else {
+            products = productRepository.findAll();
+        }
+        // Créer le workbook Excel
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Produits");
+
+            // Créer le style pour les en-têtes
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerFont.setFontHeightInPoints((short) 12);
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+            // Créer la ligne d'en-tête
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"Code Produit", "Nom", "Catégorie", "Prix (F)", "Stock", "Seuil Min", "Statut", "Date MAJ"};
+
+            //on va parcourir le tableau headers et on va créer une cellule pour chaque en-tête
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]); //on va mettre la valeur de l'en-tête dans la cellule
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Créer le style pour les cellules de données
+            CellStyle dataStyle = workbook.createCellStyle();
+            dataStyle.setAlignment(HorizontalAlignment.LEFT);
+
+            // Remplir les données
+            int rowNum = 1; //on va commencer à la deuxième ligne = 1
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy"); //on va formatter la date en français
+            
+            //on va parcourir les produits et on va créer une ligne pour chaque produit
+            for (Product product : products) {
+                Row row = sheet.createRow(rowNum++);
+
+
+                // Code produit (colonne 0)
+                Cell cell0 = row.createCell(0); //on va créer une cellule pour la colonne 0 (code produit) à la ligne courante
+                cell0.setCellValue(product.getProductCode() != null ? product.getProductCode() : ""); //on va mettre la valeur du code produit dans la cellule
+
+                // Nom
+                Cell cell1 = row.createCell(1);
+                cell1.setCellValue(product.getName());
+
+                // Catégorie
+                Cell cell2 = row.createCell(2);
+                cell2.setCellValue(product.getCategory().getName());
+
+                // Prix
+                Cell cell3 = row.createCell(3);
+                if (product.getPrice() != null) {
+                    cell3.setCellValue(product.getPrice().doubleValue());
+                }
+
+                // Stock
+                Cell cell4 = row.createCell(4);
+                cell4.setCellValue(product.getCurrentStock() != null ? product.getCurrentStock() : 0);
+
+                // Seuil minimum
+                Cell cell5 = row.createCell(5);
+                cell5.setCellValue(product.getMinThreshold() != null ? product.getMinThreshold() : 0);
+
+                // Statut
+                Cell cell6 = row.createCell(6);
+                cell6.setCellValue(product.getStatus() != null && product.getStatus() ? "Actif" : "Inactif");
+
+                // Date MAJ
+                Cell cell7 = row.createCell(7);
+                if (product.getUpdatedAt() != null) {
+                    cell7.setCellValue(product.getUpdatedAt().format(dateFormatter));
+                }
+            }
+
+            // Ajuster la largeur des colonnes
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            // Convertir le workbook en byte array pour l'envoyer au client
+            // Le navigateur attend des données binaires (bytes) pour télécharger le fichier Excel
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream); // Écrire le workbook dans le flux de sortie
+            return new ByteArrayResource(outputStream.toByteArray()); // Retourner le byte array sous forme de ByteArrayResource (enveloppe Spring qui contient les bytes du fichier Excel)
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
+        }
     }
 }
