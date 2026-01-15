@@ -1,10 +1,7 @@
 package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
-import com.example.coopachat.dtos.supplierOrders.CreateSupplierOrderDTO;
-import com.example.coopachat.dtos.supplierOrders.SupplierOrderDetailsDTO;
-import com.example.coopachat.dtos.supplierOrders.SupplierOrderListResponseDTO;
-import com.example.coopachat.dtos.supplierOrders.UpdateSupplierOrderDTO;
+import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import com.example.coopachat.services.LogisticsManager.LogisticsManagerService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -116,6 +113,16 @@ public class LogisticsManagerController {
     ){
         SupplierOrderListResponseDTO response = logisticsManagerService.getAllSupplierOrders( page, size, search, supplierId, status);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Modifier le statut d'une commande fournisseur",
+            description = "Permet de modifier le statut d'une commande fournisseur (ex: En attente, En cours, Livrée, Annulée)."
+    )
+    @PatchMapping("/suppliers-orders/{id}/status")
+    public ResponseEntity <String> updateSupplierOrderStatus (@PathVariable Long id, @RequestBody @Valid UpdateSupplierOrderStatusDTO updateSupplierOrderStatusDTO){
+        logisticsManagerService.updateSupplierOrderStatus(id, updateSupplierOrderStatusDTO);
+        return  ResponseEntity.ok("Statut de la commande mis à jour avec succès");
     }
 
 

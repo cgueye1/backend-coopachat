@@ -258,7 +258,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // ============================================================================
     // 👁️ CONSULTATION DES DÉTAILS D'UNE COMMANDE FOURNISSEUR
     // ============================================================================
-
+    @Transactional
     @Override
     public SupplierOrderDetailsDTO getSupplierOrderById(Long id) {
 
@@ -328,6 +328,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // ============================================================================
 
     @Override
+    @Transactional
     public SupplierOrderListResponseDTO getAllSupplierOrders(int page, int size, String search, Long supplierId, SupplierOrderStatus status) {
 
         // Récupérer l'utilisateur connecté
@@ -438,5 +439,46 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     }
 
 
+    // ============================================================================
+    // 🔄 MODIFICATION DU STATUT D'UNE COMMANDE FOURNISSEUR
+    // ============================================================================
+    @Override
+    @Transactional
+    public void updateSupplierOrderStatus(Long id, UpdateSupplierOrderStatusDTO updateSupplierOrderStatusDTO) {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut modifier le statut d'une commande fournisseur");
+        }
+
+        // Récupérer la commande par son ID
+        SupplierOrder supplierOrder = supplierOrderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Commande fournisseur introuvable"));
+
+        // Mettre à jour le statut
+        SupplierOrderStatus oldStatus = supplierOrder.getStatus();
+        supplierOrder.setStatus(updateSupplierOrderStatusDTO.getStatus());
+
+        // Sauvegarder la commande
+        supplierOrderRepository.save(supplierOrder);
+
+        log.info("Commande fournisseur {}: statut changé de {} à {} par {}",
+                supplierOrder.getOrderNumber(), oldStatus, updateSupplierOrderStatusDTO.getStatus(), user.getEmail());
+    }
+
 }
+
+
+
+
 

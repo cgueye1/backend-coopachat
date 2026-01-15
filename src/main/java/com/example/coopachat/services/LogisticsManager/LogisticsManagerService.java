@@ -1,10 +1,7 @@
 package com.example.coopachat.services.LogisticsManager;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
-import com.example.coopachat.dtos.supplierOrders.CreateSupplierOrderDTO;
-import com.example.coopachat.dtos.supplierOrders.SupplierOrderDetailsDTO;
-import com.example.coopachat.dtos.supplierOrders.SupplierOrderListResponseDTO;
-import com.example.coopachat.dtos.supplierOrders.UpdateSupplierOrderDTO;
+import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.enums.SupplierOrderStatus;
 
 /**
@@ -67,6 +64,16 @@ public interface LogisticsManagerService {
      * @throws RuntimeException si une erreur survient
      */
     SupplierOrderListResponseDTO getAllSupplierOrders(int page, int size, String search, Long supplierId, SupplierOrderStatus status);
+
+    /**
+     * Modifie le statut d'une commande fournisseur
+     *
+     * @param id ID de la commande à modifier
+     * @param updateSupplierOrderStatusDTO Le nouveau statut à appliquer
+     * @throws RuntimeException si la commande n'existe pas ou si une erreur survient
+     */
+    void updateSupplierOrderStatus(Long id, UpdateSupplierOrderStatusDTO updateSupplierOrderStatusDTO);
+
 }
 
 

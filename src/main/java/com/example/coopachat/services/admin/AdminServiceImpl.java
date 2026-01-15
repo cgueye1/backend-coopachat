@@ -487,6 +487,7 @@ public class AdminServiceImpl implements AdminService {
     // 📤 EXPORT DES PRODUITS EN EXCEL
     // ============================================================================
     @Override
+    @Transactional
     public ByteArrayResource exportProducts(String search, Long categoryId, Boolean status) {
 
         // Récupérer l'utilisateur connecté

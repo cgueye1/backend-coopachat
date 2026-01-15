@@ -52,6 +52,7 @@ public class CommercialServiceImpl implements CommercialService {
     // ============================================================================
 
     @Override
+    @Transactional
     public void createCompany(CreateCompanyDTO createCompanyDTO) {
 
         // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
@@ -101,6 +102,7 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     @Override
+    @Transactional
     public CompanyListResponseDTO getAllCompanies(int page, int size, String search, CompanySector sector, Boolean isActive) {
 
         // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
@@ -196,6 +198,7 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     @Override
+    @Transactional
     public CompanyDetailsDTO getCompanyById(Long id) {
 
         // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
@@ -239,6 +242,7 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     @Override
+    @Transactional
     public void updateCompany(Long id, UpdateCompanyDTO updateCompanyDTO) {
 
         // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
@@ -306,6 +310,7 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     @Override
+    @Transactional
     public void updateCompanyStatus(Long id, UpdateCompanyStatusDTO updateCompanyStatusDTO) {
 
         // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
@@ -356,6 +361,7 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     @Override
+    @Transactional
     public CompanyStatsDTO getCompanyStats() {
 
         // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
@@ -403,6 +409,7 @@ public class CommercialServiceImpl implements CommercialService {
     // ============================================================================
 
     @Override
+    @Transactional
     public void createEmployee(CreateEmployeeDTO employee) {
 
         // Récupérer l'utilisateur connecté
@@ -475,6 +482,7 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     @Override
+    @Transactional
     public EmployeeListResponseDTO getAllEmployees(int page, int size, String search, Long companyId, Boolean isActive) {
 
         // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
@@ -580,6 +588,7 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     @Override
+    @Transactional
     public EmployeeStatsDTO getEmployeeStats() {
 
         // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
@@ -622,6 +631,7 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     @Override
+    @Transactional
     public EmployeeDetailsDTO getEmployeeById(Long id) {
 
         // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
@@ -665,6 +675,7 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     @Override
+    @Transactional
     public void updateEmployee(Long id, UpdateEmployeeDTO updateEmployeeDTO) {
 
         // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
@@ -749,6 +760,7 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     @Override
+    @Transactional
     public void updateEmployeeStatus(Long id, UpdateEmployeeStatusDTO updateEmployeeStatusDTO) {
 
         // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
