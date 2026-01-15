@@ -2,7 +2,10 @@ package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.supplierOrders.CreateSupplierOrderDTO;
+import com.example.coopachat.dtos.supplierOrders.SupplierOrderDetailsDTO;
+import com.example.coopachat.dtos.supplierOrders.SupplierOrderListResponseDTO;
 import com.example.coopachat.dtos.supplierOrders.UpdateSupplierOrderDTO;
+import com.example.coopachat.enums.SupplierOrderStatus;
 import com.example.coopachat.services.LogisticsManager.LogisticsManagerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -82,6 +85,40 @@ public class LogisticsManagerController {
                     .body(e.getMessage());
         }
     }
+
+    @Operation(
+            summary = "Récupérer les détails d'une commande fournisseur",
+            description = "Récupère toutes les informations détaillées d'une commande fournisseur, " +
+                         "incluant le fournisseur, la date prévue, le statut, les notes et la liste complète des produits commandés."
+    )
+    @GetMapping("/supplier-orders/{id}")
+    public ResponseEntity<SupplierOrderDetailsDTO> getSupplierOrderById(@PathVariable Long id) {
+        try {
+            SupplierOrderDetailsDTO details = logisticsManagerService.getSupplierOrderById(id);
+            return ResponseEntity.ok(details);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(null);
+        }
+    }
+
+    @Operation(
+            summary = "Lister les commandes fournisseurs",
+            description = "Récupère la liste paginée des commandes fournisseurs avec recherche et filtres optionnels."
+    )
+    @GetMapping("/supplier-orders")
+    public ResponseEntity <SupplierOrderListResponseDTO> getAllSupplierOrders (
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long supplierId,
+            @RequestParam(required = false) SupplierOrderStatus status
+    ){
+        SupplierOrderListResponseDTO response = logisticsManagerService.getAllSupplierOrders( page, size, search, supplierId, status);
+        return ResponseEntity.ok(response);
+    }
+
+
 }
 
 

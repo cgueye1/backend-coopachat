@@ -41,5 +41,6 @@ public class SupplierOrderItem {
     @PositiveOrZero(message = "La quantité reçue ne peut pas être négative")
     private Integer quantityReceived; // Quantité reçue (peut être différent de quantityOrdered, null au départ)
 
+
 }
 

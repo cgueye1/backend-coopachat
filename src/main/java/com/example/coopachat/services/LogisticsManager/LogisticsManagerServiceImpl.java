@@ -1,9 +1,7 @@
 package com.example.coopachat.services.LogisticsManager;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
-import com.example.coopachat.dtos.supplierOrders.CreateSupplierOrderDTO;
-import com.example.coopachat.dtos.supplierOrders.SupplierOrderItemDTO;
-import com.example.coopachat.dtos.supplierOrders.UpdateSupplierOrderDTO;
+import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.entities.*;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import com.example.coopachat.enums.UserRole;
@@ -12,12 +10,16 @@ import com.example.coopachat.services.auth.ActivationCodeService;
 import com.example.coopachat.services.auth.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Implémentation du service de gestion des actions du Responsable Logistique
@@ -251,6 +253,188 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         supplierOrderRepository.save(supplierOrder);
         log.info("Commande fournisseur {} modifiée avec succès par {}",
                 supplierOrder.getOrderNumber(), user.getEmail());
+    }
+
+    // ============================================================================
+    // 👁️ CONSULTATION DES DÉTAILS D'UNE COMMANDE FOURNISSEUR
+    // ============================================================================
+
+    @Override
+    public SupplierOrderDetailsDTO getSupplierOrderById(Long id) {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter les détails d'une commande fournisseur");
+        }
+
+        // Récupérer la commande par son ID
+        SupplierOrder supplierOrder = supplierOrderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Commande fournisseur introuvable"));
+
+        // Mapper la commande vers le DTO
+        return mapToSupplierOrderDetailsDTO(supplierOrder);
+    }
+
+    /**
+     * Mappe une entité SupplierOrder vers un DTO SupplierOrderDetailsDTO
+     *
+     * @param supplierOrder L'entité SupplierOrder à mapper
+     * @return SupplierOrderDetailsDTO contenant toutes les informations de la commande
+     */
+    private SupplierOrderDetailsDTO mapToSupplierOrderDetailsDTO(SupplierOrder supplierOrder) {
+        SupplierOrderDetailsDTO dto = new SupplierOrderDetailsDTO();
+        dto.setId(supplierOrder.getId());
+        dto.setOrderNumber(supplierOrder.getOrderNumber());
+        dto.setSupplierName(supplierOrder.getSupplier().getName());
+        dto.setExpectedDate(supplierOrder.getExpectedDate());
+        dto.setStatus(supplierOrder.getStatus().getLabel()); // Récupérer le label de l'enum
+        dto.setNotes(supplierOrder.getNotes());
+
+        // Mapper les items (produits) de la commande
+        dto.setItems(supplierOrder.getItems().stream()
+                .map(this::mapToSupplierOrderItemDetailsDTO)
+                .toList());
+
+        return dto;
+    }
+
+    /**
+     * Mappe une entité SupplierOrderItem vers un DTO SupplierOrderItemDetailsDTO
+     *
+     * @param item L'entité SupplierOrderItem à mapper
+     * @return SupplierOrderItemDetailsDTO contenant les informations du produit
+     */
+    private SupplierOrderItemDetailsDTO mapToSupplierOrderItemDetailsDTO(SupplierOrderItem item) {
+        SupplierOrderItemDetailsDTO dto = new SupplierOrderItemDetailsDTO();
+        dto.setProductName(item.getProduct().getName());
+        dto.setProductCategory(item.getProduct().getCategory().getName());
+        dto.setProductImage(item.getProduct().getImage());
+        dto.setQuantityOrdered(item.getQuantityOrdered());
+        return dto;
+    }
+
+    // ============================================================================
+    // 📋 LISTE PAGINÉE DES COMMANDES FOURNISSEURS
+    // ============================================================================
+
+    @Override
+    public SupplierOrderListResponseDTO getAllSupplierOrders(int page, int size, String search, Long supplierId, SupplierOrderStatus status) {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter la liste des commandes fournisseurs");
+        }
+
+        // Normaliser le terme de recherche (supprimer les espaces)
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        // Créer l'objet Pageable pour la pagination
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Récupérer les commandes selon les différents cas (recherche + filtres)
+        Page<SupplierOrder> supplierOrderPage;
+
+        if (searchTerm != null && supplierId != null && status != null) {
+            // Cas 1 : Recherche + Filtre fournisseur + Filtre statut
+            supplierOrderPage = supplierOrderRepository.findByOrderNumberOrProductNameAndSupplierIdAndStatus(
+                    searchTerm, supplierId, status, pageable);
+        } else if (searchTerm != null && supplierId != null) {
+            // Cas 2 : Recherche + Filtre fournisseur
+            supplierOrderPage = supplierOrderRepository.findByOrderNumberOrProductNameAndSupplierId(
+                    searchTerm, supplierId, pageable);
+
+        } else if (searchTerm != null && status != null) {
+            // Cas 3 : Recherche + Filtre statut
+            supplierOrderPage = supplierOrderRepository.findByOrderNumberOrProductNameAndStatus(
+                    searchTerm, status, pageable);
+        } else if (searchTerm != null) {
+                // Cas 4 : Recherche seulement
+                supplierOrderPage = supplierOrderRepository.findByOrderNumberOrProductName(searchTerm, pageable);
+            } else if (supplierId != null && status != null) {
+                // Cas 5 : Filtre fournisseur + Filtre statut
+                supplierOrderPage = supplierOrderRepository.findBySupplierIdAndStatus(supplierId, status, pageable);
+            } else if (supplierId != null) {
+                // Cas 6 : Filtre fournisseur seulement
+                supplierOrderPage = supplierOrderRepository.findBySupplierId(supplierId, pageable);
+            } else if (status != null) {
+                // Cas 7 : Filtre statut seulement
+            supplierOrderPage = supplierOrderRepository.findByStatus(status, pageable);
+        } else {
+            // Cas 8 : Aucune recherche ni filtre
+            supplierOrderPage = supplierOrderRepository.findAll(pageable);
+        }
+
+        // Mapper les entités SupplierOrder vers SupplierOrderListItemDTO
+        List<SupplierOrderListItemDTO> orderList = supplierOrderPage.getContent().stream()
+                .map(this::mapToSupplierOrderListItemDTO)
+                .toList();
+
+
+        // Créer la réponse paginée
+        SupplierOrderListResponseDTO response = new SupplierOrderListResponseDTO();
+        response.setContent(orderList);
+        response.setTotalElements(supplierOrderPage.getTotalElements());
+        response.setTotalPages(supplierOrderPage.getTotalPages());
+        response.setCurrentPage(supplierOrderPage.getNumber());
+        response.setPageSize(supplierOrderPage.getSize());
+        response.setHasNext(supplierOrderPage.hasNext());
+        response.setHasPrevious(supplierOrderPage.hasPrevious());
+
+        return response;
+    }
+
+    /**
+     * Mappe une entité SupplierOrder vers un DTO SupplierOrderListItemDTO
+     *
+     * @param supplierOrder L'entité SupplierOrder à mapper
+     * @return SupplierOrderListItemDTO contenant les informations de la commande pour la liste
+     */
+    private SupplierOrderListItemDTO mapToSupplierOrderListItemDTO(SupplierOrder supplierOrder) {
+        SupplierOrderListItemDTO dto = new SupplierOrderListItemDTO();
+        dto.setId(supplierOrder.getId());
+        dto.setOrderNumber(supplierOrder.getOrderNumber());
+        dto.setSupplierName(supplierOrder.getSupplier().getName());
+        dto.setExpectedDate(supplierOrder.getExpectedDate());
+        dto.setStatus(supplierOrder.getStatus().getLabel()); // Récupérer le label de l'enum
+        dto.setProductsSummary ( buildProductsSummary (supplierOrder.getItems())); // Construire le résumé des produits
+        return dto;
+    }
+
+
+    /**
+    * Construit le résumé des produits d'une commande (ex: "Riz (100), Huile (50)")
+    *
+    * @param items La liste des items (produits) de la commande
+    * @return String contenant le résumé formaté des produits avec leurs quantités
+    */
+    private String buildProductsSummary (List<SupplierOrderItem> items){
+        if (items == null || items.isEmpty()){
+            return "";
+        }
+        //on va parcourir la liste des items et on va construire une chaîne de caractères avec le nom du produit et sa quantité et on va joindre les chaînes de caractères avec une virgule
+        return items.stream()
+                .map(item -> item.getProduct().getName() + " (" + item.getQuantityOrdered() + ")")
+                .collect(java.util.stream.Collectors.joining(", "));
     }
 
 
