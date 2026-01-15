@@ -125,6 +125,16 @@ public class LogisticsManagerController {
         return  ResponseEntity.ok("Statut de la commande mis à jour avec succès");
     }
 
+    @Operation(
+            summary = "Statistiques des commandes fournisseurs",
+            description = "Retourne le total des commandes, le nombre en attente, livrées et annulées."
+    )
+    @GetMapping("/supplier-orders/stats")
+    public ResponseEntity<SupplierOrderStatsDTO> getSupplierOrderStats() {
+        SupplierOrderStatsDTO stats = logisticsManagerService.getSupplierOrderStats();
+        return ResponseEntity.ok(stats);
+    }
+
 
 }
 

@@ -21,6 +21,14 @@ public interface SupplierOrderRepository extends JpaRepository <SupplierOrder, L
     */
     boolean existsByOrderNumber(String orderNumber);
 
+   /**
+    * Compte les commandes par statut
+    *
+    * @param supplierOrderStatus le statut de la commande
+    * @return la valeur
+    */
+    long countByStatus(SupplierOrderStatus supplierOrderStatus);
+
      // ============================================================================
      // 🔍 MÉTHODES DE RECHERCHE ET FILTRES
      // ============================================================================
@@ -105,5 +113,6 @@ public interface SupplierOrderRepository extends JpaRepository <SupplierOrder, L
             @Param("supplierId") Long supplierId,
             @Param("status") SupplierOrderStatus status,
             Pageable pageable);
+
 
 }

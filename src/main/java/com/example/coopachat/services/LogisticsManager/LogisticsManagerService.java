@@ -74,6 +74,15 @@ public interface LogisticsManagerService {
      */
     void updateSupplierOrderStatus(Long id, UpdateSupplierOrderStatusDTO updateSupplierOrderStatusDTO);
 
+    /**
+     * Récupère les statistiques des commandes fournisseurs
+     *
+     * @return SupplierOrderStatsDTO contenant total, pending, delivered, cancelled
+     * @throws RuntimeException si une erreur survient
+     */
+     SupplierOrderStatsDTO getSupplierOrderStats();
+
+
 }
 
 

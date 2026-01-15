@@ -476,7 +476,48 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 supplierOrder.getOrderNumber(), oldStatus, updateSupplierOrderStatusDTO.getStatus(), user.getEmail());
     }
 
+    // ============================================================================
+    // 📊 STATISTIQUES DES COMMANDES FOURNISSEURS
+    // ============================================================================
+    @Override
+    @Transactional
+    public SupplierOrderStatsDTO getSupplierOrderStats(){
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter les statistiques des commandes fournisseurs");
+        }
+
+        // Calculer les statistiques
+        long total = supplierOrderRepository.count();
+        long pending = supplierOrderRepository.countByStatus(SupplierOrderStatus.EN_ATTENTE);
+        long delivered = supplierOrderRepository.countByStatus(SupplierOrderStatus.LIVREE);
+        long cancelled = supplierOrderRepository.countByStatus(SupplierOrderStatus.ANNULEE);
+
+
+        // Créer le DTO
+        SupplierOrderStatsDTO stats = new SupplierOrderStatsDTO();
+        stats.setTotal(total);
+        stats.setPending(pending);
+        stats.setDelivered(delivered);
+        stats.setCancelled(cancelled);
+
+        return stats;
+    }
+
+
 }
+
 
 
 
