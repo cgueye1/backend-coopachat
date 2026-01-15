@@ -5,6 +5,7 @@ import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
 import com.example.coopachat.dtos.products.UpdateProductDTO;
+import com.example.coopachat.dtos.products.ProductStatsDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
 import org.springframework.core.io.ByteArrayResource;
 
@@ -80,4 +81,12 @@ public interface AdminService {
      * @throws RuntimeException si une erreur survient lors de la génération du fichier
      */
     ByteArrayResource exportProducts(String search, Long categoryId, Boolean status);
+
+    /**
+     * Récupère les statistiques des produits
+     *
+     * @return  ProductStatsDTO  contenant total, activé, désactivé
+     * @throws RuntimeException si une erreur survient
+     */
+    ProductStatsDTO getProductStats();
 }

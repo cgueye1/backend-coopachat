@@ -510,15 +510,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         long delivered = supplierOrderRepository.countByStatus(SupplierOrderStatus.LIVREE);
         long cancelled = supplierOrderRepository.countByStatus(SupplierOrderStatus.ANNULEE);
 
-
-        // Créer le DTO
-        SupplierOrderStatsDTO stats = new SupplierOrderStatsDTO();
-        stats.setTotal(total);
-        stats.setPending(pending);
-        stats.setDelivered(delivered);
-        stats.setCancelled(cancelled);
-
-        return stats;
+        return new SupplierOrderStatsDTO(total,pending,delivered,cancelled) ;
     }
 
     // ============================================================================

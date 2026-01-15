@@ -4,6 +4,7 @@ import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
+import com.example.coopachat.dtos.products.ProductStatsDTO;
 import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
 import com.example.coopachat.services.admin.AdminService;
@@ -295,5 +296,15 @@ public class AdminController {
                     .body(null);
         }
 
+    }
+
+    @Operation(
+            summary = "Récupérer les statistiques du catalogue produits",
+            description = "Retourne le nombre total de produits, le nombre de produits actifs et inactifs."
+    )
+    @GetMapping("/products/stats")
+    public ResponseEntity<ProductStatsDTO> getProductStats() {
+        ProductStatsDTO stats = adminService.getProductStats();
+        return ResponseEntity.ok(stats);
     }
 }

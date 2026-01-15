@@ -61,9 +61,16 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      */
     Page<Product> findByStatus(Boolean status, Pageable pageable);
 
+
     /**
      * Filtre par catégorie + statut
      */
     Page<Product> findByCategoryAndStatus(Category category, Boolean status, Pageable pageable);
+
+
+    /**
+     * Compter les produits par statut (actif/inactif)
+     */
+     long countByStatus(Boolean status);
 }
 

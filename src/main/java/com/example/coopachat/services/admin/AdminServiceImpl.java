@@ -5,6 +5,7 @@ import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListItemDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
+import com.example.coopachat.dtos.products.ProductStatsDTO;
 import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
 import com.example.coopachat.entities.Category;
@@ -627,5 +628,33 @@ public class AdminServiceImpl implements AdminService {
         } catch (IOException e) {
             throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
         }
+    }
+
+    // ============================================================================
+    // 📊 STATISTIQUES DU CATALOGUE PRODUITS
+    // ============================================================================
+    @Override
+    public ProductStatsDTO getProductStats() {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users admin = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Administrateur
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut consulter les statistiques des produits");
+        }
+
+        long total = productRepository.count();
+        long active = productRepository.countByStatus(true);
+        long inactive = productRepository.countByStatus(false);
+
+        return new ProductStatsDTO(total, active, inactive);
     }
 }
