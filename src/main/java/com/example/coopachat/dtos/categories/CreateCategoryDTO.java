@@ -17,3 +17,4 @@ public class CreateCategoryDTO {
     private String name; // Nom de la catégorie (ex: "Épicerie", "Boissons", "Frais", "Hygiène")
 }
 
+

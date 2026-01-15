@@ -52,3 +52,4 @@ public class StockMovement {
     private String notes; // Observations
 }
 
+

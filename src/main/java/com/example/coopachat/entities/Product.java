@@ -74,3 +74,4 @@ public class Product {
     private LocalDateTime updatedAt; // Date de modification
 }
 
+

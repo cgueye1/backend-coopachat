@@ -17,3 +17,4 @@ public class UpdateProductStatusDTO {
     private Boolean status; // Statut actif/inactif (true = actif, false = inactif)
 }
 
+

@@ -23,3 +23,4 @@ public class ProductListResponseDTO {
     private boolean hasPrevious; // Y a-t-il une page précédente ?
 }
 
+

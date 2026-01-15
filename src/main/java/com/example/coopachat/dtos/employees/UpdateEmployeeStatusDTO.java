@@ -17,3 +17,4 @@ public class UpdateEmployeeStatusDTO {
     private Boolean isActive; // true pour activer, false pour désactiver
 }
 
+

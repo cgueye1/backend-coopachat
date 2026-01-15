@@ -30,3 +30,4 @@ public class ProductListItemDTO {
     private String status; // Statut actif/inactif
 }
 
+

@@ -10,6 +10,9 @@ import com.example.coopachat.services.auth.ActivationCodeService;
 import com.example.coopachat.services.auth.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,7 +21,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -515,7 +521,117 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         return stats;
     }
 
+    // ============================================================================
+   // 📤 EXPORT DES COMMANDES FOURNISSEURS EN EXCEL
+   // ============================================================================
+    @Override
+    public ByteArrayResource exportSupplierOrders(String search, Long supplierId, SupplierOrderStatus status) {
 
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut exporter les commandes fournisseurs");
+        }
+
+        // Normaliser le terme de recherche
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        // Récupérer les commandes selon les filtres (mêmes règles que la liste)
+        List<SupplierOrder> orders;
+
+
+        if (searchTerm != null && supplierId != null && status != null) {
+            orders = supplierOrderRepository
+                    .findByOrderNumberOrProductNameAndSupplierIdAndStatus(searchTerm, supplierId, status, Pageable.unpaged())
+                    .getContent();
+        } else if (searchTerm != null && supplierId != null) {
+            orders = supplierOrderRepository
+                    .findByOrderNumberOrProductNameAndSupplierId(searchTerm, supplierId, Pageable.unpaged())
+                    .getContent();
+        } else if (searchTerm != null && status != null) {
+            orders = supplierOrderRepository
+                    .findByOrderNumberOrProductNameAndStatus(searchTerm, status, Pageable.unpaged())
+                    .getContent();
+        } else if (searchTerm != null) {
+            orders = supplierOrderRepository
+                    .findByOrderNumberOrProductName(searchTerm, Pageable.unpaged())
+                    .getContent();
+        } else if (supplierId != null && status != null) {
+            orders = supplierOrderRepository
+                    .findBySupplierIdAndStatus(supplierId, status, Pageable.unpaged())
+                    .getContent();
+        } else if (supplierId != null) {
+            orders = supplierOrderRepository
+                    .findBySupplierId(supplierId, Pageable.unpaged())
+                    .getContent();
+        } else if (status != null) {
+            orders = supplierOrderRepository
+                    .findByStatus(status, Pageable.unpaged())
+                    .getContent();
+        } else {
+            orders = supplierOrderRepository.findAll();
+        }
+        // Générer le fichier Excel (création du classeur + feuille)
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Commandes Fournisseurs");
+
+            // Style simple pour l'en-tête (gras)
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            // Colonnes du tableau Excel
+            String[] headers = {"Référence", "Fournisseur", "Date prévue", "Produits", "Statut"};
+            Row headerRow = sheet.createRow(0);
+            
+            //parcourir le tableau des headers et créer une cellule pour chaque en-tête
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+
+            // Remplir les lignes avec les commandes
+            int rowNum = 1; // la première ligne est l'en-tête
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            
+            //parcourir la liste des commandes et créer une ligne pour chaque commande
+            for (SupplierOrder order : orders) {
+                Row row = sheet.createRow(rowNum++);
+
+                row.createCell(0).setCellValue(order.getOrderNumber());
+                row.createCell(1).setCellValue(order.getSupplier().getName());
+                row.createCell(2).setCellValue(order.getExpectedDate() != null
+                        ? order.getExpectedDate().format(dateFormatter) : "");
+                row.createCell(3).setCellValue(buildProductsSummary(order.getItems()));
+                row.createCell(4).setCellValue(order.getStatus().getLabel());
+
+            }
+            // Ajuster la largeur des colonnes pour une meilleure lecture
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+            // Convertir le classeur en bytes pour l'envoyer au client
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            return new ByteArrayResource(outputStream.toByteArray());
+
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
+        }
+
+    }
 }
 
 

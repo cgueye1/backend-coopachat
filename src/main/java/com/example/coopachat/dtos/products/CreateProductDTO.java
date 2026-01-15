@@ -40,3 +40,4 @@ public class CreateProductDTO {
     private Integer minThreshold = 0; // Seuil minimum de réapprovisionnement (optionnel, défaut: 0)
 }
 
+

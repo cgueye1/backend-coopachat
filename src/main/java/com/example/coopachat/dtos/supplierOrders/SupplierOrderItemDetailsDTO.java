@@ -21,3 +21,4 @@ public class SupplierOrderItemDetailsDTO {
     private Integer quantityOrdered; // Quantité commandée
 }
 
+

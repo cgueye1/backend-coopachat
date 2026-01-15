@@ -25,3 +25,4 @@ public class Category {
     private String name; // Nom de la catégorie (ex: "Épicerie", "Boissons",...)
 }
 
+

@@ -32,3 +32,4 @@ public class SupplierOrderDetailsDTO {
     private List<SupplierOrderItemDetailsDTO> items; // Liste des produits commandés
 }
 
+

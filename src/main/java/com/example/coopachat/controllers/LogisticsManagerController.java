@@ -8,9 +8,16 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Contrôleur pour la gestion des actions du Responsable Logistique
@@ -134,8 +141,31 @@ public class LogisticsManagerController {
         SupplierOrderStatsDTO stats = logisticsManagerService.getSupplierOrderStats();
         return ResponseEntity.ok(stats);
     }
+    // ============================================================================
+    // 📤 EXPORT DES COMMANDES FOURNISSEURS
+    // ============================================================================
+    @GetMapping("/supplier-orders/export")
+    public ResponseEntity<Resource> exportSupplierOrders(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long supplierId,
+            @RequestParam(required = false) SupplierOrderStatus status
+    ) {
+        ByteArrayResource resource = logisticsManagerService.exportSupplierOrders(search, supplierId, status);
+
+        // Générer le nom du fichier avec la date et l'heure actuelles
+        String fileName = "Commandes Fournisseurs_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HHmm")) + ".xlsx";
 
 
+        // Retourner le fichier avec les headers appropriés pour le téléchargement
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"");
+        headers.setContentType(MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(resource);
+
+        }
 }
 
 

@@ -24,3 +24,4 @@ public class ProductDetailsDTO {
     private String currentStockStatus; //statut (En Stock/Rupture)
 }
 
+

@@ -45,3 +45,4 @@ public class Supplier {
     private Boolean isActive = true; // Statut actif/inactif (défaut: true)
 }
 
+

@@ -29,3 +29,4 @@ public class SupplierOrderListItemDTO {
     private String status; // Statut de la commande (label de l'enum)
 }
 
+

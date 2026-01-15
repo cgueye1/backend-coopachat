@@ -27,3 +27,4 @@ public class UpdateSupplierOrderDTO {
     private List<SupplierOrderItemDTO> items; // Liste des produits (optionnel - si fourni, remplace toute la liste)
 }
 
+

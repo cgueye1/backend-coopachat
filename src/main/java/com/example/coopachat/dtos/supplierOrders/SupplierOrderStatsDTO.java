@@ -21,3 +21,4 @@ public class SupplierOrderStatsDTO {
     private long cancelled; // Commandes annulées
 }
 
+
