@@ -1,6 +1,8 @@
 package com.example.coopachat.services.LogisticsManager;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
+import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
+import com.example.coopachat.dtos.products.StockStatsDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import org.springframework.core.io.ByteArrayResource;
@@ -95,6 +97,87 @@ public interface LogisticsManagerService {
      * @throws RuntimeException si une erreur survient lors de la génération
      */
      ByteArrayResource exportSupplierOrders (String search ,Long supplierId, SupplierOrderStatus status );
+
+    /**
+     * Récupère la liste paginée du suivi des stocks avec recherche et filtres
+     *
+     * @param page Numéro de la page (0-indexed)
+     * @param size Taille de la page
+     * @param search Terme de recherche (référence ou produit)
+     * @param categoryId ID de la catégorie pour filtrer
+     * @param status Statut actif/inactif pour filtrer
+     * @return ProductStockListResponseDTO contenant la liste paginée des stocks
+     * @throws RuntimeException si une erreur survient
+     */
+    ProductStockListResponseDTO getStockList(int page, int size, String search, Long categoryId, Boolean status);
+
+    /**
+     * Augmente le stock d'un produit
+     *
+     * @param productId ID du produit
+     * @param quantity Quantité à ajouter (doit être positive)
+     * @throws RuntimeException si le produit n'existe pas ou si une erreur survient
+     */
+    void increaseStock(Long productId, Integer quantity);
+
+    /**
+     * Diminue le stock d'un produit
+     *
+     * @param productId ID du produit
+     * @param quantity Quantité à retirer (doit être positive)
+     * @throws RuntimeException si le produit n'existe pas, si le stock est insuffisant ou si une erreur survient
+     */
+    void decreaseStock(Long productId, Integer quantity);
+
+    /**
+     * Met à jour le seuil minimum de stock d'un produit
+     *
+     * @param productId ID du produit
+     * @param minThreshold Nouveau seuil minimum (>= 0)
+     * @throws RuntimeException si le produit n'existe pas ou si une erreur survient
+     */
+    void updateMinThreshold(Long productId, Integer minThreshold);
+
+    /**
+     * Met à jour le seuil minimum en appliquant un pourcentage sur le seuil actuel
+     *
+     * @param productId ID du produit
+     * @param percent Pourcentage à appliquer (ex: 10 pour +10%)
+     * @throws RuntimeException si le produit n'existe pas ou si une erreur survient
+     */
+    void updateMinThresholdByPercent(Long productId, Integer percent);
+
+    /**
+     * Récupère les statistiques du suivi des stocks
+     *
+     * @return StockStatsDTO contenant total, sous-seuil et ruptures
+     * @throws RuntimeException si une erreur survient
+     */
+    StockStatsDTO getStockStats();
+
+    /**
+     * Récupère la liste paginée des produits en alerte de stock (stock < seuil)
+     *
+     * @param page Numéro de la page (0-indexed)
+     * @param size Taille de la page
+     * @param search Terme de recherche (référence ou produit) - optionnel
+     * @param categoryId ID de la catégorie pour filtrer - optionnel
+     * @return ProductStockListResponseDTO contenant la liste paginée des alertes
+     * @throws RuntimeException si une erreur survient
+     */
+    ProductStockListResponseDTO getStockAlerts(int page, int size, String search, Long categoryId);
+
+    /**
+     * Exporte la liste des alertes de stock en fichier Excel
+     * Le service retourne les données brutes (ByteArrayResource).
+     * Le controller ajoute les headers HTTP (Content-Disposition, Content-Type) pour le téléchargement et retourne ResponseEntity<Resource> (la réponse complète).
+     *
+     * @param search Terme de recherche (référence ou produit) - optionnel
+     * @param categoryId ID de la catégorie pour filtrer - optionnel
+     * @return ByteArrayResource contenant le fichier Excel
+     * @throws RuntimeException si une erreur survient lors de la génération
+     */
+    ByteArrayResource exportStockAlerts(String search, Long categoryId);
 
 }
 

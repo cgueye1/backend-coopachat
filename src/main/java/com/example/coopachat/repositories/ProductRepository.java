@@ -5,6 +5,8 @@ import com.example.coopachat.entities.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -67,10 +69,50 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      */
     Page<Product> findByCategoryAndStatus(Category category, Boolean status, Pageable pageable);
 
+    // ============================================================================
+    // 🔍 Statistiques
+    // ============================================================================
 
     /**
      * Compter les produits par statut (actif/inactif)
      */
      long countByStatus(Boolean status);
+
+    /**
+     * Compter les produits avec un stock exact (ex: 0 pour rupture)
+     */
+    long countByCurrentStock(Integer currentStock);
+
+    /**
+     * Compter les produits sous seuil (stock > 0 (car si stock = 0 ça sera une rupture )et stock < seuil)
+     */
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.currentStock > 0 AND p.currentStock < p.minThreshold")
+    long countLowStock();
+
+    /**
+     * Récupère les produits en alerte de stock (stock actuel < seuil minimum).
+     * de façon simplifiée
+     *
+     * Cette requête permet un filtrage optionnel par :
+     * - mot-clé de recherche (`search`) sur le nom ou le code du produit
+     *   (recherche insensible à la casse grâce à LOWER)
+     * - catégorie du produit
+     *
+     * Si un paramètre est NULL, le filtre correspondant est ignoré.
+     * Les résultats sont retournés sous forme paginée.
+     */
+
+    @Query("""
+        SELECT p FROM Product p
+        WHERE p.currentStock < p.minThreshold
+          AND (:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
+               OR LOWER(p.productCode) LIKE LOWER(CONCAT('%', :search, '%')))
+          AND (:category IS NULL OR p.category = :category)
+        """)
+    Page<Product> findStockAlerts(
+            @Param("search") String search,
+            @Param("category") Category category,
+            Pageable pageable
+    );
 }
 

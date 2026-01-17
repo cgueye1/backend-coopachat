@@ -1,8 +1,12 @@
 package com.example.coopachat.services.LogisticsManager;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
+import com.example.coopachat.dtos.products.ProductStockListItemDTO;
+import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
+import com.example.coopachat.dtos.products.StockStatsDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.entities.*;
+import com.example.coopachat.enums.EtatStock;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.repositories.*;
@@ -47,6 +51,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     private final SupplierOrderRepository supplierOrderRepository;
     private  final ProductRepository productRepository;
     private final SupplierOrderItemRepository supplierOrderItemRepository;
+    private final CategoryRepository categoryRepository;
     // ============================================================================
     // 🚚CRÉER UN LIVREUR
     // ============================================================================
@@ -593,7 +598,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 cell.setCellStyle(headerStyle);
             }
 
-
             // Remplir les lignes avec les commandes
             int rowNum = 1; // la première ligne est l'en-tête
             DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -623,6 +627,452 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
         }
 
+    }
+
+    // ============================================================================
+    // 📦 LISTE DES STOCKS (PAGINÉE)
+    // ============================================================================
+    @Override
+    @Transactional
+    public ProductStockListResponseDTO getStockList (int page , int size , String search, Long categoryId , Boolean status ){
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter le suivi des stocks");
+        }
+
+        // Normalisation du terme de recherche :
+        // - suppression des espaces inutiles
+        // - conversion en null si vide, afin de désactiver le filtre dans la requête
+        String searchTerm = (search != null && !search.trim().isEmpty())
+                ? search.trim()
+                : null;
+
+        // Créer l'objet Pageable pour la pagination
+        Pageable pageable = PageRequest.of(page, size);
+
+        //Récupérer la ctégorie si pas null
+        Category category = null;
+        if (categoryId != null) {
+            category = categoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new RuntimeException("Catégorie introuvable"));
+        }
+        // Récupérer la page des produits selon les différents cas
+        Page<Product> productPage;
+        if (searchTerm != null && category != null && status != null) {
+            productPage = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndCategoryAndStatus(
+                    searchTerm, searchTerm, category, status, pageable);
+        } else if (searchTerm != null && category != null) {
+            productPage = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndCategory(
+                    searchTerm, searchTerm, category, pageable);
+        } else if (searchTerm != null && status != null) {
+            productPage = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndStatus(
+                    searchTerm, searchTerm, status, pageable);
+        } else if (searchTerm != null) {
+            productPage = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCase(
+                    searchTerm, searchTerm, pageable);
+        } else if (category != null && status != null) {
+            productPage = productRepository.findByCategoryAndStatus(category, status, pageable);
+        } else if (category != null) {
+            productPage = productRepository.findByCategory(category, pageable);
+        } else if (status != null) {
+            productPage = productRepository.findByStatus(status, pageable);
+        } else {
+            productPage = productRepository.findAll(pageable);
+        }
+
+        // Mapper les résultats en ProductStockListItemDTO
+        // On parcourt les produits et on calcule l'état du stock
+        List<ProductStockListItemDTO> items = productPage.getContent().stream().map(product -> {
+
+            // Valeurs par défaut si null
+            Integer currentStock = product.getCurrentStock() != null ? product.getCurrentStock() : 0;
+            Integer minThreshold = product.getMinThreshold() != null ? product.getMinThreshold() : 0;
+
+            // Définir l'état du stock pour chaque produit
+            EtatStock etatStock ; // valeur par défaut
+
+            //Définir l'état du  stock selon les différents cas
+            if (currentStock == 0) {
+                etatStock = EtatStock.RUPTURE;
+            } else if (currentStock <= minThreshold) {
+                etatStock = EtatStock.SOUS_SEUIL;
+            } else {
+                etatStock = EtatStock.SUFFISANT;
+            }
+            // Utiliser directement le constructeur pour remplir le DTO
+            return new ProductStockListItemDTO(
+                    product.getId(),
+                    product.getName(),
+                    product.getProductCode(),
+                    product.getCategory() != null ? product.getCategory().getName() : null,
+                    product.getImage(),
+                    currentStock,
+                    minThreshold,
+                    etatStock
+            );
+        }).toList();
+        // Utiliser directement le constructeur pour remplir la réponse paginée
+        return  new ProductStockListResponseDTO(items , productPage.getTotalElements(),productPage.getTotalPages(), productPage.getNumber(), productPage.getSize(),productPage.hasNext(),productPage.hasPrevious());
+
+
+    }
+
+    // ============================================================================
+    // ➕ ENTRÉE DE STOCK
+    // ============================================================================
+    @Override
+    @Transactional
+    public void increaseStock(Long productId, Integer quantity) {
+        if (quantity == null || quantity <= 0) {
+            throw new RuntimeException("La quantité doit être positive");
+        }
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut modifier le stock");
+        }
+
+        // Récupérer le produit
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Produit introuvable"));
+
+        int currentStock = product.getCurrentStock() != null ? product.getCurrentStock() : 0;
+        product.setCurrentStock(currentStock + quantity);
+
+        productRepository.save(product);
+    }
+
+    // ============================================================================
+    // ➖ SORTIE DE STOCK
+    // ============================================================================
+    @Override
+    @Transactional
+    public void decreaseStock(Long productId, Integer quantity) {
+        if (quantity == null || quantity <= 0) {
+            throw new RuntimeException("La quantité doit être positive");
+        }
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut modifier le stock");
+        }
+
+        // Récupérer le produit
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Produit introuvable"));
+
+        //vérifier si le stock est suffisant pour le diminuer
+        int currentStock = product.getCurrentStock() != null ? product.getCurrentStock() : 0;
+        if (quantity > currentStock) {
+            throw new RuntimeException("Stock insuffisant");
+        }
+        // si oui , on diminue le stock actuel
+        product.setCurrentStock(currentStock - quantity);
+        productRepository.save(product);
+    }
+
+    // ============================================================================
+    // ✏️ MODIFICATION DU SEUIL MINIMUM
+    // ============================================================================
+    @Override
+    @Transactional
+    public void updateMinThreshold(Long productId, Integer minThreshold) {
+        if (minThreshold == null || minThreshold < 0) {
+            throw new RuntimeException("Le seuil minimum doit être positif ou égal à 0");
+        }
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut modifier le seuil minimum");
+        }
+
+        // Récupérer le produit
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Produit introuvable"));
+
+        product.setMinThreshold(minThreshold);
+        productRepository.save(product);
+    }
+
+    // ============================================================================
+    // ✏️ MODIFICATION DU SEUIL MINIMUM PAR POURCENTAGE
+    // ============================================================================
+    @Override
+    @Transactional
+    public void updateMinThresholdByPercent(Long productId, Integer percent) {
+
+        if (percent == null || percent <= 0) {
+            throw new RuntimeException("Le pourcentage doit être positif");
+        }
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut modifier le seuil minimum");
+        }
+
+        // Récupérer le produit
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Produit introuvable"));
+        
+        //Récupérer le seuil minimum actuel
+        Integer currentThreshold = product.getMinThreshold() != null ? product.getMinThreshold() : 0;
+
+        //Calculer le delta (la variation ) en fonction du pourcentage
+        int delta = (int) Math.round(currentThreshold * (percent / 100.0)); // ex: Combien vaut 10 % de 20 (le seuil) ? et prendre le nombre l'ajouter à notre valeur actuelle
+    
+        int newThreshold = currentThreshold + delta;
+
+        product.setMinThreshold(newThreshold);
+        productRepository.save(product);
+    }
+
+    // ============================================================================
+    // 📊 STATISTIQUES DU SUIVI DES STOCKS
+    // ============================================================================
+    @Override
+    @Transactional
+    public StockStatsDTO getStockStats() {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter les statistiques des stocks");
+        }
+
+        long total = productRepository.count();
+        long lowStock = productRepository.countLowStock();
+        long outOfStock = productRepository.countByCurrentStock(0);
+
+        return new StockStatsDTO(total, lowStock, outOfStock);
+    }
+
+    // ============================================================================
+    // ⚠️ LISTE DES ALERTES DE RÉAPPROVISIONNEMENT (PAGINÉE)
+    // ============================================================================
+    @Override
+    @Transactional
+    public ProductStockListResponseDTO getStockAlerts(int page, int size, String search, Long categoryId) {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter les alertes de stock");
+        }
+
+
+        // Normalisation du terme de recherche :
+        // - suppression des espaces inutiles
+        // - conversion en null si vide, afin de désactiver le filtre dans la requête
+        String searchTerm = (search != null && !search.trim().isEmpty())
+                ? search.trim()
+                : null;
+
+        // Créer l'objet Pageable pour la pagination
+        Pageable pageable = PageRequest.of(page, size);
+
+        //Récupérer la Catégorie si fournie
+        Category category = null;
+        if (categoryId != null) {
+            category = categoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new RuntimeException("Catégorie introuvable"));
+        }
+        // Récupérer la page des produits selon le filtre
+        Page<Product> productPage = productRepository.findStockAlerts(searchTerm, category, pageable);
+
+        // Mapper les résultats en ProductStockListItemDTO
+        List<ProductStockListItemDTO> items = productPage.getContent().stream()
+                .map(this::mapToProductStockAlertDTO)
+                .toList();
+
+        //retourner la réponse
+        return new ProductStockListResponseDTO(
+                items,
+                productPage.getTotalElements(),
+                productPage.getTotalPages(),
+                productPage.getNumber(),
+                productPage.getSize(),
+                productPage.hasNext(),
+                productPage.hasPrevious()
+        );
+    }
+
+    /**
+     * Mappe un produit vers ProductStockListItemDTO pour la liste d'alertes
+     */
+    private ProductStockListItemDTO mapToProductStockAlertDTO(Product product) {
+        Integer currentStock = product.getCurrentStock() != null ? product.getCurrentStock() : 0;
+        Integer minThreshold = product.getMinThreshold() != null ? product.getMinThreshold() : 0;
+
+        return new ProductStockListItemDTO(
+                product.getId(),
+                product.getName(),
+                product.getProductCode(),
+                product.getCategory() != null ? product.getCategory().getName() : null,
+                product.getImage(),
+                currentStock,
+                minThreshold,
+                EtatStock.SOUS_SEUIL
+        );
+    }
+
+    // ============================================================================
+    // 📤 EXPORT DES ALERTES DE STOCK
+    // ============================================================================
+    @Override
+    @Transactional
+    public ByteArrayResource exportStockAlerts(String search, Long categoryId) {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut exporter les alertes de stock");
+        }
+
+        // Normalisation du terme de recherche :
+        // - suppression des espaces inutiles
+        // - conversion en null si vide, afin de désactiver le filtre dans la requête
+        String searchTerm = (search != null && !search.trim().isEmpty())
+                ? search.trim()
+                : null;
+
+
+        //Récupérer la Catégorie si fournie
+        Category category = null;
+        if (categoryId != null) {
+            category = categoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new RuntimeException("Catégorie introuvable"));
+        }
+
+        //Récupérer la liste des produits à exporter
+        List<Product> products = productRepository
+                .findStockAlerts(searchTerm, category, Pageable.unpaged())
+                .getContent();
+
+        // Générer le fichier Excel (création du classeur + feuille)
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Alertes Stock");
+
+            // Style simple pour l'en-tête (gras)
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            // Colonnes du tableau Excel (sans statut)
+            String[] headers = {"Référence", "Produit", "Catégorie", "Stock", "Seuil"};
+            Row headerRow = sheet.createRow(0);
+
+            //parcourir le tableau des headers et créer une cellule pour chaque en-tête
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Remplir les lignes avec les produits
+            int rowNum = 1; // la première ligne est l'en-tête
+
+
+            //parcourir la liste des produits et créer une ligne pour chaque produit dont les cellules contiendront les infos du produit concerné
+            for (Product product : products) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(product.getProductCode() != null ? product.getProductCode() : "");
+                row.createCell(1).setCellValue(product.getName());
+                row.createCell(2).setCellValue(product.getCategory() != null ? product.getCategory().getName() : "");
+                row.createCell(3).setCellValue(product.getCurrentStock() != null ? product.getCurrentStock() : 0);
+                row.createCell(4).setCellValue(product.getMinThreshold() != null ? product.getMinThreshold() : 0);
+            }
+
+            // Ajuster la largeur des colonnes pour une meilleure lecture
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            // Convertir le classeur en bytes pour l'envoyer au client
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            return new ByteArrayResource(outputStream.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
+        }
     }
 }
 

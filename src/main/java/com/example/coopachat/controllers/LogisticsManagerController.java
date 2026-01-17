@@ -1,6 +1,8 @@
 package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
+import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
+import com.example.coopachat.dtos.products.StockStatsDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import com.example.coopachat.services.LogisticsManager.LogisticsManagerService;
@@ -120,6 +122,140 @@ public class LogisticsManagerController {
     ){
         SupplierOrderListResponseDTO response = logisticsManagerService.getAllSupplierOrders( page, size, search, supplierId, status);
         return ResponseEntity.ok(response);
+    }
+
+    // ============================================================================
+    // 📦 SUIVI DES STOCKS
+    // ============================================================================
+    @Operation(
+            summary = "Lister le suivi des stocks",
+            description = "Récupère la liste paginée des produits pour le suivi des stocks avec recherche et filtres optionnels."
+    )
+    @GetMapping("/stocks")
+    public ResponseEntity<ProductStockListResponseDTO> getStockList(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Boolean status
+    ) {
+        ProductStockListResponseDTO response = logisticsManagerService.getStockList(page, size, search, categoryId, status);
+        return ResponseEntity.ok(response);
+    }
+
+    // ============================================================================
+    // ➕/➖ MOUVEMENTS DE STOCK
+    // ============================================================================
+    @Operation(
+            summary = "Entrée de stock",
+            description = "Augmente le stock d'un produit (quantité positive)."
+    )
+    @PostMapping("/stocks/{productId}/in")
+    public ResponseEntity<String> increaseStock(
+            @PathVariable Long productId,
+            @RequestParam Integer quantity
+    ) {
+        try {
+            logisticsManagerService.increaseStock(productId, quantity);
+            return ResponseEntity.ok("Stock augmenté avec succès");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @Operation(
+            summary = "Sortie de stock",
+            description = "Diminue le stock d'un produit (quantité positive)."
+    )
+    @PostMapping("/stocks/{productId}/out")
+    public ResponseEntity<String> decreaseStock(
+            @PathVariable Long productId,
+            @RequestParam Integer quantity
+    ) {
+        try {
+            logisticsManagerService.decreaseStock(productId, quantity);
+            return ResponseEntity.ok("Stock diminué avec succès");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @Operation(
+            summary = "Modifier le seuil minimum",
+            description = "Met à jour le seuil minimum de stock d'un produit."
+    )
+    @PatchMapping("/stocks/{productId}/threshold")
+    public ResponseEntity<String> updateMinThreshold(
+            @PathVariable Long productId,
+            @RequestParam Integer minThreshold
+    ) {
+        try {
+            logisticsManagerService.updateMinThreshold(productId, minThreshold);
+            return ResponseEntity.ok("Seuil minimum mis à jour avec succès");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @Operation(
+            summary = "Modifier le seuil minimum par pourcentage",
+            description = "Met à jour le seuil minimum en appliquant un pourcentage sur le seuil actuel."
+    )
+    @PatchMapping("/stocks/{productId}/threshold/percent")
+    public ResponseEntity<String> updateMinThresholdByPercent(
+            @PathVariable Long productId,
+            @RequestParam Integer percent
+    ) {
+        try {
+            logisticsManagerService.updateMinThresholdByPercent(productId, percent);
+            return ResponseEntity.ok("Seuil minimum mis à jour avec succès");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @Operation(
+            summary = "Statistiques du suivi des stocks",
+            description = "Retourne le total des produits, le nombre sous-seuil et en rupture."
+    )
+    @GetMapping("/stocks/stats")
+    public ResponseEntity<StockStatsDTO> getStockStats() {
+        StockStatsDTO stats = logisticsManagerService.getStockStats();
+        return ResponseEntity.ok(stats);
+    }
+
+    @Operation(
+            summary = "Liste des alertes de réapprovisionnement",
+            description = "Récupère la liste paginée des produits en alerte (stock < seuil) avec recherche et filtre catégorie."
+    )
+    @GetMapping("/stocks/alerts")
+    public ResponseEntity<ProductStockListResponseDTO> getStockAlerts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long categoryId
+    ) {
+        ProductStockListResponseDTO response = logisticsManagerService.getStockAlerts(page, size, search, categoryId);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Exporter les alertes de réapprovisionnement",
+            description = "Exporte la liste des produits en alerte de stock (stock < seuil) en Excel."
+    )
+    @GetMapping("/stocks/alerts/export")
+    public ResponseEntity<Resource> exportStockAlerts(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long categoryId
+    ) {
+        ByteArrayResource resource = logisticsManagerService.exportStockAlerts(search, categoryId);
+
+        String fileName = "alertes_stock_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HHmm")) + ".xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(resource);
     }
 
     @Operation(

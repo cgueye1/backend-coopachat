@@ -28,3 +28,4 @@ public class ProductStatsDTO {
     private long inactiveProducts;
 }
 
+

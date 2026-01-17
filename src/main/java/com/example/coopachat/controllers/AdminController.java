@@ -47,7 +47,7 @@ public class AdminController {
     @Operation(
             summary = "Créer une nouvelle catégorie",
             description = "Permet à un administrateur de créer une nouvelle catégorie de produit. " +
-                         "Le nom de la catégorie doit être unique."
+                    "Le nom de la catégorie doit être unique."
     )
     @PostMapping("/categories")
     public ResponseEntity<String> createCategory(@RequestBody @Valid CreateCategoryDTO createCategoryDTO) {
@@ -63,7 +63,7 @@ public class AdminController {
     @Operation(
             summary = "Créer un nouveau produit",
             description = "Permet à un administrateur de créer un nouveau produit dans le catalogue. " +
-                         "Le nom du produit doit être unique. L'image est optionnelle (formats acceptés: JPG, PNG, max 5MB)."
+                    "Le nom du produit doit être unique. L'image est optionnelle (formats acceptés: JPG, PNG, max 5MB)."
     )
     @PostMapping("/products")
     public ResponseEntity<String> createProduct(
@@ -139,12 +139,12 @@ public class AdminController {
     @Operation(
             summary = "Lister les produits (paginé avec recherche et filtres)",
             description = "Récupère la liste paginée de tous les produits. " +
-                         "Les paramètres 'page' (défaut: 0) et 'size' (défaut: 6) permettent de contrôler la pagination. " +
-                         "Les paramètres 'search' (recherche par nom ou code produit), 'categoryId' (filtre par  catégorie) et 'status' (filtre actif/inactif: true/false) sont optionnels."
+                    "Les paramètres 'page' (défaut: 0) et 'size' (défaut: 6) permettent de contrôler la pagination. " +
+                    "Les paramètres 'search' (recherche par nom ou code produit), 'categoryId' (filtre par  catégorie) et 'status' (filtre actif/inactif: true/false) sont optionnels."
     )
     @GetMapping("/products")
     public ResponseEntity<ProductListResponseDTO> getAllProducts(
- 
+
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "6") int size,
             @RequestParam(required = false) String search,
@@ -170,9 +170,9 @@ public class AdminController {
     @Operation(
             summary = "Modifier un produit",
             description = "Met à jour les informations d'un produit existant. " +
-                         "Tous les champs sont optionnels - seuls les champs fournis seront mis à jour. " +
-                         "L'image est optionnelle (formats acceptés: JPG, PNG, max 5MB). " +
-                         "Le nom du produit doit être unique si modifié."
+                    "Tous les champs sont optionnels - seuls les champs fournis seront mis à jour. " +
+                    "L'image est optionnelle (formats acceptés: JPG, PNG, max 5MB). " +
+                    "Le nom du produit doit être unique si modifié."
     )
     @PutMapping("/products/{id}")
     public ResponseEntity<String> updateProduct(
@@ -240,8 +240,8 @@ public class AdminController {
     @Operation(
             summary = "Activer/Désactiver un produit",
             description = "Active ou désactive un produit. " +
-                         "Le body doit contenir 'status' (true pour activer, false pour désactiver). " +
-                         "Un produit désactivé reste visible pour les administrateurs mais n'est plus affichable ni commandable par les salariés."
+                    "Le body doit contenir 'status' (true pour activer, false pour désactiver). " +
+                    "Un produit désactivé reste visible pour les administrateurs mais n'est plus affichable ni commandable par les salariés."
     )
     @PatchMapping("/products/{id}/status")
     public ResponseEntity<String> updateProductStatus(
