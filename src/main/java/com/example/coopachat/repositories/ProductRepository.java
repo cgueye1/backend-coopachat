@@ -69,26 +69,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      */
     Page<Product> findByCategoryAndStatus(Category category, Boolean status, Pageable pageable);
 
-    // ============================================================================
-    // 🔍 Statistiques
-    // ============================================================================
-
-    /**
-     * Compter les produits par statut (actif/inactif)
-     */
-     long countByStatus(Boolean status);
-
-    /**
-     * Compter les produits avec un stock exact (ex: 0 pour rupture)
-     */
-    long countByCurrentStock(Integer currentStock);
-
-    /**
-     * Compter les produits sous seuil (stock > 0 (car si stock = 0 ça sera une rupture )et stock < seuil)
-     */
-    @Query("SELECT COUNT(p) FROM Product p WHERE p.currentStock > 0 AND p.currentStock < p.minThreshold")
-    long countLowStock();
-
     /**
      * Récupère les produits en alerte de stock (stock actuel < seuil minimum).
      * de façon simplifiée
@@ -114,5 +94,27 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("category") Category category,
             Pageable pageable
     );
+
+    // ============================================================================
+    // 🔍 Statistiques
+    // ============================================================================
+
+    /**
+     * Compter les produits par statut (actif/inactif)
+     */
+     long countByStatus(Boolean status);
+
+    /**
+     * Compter les produits avec un stock exact (ex: 0 pour rupture)
+     */
+    long countByCurrentStock(Integer currentStock);
+
+    /**
+     * Compter les produits sous seuil (stock > 0 (car si stock = 0 ça sera une rupture )et stock < seuil)
+     */
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.currentStock > 0 AND p.currentStock < p.minThreshold")
+    long countLowStock();
+
+
 }
 

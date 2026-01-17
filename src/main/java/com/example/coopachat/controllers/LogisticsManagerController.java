@@ -143,6 +143,26 @@ public class LogisticsManagerController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "Exporter le suivi des stocks",
+            description = "Exporte la liste des produits du suivi des stocks en Excel avec recherche et filtres optionnels."
+    )
+    @GetMapping("/stocks/export")
+    public ResponseEntity<Resource> exportStockList(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Boolean status
+    ) {
+        ByteArrayResource resource = logisticsManagerService.exportStockList(search, categoryId, status);
+
+        String fileName = "suivi_stocks_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HHmm")) + ".xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(resource);
+    }
+
     // ============================================================================
     // ➕/➖ MOUVEMENTS DE STOCK
     // ============================================================================

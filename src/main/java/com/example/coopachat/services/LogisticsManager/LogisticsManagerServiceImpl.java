@@ -599,7 +599,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             }
 
             // Remplir les lignes avec les commandes
-            int rowNum = 1; // la première ligne est l'en-tête
+            int rowNum = 1;
             DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
             
             //parcourir la liste des commandes et créer une ligne pour chaque commande
@@ -700,16 +700,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             Integer minThreshold = product.getMinThreshold() != null ? product.getMinThreshold() : 0;
 
             // Définir l'état du stock pour chaque produit
-            EtatStock etatStock ; // valeur par défaut
-
-            //Définir l'état du  stock selon les différents cas
-            if (currentStock == 0) {
-                etatStock = EtatStock.RUPTURE;
-            } else if (currentStock <= minThreshold) {
-                etatStock = EtatStock.SOUS_SEUIL;
-            } else {
-                etatStock = EtatStock.SUFFISANT;
-            }
+            EtatStock etatStock = computeStockStatus(currentStock, minThreshold);
             // Utiliser directement le constructeur pour remplir le DTO
             return new ProductStockListItemDTO(
                     product.getId(),
@@ -726,6 +717,19 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         return  new ProductStockListResponseDTO(items , productPage.getTotalElements(),productPage.getTotalPages(), productPage.getNumber(), productPage.getSize(),productPage.hasNext(),productPage.hasPrevious());
 
 
+    }
+
+    private EtatStock computeStockStatus(Integer currentStock, Integer minThreshold) {
+        int stockValue = currentStock != null ? currentStock : 0;
+        int thresholdValue = minThreshold != null ? minThreshold : 0;
+
+        if (stockValue == 0) {
+            return EtatStock.RUPTURE;
+        }
+        if (stockValue < thresholdValue) {
+            return EtatStock.SOUS_SEUIL;
+        }
+        return EtatStock.SUFFISANT;
     }
 
     // ============================================================================
@@ -1048,7 +1052,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             }
 
             // Remplir les lignes avec les produits
-            int rowNum = 1; // la première ligne est l'en-tête
+            int rowNum = 1;
 
 
             //parcourir la liste des produits et créer une ligne pour chaque produit dont les cellules contiendront les infos du produit concerné
@@ -1059,6 +1063,128 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 row.createCell(2).setCellValue(product.getCategory() != null ? product.getCategory().getName() : "");
                 row.createCell(3).setCellValue(product.getCurrentStock() != null ? product.getCurrentStock() : 0);
                 row.createCell(4).setCellValue(product.getMinThreshold() != null ? product.getMinThreshold() : 0);
+            }
+
+            // Ajuster la largeur des colonnes pour une meilleure lecture
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            // Convertir le classeur en bytes pour l'envoyer au client
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            return new ByteArrayResource(outputStream.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
+        }
+    }
+
+    // ============================================================================
+    // 📤 EXPORT DU SUIVI DES STOCKS
+    // ============================================================================
+    @Override
+    @Transactional
+    public ByteArrayResource exportStockList(String search, Long categoryId, Boolean status) {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut exporter le suivi des stocks");
+        }
+
+        // Normalisation du terme de recherche :
+        // - suppression des espaces inutiles
+        // - conversion en null si vide, afin de désactiver le filtre dans la requête
+        String searchTerm = (search != null && !search.trim().isEmpty())
+                ? search.trim()
+                : null;
+
+        // Récupérer la catégorie si fournie
+        Category category = null;
+        if (categoryId != null) {
+            category = categoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new RuntimeException("Catégorie introuvable"));
+        }
+
+        // Récupérer la liste des produits selon les filtres (mêmes règles que la liste paginée)
+        List<Product> products;
+        if (searchTerm != null && category != null && status != null) {
+            products = productRepository
+                    .findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndCategoryAndStatus(
+                            searchTerm, searchTerm, category, status, Pageable.unpaged())
+                    .getContent();
+        } else if (searchTerm != null && category != null) {
+            products = productRepository
+                    .findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndCategory(
+                            searchTerm, searchTerm, category, Pageable.unpaged())
+                    .getContent();
+        } else if (searchTerm != null && status != null) {
+            products = productRepository
+                    .findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndStatus(
+                            searchTerm, searchTerm, status, Pageable.unpaged())
+                    .getContent();
+        } else if (searchTerm != null) {
+            products = productRepository
+                    .findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCase(
+                            searchTerm, searchTerm, Pageable.unpaged())
+                    .getContent();
+        } else if (category != null && status != null) {
+            products = productRepository.findByCategoryAndStatus(category, status, Pageable.unpaged())
+                    .getContent();
+        } else if (category != null) {
+            products = productRepository.findByCategory(category, Pageable.unpaged()).getContent();
+        } else if (status != null) {
+            products = productRepository.findByStatus(status, Pageable.unpaged()).getContent();
+        } else {
+            products = productRepository.findAll();
+        }
+
+        // Générer le fichier Excel (création du classeur + feuille)
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Suivi Stocks");
+
+            // Style simple pour l'en-tête (gras)
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            // Colonnes du tableau Excel
+            String[] headers = {"Référence", "Produit", "Catégorie", "Stock", "Seuil", "Etat Stock"};
+            Row headerRow = sheet.createRow(0);
+
+            // Parcourir le tableau des headers et créer une cellule pour chaque en-tête
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Remplir les lignes avec les produits
+            int rowNum = 1;
+            for (Product product : products) {
+                Row row = sheet.createRow(rowNum++);//rowNum++ utilise d’abord la valeur actuelle,   puis l’incrémente pour le tour suivant.
+
+
+                Integer currentStock = product.getCurrentStock() != null ? product.getCurrentStock() : 0;
+                Integer minThreshold = product.getMinThreshold() != null ? product.getMinThreshold() : 0;
+                EtatStock etatStock = computeStockStatus(currentStock, minThreshold);
+
+                row.createCell(0).setCellValue(product.getProductCode() != null ? product.getProductCode() : "");
+                row.createCell(1).setCellValue(product.getName());
+                row.createCell(2).setCellValue(product.getCategory() != null ? product.getCategory().getName() : "");
+                row.createCell(3).setCellValue(currentStock);
+                row.createCell(4).setCellValue(minThreshold);
+                row.createCell(5).setCellValue(etatStock.getLabel());
             }
 
             // Ajuster la largeur des colonnes pour une meilleure lecture

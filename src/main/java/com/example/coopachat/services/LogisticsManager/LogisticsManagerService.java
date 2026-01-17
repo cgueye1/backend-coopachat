@@ -112,6 +112,19 @@ public interface LogisticsManagerService {
     ProductStockListResponseDTO getStockList(int page, int size, String search, Long categoryId, Boolean status);
 
     /**
+     * Exporte la liste du suivi des stocks en fichier Excel selon les filtres
+     * Le service retourne les données brutes (ByteArrayResource).
+     * Le controller ajoute les headers HTTP (Content-Disposition, Content-Type) pour le téléchargement et retourne ResponseEntity<Resource> (la réponse complète).
+     *
+     * @param search Terme de recherche (référence ou produit) - optionnel
+     * @param categoryId ID de la catégorie pour filtrer - optionnel
+     * @param status Statut actif/inactif pour filtrer - optionnel
+     * @return ByteArrayResource contenant le fichier Excel
+     * @throws RuntimeException si une erreur survient lors de la génération
+     */
+    ByteArrayResource exportStockList(String search, Long categoryId, Boolean status);
+
+    /**
      * Augmente le stock d'un produit
      *
      * @param productId ID du produit
