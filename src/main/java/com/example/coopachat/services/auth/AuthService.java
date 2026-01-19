@@ -30,14 +30,12 @@ public interface AuthService {
     LoginResponseDTO authenticateCredentialsUser(String email, String password);
 
     /**
-     * Authentifie un administrateur avec email et mot de passe, puis envoie un code OTP
+     * Authentifie un utilisateur via Google (OAuth)
      *
-     * @param email L'email de l'administrateur
-     * @param password Le mot de passe
-     * @return LoginResponseDTO avec requiresOtp = true et message "Code OTP envoyé par email"
-     * @throws RuntimeException si l'authentification échoue ou si l'utilisateur n'est pas administrateur
+     * @param idToken Token Google (JWT) reçu côté frontend
+     * @return LoginResponseDTO avec token JWT ou requiresOtp si admin
      */
-    LoginResponseDTO authenticateAdminWithOtp(String email, String password);
+    LoginResponseDTO authenticateWithGoogle(String idToken);
 
     /**
      * Vérifie le code OTP et génère le token JWT pour un administrateur

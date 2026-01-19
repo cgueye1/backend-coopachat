@@ -60,6 +60,17 @@ public class AuthController {
     }
 
     @Operation(
+            summary = "Connexion via Google",
+            description = "Permet à un utilisateur de se connecter avec un compte Google (OAuth). " +
+                    "Retourne un token JWT ou requiresOtp si admin."
+    )
+    @PostMapping("/login/google")
+    public ResponseEntity<LoginResponseDTO> loginWithGoogle(@RequestBody @Valid GoogleLoginRequestDTO requestDTO) {
+        LoginResponseDTO response = authService.authenticateWithGoogle(requestDTO.getIdToken());
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
             summary = "Déconnexion d'un utilisateur",
             description = "Invalide le token JWT de l'utilisateur et le déconnecte du système."
     )
@@ -114,23 +125,6 @@ public class AuthController {
     public ResponseEntity<String> resendActivationCode(@RequestBody @Valid SendActivationCodeRequestDTO requestDTO) {
         authService.resendActivationCode(requestDTO.getEmail());
         return ResponseEntity.ok("Code d'activation renvoyé avec succès");
-    }
-    // ============================================================================
-    // 🔐 AUTHENTIFICATION ADMINISTRATEUR (2FA)
-    // ============================================================================
-
-    @Operation(
-            summary = "Connexion administrateur avec 2FA",
-            description = "Permet à un administrateur de se connecter avec son email et son mot de passe. " +
-                    "Envoie un code OTP par email pour l'authentification à deux facteurs."
-    )
-    @PostMapping("/admin/login")
-    public ResponseEntity<LoginResponseDTO> adminLogin(@RequestBody @Valid LoginRequestDTO loginRequest) {
-        LoginResponseDTO response = authService.authenticateAdminWithOtp(
-                loginRequest.getEmail(),
-                loginRequest.getPassword()
-        );
-        return ResponseEntity.ok(response);
     }
 
     @Operation(

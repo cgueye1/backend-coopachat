@@ -2,6 +2,10 @@ package com.example.coopachat.services.auth;
 
 import com.example.coopachat.dtos.UserDto;
 import com.example.coopachat.dtos.auth.LoginResponseDTO;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.example.coopachat.entities.Users;
 import com.example.coopachat.entities.auth.ActivationCode;
 import com.example.coopachat.enums.CodeType;
@@ -19,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,6 +37,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Value("${activation.code.expiration.minutes:15}")
     private int expirationMinutes;  // 15 minutes
+
+    @Value("${google.client-id}")
+    private String googleClientId;
 
     // ============================================================================
     // 📦 DEPENDENCIES
@@ -99,6 +107,13 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Votre compte n'est pas actif");
         }
 
+        // Si l'utilisateur est admin, déclencher l'OTP
+        if (user.getRole() == UserRole.ADMINISTRATOR) {
+            String otpCode = activationCodeService.generateAndStoreCode(email);
+            emailService.sendOtpCode(email, otpCode, user.getFirstName());
+            return new LoginResponseDTO(email, true);
+        }
+
         // Générer le token
         String accessToken = jwtService.generateToken(user.getEmail(), user.getRole().name(), user.getId());
 
@@ -106,35 +121,79 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public LoginResponseDTO authenticateAdminWithOtp(String email, String password) {
+    public LoginResponseDTO authenticateWithGoogle(String idToken) {
 
-        // Vérifier si l'utilisateur existe
+        // Création du vérificateur Google pour valider le token reçu du frontend
+        // Il vérifie que le token est bien émis par Google et destiné à notre application
+        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                new NetHttpTransport(),
+                GsonFactory.getDefaultInstance()
+        )
+                // Client ID Google autorisé (sécurité : empêche l’usage d’un token d’une autre app)
+                .setAudience(Collections.singletonList(googleClientId))
+                .build();
+
+        GoogleIdToken token;
+
+        try {
+            // Vérification du token Google reçu depuis le frontend
+            token = verifier.verify(idToken);
+        } catch (Exception e) {
+            // Exception levée si le token est mal formé ou non vérifiable
+            throw new RuntimeException("Token Google invalide");
+        }
+
+        // Si le token est null, cela signifie que Google l’a rejeté
+        if (token == null) {
+            throw new RuntimeException("Token Google invalide");
+        }
+
+        // Récupération des informations contenues dans le token Google
+        GoogleIdToken.Payload payload = token.getPayload();
+
+        // Extraction de l’email Google de l’utilisateur
+        String email = payload.getEmail();
+
+        // Recherche de l’utilisateur dans la base de données via son email
         Users user = getUserByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Email ou mot de passe incorrect"));
+                .orElseThrow(() ->
+                        new RuntimeException("Utilisateur introuvable avec cet email")
+                );
 
-        // Vérifier que c'est un administrateur
-        if (user.getRole() != UserRole.ADMINISTRATOR) {
-            throw new RuntimeException("Accès réservé aux administrateurs");
-        }
-
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Email ou mot de passe incorrect");
-        }
-
-        // Vérifier si le compte est actif
+        // Vérification que le compte est actif
         if (!user.getIsActive()) {
             throw new RuntimeException("Votre compte n'est pas actif");
         }
 
-        // Générer et stocker le code OTP
-        String otpCode = activationCodeService.generateAndStoreCode(email);
+        // Cas particulier : l’administrateur doit passer par une vérification OTP
+        if (user.getRole() == UserRole.ADMINISTRATOR) {
 
-        // Envoyer le code OTP par email
-        emailService.sendOtpCode(email, otpCode, user.getFirstName());
+            // Génération d’un code OTP temporaire
+            String otpCode = activationCodeService.generateAndStoreCode(email);
 
-        // Retourner la réponse avec requiresOtp = true
-        return new LoginResponseDTO(email, true);
+            // Envoi du code OTP par email
+            emailService.sendOtpCode(email, otpCode, user.getFirstName());
+
+            // Réponse indiquant au frontend qu’un OTP est requis
+            return new LoginResponseDTO(email, true);
+        }
+
+        // Pour les autres rôles, génération directe du JWT
+        String accessToken = jwtService.generateToken(
+                user.getEmail(),
+                user.getRole().getLabel(),
+                user.getId()
+        );
+
+        // Réponse de connexion réussie avec le token JWT
+        return new LoginResponseDTO(
+                accessToken,
+                user.getEmail(),
+                user.getRole().getLabel(),
+                user.getId()
+        );
     }
+
 
     /**
      * Vérifie le code OTP et génère le token JWT pour un administrateur
@@ -216,6 +275,7 @@ public class AuthServiceImpl implements AuthService {
      * Crée le mot de passe et active le compte d'un utilisateur
      */
     @Override
+    @Transactional
     public void setPassword(String email, String password, String confirmPassword) {
 
         // Vérifier si l'utilisateur existe
