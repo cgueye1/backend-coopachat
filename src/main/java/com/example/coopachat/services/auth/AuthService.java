@@ -2,6 +2,7 @@ package com.example.coopachat.services.auth;
 
 import com.example.coopachat.dtos.UserDto;
 import com.example.coopachat.dtos.auth.LoginResponseDTO;
+import com.example.coopachat.dtos.auth.RegisterMobileDTO;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
 import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
 
@@ -54,6 +55,13 @@ public interface AuthService {
      * @throws RuntimeException si l'utilisateur n'existe pas
      */
     void sendActivationCode(String email);
+
+    /**
+     * Envoie un code d'activation pour le flux mobile (salarié/livreur)
+     *
+     * @param requestDTO Contient l'email de l'utilisateur
+     */
+    void sendMobileActivationCode(RegisterMobileDTO requestDTO);
 
     /**
      * Vérifie un code d'activation pour un utilisateur
@@ -109,6 +117,5 @@ public interface AuthService {
      * @throws RuntimeException si le token est invalide
      */
     void logout (String token);
-
 
 }

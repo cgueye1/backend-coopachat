@@ -12,8 +12,6 @@ import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
 import com.example.coopachat.repositories.CompanyRepository;
 import com.example.coopachat.repositories.EmployeeRepository;
 import com.example.coopachat.repositories.UserRepository;
-import com.example.coopachat.services.auth.ActivationCodeService;
-import com.example.coopachat.services.auth.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -21,14 +19,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -43,9 +39,6 @@ public class CommercialServiceImpl implements CommercialService {
     private final CompanyRepository companyRepository;
     private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
-    private final EmailService emailService;
-    private final ActivationCodeService activationCodeService;
-    private final PasswordEncoder passwordEncoder;
 
     // ============================================================================
     // 🏢 GESTION DES ENTREPRISES
@@ -460,22 +453,6 @@ public class CommercialServiceImpl implements CommercialService {
         employeeEntity.setEmployeeCode(employeeCode);
 
         employeeRepository.save(employeeEntity);
-
-        // Générer un token d'invitation unique (UUID)
-        String invitationToken = UUID.randomUUID().toString();
-
-        // Stocker le token d'invitation dans ActivationCode
-        activationCodeService.generateAndStoreCodeMobile(employee.getEmail());
-
-        // Envoyer l'email d'invitation
-        String commercialFullName = commercial.getFirstName() + " " + commercial.getLastName();
-        emailService.sendEmployeeInvitation(
-                employee.getEmail(),
-                invitationToken,
-                employee.getFirstName(),
-                commercialFullName,
-                company.getName()
-        );
 
         log.info("Employé créé avec succès: {} (email: {}, code: {}) par le commercial {}",
                 employee.getFirstName() + " " + employee.getLastName(), employee.getEmail(), employeeCode, commercial.getEmail());

@@ -95,6 +95,16 @@ public class AuthController {
     }
 
     @Operation(
+            summary = "Envoyer un code d'activation (mobile)",
+            description = "Envoie un code d'activation pour le flux mobile (salarié/livreur)."
+    )
+    @PostMapping("/mobile/send-activation-code")
+    public ResponseEntity<String> sendMobileActivationCode(@RequestBody @Valid RegisterMobileDTO requestDTO) {
+        authService.sendMobileActivationCode(requestDTO);
+        return ResponseEntity.ok("Code d'activation envoyé avec succès par email");
+    }
+
+    @Operation(
             summary = "Vérifier un code d'activation",
             description = "Vérifie le code d'activation de 6 chiffres reçu par email. " +
                     "Le code doit être valide et non expiré."

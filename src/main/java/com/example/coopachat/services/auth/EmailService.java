@@ -34,15 +34,15 @@ public interface EmailService {
     void sendPasswordResetLink(String email, String token, String firstName);
 
     /**
-     * Envoie un lien d'invitation par email à un salarié créé par un commercial
+     * Envoie un code d'activation par email à un salarié créé par un commercial
      *
      * @param email L'email du salarié
-     * @param token Le token unique d'invitation
+     * @param code Le code d'activation
      * @param firstName Le prénom du salarié
      * @param commercialName Le nom du commercial qui a créé l'invitation
      * @param companyName Le nom de l'entreprise
      */
-    void sendEmployeeInvitation(String email, String token, String firstName, String commercialName, String companyName);
+    void sendEmployeeInvitation(String email, String code, String firstName, String commercialName, String companyName);
     /**
      * Envoie un code d'activation à 4 chiffres par email à un livreur
      *

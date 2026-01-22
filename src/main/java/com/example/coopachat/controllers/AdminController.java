@@ -43,6 +43,7 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final FileTransferUtil fileTransferUtil;
 
     // ============================================================================
     // 📁 GESTION DES CATÉGORIES
@@ -121,7 +122,7 @@ public class AdminController {
                                 .body("Format d'image non supporté. Formats acceptés: JPG, PNG");
                     }
                 }
-                imageFileName = FileTransferUtil.handleFileUpload(image);
+                imageFileName = fileTransferUtil.handleFileUpload(image);
             }
 
             // 2. Créer le DTO avec tous les champs
@@ -225,7 +226,7 @@ public class AdminController {
                                 .body("Format d'image non supporté. Formats acceptés: JPG, PNG");
                     }
                 }
-                imageFileName = FileTransferUtil.handleFileUpload(image);
+                imageFileName = fileTransferUtil.handleFileUpload(image);
             }
 
             // 2. Créer le DTO avec tous les champs

@@ -11,8 +11,6 @@ import com.example.coopachat.enums.EtatStock;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.repositories.*;
-import com.example.coopachat.services.auth.ActivationCodeService;
-import com.example.coopachat.services.auth.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -47,8 +45,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
     private final DriverRepository driverRepository;
     private final UserRepository userRepository;
-    private final ActivationCodeService activationCodeService;
-    private final EmailService emailService;
     private final SupplierRepository supplierRepository;
     private final SupplierOrderRepository supplierOrderRepository;
     private  final ProductRepository productRepository;
@@ -104,12 +100,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         newDriver.setCreatedBy(logisticsManager);
 
         driverRepository.save(newDriver);
-
-        // Créer et sauvegarder le code d'activation
-        String codeActivation = activationCodeService.generateAndStoreCodeMobile(driverDTO.getEmail());
-
-        // Envoyer l'email d'invitation avec le code d'activation
-        emailService.sendDriverActivationCode(driverDTO.getEmail(), codeActivation, driverDTO.getFirstName());
 
         log.info("Livreur créé avec succès par le Responsable Logistique: {}", logisticsManager.getEmail());
     }

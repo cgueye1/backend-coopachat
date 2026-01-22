@@ -38,9 +38,6 @@ public class EmailServiceImpl implements EmailService {
     @Value("${app.frontend.reset-password-url:http://localhost:4200/reset-password?token=}")
     private String resetPasswordUrl;
 
-    @Value("${app.frontend.activate-employee-url:http://localhost:4200/activate?token=}")
-    private String activateEmployeeUrl;
-
     // ============================================================================
     // 📧 ENVOI D'EMAILS - ACTIVATION DE COMPTE
     // ============================================================================
@@ -532,10 +529,10 @@ public class EmailServiceImpl implements EmailService {
     // ============================================================================
 
     /**
-     * Envoie un lien d'invitation par email à un salarié créé par un commercial
+     * Envoie un code d'activation par email à un salarié créé par un commercial
      */
     @Override
-    public void sendEmployeeInvitation(String email, String token, String firstName, String commercialName, String companyName) {
+    public void sendEmployeeInvitation(String email, String code, String firstName, String commercialName, String companyName) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -550,15 +547,15 @@ public class EmailServiceImpl implements EmailService {
             helper.addInline("logo", logoResource);
 
             // Génération du template HTML
-            String emailBody = generateEmployeeInvitationEmailTemplate(firstName, token, commercialName, companyName);
+            String emailBody = generateEmployeeInvitationEmailTemplate(firstName, code, commercialName, companyName);
 
             helper.setText(emailBody, true); // true = HTML
             mailSender.send(message);
 
-            log.info("Lien d'invitation envoyé avec succès au salarié: {}", email);
+            log.info("Code d'activation envoyé avec succès au salarié: {}", email);
 
         } catch (Exception e) {
-            log.error("Erreur lors de l'envoi du lien d'invitation à {}: {}",
+            log.error("Erreur lors de l'envoi du code d'activation à {}: {}",
                     email, e.getMessage(), e);
             throw new RuntimeException("Impossible d'envoyer l'email d'invitation", e);
         }
@@ -568,16 +565,12 @@ public class EmailServiceImpl implements EmailService {
      * Génère le template HTML pour l'email d'invitation salarié
      *
      * @param firstName      Le prénom du salarié
-     * @param token          Le token d'invitation
+     * @param code           Le code d'activation
      * @param commercialName Le nom du commercial
      * @param companyName    Le nom de l'entreprise
      * @return Le template HTML formaté
      */
-    private String generateEmployeeInvitationEmailTemplate(String firstName, String token, String commercialName, String companyName) {
-
-        // URL complète avec le token
-        String activationUrl = activateEmployeeUrl + token;
-
+    private String generateEmployeeInvitationEmailTemplate(String firstName, String code, String commercialName, String companyName) {
         return String.format("""
     <!DOCTYPE html>
     <html lang="fr">
@@ -633,25 +626,21 @@ public class EmailServiceImpl implements EmailService {
                     <!-- Instruction principale -->
                     <div style="text-align: center; margin: 30px 0;">
                         <p style="color: #1F2937; margin: 0 0 20px 0; font-size: 16px; font-weight: 600;">
-                            Activez votre espace personnel pour accéder à tous les services et avantages
+                            Utilisez le code ci-dessous pour activer votre compte
                         </p>
-                        
-                        <!-- Bouton principal -->
-                        <a href="%s" style="display: inline-block; background: linear-gradient(135deg, #F97316 0%%, #FB923C 100%%); color: #1F2937; text-decoration: none; padding: 18px 45px; border-radius: 12px; font-size: 16px; font-weight: 700; box-shadow: 0 6px 20px rgba(249, 115, 22, 0.3); transition: all 0.3s; border: none; cursor: pointer;" class="button">
-                            <span style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                <span style="font-size: 20px;">🎉</span>
-                                <span>ACTIVER MON COMPTE</span>
+
+                        <!-- Code d'activation -->
+                        <div style="background: #F3F4F6; padding: 18px 30px; border-radius: 12px; display: inline-block;">
+                            <span style="font-size: 32px; font-weight: 700; color: #1F2937; font-family: 'Courier New', monospace; letter-spacing: 6px;">
+                                %s
                             </span>
-                        </a>
-                        
+                        </div>
+
                         <!-- Informations supplémentaires -->
                         <div style="margin-top: 15px;">
-                            <p style="color: #9CA3AF; font-size: 12px; margin: 8px 0;">
-                                Ce lien vous redirigera vers une page sécurisée
-                            </p>
                             <p style="color: #6B7280; font-size: 13px; margin: 8px 0; font-weight: 500;">
                                 <span style="margin-right: 6px;">⏱️</span>
-                                Lien valide pendant 15 minutes
+                                Code valide pendant 15 minutes
                             </p>
                         </div>
                     </div>
@@ -708,7 +697,7 @@ public class EmailServiceImpl implements EmailService {
                 appName,                    // %s - nom plateforme (dans le message)
                 commercialName,             // %s - nom du commercial
 
-                activationUrl,              // %s - URL d'activation
+                code,                       // %s - code d'activation
                 appName,                    // %s - nom dans signature
                 java.time.Year.now().getValue(), // %d - année
                 appName                     // %s - nom dans footer

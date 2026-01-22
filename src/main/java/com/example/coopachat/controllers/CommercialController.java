@@ -133,13 +133,13 @@ public class CommercialController {
     @Operation(
             summary = "Créer un nouveau salarié",
             description = "Permet à un commercial d'ajouter un nouveau salarié à une entreprise. " +
-                    "Un email d'invitation avec un lien d'activation sera envoyé au salarié."
+                    "Le salarié pourra ensuite activer son compte via le flux mobile."
     )
     @PostMapping("/employees")
     public ResponseEntity<String> createEmployee(@RequestBody @Valid CreateEmployeeDTO createEmployeeDTO) {
         commercialService.createEmployee(createEmployeeDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Salarié créé avec succès. Un email d'invitation a été envoyé.");
+                .body("Salarié créé avec succès.");
     }
 
     @Operation(

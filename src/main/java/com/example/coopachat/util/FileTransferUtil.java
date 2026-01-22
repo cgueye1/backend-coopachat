@@ -1,6 +1,10 @@
 package com.example.coopachat.util;
 
 import com.jcraft.jsch.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -8,36 +12,57 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 
+@Component
 public class FileTransferUtil {
 
-    private static final String FILE_UPLOAD_DIRECTORY = "./files/";
-    private static final String REMOTE_DIR = "/coopachat/";
-    private static final String SFTP_HOST = "185.170.213.160";
-    private static final int SFTP_PORT = 22;
-    private static final String SFTP_USER = "root";
-    private static final String SFTP_PASSWORD = "GafHcHPAApykVYje#";
+    private static final Logger log = LoggerFactory.getLogger(FileTransferUtil.class);
+
+    @Value("${app.files.dir:files}")
+    private String fileUploadDirectory;
+
+    @Value("${sftp.enabled:true}")
+    private boolean sftpEnabled;
+
+    @Value("${sftp.host:}")
+    private String sftpHost;
+
+    @Value("${sftp.port:22}")
+    private int sftpPort;
+
+    @Value("${sftp.user:}")
+    private String sftpUser;
+
+    @Value("${sftp.password:}")
+    private String sftpPassword;
+
+    @Value("${sftp.remote.dir:/coopachat/}")
+    private String remoteDir;
 
     /**
      * Upload a single file locally and transfer it to remote server.
      */
-    public static String handleFileUpload(MultipartFile file) throws IOException {
+    public String handleFileUpload(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) return "";
 
         String fileName = generateUniqueFileName(file.getOriginalFilename());
-        File uploadDir = new File(FILE_UPLOAD_DIRECTORY);
-        if (!uploadDir.exists()) uploadDir.mkdirs();
+        Path uploadDir = Paths.get(fileUploadDirectory).toAbsolutePath().normalize();
+        if (!Files.exists(uploadDir)) {
+            Files.createDirectories(uploadDir);
+        }
 
-        Path localFilePath = Paths.get(FILE_UPLOAD_DIRECTORY, fileName);
+        Path localFilePath = uploadDir.resolve(fileName);
         Files.copy(file.getInputStream(), localFilePath, StandardCopyOption.REPLACE_EXISTING);
 
-        transferFileToRemote(localFilePath.toString(), REMOTE_DIR + fileName);
+        if (sftpEnabled) {
+            transferFileToRemote(localFilePath.toString(), remoteDir + fileName);
+        }
         return fileName;
     }
 
     /**
      * Upload multiple pictures.
      */
-    public static List<String> uploadPictures(List<MultipartFile> pictures) throws IOException {
+    public List<String> uploadPictures(List<MultipartFile> pictures) throws IOException {
         List<String> pictureUrls = new ArrayList<>();
         if (pictures == null || pictures.isEmpty()) return pictureUrls;
 
@@ -55,7 +80,7 @@ public class FileTransferUtil {
     /**
      * Generate unique file name with original extension.
      */
-    public static String generateUniqueFileName(String originalFilename) {
+    private static String generateUniqueFileName(String originalFilename) {
         String extension = StringUtils.getFilenameExtension(originalFilename);
         return UUID.randomUUID().toString() + (extension != null ? "." + extension : "");
     }
@@ -63,25 +88,29 @@ public class FileTransferUtil {
     /**
      * Transfer file to remote server using SFTP.
      */
-    public static void transferFileToRemote(String localFilePath, String remoteFilePath) {
-        try (SftpClient sftp = new SftpClient()) {
+    public void transferFileToRemote(String localFilePath, String remoteFilePath) {
+        if (!sftpEnabled) {
+            return;
+        }
+        try (SftpClient sftp = new SftpClient(sftpHost, sftpPort, sftpUser, sftpPassword)) {
             sftp.uploadFile(localFilePath, remoteFilePath);
         } catch (Exception e) {
-            System.err.println("[ERREUR] Transfert échoué : " + e.getMessage());
-            e.printStackTrace();
+            log.warn("Transfert SFTP échoué: {}", e.getMessage());
         }
     }
 
     /**
      * Delete a remote file using SFTP.
      */
-    public static void deleteRemoteFile(String remoteFilePath) {
-        try (SftpClient sftp = new SftpClient()) {
+    public void deleteRemoteFile(String remoteFilePath) {
+        if (!sftpEnabled) {
+            return;
+        }
+        try (SftpClient sftp = new SftpClient(sftpHost, sftpPort, sftpUser, sftpPassword)) {
             sftp.deleteFile(remoteFilePath);
-            System.out.println("[INFO] Fichier supprimé : " + remoteFilePath);
+            log.info("Fichier supprimé (SFTP): {}", remoteFilePath);
         } catch (Exception e) {
-            System.err.println("[ERREUR] Suppression échouée : " + e.getMessage());
-            e.printStackTrace();
+            log.warn("Suppression SFTP échouée: {}", e.getMessage());
         }
     }
 
@@ -92,10 +121,10 @@ public class FileTransferUtil {
         private final Session session;
         private final ChannelSftp sftpChannel;
 
-        public SftpClient() throws JSchException {
+        public SftpClient(String host, int port, String user, String password) throws JSchException {
             JSch jsch = new JSch();
-            session = jsch.getSession(SFTP_USER, SFTP_HOST, SFTP_PORT);
-            session.setPassword(SFTP_PASSWORD);
+            session = jsch.getSession(user, host, port);
+            session.setPassword(password);
 
             Properties config = new Properties();
             config.put("StrictHostKeyChecking", "no");

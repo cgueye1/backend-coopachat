@@ -3,6 +3,7 @@ package com.example.coopachat.repositories;
 import com.example.coopachat.entities.Company;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Users;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,6 +18,14 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
      * @return true si le code existe, false sinon
      */
     boolean existsByEmployeeCode(String employeeCode);
+
+    /**
+     * Récupère un employé par l'email de son utilisateur associé
+     *
+     * @param email Email de l'utilisateur
+     * @return Employé correspondant si trouvé
+     */
+    Optional<Employee> findByUserEmail(String email);
 
 
     /**

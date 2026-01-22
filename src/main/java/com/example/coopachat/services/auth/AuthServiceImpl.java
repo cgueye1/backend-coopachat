@@ -2,10 +2,12 @@ package com.example.coopachat.services.auth;
 
 import com.example.coopachat.dtos.UserDto;
 import com.example.coopachat.dtos.auth.LoginResponseDTO;
+import com.example.coopachat.dtos.auth.RegisterMobileDTO;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
+import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Users;
 import com.example.coopachat.entities.auth.ActivationCode;
 import com.example.coopachat.enums.CodeType;
@@ -13,6 +15,7 @@ import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
 import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
 import com.example.coopachat.repositories.ActivationCodeRepository;
+import com.example.coopachat.repositories.EmployeeRepository;
 import com.example.coopachat.repositories.UserRepository;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +55,7 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final ActivationCodeRepository activationCodeRepository;
     private final TokenBlacklistService tokenBlacklistService;
+    private final EmployeeRepository employeeRepository;
 
     // ============================================================================
     // 👤 GESTION DES UTILISATEURS
@@ -266,6 +270,45 @@ public class AuthServiceImpl implements AuthService {
         // Envoyer l'email avec le code
         emailService.sendActivationCode(email,code, users.getFirstName());
 
+    }
+
+    /**
+     * Envoie un code d'activation par email pour le flux mobile (salarié/livreur)
+     */
+    @Override
+    public void sendMobileActivationCode(RegisterMobileDTO requestDTO) {
+        String email = requestDTO.getEmail();
+
+        Users user = getUserByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
+
+        if (user.getRole() == UserRole.EMPLOYEE) {
+            Employee employee = employeeRepository.findByUserEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Employé introuvable pour cet email"));
+
+            String code = activationCodeService.generateAndStoreCodeMobile(email);
+            String commercialFullName = employee.getCreatedBy().getFirstName() + " " + employee.getCreatedBy().getLastName();
+
+            emailService.sendEmployeeInvitation(
+                    email,
+                    code,
+                    user.getFirstName(),
+                    commercialFullName,
+                    employee.getCompany().getName()
+            );
+
+            log.info("Code mobile envoyé au salarié {} ({})", user.getFirstName(), email);
+            return;
+        }
+         //Cas livreur
+        if (user.getRole() == UserRole.DELIVERY_DRIVER) {
+            String code = activationCodeService.generateAndStoreCodeMobile(email);
+            emailService.sendDriverActivationCode(email, code, user.getFirstName());
+            log.info("Code mobile envoyé au livreur {} ({})", user.getFirstName(), email);
+            return;
+        }
+
+        throw new RuntimeException("Ce rôle n'est pas éligible à l'activation mobile");
     }
     /**
      * Vérifie un code d'activation pour un utilisateur
