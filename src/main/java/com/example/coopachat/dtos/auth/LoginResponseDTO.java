@@ -27,6 +27,8 @@ public class LoginResponseDTO {
     private String message;         // Message de réponse
     private String email;           // Email de l'utilisateur
     private String role;          // Rôle de l'utilisateur
+    private String firstName;     // Prénom de l'utilisateur
+    private String lastName;      // Nom de l'utilisateur
     private Long id;                // ID de l'utilisateur
 
     // Connexion avec vérification OTP
@@ -40,10 +42,16 @@ public class LoginResponseDTO {
 
     // Connexion complète réussie (après OTP)
     public LoginResponseDTO(String accessToken, String email, String role, Long id) {
+        this(accessToken, email, role, id, null, null);
+    }
+
+    public LoginResponseDTO(String accessToken, String email, String role, Long id, String firstName, String lastName) {
         this.accessToken = accessToken;
         this.email = email;
         this.role = role;
         this.id = id;
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.success = true;
         this.requiresOtp = false;
         this.message = "Authentification réussie ✅";

@@ -32,14 +32,14 @@ public class SupplierOrderItem {
     @NotNull(message = "Le produit est obligatoire")
     private Product product; // Produit commandé
 
-    @Column(nullable = false)
+
     @NotNull(message = "La quantité commandée est obligatoire")
     @Positive(message = "La quantité commandée doit être positive")
-    private Integer quantityOrdered; // Quantité commandée
+    private Integer quantity; // Quantité commandée
 
-    @Column(nullable = true)
+    @Column(name = "quantity_received", nullable = true)
     @PositiveOrZero(message = "La quantité reçue ne peut pas être négative")
-    private Integer quantityReceived; // Quantité reçue (peut être différent de quantityOrdered, null au départ)
+    private Integer quantityReceived; // Quantité reçue (null au départ)
 
 
 }

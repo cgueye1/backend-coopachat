@@ -12,13 +12,16 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SupplierOrderItemDetailsDTO {
 
+    private Long productId; // ID du produit
+
     private String productName; // Nom du produit
 
     private String productCategory; // Nom de la catégorie du produit
 
     private String productImage; // Image du produit (URL/fichier)
 
-    private Integer quantityOrdered; // Quantité commandée
+    private Integer quantite; // Quantité commandée
+
 }
 
 

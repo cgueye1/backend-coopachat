@@ -4,8 +4,11 @@ import com.example.coopachat.dtos.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
+import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import org.springframework.core.io.ByteArrayResource;
+
+import java.util.List;
 
 /**
  * Interface pour le service de gestion des actions du Responsable Logistique
@@ -23,6 +26,13 @@ public interface LogisticsManagerService {
      * @throws RuntimeException si l'email ou le téléphone existe déjà ou si une erreur survient
      */
     void createDriver(RegisterDriverRequestDTO driverDTO);
+
+    /**
+     * Récupère la liste des fournisseurs (id + nom)
+     *
+     * @return liste des fournisseurs actifs
+     */
+     List<SupplierListItemDTO> getAllSuppliers();
 
     // ============================================================================
     // 📦 GESTION DES COMMANDES FOURNISSEURS

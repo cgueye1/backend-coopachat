@@ -1,12 +1,15 @@
 package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
+import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
 import com.example.coopachat.dtos.products.ProductStatsDTO;
 import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
+import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
+import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.services.admin.AdminService;
 import com.example.coopachat.util.FileTransferUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,6 +30,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /**
  * Contrôleur pour la gestion des actions de l'administrateur
@@ -54,6 +58,16 @@ public class AdminController {
         adminService.createCategory(createCategoryDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body("Catégorie créée avec succès");
+    }
+
+    @Operation(
+            summary = "Lister les catégories",
+            description = "Récupère la liste complète des catégories (id + nom)."
+    )
+    @GetMapping("/categories")
+    public ResponseEntity<List<CategoryListItemDTO>> getAllCategories() {
+        List<CategoryListItemDTO> categories = adminService.getAllCategories();
+        return ResponseEntity.ok(categories);
     }
 
     // ============================================================================
@@ -306,5 +320,30 @@ public class AdminController {
     public ResponseEntity<ProductStatsDTO> getProductStats() {
         ProductStatsDTO stats = adminService.getProductStats();
         return ResponseEntity.ok(stats);
+    }
+
+    // ============================================================================
+    // 🧾 GESTION DES FOURNISSEURS
+    // ============================================================================
+
+    @Operation(
+            summary = "Créer un nouveau fournisseur",
+            description = "Permet à un administrateur de créer un fournisseur."
+    )
+    @PostMapping("/suppliers")
+    public ResponseEntity<String> createSupplier(@RequestBody @Valid CreateSupplierDTO createSupplierDTO) {
+        adminService.createSupplier(createSupplierDTO);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body("Fournisseur créé avec succès");
+    }
+
+    @Operation(
+            summary = "Lister les fournisseurs",
+            description = "Récupère la liste complète des fournisseurs (id + nom)."
+    )
+    @GetMapping("/suppliers")
+    public ResponseEntity<List<SupplierListItemDTO>> getAllSuppliers() {
+        List<SupplierListItemDTO> suppliers = adminService.getAllSuppliers();
+        return ResponseEntity.ok(suppliers);
     }
 }

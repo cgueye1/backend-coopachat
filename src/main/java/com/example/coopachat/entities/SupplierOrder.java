@@ -3,6 +3,7 @@ package com.example.coopachat.entities;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
+import jakarta.persistence.Convert;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -46,8 +47,8 @@ public class SupplierOrder {
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime expectedDate; // Date prévue de livraison
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private SupplierOrderStatus status; // Statut de la commande
 
     @Column(columnDefinition = "TEXT")
@@ -60,7 +61,7 @@ public class SupplierOrder {
     private String deliveryNote; // Bon de livraison (URL/fichier)
 
     @ManyToOne
-    @JoinColumn(name = "created_by_user_id", nullable = false)
+    @JoinColumn(name = "created_by_id", nullable = false)
     private Users createdBy; // Responsable Logistique qui a créé la commande
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")

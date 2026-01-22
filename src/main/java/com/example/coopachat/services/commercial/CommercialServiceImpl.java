@@ -883,12 +883,43 @@ public class CommercialServiceImpl implements CommercialService {
         CompanyListItemDTO dto = new CompanyListItemDTO();
         dto.setId(company.getId());
         dto.setName(company.getName());
+        dto.setSector(formatSector(company.getSector()));
         dto.setLocation(company.getLocation());
         dto.setContactName(company.getContactName());
         dto.setContactPhone(company.getContactPhone());
         dto.setCreatedAt(company.getCreatedAt());
         dto.setStatus(status(company.getIsActive())); // Convertit isActive en "Actif" ou "Inactif"
         return dto;
+    }
+
+    private String formatSector(CompanySector sector) {
+        if (sector == null) {
+            return "Autre";
+        }
+        return switch (sector) {
+            case TECHNOLOGY -> "Technologie";
+            case FINANCE -> "Finance";
+            case HEALTHCARE -> "Santé";
+            case EDUCATION -> "Éducation";
+            case RETAIL -> "Commerce de détail";
+            case MANUFACTURING -> "Industrie manufacturière";
+            case CONSTRUCTION -> "BTP / Construction";
+            case TRANSPORTATION -> "Transport";
+            case HOSPITALITY -> "Hôtellerie / Restauration";
+            case ENERGY -> "Énergie";
+            case TELECOMMUNICATIONS -> "Télécommunications";
+            case AGRICULTURE -> "Agriculture";
+            case FOOD_AND_BEVERAGE -> "Agroalimentaire";
+            case PHARMACEUTICAL -> "Pharmaceutique";
+            case AUTOMOTIVE -> "Automobile";
+            case TEXTILE -> "Textile";
+            case CONSULTING -> "Conseil";
+            case REAL_ESTATE -> "Immobilier";
+            case MEDIA -> "Médias";
+            case GOVERNMENT -> "Secteur public";
+            case NON_PROFIT -> "Association / ONG";
+            case OTHER -> "Autre";
+        };
     }
 
     /**

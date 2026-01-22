@@ -1,5 +1,6 @@
 package com.example.coopachat.services.admin;
 
+import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
@@ -7,7 +8,11 @@ import com.example.coopachat.dtos.products.ProductListResponseDTO;
 import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.ProductStatsDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
+import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
+import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import org.springframework.core.io.ByteArrayResource;
+
+import java.util.List;
 
 /**
  * Interface pour le service de gestion des actions de l'administrateur
@@ -21,6 +26,12 @@ public interface AdminService {
      * @throws RuntimeException si le nom de la catégorie existe déjà ou si une erreur survient
      */
     void createCategory(CreateCategoryDTO createCategoryDTO);
+    /**
+     * Récupère la liste des catégories
+     *
+     * @return Liste des catégories (id + nom)
+     */
+    List<CategoryListItemDTO> getAllCategories();
 
     /**
      * Crée un nouveau produit
@@ -89,4 +100,20 @@ public interface AdminService {
      * @throws RuntimeException si une erreur survient
      */
     ProductStatsDTO getProductStats();
+
+
+    /**
+     * Crée un nouveau fournisseur
+     *
+     * @param createSupplierDTO Les informations du fournisseur à créer
+     * @throws RuntimeException si l'email ou le téléphone existe déjà ou si une erreur survient
+     */
+    void createSupplier(CreateSupplierDTO createSupplierDTO);
+
+    /**
+     * Récupère la liste des fournisseurs (id + nom)
+     *
+     * @return Liste des fournisseurs
+     */
+    List<SupplierListItemDTO> getAllSuppliers();
 }

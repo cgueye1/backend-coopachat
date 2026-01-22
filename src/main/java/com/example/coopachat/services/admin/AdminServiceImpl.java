@@ -1,6 +1,7 @@
 package com.example.coopachat.services.admin;
 
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
+import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListItemDTO;
@@ -8,12 +9,16 @@ import com.example.coopachat.dtos.products.ProductListResponseDTO;
 import com.example.coopachat.dtos.products.ProductStatsDTO;
 import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
+import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
+import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.entities.Category;
 import com.example.coopachat.entities.Product;
+import com.example.coopachat.entities.Supplier;
 import com.example.coopachat.entities.Users;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.repositories.CategoryRepository;
 import com.example.coopachat.repositories.ProductRepository;
+import com.example.coopachat.repositories.SupplierRepository;
 import com.example.coopachat.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +55,7 @@ public class AdminServiceImpl implements AdminService {
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final SupplierRepository supplierRepository;
 
     // ============================================================================
     // ============================================================================
@@ -89,6 +95,14 @@ public class AdminServiceImpl implements AdminService {
 
         log.info("Catégorie créée avec succès par l'administrateur {}: {}",
                 admin.getEmail(), category.getName());
+    }
+
+    @Override
+    public List<CategoryListItemDTO> getAllCategories() {
+        return categoryRepository.findAll()
+                .stream()
+                .map(category -> new CategoryListItemDTO(category.getId(), category.getName()))
+                .collect(Collectors.toList());
     }
 
     // ============================================================================
@@ -657,4 +671,57 @@ public class AdminServiceImpl implements AdminService {
 
         return new ProductStatsDTO(total, active, inactive);
     }
+
+    // ----------------------------------------------------------------------------
+    // 🧾 GESTION DES FOURNISSEURS
+    // ----------------------------------------------------------------------------
+
+    @Override
+    @Transactional
+    public void createSupplier(CreateSupplierDTO createSupplierDTO) {
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users admin = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Administrateur
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut créer un fournisseur");
+        }
+
+        if (supplierRepository.existsByEmail(createSupplierDTO.getEmail())) {
+            throw new RuntimeException("Un fournisseur avec cet email existe déjà");
+        }
+        if (supplierRepository.existsByPhone(createSupplierDTO.getPhone())) {
+            throw new RuntimeException("Un fournisseur avec ce téléphone existe déjà");
+        }
+
+        Supplier supplier = new Supplier();
+        supplier.setName(createSupplierDTO.getName());
+        supplier.setEmail(createSupplierDTO.getEmail());
+        supplier.setPhone(createSupplierDTO.getPhone());
+        supplier.setAddress(createSupplierDTO.getAddress());
+        supplier.setIsActive(createSupplierDTO.getIsActive() != null ? createSupplierDTO.getIsActive() : true);
+
+        supplierRepository.save(supplier);
+
+        log.info("Fournisseur créé avec succès par l'administrateur {}: {}",
+                admin.getEmail(), supplier.getName());
+    }
+
+    @Override
+    public List<SupplierListItemDTO> getAllSuppliers() {
+        return supplierRepository.findAll()
+                .stream()
+                .map(supplier -> new SupplierListItemDTO(supplier.getId(), supplier.getName()))
+                .collect(Collectors.toList());
+    }
 }
+
+
+

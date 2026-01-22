@@ -5,6 +5,7 @@ import com.example.coopachat.dtos.products.ProductStockListItemDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
+import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.entities.*;
 import com.example.coopachat.enums.EtatStock;
 import com.example.coopachat.enums.SupplierOrderStatus;
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Implémentation du service de gestion des actions du Responsable Logistique
@@ -112,6 +114,15 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         log.info("Livreur créé avec succès par le Responsable Logistique: {}", logisticsManager.getEmail());
     }
 
+    @Override
+    public List<SupplierListItemDTO> getAllSuppliers() {
+        return supplierRepository.findAll()
+                .stream()
+                .filter(Supplier::getIsActive)
+                .map(supplier -> new SupplierListItemDTO(supplier.getId(), supplier.getName()))
+                .collect(Collectors.toList());
+    }
+
     // ============================================================================
     // 📦 GESTION DES COMMANDES FOURNISSEURS
     // ============================================================================
@@ -157,6 +168,9 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
         // Créer les items (produits) de la commande
         for (SupplierOrderItemDTO itemDTO : createSupplierOrderDTO.getItems()) {
+            if (itemDTO.getQuantite() == null || itemDTO.getQuantite() <= 0) {
+                throw new RuntimeException("La quantité commandée doit être positive");
+            }
             // Vérifier que le produit existe
             Product product = productRepository.findById(itemDTO.getProductId())
                     .orElseThrow(() -> new RuntimeException("Produit introuvable (ID: " + itemDTO.getProductId() + ")"));
@@ -165,7 +179,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             SupplierOrderItem orderItem = new SupplierOrderItem();
             orderItem.setSupplierOrder(supplierOrder);
             orderItem.setProduct(product);
-            orderItem.setQuantityOrdered(itemDTO.getQuantity());
+            orderItem.setQuantity(itemDTO.getQuantite());
             orderItem.setQuantityReceived(null); // Pas encore reçu
 
             // Ajouter l'item à la liste (le cascade s'occupera de la sauvegarde) et l'ajoutera directement dans la table SupplierOrderItems
@@ -242,7 +256,9 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
             // Créer les nouveaux items
             for (SupplierOrderItemDTO itemDTO : updateSupplierOrderDTO.getItems()) {
-
+                if (itemDTO.getQuantite() == null || itemDTO.getQuantite() <= 0) {
+                    throw new RuntimeException("La quantité commandée doit être positive");
+                }
                 // Vérifier que le produit existe
                 Product product = productRepository.findById(itemDTO.getProductId())
                         .orElseThrow(() -> new RuntimeException("Produit introuvable (ID: " + itemDTO.getProductId() + ")"));
@@ -251,7 +267,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 SupplierOrderItem orderItem = new SupplierOrderItem();
                 orderItem.setSupplierOrder(supplierOrder);
                 orderItem.setProduct(product);
-                orderItem.setQuantityOrdered(itemDTO.getQuantity());
+                orderItem.setQuantity(itemDTO.getQuantite());
                 orderItem.setQuantityReceived(null); // Pas encore reçu
 
                 // Ajouter l'item à la liste (le cascade s'occupera de la sauvegarde) et l'ajoutera directement dans la table SupplierOrderItems
@@ -327,10 +343,11 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
      */
     private SupplierOrderItemDetailsDTO mapToSupplierOrderItemDetailsDTO(SupplierOrderItem item) {
         SupplierOrderItemDetailsDTO dto = new SupplierOrderItemDetailsDTO();
+        dto.setProductId(item.getProduct().getId());
         dto.setProductName(item.getProduct().getName());
         dto.setProductCategory(item.getProduct().getCategory().getName());
         dto.setProductImage(item.getProduct().getImage());
-        dto.setQuantityOrdered(item.getQuantityOrdered());
+        dto.setQuantite(item.getQuantity());
         return dto;
     }
 
@@ -445,7 +462,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         }
         //on va parcourir la liste des items et on va construire une chaîne de caractères avec le nom du produit et sa quantité et on va joindre les chaînes de caractères avec une virgule
         return items.stream()
-                .map(item -> item.getProduct().getName() + " (" + item.getQuantityOrdered() + ")")
+                .map(item -> item.getProduct().getName() + " (" + item.getQuantity() + ")")
                 .collect(java.util.stream.Collectors.joining(", "));
     }
 

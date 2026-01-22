@@ -246,5 +246,5 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
     }
 
 
-
+    
 }

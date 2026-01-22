@@ -117,7 +117,14 @@ public class AuthServiceImpl implements AuthService {
         // Générer le token
         String accessToken = jwtService.generateToken(user.getEmail(), user.getRole().name(), user.getId());
 
-        return new LoginResponseDTO(accessToken, user.getEmail(), user.getRole().getLabel(), user.getId());
+        return new LoginResponseDTO(
+                accessToken,
+                user.getEmail(),
+                user.getRole().getLabel(),
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName()
+        );
     }
 
     @Override
@@ -190,7 +197,9 @@ public class AuthServiceImpl implements AuthService {
                 accessToken,
                 user.getEmail(),
                 user.getRole().getLabel(),
-                user.getId()
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName()
         );
     }
 
@@ -199,6 +208,7 @@ public class AuthServiceImpl implements AuthService {
      * Vérifie le code OTP et génère le token JWT pour un administrateur
      */
     @Override
+    @Transactional
     public LoginResponseDTO verifyOtpAndGenerateToken(String email, String otp) {
         // Vérifier si l'utilisateur existe
         Users user = getUserByEmail(email)
@@ -226,7 +236,14 @@ public class AuthServiceImpl implements AuthService {
         activationCodeRepository.deleteByEmail(email);
 
         // Retourner le token JWT avec les informations utilisateur
-        return new LoginResponseDTO(accessToken, user.getEmail(), user.getRole().getLabel(), user.getId());
+        return new LoginResponseDTO(
+                accessToken,
+                user.getEmail(),
+                user.getRole().getLabel(),
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName()
+        );
     }
 
     // ============================================================================

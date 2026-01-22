@@ -4,6 +4,7 @@ import com.example.coopachat.dtos.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
+import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import com.example.coopachat.services.LogisticsManager.LogisticsManagerService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /**
  * Contrôleur pour la gestion des actions du Responsable Logistique
@@ -47,6 +49,16 @@ public class LogisticsManagerController {
         logisticsManagerService.createDriver(driverDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body("Livreur créé avec succès. Un email d'invitation a été envoyé.");
+    }
+
+    @Operation(
+            summary = "Lister les fournisseurs",
+            description = "Récupère la liste complète des fournisseurs actifs (id + nom)."
+    )
+    @GetMapping("/suppliers")
+    public ResponseEntity<List<SupplierListItemDTO>> getAllSuppliers() {
+        List<SupplierListItemDTO> suppliers = logisticsManagerService.getAllSuppliers();
+        return ResponseEntity.ok(suppliers);
     }
 
     // ============================================================================
