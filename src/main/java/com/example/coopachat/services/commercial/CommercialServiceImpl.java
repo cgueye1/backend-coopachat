@@ -1,17 +1,27 @@
 package com.example.coopachat.services.commercial;
 
 import com.example.coopachat.dtos.companies.*;
+import com.example.coopachat.dtos.coupons.CouponDetailsDTO;
+import com.example.coopachat.dtos.coupons.CouponListItemDTO;
+import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
+import com.example.coopachat.dtos.coupons.CouponProductItemDTO;
+import com.example.coopachat.dtos.coupons.CreateCouponDTO;
+import com.example.coopachat.dtos.coupons.UpdateCouponDTO;
+import com.example.coopachat.dtos.coupons.UpdateCouponStatusDTO;
 import com.example.coopachat.dtos.employees.*;
+import com.example.coopachat.entities.Category;
 import com.example.coopachat.entities.Company;
+import com.example.coopachat.entities.Coupon;
 import com.example.coopachat.entities.Employee;
+import com.example.coopachat.entities.Product;
 import com.example.coopachat.entities.Users;
-import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.enums.CompanySector;
+import com.example.coopachat.enums.CouponScope;
+import com.example.coopachat.enums.CouponStatus;
+import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
 import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
-import com.example.coopachat.repositories.CompanyRepository;
-import com.example.coopachat.repositories.EmployeeRepository;
-import com.example.coopachat.repositories.UserRepository;
+import com.example.coopachat.repositories.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -24,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,6 +50,9 @@ public class CommercialServiceImpl implements CommercialService {
     private final CompanyRepository companyRepository;
     private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
+    private final CouponRepository couponRepository;
+    private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
 
     // ============================================================================
     // 🏢 GESTION DES ENTREPRISES
@@ -790,6 +804,341 @@ public class CommercialServiceImpl implements CommercialService {
 
 
     // ============================================================================
+    //  🏷️ Coupons
+    // ============================================================================
+
+    @Override
+    @Transactional
+    public CouponDetailsDTO getCouponById(Long id) {
+        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String userEmail = authentication.getName();
+
+        if (userEmail == null) {
+            throw new RuntimeException("Email utilisateur introuvable");
+        }
+
+        // Récupérer le commercial connecté
+        Users commercial = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+
+        // Vérifier que l'utilisateur est bien un commercial
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter les coupons");
+        }
+
+        Coupon coupon = couponRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Coupon introuvable"));
+
+        List<Product> products = Collections.emptyList();
+        if (coupon.getScope() == CouponScope.ALL_PRODUCTS || coupon.getScope() == CouponScope.PRODUCTS) {
+            products = productRepository.findByCouponId(coupon.getId());
+        } else if (coupon.getScope() == CouponScope.CATEGORIES) {
+            List<Category> categories = categoryRepository.findByCouponId(coupon.getId());
+            if (categories != null && !categories.isEmpty()) {
+                products = productRepository.findByCategoryIn(categories);
+            }
+        }
+
+        List<CouponProductItemDTO> productItems = products.stream()
+                .map(this::mapToCouponProductItemDTO)
+                .collect(Collectors.toList());
+
+        return mapToCouponDetailsDTO(coupon, productItems);
+    }
+
+    @Override
+    @Transactional
+    public CouponListResponseDTO getAllCoupons(int page, int size, String search,
+                                               CouponStatus status, CouponScope scope, Boolean isActive) {
+
+        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String userEmail = authentication.getName();
+
+        if (userEmail == null) {
+            throw new RuntimeException("Email utilisateur introuvable");
+        }
+
+        // Récupérer le commercial connecté
+        Users commercial = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+
+        // Vérifier que l'utilisateur est bien un commercial
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter les coupons");
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        Page<Coupon> couponPage = couponRepository.findAllWithFilters(
+                searchTerm, status, scope, isActive, pageable);
+
+        List<CouponListItemDTO> couponList = couponPage.getContent().stream()
+                .map(this::mapToCouponListItemDTO)
+                .collect(Collectors.toList());
+
+        CouponListResponseDTO response = new CouponListResponseDTO();
+        response.setContent(couponList);
+        response.setTotalElements(couponPage.getTotalElements());
+        response.setTotalPages(couponPage.getTotalPages());
+        response.setCurrentPage(couponPage.getNumber());
+        response.setPageSize(couponPage.getSize());
+        response.setHasNext(couponPage.hasNext());
+        response.setHasPrevious(couponPage.hasPrevious());
+
+        log.info("Page {} de {} coupons récupérée par le commercial {} (total: {}, recherche: '{}', status: {}, scope: {}, isActive: {})",
+                page + 1, couponPage.getTotalPages(), commercial.getEmail(), couponPage.getTotalElements(),
+                searchTerm != null ? searchTerm : "aucune",
+                status != null ? status : "tous",
+                scope != null ? scope : "tous",
+                isActive != null ? isActive : "tous");
+
+        return response;
+    }
+
+    @Override
+    public void addCoupon(CreateCouponDTO createCouponDTO) {
+
+        // 1) Validation d'unicité
+        if (couponRepository.existsByCode(createCouponDTO.getCode())) {
+            throw new RuntimeException("Un coupon avec ce code existe déjà");
+        }
+        if (couponRepository.existsByName(createCouponDTO.getName())) {
+            throw new RuntimeException("Un coupon avec ce nom existe déjà");
+        }
+
+        // 2) Validation des dates
+        if (createCouponDTO.getEndDate().isBefore(createCouponDTO.getStartDate())) {
+            throw new RuntimeException("La date de fin doit être après la date de début");
+        }
+
+        // 3) Création du coupon
+        Coupon coupon = new Coupon();
+        coupon.setCode(createCouponDTO.getCode().trim().toUpperCase()); // Normalisation du code
+        coupon.setName(createCouponDTO.getName().trim()); // Normalisation du nom
+        coupon.setValue(createCouponDTO.getValue());
+        coupon.setScope(createCouponDTO.getScope());
+        coupon.setIsActive(false);
+        coupon.setStatus(CouponStatus.PLANNED);
+        coupon.setStartDate(createCouponDTO.getStartDate());
+        coupon.setEndDate(createCouponDTO.getEndDate());
+
+        Coupon saved = couponRepository.save(coupon);
+
+        // 4) Application selon le scope
+        if (createCouponDTO.getScope() == CouponScope.ALL_PRODUCTS) {
+            // Appliquer sur tous les produits actifs
+            List<Product> activeProducts = productRepository.findByStatus(true);
+            for (Product p : activeProducts) {
+                p.setCoupon(saved);
+            }
+            productRepository.saveAll(activeProducts);
+        }
+
+        if (createCouponDTO.getScope() == CouponScope.PRODUCTS) {
+            if (createCouponDTO.getProductIds() == null || createCouponDTO.getProductIds().isEmpty()) {
+                throw new RuntimeException("Veuillez sélectionner au moins un produit");
+            }
+            List<Product> products = productRepository.findAllById(createCouponDTO.getProductIds());
+            for (Product p : products) {
+                if (Boolean.FALSE.equals(p.getStatus())) {
+                    throw new RuntimeException("Produit inactif détecté: " + p.getName());
+                }
+                p.setCoupon(saved);
+            }
+            productRepository.saveAll(products);
+        }
+
+        if (createCouponDTO.getScope() == CouponScope.CATEGORIES) {
+            if (createCouponDTO.getCategoryIds() == null || createCouponDTO.getCategoryIds().isEmpty()) {
+                throw new RuntimeException("Veuillez sélectionner au moins une catégorie");
+            }
+            List<Category> categories = categoryRepository.findAllById(createCouponDTO.getCategoryIds());
+            for (Category c : categories) {
+                c.setCoupon(saved);
+            }
+            categoryRepository.saveAll(categories);
+        }
+
+    }
+
+    @Override
+    @Transactional
+    public void updateCoupon(Long id, UpdateCouponDTO updateCouponDTO) {
+
+        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String userEmail = authentication.getName();
+
+        if (userEmail == null) {
+            throw new RuntimeException("Email utilisateur introuvable");
+        }
+
+        // Récupérer le commercial connecté
+        Users commercial = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+
+        // Vérifier que l'utilisateur est bien un commercial
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent modifier les coupons");
+        }
+
+        Coupon coupon = couponRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Coupon introuvable"));
+
+        if (updateCouponDTO.getCode() != null) {
+            String normalizedCode = updateCouponDTO.getCode().trim().toUpperCase();
+            if (couponRepository.existsByCodeAndIdNot(normalizedCode, coupon.getId())) {
+                throw new RuntimeException("Un coupon avec ce code existe déjà");
+            }
+            coupon.setCode(normalizedCode);
+        }
+
+        if (updateCouponDTO.getName() != null) {
+            String normalizedName = updateCouponDTO.getName().trim();
+            if (couponRepository.existsByNameAndIdNot(normalizedName, coupon.getId())) {
+                throw new RuntimeException("Un coupon avec ce nom existe déjà");
+            }
+            coupon.setName(normalizedName);
+        }
+
+        if (updateCouponDTO.getValue() != null) {
+            coupon.setValue(updateCouponDTO.getValue());
+        }
+
+        if (updateCouponDTO.getStartDate() != null) {
+            coupon.setStartDate(updateCouponDTO.getStartDate());
+        }
+
+        if (updateCouponDTO.getEndDate() != null) {
+            coupon.setEndDate(updateCouponDTO.getEndDate());
+        }
+
+        if (coupon.getEndDate().isBefore(coupon.getStartDate())) {
+            throw new RuntimeException("La date de fin doit être après la date de début");
+        }
+
+        if (updateCouponDTO.getIsActive() != null) {
+            coupon.setIsActive(updateCouponDTO.getIsActive());
+        }
+
+        if (updateCouponDTO.getScope() != null) {
+            coupon.setScope(updateCouponDTO.getScope());
+        }
+
+        boolean shouldUpdateAssociations = updateCouponDTO.getScope() != null
+                || updateCouponDTO.getProductIds() != null
+                || updateCouponDTO.getCategoryIds() != null;
+
+        if (shouldUpdateAssociations) {
+            clearCouponAssociations(coupon.getId());
+
+            CouponScope effectiveScope = updateCouponDTO.getScope() != null
+                    ? updateCouponDTO.getScope()
+                    : coupon.getScope();
+
+            if (updateCouponDTO.getProductIds() != null && effectiveScope != CouponScope.PRODUCTS) {
+                throw new RuntimeException("Le scope doit être PRODUCTS pour définir des produits");
+            }
+
+            if (updateCouponDTO.getCategoryIds() != null && effectiveScope != CouponScope.CATEGORIES) {
+                throw new RuntimeException("Le scope doit être CATEGORIES pour définir des catégories");
+            }
+
+            if (effectiveScope == CouponScope.ALL_PRODUCTS) {
+                List<Product> activeProducts = productRepository.findByStatus(true);
+                for (Product p : activeProducts) {
+                    p.setCoupon(coupon);
+                }
+                productRepository.saveAll(activeProducts);
+            }
+
+            if (effectiveScope == CouponScope.PRODUCTS) {
+                if (updateCouponDTO.getProductIds() == null || updateCouponDTO.getProductIds().isEmpty()) {
+                    throw new RuntimeException("Veuillez sélectionner au moins un produit");
+                }
+                List<Product> products = productRepository.findAllById(updateCouponDTO.getProductIds());
+                for (Product p : products) {
+                    if (Boolean.FALSE.equals(p.getStatus())) {
+                        throw new RuntimeException("Produit inactif détecté: " + p.getName());
+                    }
+                    p.setCoupon(coupon);
+                }
+                productRepository.saveAll(products);
+            }
+
+            if (effectiveScope == CouponScope.CATEGORIES) {
+                if (updateCouponDTO.getCategoryIds() == null || updateCouponDTO.getCategoryIds().isEmpty()) {
+                    throw new RuntimeException("Veuillez sélectionner au moins une catégorie");
+                }
+                List<Category> categories = categoryRepository.findAllById(updateCouponDTO.getCategoryIds());
+                for (Category c : categories) {
+                    c.setCoupon(coupon);
+                }
+                categoryRepository.saveAll(categories);
+            }
+        }
+
+        if (updateCouponDTO.getIsActive() != null
+                || updateCouponDTO.getStartDate() != null
+                || updateCouponDTO.getEndDate() != null) {
+            coupon.setStatus(computeStatus(coupon.getStartDate(), coupon.getEndDate(), coupon.getIsActive()));
+        }
+
+        couponRepository.save(coupon);
+    }
+
+    @Override
+    @Transactional
+    public void updateCouponStatus(Long id, UpdateCouponStatusDTO updateCouponStatusDTO) {
+        Coupon coupon = couponRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Coupon introuvable"));
+
+        coupon.setIsActive(updateCouponStatusDTO.getIsActive());
+        coupon.setStatus(computeStatus(coupon.getStartDate(), coupon.getEndDate(), updateCouponStatusDTO.getIsActive()));
+
+        couponRepository.save(coupon);
+    }
+
+    /**
+     * Calcule automatiquement le statut d'un coupon selon les dates et l'activation manuelle.
+     * @param startDate La date de début du coupon
+     * @param endDate La date de fin du coupon
+     * @param isActive La valeur de l'activation manuelle du coupon
+     */
+    private CouponStatus computeStatus(LocalDateTime startDate, LocalDateTime endDate, boolean isActive) {
+        LocalDateTime now = LocalDateTime.now();//Récupère la date et l'heure actuelle
+
+        if (isActive == false) {
+            return CouponStatus.DISABLED;//Si le coupon n'est pas activé, le statut est DISABLED
+        }
+        if (now.isAfter(endDate)) {
+            return CouponStatus.EXPIRED;//Si la date de fin est passée, le statut est EXPIRED
+        }
+        if (now.isBefore(startDate)) {
+            return CouponStatus.PLANNED;//Si la date de début est dans le futur, le statut est PLANNED
+        }
+        return CouponStatus.ACTIVE;//Sinon, le statut est ACTIVE
+    }
+
+    // ============================================================================
     // 🔧 MÉTHODES UTILITAIRES
     // ============================================================================
 
@@ -960,6 +1309,91 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setCreatedAt(employee.getCreatedAt());
         dto.setStatus(status(employee.getUser().getIsActive())); // Convertit isActive en "Actif" ou "Inactif"
         return dto;
+    }
+
+    /**
+     * Mappe une entité Coupon vers un CouponListItemDTO
+     *
+     * @param coupon L'entité Coupon à mapper
+     * @return Le DTO correspondant
+     */
+    private CouponListItemDTO mapToCouponListItemDTO(Coupon coupon) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+        CouponListItemDTO dto = new CouponListItemDTO();
+        dto.setId(coupon.getId());
+        dto.setCode(coupon.getCode());
+        dto.setName(coupon.getName());
+        dto.setValue(coupon.getValue());
+        dto.setScope(coupon.getScope());
+        dto.setStatus(coupon.getStatus());
+        dto.setValidFrom(coupon.getStartDate() != null ? coupon.getStartDate().format(formatter) : null);
+        dto.setValidTo(coupon.getEndDate() != null ? coupon.getEndDate().format(formatter) : null);
+        dto.setUsageCount(coupon.getUsageCount());
+        dto.setTotalGenerated(coupon.getTotalGenerated());
+        return dto;
+    }
+
+    /**
+     * Mappe une entité Product vers un CouponProductItemDTO
+     *
+     * @param product L'entité Product à mapper
+     * @return Le DTO correspondant
+     */
+    private CouponProductItemDTO mapToCouponProductItemDTO(Product product) {
+        CouponProductItemDTO dto = new CouponProductItemDTO();
+        dto.setId(product.getId());
+        dto.setName(product.getName());
+        dto.setCategoryName(product.getCategory() != null ? product.getCategory().getName() : null);
+        dto.setDescription(product.getDescription());
+        dto.setCurrentStock(product.getCurrentStock());
+        dto.setImage(product.getImage());
+        return dto;
+    }
+
+    /**
+     * Mappe une entité Coupon vers un CouponDetailsDTO
+     *
+     * @param coupon L'entité Coupon à mapper
+     * @param products Liste des produits liés
+     * @return Le DTO correspondant
+     */
+    private CouponDetailsDTO mapToCouponDetailsDTO(Coupon coupon, List<CouponProductItemDTO> products) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+        CouponDetailsDTO dto = new CouponDetailsDTO();
+        dto.setId(coupon.getId());
+        dto.setCode(coupon.getCode());
+        dto.setName(coupon.getName());
+        dto.setValue(coupon.getValue());
+        dto.setScope(coupon.getScope());
+        dto.setStatus(coupon.getStatus());
+        dto.setIsActive(coupon.getIsActive());
+        dto.setValidFrom(coupon.getStartDate() != null ? coupon.getStartDate().format(formatter) : null);
+        dto.setValidTo(coupon.getEndDate() != null ? coupon.getEndDate().format(formatter) : null);
+        dto.setUsageCount(coupon.getUsageCount());
+        dto.setTotalGenerated(coupon.getTotalGenerated());
+        dto.setProducts(products);
+        return dto;
+    }
+
+    /**
+     * Supprime les associations existantes d'un coupon sur produits et catégories.
+     *
+     * @param couponId Identifiant du coupon
+     */
+    private void clearCouponAssociations(Long couponId) {
+        List<Product> linkedProducts = productRepository.findByCouponId(couponId);
+        for (Product p : linkedProducts) {
+            p.setCoupon(null);
+        }
+        productRepository.saveAll(linkedProducts);
+
+        List<Category> linkedCategories = categoryRepository.findByCouponId(couponId);
+        for (Category c : linkedCategories) {
+            c.setCoupon(null);
+        }
+        categoryRepository.saveAll(linkedCategories);
     }
 }
 

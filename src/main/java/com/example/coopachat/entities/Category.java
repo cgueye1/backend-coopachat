@@ -23,6 +23,13 @@ public class Category {
     @Column(unique = true, nullable = false)
     @NotBlank(message = "Le nom de la catégorie est obligatoire")
     private String name; // Nom de la catégorie (ex: "Épicerie", "Boissons",...)
+
+    @Column(nullable = true)
+    private String icon; // Icône ou image de la catégorie (optionnelle)
+
+    @ManyToOne
+    @JoinColumn(name = "coupon_id")
+    private Coupon coupon; // Coupon appliqué (optionnel)
 }
 
 

@@ -1,18 +1,25 @@
 package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.companies.CreateCompanyDTO;
-import com.example.coopachat.dtos.employees.CreateEmployeeDTO;
 import com.example.coopachat.dtos.companies.CompanyListResponseDTO;
 import com.example.coopachat.dtos.companies.CompanyDetailsDTO;
 import com.example.coopachat.dtos.companies.CompanyStatsDTO;
 import com.example.coopachat.dtos.companies.UpdateCompanyDTO;
 import com.example.coopachat.dtos.companies.UpdateCompanyStatusDTO;
+import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
+import com.example.coopachat.dtos.coupons.CouponDetailsDTO;
+import com.example.coopachat.dtos.coupons.CreateCouponDTO;
+import com.example.coopachat.dtos.coupons.UpdateCouponDTO;
+import com.example.coopachat.dtos.coupons.UpdateCouponStatusDTO;
+import com.example.coopachat.dtos.employees.CreateEmployeeDTO;
+import com.example.coopachat.dtos.employees.EmployeeDetailsDTO;
 import com.example.coopachat.dtos.employees.EmployeeListResponseDTO;
 import com.example.coopachat.dtos.employees.EmployeeStatsDTO;
-import com.example.coopachat.dtos.employees.EmployeeDetailsDTO;
 import com.example.coopachat.dtos.employees.UpdateEmployeeDTO;
 import com.example.coopachat.dtos.employees.UpdateEmployeeStatusDTO;
 import com.example.coopachat.enums.CompanySector;
+import com.example.coopachat.enums.CouponScope;
+import com.example.coopachat.enums.CouponStatus;
 import com.example.coopachat.services.commercial.CommercialService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -210,11 +217,83 @@ public class CommercialController {
             @RequestBody @Valid UpdateEmployeeStatusDTO updateEmployeeStatusDTO
     ) {
         commercialService.updateEmployeeStatus(id, updateEmployeeStatusDTO);
-        //message = salarié activé avec succès si isActive = true, salarié désactivé avec succès si isActive = false
         String message = updateEmployeeStatusDTO.getIsActive()
                 ? "Salarié activé avec succès"
                 : "Salarié désactivé avec succès";
         return ResponseEntity.ok(message);
+    }
+
+    // ============================================================================
+    // 🏷️ GESTION DES COUPONS
+    // ============================================================================
+
+    @Operation(
+            summary = "Créer un coupon",
+            description = "Permet à un commercial de créer un coupon et l'applique selon son scope."
+    )
+    @PostMapping("/coupons")
+    public ResponseEntity<String> createCoupon(@RequestBody @Valid CreateCouponDTO createCouponDTO) {
+        commercialService.addCoupon(createCouponDTO);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body("Coupon créé avec succès");
+    }
+
+    @Operation(
+            summary = "Modifier un coupon",
+            description = "Modifie un coupon. Seuls les champs non nuls sont pris en compte."
+    )
+    @PutMapping("/coupons/{id}")
+    public ResponseEntity<String> updateCoupon(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateCouponDTO updateCouponDTO
+    ) {
+        commercialService.updateCoupon(id, updateCouponDTO);
+        return ResponseEntity.ok("Coupon modifié avec succès");
+    }
+
+    @Operation(
+            summary = "Activer/Désactiver un coupon",
+            description = "Active ou désactive un coupon. Le body doit contenir 'isActive' (true/false)."
+    )
+    @PatchMapping("/coupons/{id}/status")
+    public ResponseEntity<String> updateCouponStatus(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateCouponStatusDTO updateCouponStatusDTO
+    ) {
+        commercialService.updateCouponStatus(id, updateCouponStatusDTO);
+        String message = updateCouponStatusDTO.getIsActive()
+                ? "Coupon activé avec succès"
+                : "Coupon désactivé avec succès";
+        return ResponseEntity.ok(message);
+    }
+
+    @Operation(
+            summary = "Lister les coupons (paginé avec recherche et filtres)",
+            description = "Récupère la liste paginée de tous les coupons. " +
+                    "Paramètres: page (défaut 0), size (défaut 6), search (code ou nom), " +
+                    "status, scope, isActive (optionnels)."
+    )
+    @GetMapping("/coupons")
+    public ResponseEntity<CouponListResponseDTO> getAllCoupons(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) CouponStatus status,
+            @RequestParam(required = false) CouponScope scope,
+            @RequestParam(required = false) Boolean isActive
+    ) {
+        CouponListResponseDTO response = commercialService.getAllCoupons(page, size, search, status, scope, isActive);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Récupérer les détails d'un coupon",
+            description = "Récupère les détails d'un coupon par son ID, avec la liste des produits liés."
+    )
+    @GetMapping("/coupons/{id}")
+    public ResponseEntity<CouponDetailsDTO> getCouponById(@PathVariable Long id) {
+        CouponDetailsDTO details = commercialService.getCouponById(id);
+        return ResponseEntity.ok(details);
     }
 
 }

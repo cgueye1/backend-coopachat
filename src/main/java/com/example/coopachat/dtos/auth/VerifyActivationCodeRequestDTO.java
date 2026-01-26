@@ -17,6 +17,7 @@ public class VerifyActivationCodeRequestDTO {
     private String email;
 
     @NotBlank(message = "Le code d'activation est obligatoire")
-    @Pattern(regexp = "^[0-9]{6}$", message = "Le code doit contenir exactement 6 chiffres")
+    //^[0-9]{4}([0-9]{2})?$  exactement 4 chiffres optionnellement 2 chiffres en plus
+    @Pattern(regexp = "^[0-9]{4}([0-9]{2})?$", message = "Le code doit contenir exactement 4 ou 6 chiffres")
     private String code;
 }

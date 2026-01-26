@@ -106,7 +106,7 @@ public class AuthController {
 
     @Operation(
             summary = "Vérifier un code d'activation",
-            description = "Vérifie le code d'activation de 6 chiffres reçu par email. " +
+            description = "Vérifie le code d'activation de 6 et 4 chiffres reçu par email. " +
                     "Le code doit être valide et non expiré."
     )
     @PostMapping("/verify-activation-code")

@@ -1,8 +1,15 @@
 package com.example.coopachat.services.commercial;
 
 import com.example.coopachat.dtos.companies.*;
+import com.example.coopachat.dtos.coupons.CouponDetailsDTO;
+import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
+import com.example.coopachat.dtos.coupons.CreateCouponDTO;
+import com.example.coopachat.dtos.coupons.UpdateCouponDTO;
+import com.example.coopachat.dtos.coupons.UpdateCouponStatusDTO;
 import com.example.coopachat.dtos.employees.*;
 import com.example.coopachat.enums.CompanySector;
+import com.example.coopachat.enums.CouponScope;
+import com.example.coopachat.enums.CouponStatus;
 
 /**
  * Interface pour le service de gestion des actions du commercial
@@ -123,6 +130,52 @@ public interface CommercialService {
      */
     void updateEmployeeStatus(Long id, UpdateEmployeeStatusDTO updateEmployeeStatusDTO);
 
+    /**
+     * Crée un coupon et l'applique selon son scope.
+     *
+     * @param createCouponDTO Les informations du coupon à créer
+     * @throws RuntimeException si le code/nom existe déjà, si les dates sont invalides,
+     *                          ou si les produits/catégories requis sont absents.
+     */
+    void addCoupon(CreateCouponDTO createCouponDTO);
+
+    /**
+     * Modifie un coupon (champs non nuls uniquement).
+     *
+     * @param id L'identifiant du coupon
+     * @param updateCouponDTO Champs à modifier
+     */
+    void updateCoupon(Long id, UpdateCouponDTO updateCouponDTO);
+
+    /**
+     * Active ou desactive un coupon.
+     *
+     * @param id L'identifiant du coupon
+     * @param updateCouponStatusDTO Nouveau statut d'activation
+     */
+    void updateCouponStatus(Long id, UpdateCouponStatusDTO updateCouponStatusDTO);
+
+    /**
+     * Liste paginée des coupons avec recherche et filtres.
+     *
+     * @param page Numéro de la page (0-indexed, par défaut 0)
+     * @param size Taille de la page (par défaut 6)
+     * @param search Terme de recherche (code ou nom)
+     * @param status Filtre par statut (optionnel)
+     * @param scope Filtre par scope (optionnel)
+     * @param isActive Filtre par activation manuelle (optionnel)
+     * @return Réponse paginée contenant la liste des coupons
+     */
+    CouponListResponseDTO getAllCoupons(int page, int size, String search,
+                                        CouponStatus status, CouponScope scope, Boolean isActive);
+
+    /**
+     * Récupère les détails d'un coupon avec ses produits liés.
+     *
+     * @param id L'identifiant du coupon
+     * @return Détails du coupon
+     */
+    CouponDetailsDTO getCouponById(Long id);
 
 }
 

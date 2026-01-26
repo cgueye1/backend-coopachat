@@ -42,10 +42,17 @@ public class Product {
     @Column(columnDefinition = "TEXT")
     private String image; // Image du produit (URL/fichier)
 
+    @Column(nullable = true)
+    private String brand; // Marque du produit (optionnelle)
+
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
     @NotNull(message = "La catégorie est obligatoire")
     private Category category; // Catégorie du produit
+
+    @ManyToOne
+    @JoinColumn(name = "coupon_id")
+    private Coupon coupon; // Coupon appliqué (optionnel)
 
     @Column(nullable = false)
     @NotNull(message = "Le prix unitaire est obligatoire")

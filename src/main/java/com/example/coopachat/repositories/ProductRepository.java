@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 /**
  * Repository pour l'entité Product (Produit)
  */
@@ -41,6 +43,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndCategory(
             String name, String productCode, Category category, Pageable pageable);
 
+
     /**
      * Recherche par nom ou code produit + filtre par statut
      */
@@ -48,10 +51,21 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             String name, String productCode, Boolean status, Pageable pageable);
 
     /**
+     * Recherche par nom produit + filtre par statut
+     */
+    Page<Product> findByNameContainingIgnoreCaseAndStatus(String name, Boolean status, Pageable pageable);
+
+    /**
      * Recherche par nom ou code produit + filtre par catégorie + filtre par statut
      */
     Page<Product> findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndCategoryAndStatus(
             String name, String productCode, Category category, Boolean status, Pageable pageable);
+
+    /**
+     * Recherche par nom  + filtre par catégorie + filtre par statut
+     */
+    Page<Product> findByNameContainingIgnoreCaseAndCategoryAndStatus(
+            String name, Category category, Boolean status, Pageable pageable);
 
     /**
      * Filtre par catégorie uniquement
@@ -62,12 +76,32 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      * Filtre par statut uniquement
      */
     Page<Product> findByStatus(Boolean status, Pageable pageable);
+    List <Product> findByStatus(Boolean status);
 
 
     /**
      * Filtre par catégorie + statut
      */
     Page<Product> findByCategoryAndStatus(Category category, Boolean status, Pageable pageable);
+
+    // ============================================================================
+    // 🏠 Accueil salarié
+    // ============================================================================
+
+    /**
+     * Récupère les 4 derniers produits actifs
+     */
+    List<Product> findTop4ByStatusTrueOrderByCreatedAtDesc();
+
+    /**
+     * Récupère les produits liés à un coupon
+     */
+    List<Product> findByCouponId(Long couponId);
+
+    /**
+     * Récupère les produits appartenant à une liste de catégories
+     */
+    List<Product> findByCategoryIn(List<Category> categories);
 
     /**
      * Récupère les produits en alerte de stock (stock actuel < seuil minimum).
