@@ -1,7 +1,9 @@
 package com.example.coopachat.services.Employee;
 
+import com.example.coopachat.dtos.UserDeliveryPrefererence.DeliveryPreferenceDTO;
 import com.example.coopachat.dtos.cart.CartResponseDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
+import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
 import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
@@ -104,6 +106,45 @@ public interface EmployeeService {
      * @throws RuntimeException si produit non trouvé ou non dans le panier
      */
     void removeProductFromCart(Long productId);
+
+    // ============================================================================
+    // Préférences de Livraisons🛵
+    // ============================================================================
+    /**
+     * Crée ou met à jour les préférences de livraison de l'utilisateur connecté
+     *
+     * @param dto DTO contenant les préférences (jours, créneaux, mode)
+     * @throws RuntimeException si utilisateur non trouvé
+     */
+     void saveDeliveryPreference(DeliveryPreferenceDTO dto);
+
+    /**
+     * Récupère les préférences de livraison de l'utilisateur connecté
+     *
+     * @return DeliveryPreferenceDTO les préférences de l'utilisateur
+     * @throws RuntimeException si utilisateur non trouvé
+     */
+    DeliveryPreferenceDTO getDeliveryPreference();
+
+    // ============================================================================
+    // Informations Personnelles 📋
+    // ============================================================================
+
+    /**
+     * Récupère les informations personnelles d'un employé
+     * @return DTO contenant les informations personnelles
+     */
+    EmployeePersonalInfoDTO getPersonalInfo();
+
+    /**
+     *  Met à jour les informations personnelles
+     * (mais utilise que les 3 champs modifiables)
+     * @param employeeId ID de l'employé
+     * @param updateRequest DTO contenant les nouvelles valeurs
+     */
+    void updatePersonalInfo(EmployeePersonalInfoDTO updateRequest);
+
+
 
 
 }

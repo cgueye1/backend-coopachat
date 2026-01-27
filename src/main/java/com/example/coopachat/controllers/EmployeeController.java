@@ -1,8 +1,10 @@
 package com.example.coopachat.controllers;
 
+import com.example.coopachat.dtos.UserDeliveryPrefererence.DeliveryPreferenceDTO;
 import com.example.coopachat.dtos.auth.ResetPasswordRequestDTO;
 import com.example.coopachat.dtos.cart.CartResponseDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
+import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
 import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
@@ -26,10 +28,14 @@ import java.util.List;
 public class EmployeeController {
 
     private final EmployeeService employeeService;
+
+    // ============================================================================
+    // 🔐 ACTIVATION
+    // ============================================================================
+
     @Operation(
             summary = "Activer le compte salarié",
-            description = "Active le compte d'un salarié et crée son mot de passe via le token d'invitation reçu par email. " +
-                    "Le token doit être valide et non expiré."
+            description = "Active le compte d'un salarié et crée son mot de passe via le token d'invitation reçu par email."
     )
     @PostMapping("mobile/activate")
     public ResponseEntity<String> activateEmployeeAccount(@RequestBody @Valid ResetPasswordRequestDTO requestDTO) {
@@ -40,6 +46,10 @@ public class EmployeeController {
         );
         return ResponseEntity.ok("Compte activé avec succès. Vous pouvez maintenant vous connecter.");
     }
+
+    // ============================================================================
+    // 🏠 ACCUEIL
+    // ============================================================================
 
     @Operation(
             summary = "Accueil salarié",
@@ -63,24 +73,21 @@ public class EmployeeController {
 
     @Operation(
             summary = "Lister les produits du catalogue",
-            description = "Retourne la liste paginée des produits du catalogue avec possibilité de filtrer par recherche et catégorie. " +
-                    "Seuls les produits actifs sont affichés."
+            description = "Retourne la liste paginée des produits du catalogue avec possibilité de filtrer par recherche et catégorie."
     )
     @GetMapping("/products")
     public ResponseEntity<ProductCatalogueListResponseDTO> getCatalogueProducts(
-
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "6") int size,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Long categoryId) {
-
         ProductCatalogueListResponseDTO response = employeeService.getCatalogueProducts(page, size, search, categoryId);
         return ResponseEntity.ok(response);
     }
+
     @Operation(
             summary = "Récupérer les détails d'un produit",
-            description = "Retourne les informations détaillées d'un produit spécifique par son ID. " +
-                    "Seuls les produits actifs sont accessibles."
+            description = "Retourne les informations détaillées d'un produit spécifique par son ID."
     )
     @GetMapping("/products/{productId}")
     public ResponseEntity<ProductMobileDetailsDTO> getProductDetails(
@@ -88,18 +95,18 @@ public class EmployeeController {
         ProductMobileDetailsDTO productDetails = employeeService.getProductDetailsById(productId);
         return ResponseEntity.ok(productDetails);
     }
+
     // ============================================================================
-    // 🛒 PANIER - AJOUTER PRODUIT
+    // 🛒 PANIER
     // ============================================================================
 
     @Operation(
             summary = "Ajouter un produit au panier",
             description = "Ajoute un produit au panier de l'utilisateur connecté. " +
-                    "Si le produit est déjà dans le panier, augmente sa quantité. " +
-                    "La quantité par défaut est 1 "
+                    "Si le produit est déjà dans le panier, augmente sa quantité."
     )
     @PostMapping("/cart/items/{productId}")
-    public ResponseEntity<String> addToCart(@PathVariable Long productId){
+    public ResponseEntity<String> addToCart(@PathVariable Long productId) {
         employeeService.addProductToCart(productId);
         return ResponseEntity.ok("Produit ajouté avec succès à votre panier");
     }
@@ -108,11 +115,12 @@ public class EmployeeController {
             summary = "Récupérer le panier",
             description = "Retourne tous les articles du panier de l'utilisateur connecté"
     )
-    @GetMapping("/cart/items")
+    @GetMapping("/cart")
     public ResponseEntity<CartResponseDTO> getCart() {
         CartResponseDTO cart = employeeService.getCart();
         return ResponseEntity.ok(cart);
     }
+
     @Operation(
             summary = "Augmenter la quantité d'un produit",
             description = "Augmente de 1 la quantité d'un produit déjà présent dans le panier."
@@ -144,6 +152,50 @@ public class EmployeeController {
         return ResponseEntity.ok("Produit supprimé du panier");
     }
 
+    // ============================================================================
+    // 🛵 PRÉFÉRENCES DE LIVRAISON
+    // ============================================================================
 
+    @Operation(
+            summary = "Enregistrer/modifier mes préférences de livraison",
+            description = "Crée ou met à jour les préférences de livraison de l'utilisateur connecté " +
+                    "(jours, créneaux horaires, mode de réception)"
+    )
+    @PostMapping("/delivery-preferences")
+    public ResponseEntity<String> saveDeliveryPreference(@RequestBody DeliveryPreferenceDTO dto) {
+        employeeService.saveDeliveryPreference(dto);
+        return ResponseEntity.ok("Préférences de livraison enregistrées avec succès");
+    }
+
+    @Operation(
+            summary = "Récupérer mes préférences de livraison",
+            description = "Retourne les préférences de livraison de l'utilisateur connecté"
+    )
+    @GetMapping("/delivery-preferences")
+    public ResponseEntity<DeliveryPreferenceDTO> getDeliveryPreference() {
+        DeliveryPreferenceDTO preferences = employeeService.getDeliveryPreference();
+        return ResponseEntity.ok(preferences);
+    }
+
+    @Operation(
+            summary = "Récupérer mes informations personnelles",
+            description = "Retourne les informations personnelles de l'employé connecté " +
+                    "(nom, prénom, téléphone, email, entreprise)"
+    )
+    @GetMapping("/personal-info")
+    public ResponseEntity<EmployeePersonalInfoDTO> getPersonalInfo() {
+        EmployeePersonalInfoDTO info = employeeService.getPersonalInfo();
+        return ResponseEntity.ok(info);
+    }
+
+    @Operation(
+            summary = "Modifier mes informations personnelles",
+            description = "Met à jour uniquement le nom, prénom et téléphone (les autres champs sont ignorés)"
+    )
+    @PutMapping("/personal-info")
+    public ResponseEntity<String> updatePersonalInfo(@RequestBody EmployeePersonalInfoDTO dto) {
+        employeeService.updatePersonalInfo(dto);
+        return ResponseEntity.ok("Informations personnelles mises à jour avec succès");
+    }
 
 }

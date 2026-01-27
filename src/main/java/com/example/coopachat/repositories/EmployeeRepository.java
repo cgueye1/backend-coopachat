@@ -27,6 +27,10 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
      */
     Optional<Employee> findByUserEmail(String email);
 
+    /**
+     * Récupère un employé par son User
+     */
+    Optional<Employee> findByUser(Users user);
 
     /**
      * Compte le nombre total d'employés créés par un commercial

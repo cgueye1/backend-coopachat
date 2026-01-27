@@ -1,10 +1,12 @@
 package com.example.coopachat.services.Employee;
 
+import com.example.coopachat.dtos.UserDeliveryPrefererence.DeliveryPreferenceDTO;
 import com.example.coopachat.dtos.cart.CartItemDTO;
 import com.example.coopachat.dtos.cart.CartResponseDTO;
 import com.example.coopachat.dtos.categories.CategoryHomeItemDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.coupons.CouponPromoDTO;
+import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.products.*;
 import com.example.coopachat.entities.*;
@@ -48,6 +50,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final CategoryRepository categoryRepository;
     private final CouponRepository couponRepository;
     private final CartItemRepository cartItemRepository;
+    private final UserDeliveryPreferenceRepository userDeliveryPreferenceRepository;
+    private final EmployeeRepository employeeRepository;
 
     // ============================================================================
     // 🔐 ACTIVATION D'UN COMPTE SALARIE
@@ -121,7 +125,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         Users user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
-      
+
         // Chargement des 4 derniers produits et catégories
         List<Product> latestProducts = productRepository.findTop4ByStatusTrueOrderByCreatedAtDesc();
         List<Category> latestCategories = categoryRepository.findTop4ByOrderByIdDesc();
@@ -422,6 +426,112 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         log.info("Produit {} supprimé du panier de {}",
                 product.getName(), user.getEmail());
+    }
+    // ============================================================================
+    // Préférences de Livraisons🛵
+    // ============================================================================
+    @Override
+    @Transactional
+    public void saveDeliveryPreference(DeliveryPreferenceDTO dto) {
+
+        // Validation rapide
+        if (dto == null) {
+            throw new RuntimeException("Les données sont nulles");
+        }
+
+        // Récupérer user
+        Users user = getCurrentUser();
+
+        // Chercher ou créer ses préférences de livraison
+        UserDeliveryPreference pref =userDeliveryPreferenceRepository.findByUser(user).orElse(new UserDeliveryPreference());
+
+        // Mettre à jour
+        pref.setUser(user);
+        pref.setPreferredDays(dto.getPreferredDays());
+        pref.setPreferredTimeSlot(dto.getPreferredTimeSlot());
+        pref.setDeliveryMode(dto.getDeliveryMode());
+
+        // Sauvegarder
+        userDeliveryPreferenceRepository.save(pref);
+        log.info("Préférences sauvegardées pour {}", user.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public DeliveryPreferenceDTO getDeliveryPreference() {
+
+        // 1. Récupérer l'utilisateur connecté
+        Users user = getCurrentUser();
+
+        // 2. Chercher les préférences en base
+        UserDeliveryPreference preference = userDeliveryPreferenceRepository.findByUser(user)
+                .orElseThrow(()-> new RuntimeException("Aucune préférence de livraison trouvée"));
+
+        // 3. Convertir en DTO
+        DeliveryPreferenceDTO dto = convertPreferenceToDto(preference);
+
+      log.info("Préférences récupérées pour {}: {} jours, créneau: {}, mode: {}",
+              user.getEmail(),
+              dto.getPreferredDays() != null ? dto.getPreferredDays().size() : 0,
+              dto.getPreferredTimeSlot(),
+              dto.getDeliveryMode());
+       return dto;
+    }
+
+    // ============================================================================
+    // Informations Personnelles 📋
+    // ============================================================================
+
+    @Override
+    public EmployeePersonalInfoDTO getPersonalInfo() {
+
+        Users userEmployee  = getCurrentUser();
+
+        Employee employee = employeeRepository.findByUser(userEmployee)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
+        return new EmployeePersonalInfoDTO(
+                employee.getId(),
+                userEmployee.getFirstName(),
+                userEmployee.getLastName(),
+                userEmployee.getPhone(),
+                userEmployee.getEmail(),
+                employee.getCompany() != null? employee.getCompany().getName(): null
+        );
+    }
+    @Override
+    @Transactional
+    public void updatePersonalInfo(EmployeePersonalInfoDTO updateRequest) {
+
+        Users userEmployee = getCurrentUser();
+
+        if (updateRequest.getFirstName() != null){
+            userEmployee.setFirstName(updateRequest.getFirstName());
+        }
+        if (updateRequest.getLastName() != null){
+            userEmployee.setLastName(updateRequest.getLastName());
+        }
+        if (updateRequest.getPhone() != null){
+            userEmployee.setPhone(updateRequest.getPhone());
+        }
+        userRepository.save(userEmployee);
+
+        log.info("Mise à jour réussie pour l'employé : {}", userEmployee.getFirstName());
+    }
+
+
+
+    /**
+     * Convertit une entité UserDeliveryPreference en DeliveryPreferenceDTO
+     */
+    private DeliveryPreferenceDTO convertPreferenceToDto(UserDeliveryPreference entity) {
+        DeliveryPreferenceDTO dto = new DeliveryPreferenceDTO();
+
+        dto.setPreferredDays(entity.getPreferredDays());
+        dto.setPreferredTimeSlot(entity.getPreferredTimeSlot());
+        dto.setDeliveryMode(entity.getDeliveryMode());
+
+        return dto;
     }
 
 
