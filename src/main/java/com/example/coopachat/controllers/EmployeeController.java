@@ -4,6 +4,7 @@ import com.example.coopachat.dtos.UserDeliveryPrefererence.DeliveryPreferenceDTO
 import com.example.coopachat.dtos.auth.ResetPasswordRequestDTO;
 import com.example.coopachat.dtos.cart.CartResponseDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
+import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
@@ -196,6 +197,32 @@ public class EmployeeController {
     public ResponseEntity<String> updatePersonalInfo(@RequestBody EmployeePersonalInfoDTO dto) {
         employeeService.updatePersonalInfo(dto);
         return ResponseEntity.ok("Informations personnelles mises à jour avec succès");
+    }
+
+    @Operation(
+            summary = "Ajouter une adresse de livraison ",
+            description = "Ajoute une nouvelle adresse de livraison  (max 3: Domicile/Bureau/Autre)"
+    )
+    @PostMapping("/adresses ")
+    public ResponseEntity<String> createAddress(@RequestBody AddressDTO dto) {
+       employeeService.createAddress(dto);
+        return ResponseEntity.ok("Adresse ajoutée");
+    }
+
+    @Operation(summary = "Modifier une adresse de livraison", description = "Met à jour une adresse de livraison existante")
+    @PutMapping("/adresses/{addressId}")
+    public ResponseEntity<String> updateAddress(
+            @PathVariable Long addressId,
+            @RequestBody AddressDTO dto) {
+        employeeService.updateAddress(addressId, dto);
+        return ResponseEntity.ok("Adresse modifiée");
+    }
+
+
+    @Operation(summary = "Mes adresses de livraison ", description = "Liste les différentes adresses du salarié")
+    @GetMapping("/adresses")
+    public ResponseEntity<List<AddressDTO>> getMyAddresses() {
+        return ResponseEntity.ok(employeeService.getMyAddresses());
     }
 
 }

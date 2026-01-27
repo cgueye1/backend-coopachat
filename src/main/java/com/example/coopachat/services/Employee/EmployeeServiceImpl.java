@@ -6,6 +6,7 @@ import com.example.coopachat.dtos.cart.CartResponseDTO;
 import com.example.coopachat.dtos.categories.CategoryHomeItemDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.coupons.CouponPromoDTO;
+import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.products.*;
@@ -52,6 +53,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final CartItemRepository cartItemRepository;
     private final UserDeliveryPreferenceRepository userDeliveryPreferenceRepository;
     private final EmployeeRepository employeeRepository;
+    private final AddressRepository addressRepository;
 
     // ============================================================================
     // 🔐 ACTIVATION D'UN COMPTE SALARIE
@@ -519,6 +521,131 @@ public class EmployeeServiceImpl implements EmployeeService {
         log.info("Mise à jour réussie pour l'employé : {}", userEmployee.getFirstName());
     }
 
+    @Override
+    @Transactional
+    public void createAddress(AddressDTO dto) {
+
+        // 1. Récupérer le user connecté
+        Users currentUser = getCurrentUser();
+
+        //Récupérer l'employé
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
+        // 2. Vérifier s'il existe déjà une adresse de ce type
+        boolean exists = addressRepository.existsByEmployeeAndDeliveryMode(employee, dto.getDeliveryMode());
+
+        if (exists) {
+            throw new RuntimeException(
+                    "Vous avez déjà une adresse de type " + dto.getDeliveryMode());
+        }
+        // 3. Vérifier la limite (max 3 adresses)
+        long count = addressRepository.countByEmployee(employee);
+        if (count >= 3) {
+            throw new RuntimeException( "Vous ne pouvez pas avoir plus de 3 adresses");
+        }
+        // 4. Gérer l'adresse principale (si l'adresse passé en paramètre,  "isPrimary" est marqué comme true alors dans ce cas :)
+        if (dto.isPrimary()){
+            //on va parcourir les adresses existantes et les mettre à "false "
+           employee.getAddresses().forEach((addr ->addr.setPrimary(false)));
+        }
+        // 5. Créer l'adresse
+        Address address = new Address();
+        address.setEmployee(employee);
+        address.setDeliveryMode(dto.getDeliveryMode());
+        address.setCity(dto.getCity());
+        address.setDistrict(dto.getDistrict());
+        address.setStreet(dto.getStreet());
+        address.setPrimary(dto.isPrimary());
+
+        // 6. Sauvegarder
+        addressRepository.save(address);
+
+        log.info("Adresse créée pour l'employé {}: {}",
+                employee.getUser().getFirstName(), dto.getDeliveryMode());
+
+    }
+
+    @Override
+    @Transactional
+    public void updateAddress(Long addressId, AddressDTO dto) {
+
+        // 1. Récupérer l'utilisateur connecté et son profil employé
+        Users currentUser = getCurrentUser();
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
+        // 2. Vérifier que l'adresse existe et appartient à l'employé
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new RuntimeException("Adresse non trouvée"));
+
+        if (!address.getEmployee().getId().equals(employee.getId())) {
+            throw new RuntimeException("Cette adresse ne vous appartient pas");
+        }
+
+        // 3. Vérifier les conflits de type d'adresse
+        // Si l'utilisateur change le type (ex: DOMICILE → BUREAU)
+        if (!address.getDeliveryMode().equals(dto.getDeliveryMode())) {
+            // Vérifier qu'il n'a pas déjà une autre adresse avec ce nouveau type
+            boolean typeAlreadyExists = addressRepository.existsByEmployeeAndDeliveryModeAndIdNot(
+                    employee, dto.getDeliveryMode(), addressId);
+
+            if (typeAlreadyExists) {
+                throw new RuntimeException("Vous avez déjà une adresse de type " + dto.getDeliveryMode());
+            }
+        }
+
+        // 4. Gestion de l'adresse principale
+        // Si l'utilisateur veut que cette adresse devienne principale
+        if (dto.isPrimary() && !address.isPrimary()) {
+            // Désactiver toutes les autres adresses principales
+            employee.getAddresses().forEach(addr -> addr.setPrimary(false));
+        }
+
+        // 5. Mise à jour des champs (uniquement si fournis)
+        if (dto.getDeliveryMode() != null) {
+            address.setDeliveryMode(dto.getDeliveryMode());
+        }
+        if (dto.getCity() != null) {
+            address.setCity(dto.getCity());
+        }
+        if (dto.getDistrict() != null) {
+            address.setDistrict(dto.getDistrict());
+        }
+        if (dto.getStreet() != null) {
+            address.setStreet(dto.getStreet());
+        }
+
+        // Toujours mettre à jour le statut "principale"
+        address.setPrimary(dto.isPrimary());
+
+        // Sauvegarde automatique grâce à @Transactional
+        addressRepository.save(address);
+    }
+
+    @Override
+    public List<AddressDTO> getMyAddresses() {
+
+        // 1. Récupérer l'utilisateur connecté
+        Users currentUser = getCurrentUser();
+
+        // 2. Récupérer l'employé associé
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
+        // 3. Récupérer toutes les adresses de cet employé
+        List<Address> addresses = addressRepository.findByEmployee(employee);
+
+        // 4. Convertir en DTOs chaque adresse retournée
+        return addresses.stream()
+                .map(address -> new AddressDTO(
+                address.getDeliveryMode(),
+                address.getCity(),
+                address.getDistrict(),
+                address.getStreet(),
+                address.isPrimary()
+        )).toList();
+    }
 
 
     /**

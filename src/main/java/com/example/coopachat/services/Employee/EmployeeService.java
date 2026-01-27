@@ -3,6 +3,7 @@ package com.example.coopachat.services.Employee;
 import com.example.coopachat.dtos.UserDeliveryPrefererence.DeliveryPreferenceDTO;
 import com.example.coopachat.dtos.cart.CartResponseDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
+import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
@@ -144,6 +145,25 @@ public interface EmployeeService {
      */
     void updatePersonalInfo(EmployeePersonalInfoDTO updateRequest);
 
+    /**
+     * Crée une nouvelle adresse de livraison pour le salarié
+     * @param dto Données de l'adresse
+     * @return L'adresse créée
+     */
+     void createAddress(AddressDTO dto);
+
+    /**
+     * Met à jour l' adresses du salarié
+     * @param addressId ID de l'adresse
+     * @param dto Nouvelles données
+     */
+    void updateAddress(Long addressId, AddressDTO dto);
+
+    /**
+     * Récupère toutes les adresses du salarié
+     * @return Liste des adresses
+     */
+    List<AddressDTO> getMyAddresses();
 
 
 

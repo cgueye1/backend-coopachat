@@ -461,7 +461,6 @@ public class CommercialServiceImpl implements CommercialService {
         // Créer l'employé
         Employee employeeEntity = new Employee();
         employeeEntity.setCompany(company);
-        employeeEntity.setAddress(employee.getAddress());
         employeeEntity.setUser(userSaved);
         employeeEntity.setCreatedBy(commercial);
         employeeEntity.setEmployeeCode(employeeCode);
@@ -727,9 +726,7 @@ public class CommercialServiceImpl implements CommercialService {
         if (updateEmployeeDTO.getLastName() != null) {
             user.setLastName(updateEmployeeDTO.getLastName());
         }
-        if (updateEmployeeDTO.getAddress() != null) {
-            employee.setAddress(updateEmployeeDTO.getAddress());
-        }
+
 
         // Mettre à jour l'entreprise si companyId est fourni
         if (updateEmployeeDTO.getCompanyId() != null) {
@@ -1303,7 +1300,6 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setLastName(employee.getUser().getLastName());
         dto.setEmail(employee.getUser().getEmail());
         dto.setPhone(employee.getUser().getPhone());
-        dto.setAddress(employee.getAddress());
         dto.setCompanyName(employee.getCompany().getName());
         dto.setCompanyId(employee.getCompany().getId());
         dto.setCreatedAt(employee.getCreatedAt());

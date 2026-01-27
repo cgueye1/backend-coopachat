@@ -11,6 +11,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Entity représentant un salarié d'une entreprise
@@ -39,10 +41,9 @@ public class Employee {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private Users user;
 
-    // Adresse du salarié
-    @Column(nullable = false)
-    @NotBlank(message = "L'adresse est obligatoire")
-    private String address;
+    // Adresse de livraison du salarié
+    @OneToMany(mappedBy = "employee")
+    private List<Address> addresses = new ArrayList<>();
 
     // Commercial qui a créé ce salarié
     @ManyToOne

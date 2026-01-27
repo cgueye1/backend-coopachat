@@ -5,7 +5,8 @@ package com.example.coopachat.enums;
  */
 public enum DeliveryMode {
     OFFICE("Bureau"),
-    HOME("Domicile");
+    HOME("Domicile"),
+    OTHERS("Others");
 
     private final String displayName;
 
