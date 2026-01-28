@@ -1,5 +1,6 @@
 package com.example.coopachat.services.admin;
 
+import com.example.coopachat.dtos.DeliveryOption.DeliveryOptionDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
@@ -11,15 +12,9 @@ import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
 import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
-import com.example.coopachat.entities.Category;
-import com.example.coopachat.entities.Product;
-import com.example.coopachat.entities.Supplier;
-import com.example.coopachat.entities.Users;
+import com.example.coopachat.entities.*;
 import com.example.coopachat.enums.UserRole;
-import com.example.coopachat.repositories.CategoryRepository;
-import com.example.coopachat.repositories.ProductRepository;
-import com.example.coopachat.repositories.SupplierRepository;
-import com.example.coopachat.repositories.UserRepository;
+import com.example.coopachat.repositories.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -56,6 +51,7 @@ public class AdminServiceImpl implements AdminService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final SupplierRepository supplierRepository;
+    private final DeliveryOptionRepository deliveryOptionRepository;
 
     // ============================================================================
     // ============================================================================
@@ -720,6 +716,69 @@ public class AdminServiceImpl implements AdminService {
                 .stream()
                 .map(supplier -> new SupplierListItemDTO(supplier.getId(), supplier.getName()))
                 .collect(Collectors.toList());
+    }
+
+    // ----------------------------------------------------------------------------
+    //  GESTION DES OPTIONS DE LIVRAISON 🛵
+    // ----------------------------------------------------------------------------
+    @Override
+    @Transactional
+    public void createDeliveryOption(DeliveryOptionDTO dto) {
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users admin = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Administrateur
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut créer une option de livraison");
+
+        }
+        // Validation
+        if (deliveryOptionRepository.existsByName(dto.getName())) {
+            throw new RuntimeException("Une option avec ce nom existe déjà");
+        }
+
+        //Création
+        DeliveryOption option = new DeliveryOption();
+        option.setName(dto.getName());
+        option.setDescription(dto.getDescription());
+        option.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
+        deliveryOptionRepository.save(option);
+
+    }
+
+    @Override
+    public List<DeliveryOptionDTO> getAllDeliveryOptions() {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users admin = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Administrateur
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut lister les options de livraisons");
+
+        }
+        return deliveryOptionRepository.findAll().stream()
+                .map(deliveryOption -> new DeliveryOptionDTO(
+                        deliveryOption.getName(),
+                        deliveryOption.getDescription(),
+                        deliveryOption.getIsActive()
+                ))
+                .toList();
+
     }
 }
 

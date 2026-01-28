@@ -1,5 +1,6 @@
 package com.example.coopachat.controllers;
 
+import com.example.coopachat.dtos.DeliveryOption.DeliveryOptionDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
@@ -347,4 +348,28 @@ public class AdminController {
         List<SupplierListItemDTO> suppliers = adminService.getAllSuppliers();
         return ResponseEntity.ok(suppliers);
     }
+    // ============================================================================
+    // 🚚 GESTION DES OPTIONS DE LIVRAISON
+    // ============================================================================
+
+    @Operation(
+            summary = "Créer une option de livraison",
+            description = "Permet à un administrateur de créer une nouvelle option de livraison"
+    )
+    @PostMapping("/delivery-options")
+    public ResponseEntity<String> createDeliveryOption(@RequestBody DeliveryOptionDTO dto) {
+        adminService.createDeliveryOption(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Option de livraison créée");
+    }
+    @Operation(
+            summary = "Lister les options de livraison",
+            description = "Récupère toutes les options de livraison "
+    )
+    @GetMapping("/delivery-options")
+    public ResponseEntity<List<DeliveryOptionDTO>> getAllDeliveryOptions() {
+        List<DeliveryOptionDTO> options = adminService.getAllDeliveryOptions();
+        return ResponseEntity.ok(options);
+    }
+
+
 }

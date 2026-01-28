@@ -1,5 +1,6 @@
 package com.example.coopachat.services.admin;
 
+import com.example.coopachat.dtos.DeliveryOption.DeliveryOptionDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
@@ -116,4 +117,15 @@ public interface AdminService {
      * @return Liste des fournisseurs
      */
     List<SupplierListItemDTO> getAllSuppliers();
+
+    /**
+     * Crée une nouvelle option de livraison
+     */
+    void createDeliveryOption(DeliveryOptionDTO dto);
+
+    /**
+     * Récupère toutes les options de livraison
+     */
+    List<DeliveryOptionDTO> getAllDeliveryOptions();
+
 }
