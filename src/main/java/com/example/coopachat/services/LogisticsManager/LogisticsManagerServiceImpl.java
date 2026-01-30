@@ -1343,6 +1343,109 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         );
 
     }
+
+    @Override
+    public ByteArrayResource exportEmployeeOrders(String search, OrderStatus status) {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut exporter les commandes salariés");
+        }
+        // Normalisation du terme de recherche
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        // Récupération TOUTES les commandes (sans pagination)
+        List <Order> orders = orderRepository.findEmployeeOrders(searchTerm,status,Pageable.unpaged()).getContent();
+
+        // Génération Excel
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Commandes Salariés");
+
+            // Style en-tête
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            // Colonnes (adaptées à OrderEmployeeListItemDTO)
+            String[] headers = {
+                    "N° Commande",           // order.getOrderNumber()
+                    "Salarié",              // Nom complet
+                    "Date Commande",        // order.getCreatedAt()
+                    "Produits",             // Liste formatée
+                    "Option Livraison",     // order.getDeliveryOption()
+                    "Statut"                // order.getStatus()
+            };
+            // Création ligne en-tête
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Remplissage des données
+            int rowNum = 1;
+            for (Order order : orders) {
+                Row row = sheet.createRow(rowNum++);// rowNum++ = utilise PUIS incrémente
+
+                // N° Commande (colonne 0)
+                row.createCell(0).setCellValue(order.getOrderNumber());
+
+                // Salarié (colonne 1)
+                String employeeName = order.getEmployee().getUser().getFirstName() + " "
+                        + order.getEmployee().getUser().getLastName();
+                row.createCell(1).setCellValue(employeeName);
+
+                // Date Commande (colonne 2)
+                row.createCell(2).setCellValue(order.getCreatedAt().toLocalDate().toString());
+
+                // Produits : on va récupérer tous les noms des produits
+                List<String> products = order.getItems().stream()
+                        .map(item -> item.getProduct().getName())
+                        .collect(Collectors.toList());
+                String productsDisplay = String.join(", ", products);
+                row.createCell(3).setCellValue(productsDisplay);
+
+                // Option Livraison (colonne 4)
+                String deliveryOption = order.getDeliveryOption() != null
+                        ? order.getDeliveryOption().getName()
+                        : "Non spécifiée";
+                row.createCell(4).setCellValue(deliveryOption);
+
+                // Statut (colonne 5)
+                row.createCell(5).setCellValue(order.getStatus().getLabel());
+
+            }
+            // Augmente la largeur de la colonne 'i' pour que tout son contenu soit visible
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            // ByteArrayOutputStream = "Un conteneur temporaire en mémoire"
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+            // workbook.write(outputStream) = "Écris le Excel dans ce conteneur"
+            workbook.write(outputStream);
+
+            // toByteArray() = "Transforme en tableau d'octets"
+            // ByteArrayResource = "Prépare pour l'envoi au navigateur"
+            return new ByteArrayResource(outputStream.toByteArray()); // Transforme en données brutes téléchargeables
+
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
+        }
+    }
 }
 
 

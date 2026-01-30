@@ -2,6 +2,7 @@ package com.example.coopachat.dtos.products;
 
 import lombok.AllArgsConstructor;
 
+//DTO pour avoir un aperçu du produit
 @AllArgsConstructor
 public class ProductPreviewDTO {
 

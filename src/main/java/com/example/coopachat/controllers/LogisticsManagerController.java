@@ -366,6 +366,27 @@ public class LogisticsManagerController {
         return ResponseEntity.ok(details);
     }
 
+    @Operation(
+            summary = "Exporter les commandes salariés",
+            description = "Exporte la liste des commandes salariés en fichier Excel (une ligne par commande)."
+    )
+    @GetMapping("/employee-orders/export")
+    public ResponseEntity<Resource> exportEmployeeOrders(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) OrderStatus status) {
+
+        ByteArrayResource resource = logisticsManagerService.exportEmployeeOrders(search, status);
+        //le nom du fichier
+        String fileName = "commandes_salaries_"
+                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HHmm"))
+                + ".xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(resource);
+    }
+
 }
 
 

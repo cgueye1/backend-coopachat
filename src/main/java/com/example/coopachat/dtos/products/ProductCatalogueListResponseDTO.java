@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * DTO pour la reponse paginee du catalogue produits.
+ * DTO pour la réponse paginée du catalogue produits.
  */
 @Data
 @AllArgsConstructor

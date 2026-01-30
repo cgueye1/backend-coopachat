@@ -229,6 +229,18 @@ public interface LogisticsManagerService {
      */
      OrderItemDetailsDTO getOrderItemDetailById(Long id);
 
+
+    /**
+     * Exporte la liste des commandes salariés en fichier Excel
+     *
+     * @param search Terme de recherche (numéro commande ou nom salarié) - optionnel
+     * @param status Statut de la commande pour filtrer - optionnel
+     * @return ByteArrayResource contenant le fichier Excel
+     * @throws RuntimeException si une erreur survient lors de la génération
+     */
+    ByteArrayResource exportEmployeeOrders(String search, OrderStatus status);
+
+
 }
 
 
