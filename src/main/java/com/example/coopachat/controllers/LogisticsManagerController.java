@@ -1,10 +1,12 @@
 package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
+import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import com.example.coopachat.services.LogisticsManager.LogisticsManagerService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -334,6 +336,25 @@ public class LogisticsManagerController {
                 .body(resource);
 
         }
+
+    // ============================================================================
+    // 📦 GESTION DES COMMANDES SALARIÉS
+    // ============================================================================
+    @Operation(
+            summary = "Lister les commandes salariés",
+            description = "Récupère la liste paginée des commandes passées par les salariés avec recherche et filtres optionnels."
+    )
+    @GetMapping("/employee-orders")
+    public ResponseEntity<OrderEmployeeListResponseDTO> getAllEmployeeOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) OrderStatus status) {
+
+        OrderEmployeeListResponseDTO response = logisticsManagerService.getAllEmployeeOrders(page, size, search, status);
+        return ResponseEntity.ok(response);
+    }
+
 }
 
 

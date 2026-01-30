@@ -30,8 +30,8 @@ public class Order {
     private String orderNumber; // Numéro de la commande
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private Users user; // le user concerné
+    @JoinColumn(name = "employee_id", nullable = false)
+    private Employee employee; // le salarié concerné
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<OrderItem> items = new ArrayList<>();//Liste des produits concernés
@@ -47,7 +47,7 @@ public class Order {
     private Coupon coupon;// Coupon appliqué si ça existe
 
     @Column(nullable = false)
-    private BigDecimal totalPrice = BigDecimal.ZERO; //Prix total produits (sous-total)
+    private BigDecimal totalPrice = BigDecimal.ZERO; //Prix total de tous les produits
 
     @Column(nullable = false)
     private Integer totalItems = 0; // Nombre total d'articles

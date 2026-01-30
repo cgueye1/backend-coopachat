@@ -925,6 +925,7 @@ public class CommercialServiceImpl implements CommercialService {
         Coupon coupon = new Coupon();
         coupon.setCode(createCouponDTO.getCode().trim().toUpperCase()); // Normalisation du code
         coupon.setName(createCouponDTO.getName().trim()); // Normalisation du nom
+        coupon.setDiscountType(createCouponDTO.getDiscountType());//Type de coupon
         coupon.setValue(createCouponDTO.getValue());
         coupon.setScope(createCouponDTO.getScope());
         coupon.setIsActive(false);

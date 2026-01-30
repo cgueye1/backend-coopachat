@@ -22,8 +22,8 @@ public class CartItem {
 
     // Quel utilisateur ?
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private Users user;
+    @JoinColumn(name = "employee_id", nullable = false)
+    private Employee employee;
 
     //  Quel produit ?
     @ManyToOne

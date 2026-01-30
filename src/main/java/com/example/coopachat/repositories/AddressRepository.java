@@ -22,4 +22,7 @@ public interface AddressRepository extends JpaRepository <Address,Long> {
 
     //Retourner les adresses de l'employé
     List <Address> findByEmployee(Employee employee);
+
+    //Récupérer l'adresse principale de l'employé
+    Address findByEmployeeAndIsPrimaryTrue(Employee employee);
 }

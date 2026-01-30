@@ -7,6 +7,8 @@ import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
+import com.example.coopachat.dtos.order.CreateOrderDTO;
+import com.example.coopachat.dtos.order.OrderResponseDTO;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
 import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
 import com.example.coopachat.services.Employee.EmployeeService;
@@ -223,6 +225,19 @@ public class EmployeeController {
     @GetMapping("/adresses")
     public ResponseEntity<List<AddressDTO>> getMyAddresses() {
         return ResponseEntity.ok(employeeService.getMyAddresses());
+    }
+
+    // ============================================================================
+    // Commande Salarié🛒
+    // ============================================================================
+    @Operation(
+            summary = "Passer une commande",
+            description = "Finalise la commande à partir du panier. Vérifie le stock du produit , applique coupon si disponible et valide, vide le panier."
+    )
+    @PostMapping("/orders")
+    public ResponseEntity<OrderResponseDTO> createOrder(@RequestBody CreateOrderDTO dto) {
+        OrderResponseDTO order = employeeService.createOrder(dto);
+        return ResponseEntity.ok(order);
     }
 
 }

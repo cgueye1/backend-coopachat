@@ -6,6 +6,8 @@ import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
+import com.example.coopachat.dtos.order.CreateOrderDTO;
+import com.example.coopachat.dtos.order.OrderResponseDTO;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
 import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
 
@@ -164,6 +166,13 @@ public interface EmployeeService {
      * @return Liste des adresses
      */
     List<AddressDTO> getMyAddresses();
+
+    /**
+     * Crée une nouvelle commande à partir du panier de l'utilisateur connecté
+     * @param dto Contient l'option de livraison et le code promo (optionnel)
+     * @return Les détails de la commande créée
+     */
+    OrderResponseDTO createOrder(CreateOrderDTO dto);
 
 
 

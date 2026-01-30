@@ -1,10 +1,12 @@
 package com.example.coopachat.services.LogisticsManager;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
+import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import org.springframework.core.io.ByteArrayResource;
 
@@ -201,6 +203,21 @@ public interface LogisticsManagerService {
      * @throws RuntimeException si une erreur survient lors de la génération
      */
     ByteArrayResource exportStockAlerts(String search, Long categoryId);
+
+    // ============================================================================
+    // 📦 GESTION DES COMMANDES SALARIÉS
+    // ============================================================================
+    /**
+     * Récupère la liste paginée des commandes salariés avec recherche et filtres
+     *
+     * @param page Numéro de la page (0- par défaut)
+     * @param size Taille de la page (nombre d'éléments par page)
+     * @param search Terme de recherche (numéro de commande ou nom salarié) - optionnel
+     * @param status Statut de la commande pour filtrer - optionnel
+     * @return  OrderEmployeeListResponseDTO contenant la liste paginée des commandes et les métadonnées
+     * @throws RuntimeException si une erreur survient
+     */
+     OrderEmployeeListResponseDTO getAllEmployeeOrders(int page, int size, String search, OrderStatus status);
 
 }
 

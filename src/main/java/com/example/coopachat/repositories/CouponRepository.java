@@ -61,6 +61,11 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
      */
     List<Coupon> findByEndDateBefore(LocalDateTime now);
 
+    /**
+     * Vérifie s'il existe un coupon avec le code fourni et Active
+     */
+    Optional<Coupon> findByCodeAndIsActiveTrue(String couponCode);
+
     // ============================================================================
     // 🏠 Accueil salarié
     // ============================================================================
@@ -78,4 +83,5 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
             ORDER BY c.startDate DESC
             """)
     Optional<Coupon> findLatestActiveCoupon(@Param("now") LocalDateTime now);
+
 }

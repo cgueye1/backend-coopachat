@@ -9,12 +9,17 @@ import com.example.coopachat.dtos.coupons.CouponPromoDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
+import com.example.coopachat.dtos.order.CreateOrderDTO;
+import com.example.coopachat.dtos.order.OrderResponseDTO;
 import com.example.coopachat.dtos.products.*;
 import com.example.coopachat.entities.*;
 import com.example.coopachat.entities.auth.ActivationCode;
 import com.example.coopachat.enums.CodeType;
 import com.example.coopachat.enums.CouponStatus;
+import com.example.coopachat.enums.DiscountType;
+import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.repositories.*;
+import jakarta.persistence.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,9 +33,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -54,6 +62,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final UserDeliveryPreferenceRepository userDeliveryPreferenceRepository;
     private final EmployeeRepository employeeRepository;
     private final AddressRepository addressRepository;
+    private final OrderRepository orderRepository;
+    private final DeliveryOptionRepository deliveryOptionRepository;
 
     // ============================================================================
     // 🔐 ACTIVATION D'UN COMPTE SALARIE
@@ -180,13 +190,14 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (categoryId != null) {
             category = categoryRepository.findById(categoryId)
                     .orElseThrow(() -> new RuntimeException("Catégorie introuvable"));
-        };
+        }
+        ;
         // Récupérer la page de produits selon les filtres
         Page<Product> productPage;
         boolean activeOnly = true; // Pour les salariés, on montre seulement les produits actifs
 
-        if(searchTerm != null && category != null){
-            productPage = productRepository.findByNameContainingIgnoreCaseAndCategoryAndStatus(searchTerm,category,activeOnly,pageable);
+        if (searchTerm != null && category != null) {
+            productPage = productRepository.findByNameContainingIgnoreCaseAndCategoryAndStatus(searchTerm, category, activeOnly, pageable);
         }
         //Recherche seulement
         else if (searchTerm != null) {
@@ -237,104 +248,95 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     }
 
-        // ============================================================================
-        // 🛒Panier
-        // ============================================================================
-        @Override
-        @Transactional
-        public void addProductToCart(Long productId) {
+    // ============================================================================
+    // 🛒Panier
+    // ============================================================================
+    @Override
+    @Transactional
+    public void addProductToCart(Long productId) {
 
-            // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        // 1. Récupérer l'employé concerné
+        Users currentUser = getCurrentUser();
 
-            if (authentication == null) {
-                throw new RuntimeException("Utilisateur non authentifié");
-            }
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
-            String userEmail = authentication.getName();
 
-            if (userEmail == null) {
-                throw new RuntimeException("Email utilisateur introuvable");
-            }
+        // Trouver le produit
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Produit introuvable"));
 
-            Users employee = userRepository.findByEmail(userEmail)
-                    .orElseThrow(() -> new RuntimeException("Client introuvable"));
+        // Déterminer quantité (1 par défaut)
+        Integer requestedQuantity = 1;
 
-            // Trouver le produit
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new RuntimeException("Produit introuvable"));
-
-            // Déterminer quantité (1 par défaut)
-            Integer requestedQuantity = 1;
-
-            //Vérifier stock
-            if (product.getCurrentStock() < requestedQuantity) {
-                throw new RuntimeException("Stock insuffisant");
-            }
-
-             // Chercher si déjà dans panier
-             CartItem existingItem = cartItemRepository.findByUserAndProduct(employee, product)
-                    .orElse(null);  // ← Retourne null si pas trouvé
-            if (existingItem != null){
-
-                // CAS : Déjà dans panier → augmenter quantité
-
-                // Calculer nouvelle quantité totale
-                int newTotalQuantity = existingItem.getQuantity()+ requestedQuantity;
-
-                // Re-vérifier stock avec total
-                if (product.getCurrentStock() < newTotalQuantity) {
-                    throw new RuntimeException("Stock insuffisant pour quantité totale");
-                }
-
-                // Mettre à jour
-                existingItem.setQuantity(newTotalQuantity);
-                cartItemRepository.save(existingItem);
-            } else {
-                // CAS : Nouveau dans panier → créer article
-
-                CartItem newItem = new CartItem();
-                newItem.setUser(employee);
-                newItem.setProduct(product);
-                newItem.setQuantity(requestedQuantity);
-
-                // Définir prix
-                BigDecimal unitPrice = product.getPrice();
-                newItem.setUnitPrice(unitPrice);
-
-                // Vérifier promo
-                Coupon activeCoupon = getActiveCouponForProduct(product);
-                if (activeCoupon != null) {
-                    // Prix avec promo
-                    BigDecimal promoPrice = calculatePromoPrice(unitPrice, activeCoupon.getValue());
-                    newItem.setPromoPrice(promoPrice);
-                    newItem.setHasPromo(true);
-                } else {
-                    // Pas de promo
-                    newItem.setPromoPrice(null);
-                    newItem.setHasPromo(false);
-                }
-
-                // Sauvegarder
-                cartItemRepository.save(newItem);
-            }
-            log.info("Produit ajouté au panier - User: {}, Produit: {}, Quantité: {}",
-                    employee.getEmail(), product.getName(), requestedQuantity);
-
+        //Vérifier stock
+        if (product.getCurrentStock() < requestedQuantity) {
+            throw new RuntimeException("Stock insuffisant");
         }
+
+        // Chercher si déjà dans panier
+        CartItem existingItem = cartItemRepository.findByEmployeeAndProduct(employee, product)
+                .orElse(null);  // ← Retourne null si pas trouvé
+        if (existingItem != null) {
+
+            // CAS : Déjà dans panier → augmenter quantité
+
+            // Calculer nouvelle quantité totale
+            int newTotalQuantity = existingItem.getQuantity() + requestedQuantity;
+
+            // Re-vérifier stock avec total
+            if (product.getCurrentStock() < newTotalQuantity) {
+                throw new RuntimeException("Stock insuffisant pour quantité totale");
+            }
+
+            // Mettre à jour
+            existingItem.setQuantity(newTotalQuantity);
+            cartItemRepository.save(existingItem);
+        } else {
+            // CAS : Nouveau dans panier → créer article
+
+            CartItem newItem = new CartItem();
+            newItem.setEmployee(employee);
+            newItem.setProduct(product);
+            newItem.setQuantity(requestedQuantity);
+
+            // Définir prix
+            BigDecimal unitPrice = product.getPrice();
+            newItem.setUnitPrice(unitPrice);
+
+            // Vérifier promo
+            Coupon activeCoupon = getActiveCouponForProduct(product);
+            if (activeCoupon != null) {
+                // Prix avec promo
+                BigDecimal promoPrice = calculatePromoPrice(unitPrice, activeCoupon.getValue());
+                newItem.setPromoPrice(promoPrice);
+                newItem.setHasPromo(true);
+            } else {
+                // Pas de promo
+                newItem.setPromoPrice(null);
+                newItem.setHasPromo(false);
+            }
+
+            // Sauvegarder
+            cartItemRepository.save(newItem);
+        }
+        log.info("Produit ajouté au panier - User: {}, Produit: {}, Quantité: {}",
+                employee.getUser().getEmail(), product.getName(), requestedQuantity);
+
+    }
 
     @Override
     @Transactional
     public CartResponseDTO getCart() {
 
-        // 1. Récupérer l'utilisateur connecté
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName();
-        Users user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        // 1. Récupérer l'employé concerné
+        Users currentUser = getCurrentUser();
+
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
         // 2. Récupérer les articles du panier
-        List<CartItem> cartItems = cartItemRepository.findByUser(user);
+        List<CartItem> cartItems = cartItemRepository.findByEmployee(employee);
 
         // 3. Convertir en DTOs
         List<CartItemDTO> itemDTOs = cartItems.stream()
@@ -358,19 +360,24 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Transactional
     public void increaseProductQuantity(Long productId) {
 
-        Users users = getCurrentUser();
+        // 1. Récupérer l'employé concerné
+        Users currentUser = getCurrentUser();
+
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
 
         //Récupérer le produit
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Produit introuvable"));
 
         // Chercher l'article existant pour le users connecté et le produit concerné
-        CartItem item = cartItemRepository.findByUserAndProduct(users, product)
+        CartItem item = cartItemRepository.findByEmployeeAndProduct(employee, product)
                 .orElseThrow(() -> new RuntimeException("Produit non dans le panier"));
 
         // Vérifier stock pour savoir si la quantité est suffisante ajouter à nouveau un produit dans le panier
         if (product.getCurrentStock() <= item.getQuantity()) {
-                throw new RuntimeException("Stock insuffisant");
+            throw new RuntimeException("Stock insuffisant");
 
         }
         item.setQuantity(item.getQuantity() + 1);
@@ -382,15 +389,18 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Transactional
     public void decreaseProductQuantity(Long productId) {
 
-        // 1. Récupérer l'utilisateur connecté
-        Users user = getCurrentUser();
+        // 1. Récupérer l'employé concerné
+        Users currentUser = getCurrentUser();
+
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
         // 2. Récupérer le produit
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Produit introuvable avec ID: " + productId));
 
         // 3. Chercher l'article du panier pour cet utilisateur et ce produit
-        CartItem item = cartItemRepository.findByUserAndProduct(user, product)
+        CartItem item = cartItemRepository.findByEmployeeAndProduct(employee, product)
                 .orElseThrow(() -> new RuntimeException("Ce produit n'est pas dans votre panier"));
 
         // 4. Diminuer la quantité du produit dans le panier
@@ -398,13 +408,13 @@ public class EmployeeServiceImpl implements EmployeeService {
             // Quantité = 1 → Supprimer l'article du panier
             cartItemRepository.delete(item);
             log.info("Produit supprimé du panier - User: {}, Produit: {}",
-                    user.getEmail(), product.getName());
-        }else {
+                    currentUser.getEmail(), product.getName());
+        } else {
             // Quantité > 1 → Diminuer de 1
-            item.setQuantity(item.getQuantity()-1);
+            item.setQuantity(item.getQuantity() - 1);
             cartItemRepository.save(item);
             log.info("Quantité diminuée - User: {}, Produit: {}, Nouvelle quantité: {}",
-                    user.getEmail(), product.getName(), item.getQuantity());
+                    currentUser.getEmail(), product.getName(), item.getQuantity());
         }
 
     }
@@ -412,23 +422,29 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public void removeProductFromCart(Long productId) {
-        // 1. Récupérer l'utilisateur connecté
-        Users user = getCurrentUser();
+
+        // 1. Récupérer l'employé concerné
+        Users currentUser = getCurrentUser();
+
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
 
         // 2. Récupérer le produit
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Produit introuvable avec ID: " + productId));
 
         // 3. Chercher l'article du panier pour cet utilisateur et ce produit
-        CartItem item = cartItemRepository.findByUserAndProduct(user, product)
+        CartItem item = cartItemRepository.findByEmployeeAndProduct(employee, product)
                 .orElseThrow(() -> new RuntimeException("Ce produit n'est pas dans votre panier"));
 
         //4. supprimer le produit du panier
         cartItemRepository.delete(item);
 
         log.info("Produit {} supprimé du panier de {}",
-                product.getName(), user.getEmail());
+                product.getName(), currentUser.getEmail());
     }
+
     // ============================================================================
     // Préférences de Livraisons🛵
     // ============================================================================
@@ -445,7 +461,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         Users user = getCurrentUser();
 
         // Chercher ou créer ses préférences de livraison
-        UserDeliveryPreference pref =userDeliveryPreferenceRepository.findByUser(user).orElse(new UserDeliveryPreference());
+        UserDeliveryPreference pref = userDeliveryPreferenceRepository.findByUser(user).orElse(new UserDeliveryPreference());
 
         // Mettre à jour
         pref.setUser(user);
@@ -467,17 +483,17 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 2. Chercher les préférences en base
         UserDeliveryPreference preference = userDeliveryPreferenceRepository.findByUser(user)
-                .orElseThrow(()-> new RuntimeException("Aucune préférence de livraison trouvée"));
+                .orElseThrow(() -> new RuntimeException("Aucune préférence de livraison trouvée"));
 
         // 3. Convertir en DTO
         DeliveryPreferenceDTO dto = convertPreferenceToDto(preference);
 
-      log.info("Préférences récupérées pour {}: {} jours, créneau: {}, mode: {}",
-              user.getEmail(),
-              dto.getPreferredDays() != null ? dto.getPreferredDays().size() : 0,
-              dto.getPreferredTimeSlot(),
-              dto.getDeliveryMode());
-       return dto;
+        log.info("Préférences récupérées pour {}: {} jours, créneau: {}, mode: {}",
+                user.getEmail(),
+                dto.getPreferredDays() != null ? dto.getPreferredDays().size() : 0,
+                dto.getPreferredTimeSlot(),
+                dto.getDeliveryMode());
+        return dto;
     }
 
     // ============================================================================
@@ -487,7 +503,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public EmployeePersonalInfoDTO getPersonalInfo() {
 
-        Users userEmployee  = getCurrentUser();
+        Users userEmployee = getCurrentUser();
 
         Employee employee = employeeRepository.findByUser(userEmployee)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
@@ -498,22 +514,23 @@ public class EmployeeServiceImpl implements EmployeeService {
                 userEmployee.getLastName(),
                 userEmployee.getPhone(),
                 userEmployee.getEmail(),
-                employee.getCompany() != null? employee.getCompany().getName(): null
+                employee.getCompany() != null ? employee.getCompany().getName() : null
         );
     }
+
     @Override
     @Transactional
     public void updatePersonalInfo(EmployeePersonalInfoDTO updateRequest) {
 
         Users userEmployee = getCurrentUser();
 
-        if (updateRequest.getFirstName() != null){
+        if (updateRequest.getFirstName() != null) {
             userEmployee.setFirstName(updateRequest.getFirstName());
         }
-        if (updateRequest.getLastName() != null){
+        if (updateRequest.getLastName() != null) {
             userEmployee.setLastName(updateRequest.getLastName());
         }
-        if (updateRequest.getPhone() != null){
+        if (updateRequest.getPhone() != null) {
             userEmployee.setPhone(updateRequest.getPhone());
         }
         userRepository.save(userEmployee);
@@ -542,12 +559,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         // 3. Vérifier la limite (max 3 adresses)
         long count = addressRepository.countByEmployee(employee);
         if (count >= 3) {
-            throw new RuntimeException( "Vous ne pouvez pas avoir plus de 3 adresses");
+            throw new RuntimeException("Vous ne pouvez pas avoir plus de 3 adresses");
         }
         // 4. Gérer l'adresse principale (si l'adresse passé en paramètre,  "isPrimary" est marqué comme true alors dans ce cas :)
-        if (dto.isPrimary()){
+        if (dto.isPrimary()) {
             //on va parcourir les adresses existantes et les mettre à "false "
-           employee.getAddresses().forEach((addr ->addr.setPrimary(false)));
+            employee.getAddresses().forEach((addr -> addr.setPrimary(false)));
         }
         // 5. Créer l'adresse
         Address address = new Address();
@@ -639,14 +656,174 @@ public class EmployeeServiceImpl implements EmployeeService {
         // 4. Convertir en DTOs chaque adresse retournée
         return addresses.stream()
                 .map(address -> new AddressDTO(
-                address.getDeliveryMode(),
-                address.getCity(),
-                address.getDistrict(),
-                address.getStreet(),
-                address.isPrimary()
-        )).toList();
+                        address.getDeliveryMode(),
+                        address.getCity(),
+                        address.getDistrict(),
+                        address.getStreet(),
+                        address.isPrimary()
+                )).toList();
+    }
+    // ============================================================================
+    // Commande Salarié🛒
+    // ============================================================================
+
+    @Override
+    @Transactional
+    public OrderResponseDTO createOrder(CreateOrderDTO dto) {
+
+        // 1. Récupérer l'utilisateur et l'employé
+        Users currentUser = getCurrentUser();
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
+        // 2. Récupérer le panier
+        List<CartItem> cartItems = cartItemRepository.findByEmployee(employee);
+
+        if (cartItems.isEmpty()) {
+            throw new RuntimeException("Votre panier est vide");
+        }
+
+        // 3. Récupérer l'option de livraison
+        DeliveryOption deliveryOption = deliveryOptionRepository.findById(dto.getDeliveryOptionId())
+                .orElseThrow(() -> new RuntimeException("Option de livraison introuvable"));
+
+        // 4. Créer la commande
+        Order order = new Order();
+        order.setOrderNumber("CMD-" + (orderRepository.count() + 1));
+        order.setEmployee(employee);
+        order.setStatus(OrderStatus.EN_ATTENTE);
+        order.setDeliveryOption(deliveryOption);
+        order.setDeliveryDate(calculateDeliveryDate(deliveryOption));
+
+        // 5. Traiter chaque article du panier
+
+        BigDecimal total = BigDecimal.ZERO;//Montant total de la commande
+        int nbArticles = 0;//Nombre total d'articles de la commande
+
+        //Maintenant après avoir récupérer les articles du panier , on va  Créer les articles pour la commande
+        for (CartItem cartItem : cartItems) { //on parcourt les articles  du panier de l'employé
+            //pour chaque article du panier on va récupérer le produit qu'il contient et vérifier son stock
+            Product product = cartItem.getProduct();
+
+            // Vérifier si le stock est suffisant pour la quantité demandée , sinon, erreur
+            if (product.getCurrentStock() < cartItem.getQuantity()) {
+                throw new RuntimeException("Stock insuffisant pour " + product.getName() +
+                        ". Stock disponible: " + product.getCurrentStock());
+            }
+
+            // Si le stock est suffisant, on crée l’article de la commande  à partir de l’article du panier
+            OrderItem orderItem = new OrderItem();
+
+            orderItem.setOrder(order); // Commande à laquelle l’article est rattaché
+            orderItem.setProduct(product); // Produit concerné
+            orderItem.setQuantity(cartItem.getQuantity()); // Quantité commandée pour ce produit
+            orderItem.setUnitPrice(cartItem.getUnitPrice()); // Prix unitaire du produit
+            orderItem.setPromoPrice(cartItem.getPromoPrice()); // Prix promotionnel s’il existe
+            orderItem.calculateSubtotal(); // Calcule le sous-total selon le prix applicable
+
+
+            order.getItems().add(orderItem);          // Ajouter l'article à la commande
+            total = total.add(orderItem.getSubtotal()); // Cumuler le montant total
+            nbArticles += orderItem.getQuantity();    // Cumuler le nombre d'articles
+
+            // Mise à jour du stock du produit  après l'ajout de chaque article à la commande
+            product.setCurrentStock(product.getCurrentStock() - orderItem.getQuantity());
+            productRepository.save(product);
+        }
+
+        order.setTotalPrice(total); // On définit le montant total de la commande
+        order.setTotalItems(nbArticles); // On définit le nombre total d’articles de la commande
+
+
+        // 6. Appliquer le coupon s’il est fourni
+        // Si l’utilisateur renseigne un code promo, on vérifie qu’il est valide et actif
+        if (dto.getCouponCode() != null && !dto.getCouponCode().isBlank()) {
+            Coupon coupon = couponRepository.findByCodeAndIsActiveTrue(dto.getCouponCode())
+                    .orElseThrow(() -> new RuntimeException("Coupon invalide ou expiré"));
+
+            // Vérifier si le coupon est encore valide (dates)
+            LocalDateTime now = LocalDateTime.now();
+            if (now.isBefore(coupon.getStartDate())){
+                throw new RuntimeException("Ce coupon n'est pas encore valide");
+            }
+            if (now.isAfter(coupon.getEndDate())) {
+                throw new RuntimeException("Ce coupon a expiré");
+            }
+
+            // Calculer la réduction selon le type
+            BigDecimal discount ;
+
+            // Si la réduction est de type pourcentage, on calcule le montant à déduire
+            // en multipliant le total par le pourcentage
+            if (coupon.getDiscountType() == DiscountType.PERCENTAGE) {
+
+                // Pourcentage : (total × valeur) ÷ 100
+                BigDecimal pourcentage = coupon.getValue()
+                        .divide(BigDecimal.valueOf(100)); // 10% → 0.10
+
+                discount = total.multiply(pourcentage);
+
+            } else {
+                // Si le coupon est de type montant fixe,
+                // on vérifie que sa valeur n’est pas supérieure au total de la commande
+                if (coupon.getValue().compareTo(total) > 0) {
+                    throw new RuntimeException(
+                            "Ce coupon ne peut pas être utilisé sur une commande inférieure à "
+                                    + coupon.getValue() + " F"
+                    );
+                }
+
+                // Montant fixe : on applique directement la valeur du coupon
+                discount = coupon.getValue();
+            }
+
+           // Mise à jour du montant total de la commande (total - réduction)
+            order.setTotalPrice(total.subtract(discount));
+
+           // Association du coupon à la commande
+            order.setCoupon(coupon);
+
+        }
+        // 7. Sauvegarder la commande et vider le panier
+        Order savedOrder = orderRepository.save(order);
+        cartItemRepository.deleteAll(cartItems);
+
+        // 8. Préparer la réponse
+
+        // Récupérer l’adresse de livraison principale de l’employé
+        Address primaryAddress = addressRepository.findByEmployeeAndIsPrimaryTrue(employee);
+
+        String deliveryAddress = primaryAddress != null
+                ? primaryAddress.getCity() + ", " + primaryAddress.getDistrict() + ", " + primaryAddress.getStreet()
+                : "Adresse non définie";
+
+        return new OrderResponseDTO(
+                nbArticles, // Nombre total d’articles commandés
+                order.getDeliveryOption().getName(), // Option de livraison choisie
+                order.getDeliveryDate(), // Date de livraison prévue
+                deliveryAddress, // Adresse de livraison
+                order.getTotalPrice() // Montant total de la commande
+        );
+
     }
 
+    private  LocalDate calculateDeliveryDate (DeliveryOption deliveryOption) {
+        LocalDate today = LocalDate.now();
+
+        switch (deliveryOption.getName().toLowerCase()){
+            case "hebdomadaire":
+                return today.plusWeeks(1);// Même jour, semaine suivante
+
+            case "bimensuelle":
+                return today.plusWeeks(2); // Même jour, dans 2 semaines
+
+            case "mensuelle":
+                return today.plusMonths(1); // Même jour, mois suivant
+
+            default:
+                return today.plusWeeks(1);
+        }
+    }
 
     /**
      * Convertit une entité UserDeliveryPreference en DeliveryPreferenceDTO

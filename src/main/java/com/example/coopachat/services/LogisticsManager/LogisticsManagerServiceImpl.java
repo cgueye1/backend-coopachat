@@ -1,6 +1,8 @@
 package com.example.coopachat.services.LogisticsManager;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
+import com.example.coopachat.dtos.order.OrderEmployeeListItemDTO;
+import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.products.ProductStockListItemDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
@@ -8,6 +10,7 @@ import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.entities.*;
 import com.example.coopachat.enums.EtatStock;
+import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.repositories.*;
@@ -28,6 +31,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -50,6 +54,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     private  final ProductRepository productRepository;
     private final SupplierOrderItemRepository supplierOrderItemRepository;
     private final CategoryRepository categoryRepository;
+    private final OrderRepository orderRepository;
     // ============================================================================
     // 🚚CRÉER UN LIVREUR
     // ============================================================================
@@ -1206,6 +1211,97 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         } catch (IOException e) {
             throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
         }
+    }
+
+    // ============================================================================
+    // 📦 GESTION DES COMMANDES SALARIÉS
+    // ============================================================================
+    @Override
+    public OrderEmployeeListResponseDTO getAllEmployeeOrders(int page, int size, String search, OrderStatus status) {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter la liste des commandes salariés");
+        }
+
+        // Normaliser les paramètres
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        // Créer l'objet Pageable pour la pagination
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Récupérer la liste des commandes selon les filtres
+        Page <Order>  orderPage = orderRepository.findEmployeeOrders(searchTerm,status, pageable);
+
+        // On parcourt la liste paginée des commandes récupérées depuis la base de données
+        // Objectif : transformer chaque commande en un DTO prêt pour l’affichage côté RL
+        List<OrderEmployeeListItemDTO> orderList = orderPage.getContent().stream()
+                .map(order -> {
+
+                    // À ce stade, on est sur UNE commande
+                    // On récupère la liste des articles qui la composent
+                    List<String> products = order.getItems().stream()
+                            // Pour chaque article de la commande,
+                            // on récupère uniquement le nom du produit
+                            // Exemple : ["Riz", "Lait", "Sucre", "Huile"]
+                            .map(item -> item.getProduct().getName())
+                            .collect(Collectors.toList());
+
+                    // Maintenant, on prépare une version "résumée" pour l’affichage
+                    // Objectif : ne pas surcharger la liste côté front
+                    //
+                    // Exemples :
+                    // - 4 produits → ["Riz", "Lait", "+2"]
+                    // - 3 produits → ["Riz", "Lait", "+1"]
+                    // - 2 produits → ["Riz", "Lait"]
+                    // - 1 produit  → ["Riz"]
+                    List<String> display = products.size() > 2
+                            // S’il y a plus de 2 produits :
+                            // → on affiche les 2 premiers
+                            // → on ajoute "+X" (X = nombre de produits restants)
+                            ? Arrays.asList(products.get(0), products.get(1), "+" + (products.size() - 2))
+                            // Sinon (2 produits ou moins), on affiche directement tous les produits
+                            : products;
+
+                    // À ce stade, toutes les informations nécessaires sont prêtes
+                    // On construit l’objet DTO final à envoyer au front
+                    return new OrderEmployeeListItemDTO(
+                            order.getId(),
+                            order.getOrderNumber(), // Ex : "CMD-0012"
+                            order.getEmployee().getUser().getFirstName() + " "
+                                    + order.getEmployee().getUser().getLastName(),
+                            order.getCreatedAt().toLocalDate(),
+                            display, // Ex : ["Riz", "Lait", "+2"]
+                            order.getDeliveryOption().getName(), // Ex : "Quotidienne"
+                            order.getStatus().getLabel() // Ex : "En attente"
+                    );
+                })
+                // Ici, on termine le parcours et on récupère la liste finale des DTO
+                .toList();
+
+        // Enfin, on retourne la réponse complète avec :
+        // - la liste des commandes formatées
+        // - les informations de pagination nécessaires au front
+        return new OrderEmployeeListResponseDTO(
+                orderList,
+                orderPage.getTotalElements(), // Nombre total de commandes
+                orderPage.getTotalPages(),    // Nombre total de pages
+                orderPage.getNumber(),        // Page actuelle
+                orderPage.getSize(),          // Taille de la page
+                orderPage.hasNext(),          // Y a-t-il une page suivante ?
+                orderPage.hasPrevious()       // Y a-t-il une page précédente ?
+        );
+
     }
 }
 

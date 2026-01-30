@@ -1,8 +1,8 @@
 package com.example.coopachat.repositories;
 
 import com.example.coopachat.entities.CartItem;
+import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Product;
-import com.example.coopachat.entities.Users;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,6 +13,7 @@ import java.util.Optional;
 public interface CartItemRepository extends JpaRepository<CartItem, Integer> {
 
 
-    Optional<CartItem> findByUserAndProduct(Users user, Product product);
-    List<CartItem> findByUser (Users user);
+    Optional<CartItem> findByEmployeeAndProduct(Employee employee, Product product);
+
+    List<CartItem> findByEmployee(Employee employee);
 }

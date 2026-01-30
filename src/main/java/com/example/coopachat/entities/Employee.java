@@ -50,6 +50,10 @@ public class Employee {
     @JoinColumn(name = "commercial_id", nullable = false)
     private Users createdBy;
 
+    // Un Employé peut avoir PLUSIEURS items dans son panier
+    @OneToMany(mappedBy = "employee")
+    private List<CartItem> cartItems = new ArrayList<>();
+
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @CreationTimestamp
     private LocalDateTime createdAt; // Date de création

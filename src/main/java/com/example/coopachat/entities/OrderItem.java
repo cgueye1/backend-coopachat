@@ -1,12 +1,17 @@
 package com.example.coopachat.entities;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "order_items")
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class OrderItem {
 
     @Id
@@ -26,6 +31,8 @@ public class OrderItem {
     private BigDecimal unitPrice; // Prix normal au moment de la commande
     private BigDecimal promoPrice; // Prix promo (si applicable)
     private BigDecimal subtotal; // Quantité × prix
+
+
 
     @PrePersist
     public void calculateSubtotal() {

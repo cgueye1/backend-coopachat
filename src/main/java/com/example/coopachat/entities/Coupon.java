@@ -2,6 +2,7 @@ package com.example.coopachat.entities;
 
 import com.example.coopachat.enums.CouponScope;
 import com.example.coopachat.enums.CouponStatus;
+import com.example.coopachat.enums.DiscountType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -37,6 +38,10 @@ public class Coupon {
     @Column(nullable = false, unique = true)
     @NotBlank(message = "Le nom du coupon est obligatoire")
     private String name; // Nom unique du coupon
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private DiscountType discountType; // type de réduction
 
 
     @Column(nullable = false)
@@ -76,7 +81,7 @@ public class Coupon {
     private LocalDateTime updatedAt;
 
     @Column(nullable = true)
-    private BigDecimal totalGenerated; // Montant total genere par le coupon
+    private BigDecimal totalGenerated; // Montant total généré par le coupon
 
     @Column(nullable = true)
     private Integer usageCount; // Nombre d'utilisations du coupon
