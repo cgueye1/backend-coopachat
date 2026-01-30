@@ -33,24 +33,6 @@ public class EmployeeController {
     private final EmployeeService employeeService;
 
     // ============================================================================
-    // 🔐 ACTIVATION
-    // ============================================================================
-
-    @Operation(
-            summary = "Activer le compte salarié",
-            description = "Active le compte d'un salarié et crée son mot de passe via le token d'invitation reçu par email."
-    )
-    @PostMapping("mobile/activate")
-    public ResponseEntity<String> activateEmployeeAccount(@RequestBody @Valid ResetPasswordRequestDTO requestDTO) {
-        employeeService.activateEmployeeAccount(
-                requestDTO.getToken(),
-                requestDTO.getNewPassword(),
-                requestDTO.getConfirmPassword()
-        );
-        return ResponseEntity.ok("Compte activé avec succès. Vous pouvez maintenant vous connecter.");
-    }
-
-    // ============================================================================
     // 🏠 ACCUEIL
     // ============================================================================
 

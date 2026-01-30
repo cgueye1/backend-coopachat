@@ -65,56 +65,6 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final OrderRepository orderRepository;
     private final DeliveryOptionRepository deliveryOptionRepository;
 
-    // ============================================================================
-    // 🔐 ACTIVATION D'UN COMPTE SALARIE
-    // ============================================================================
-
-    /**
-     * Active le compte d'un salarié et crée son mot de passe via le token d'invitation
-     */
-    @Override
-    @Transactional
-    public void activateEmployeeAccount(String token, String newPassword, String confirmPassword) {
-        // Validation simple des mots de passe
-        // Vérifier que les deux mots de passe sont identiques
-        if (!newPassword.equals(confirmPassword)) {
-            throw new RuntimeException("Les mots de passe ne correspondent pas");
-        }
-
-        // Récupération et validation du token
-        // Récupérer le token depuis la base de données (type EMPLOYEE_INVITATION)
-        ActivationCode activationCode = activationCodeRepository.findByCodeAndTypeAndUsedFalse(token, CodeType.EMPLOYEE_INVITATION)
-                .orElseThrow(() -> new RuntimeException("Token invalide ou expiré"));
-
-        // Vérifier que le token n'est pas expiré
-        if (activationCode.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Token expiré");
-        }
-
-        // Charger l'utilisateur concerné
-        // Récupérer l'email depuis le token
-        String email = activationCode.getEmail();
-
-        // Récupérer l'utilisateur associé au token
-        Users user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
-
-        // Sauvegarder le mot de passe et activer le compte
-        // Encoder et sauvegarder le mot de passe
-        user.setPassword(passwordEncoder.encode(newPassword));
-
-        // Activer le compte
-        user.setIsActive(true);
-
-        userRepository.save(user);
-
-        // Marquer le token comme consommé
-        // Marquer le token comme utilisé pour éviter la réutilisation
-        activationCode.setUsed(true);
-        activationCodeRepository.save(activationCode);
-
-        log.info("Compte salarié activé avec succès pour: {}", email);
-    }
 
     // ============================================================================
     // 🏠 ACCUEIL SALARIÉ
