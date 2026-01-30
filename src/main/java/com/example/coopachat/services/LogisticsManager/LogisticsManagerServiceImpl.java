@@ -3,6 +3,8 @@ package com.example.coopachat.services.LogisticsManager;
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListItemDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
+import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
+import com.example.coopachat.dtos.products.ProductPreviewDTO;
 import com.example.coopachat.dtos.products.ProductStockListItemDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
@@ -1300,6 +1302,44 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 orderPage.getSize(),          // Taille de la page
                 orderPage.hasNext(),          // Y a-t-il une page suivante ?
                 orderPage.hasPrevious()       // Y a-t-il une page précédente ?
+        );
+
+    }
+
+    @Override
+    public OrderItemDetailsDTO getOrderItemDetailById(Long orderId) {
+
+        // Récupérer l'utilisateur connecté
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter les détails d'une commande");
+        }
+
+        //Récupérons la commande
+        Order order = orderRepository.findById(orderId).orElseThrow(()-> new RuntimeException("Commande introuvable"));
+
+        // On prépare un DTO contenant  - les infos générales de la commande - la liste des produits associés à la commande
+        return new OrderItemDetailsDTO(
+                order.getOrderNumber(),
+                order.getCreatedAt().toLocalDate(),
+                order.getEmployee().getUser().getFirstName() + " "+order.getEmployee().getUser().getLastName(),
+                order.getStatus().getLabel(),
+                order.getItems().stream().map(item -> new ProductPreviewDTO(
+                        item.getProduct().getName(),
+                        item.getProduct().getImage(),
+                        item.getProduct().getCategory().getName(),
+                        item.getProduct().getCurrentStock()
+
+                )).toList()
         );
 
     }

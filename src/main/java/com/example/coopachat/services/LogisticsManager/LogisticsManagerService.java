@@ -2,6 +2,7 @@ package com.example.coopachat.services.LogisticsManager;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
+import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
@@ -218,6 +219,15 @@ public interface LogisticsManagerService {
      * @throws RuntimeException si une erreur survient
      */
      OrderEmployeeListResponseDTO getAllEmployeeOrders(int page, int size, String search, OrderStatus status);
+
+    /**
+     * Récupère les détails complets d'une commande d'un salarié
+     *
+     * @param id ID de la commande à récupérer
+     * @return OrderItemDetailsDTO contenant toutes les informations de la commande et ses produits
+     * @throws RuntimeException si la commande n'existe pas ou si une erreur survient
+     */
+     OrderItemDetailsDTO getOrderItemDetailById(Long id);
 
 }
 

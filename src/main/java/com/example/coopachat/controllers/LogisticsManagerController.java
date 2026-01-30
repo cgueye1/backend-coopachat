@@ -2,6 +2,7 @@ package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
+import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
@@ -353,6 +354,16 @@ public class LogisticsManagerController {
 
         OrderEmployeeListResponseDTO response = logisticsManagerService.getAllEmployeeOrders(page, size, search, status);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Récupérer les détails d'une commande salarié",
+            description = "Récupère toutes les informations détaillées d'une commande salarié"
+    )
+    @GetMapping("/employee-order/{id}")
+    public ResponseEntity<OrderItemDetailsDTO> getOrderById(@PathVariable Long id) {
+        OrderItemDetailsDTO details = logisticsManagerService.getOrderItemDetailById(id);
+        return ResponseEntity.ok(details);
     }
 
 }
