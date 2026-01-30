@@ -1,7 +1,6 @@
 package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.UserDeliveryPrefererence.DeliveryPreferenceDTO;
-import com.example.coopachat.dtos.auth.ResetPasswordRequestDTO;
 import com.example.coopachat.dtos.cart.CartResponseDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
@@ -14,7 +13,6 @@ import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
 import com.example.coopachat.services.Employee.EmployeeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

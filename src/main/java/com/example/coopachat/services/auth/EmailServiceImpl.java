@@ -714,6 +714,9 @@ public class EmailServiceImpl implements EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
+            ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");
+            helper.addInline("logo", logoResource);
+
             helper.setFrom(mailFrom);
             helper.setTo(email);
             helper.setSubject("🚚 Code d'activation Livreur - " + appName);
@@ -740,99 +743,92 @@ public class EmailServiceImpl implements EmailService {
      */
     private String generateDriverActivationEmailTemplate(String firstName, String code) {
         return String.format("""
-        <!DOCTYPE html>
-        <html lang="fr">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Code d'activation Livreur - %s</title>
-        </head>
-        <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
-            <table role="presentation" style="width: 100%%; border-collapse: collapse; background-color: #f4f4f4;">
-                <tr>
-                    <td style="padding: 20px 0;">
-                        <table role="presentation" style="width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                            
-                            <!-- Header -->
-                            <tr>
-                                <td style="background: linear-gradient(135deg, #FF6B35 0%%, #F7931E 100%%); padding: 40px 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
-                                        🚚 %s
-                                    </h1>
-                                    <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">
-                                        Espace Livreur
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Code d'activation Livreur - %s</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
+        <table role="presentation" style="width: 100%%; border-collapse: collapse; background-color: #f4f4f4;">
+            <tr>
+                <td style="padding: 10px 0;"> 
+                    <table role="presentation" style="width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        
+                        <!-- Header -->
+                        <tr>
+                            <td style="background: linear-gradient(135deg, #FF6B35 0%%, #F7931E 100%%); padding: 25px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+                                <img src="cid:logo" alt="%s Logo" style="max-width: 150px; height: auto; margin-bottom: 10px;">
+                            </td>
+                        </tr>
+                        
+                        <!-- Contenu principal -->
+                        <tr>
+                            <td style="padding: 25px 20px;"> 
+                                <h2 style="color: #333333; margin: 0 0 15px 0; font-size: 22px; font-weight: 600;">
+                                    Bonjour %s,
+                                </h2>
+                                
+                                <p style="color: #666666; font-size: 15px; line-height: 1.5; margin: 0 0 15px 0;">
+                                    Bienvenue dans l'équipe de livraison de <strong>%s</strong> ! 
+                                    Pour activer votre compte livreur et commencer vos tournées, 
+                                    utilisez le code d'activation ci-dessous.
+                                </p>
+                                
+                                <!-- Code d'activation -->
+                                <div style="background: linear-gradient(135deg, #FF6B35 0%%, #F7931E 100%%); padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                                    <p style="color: #333333; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">
+                                        🔐 Votre code d'activation
                                     </p>
-                                </td>
-                            </tr>
-                            
-                            <!-- Contenu principal -->
-                            <tr>
-                                <td style="padding: 40px 30px;">
-                                    <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;">
-                                        Bonjour %s,
-                                    </h2>
-                                    
-                                    <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                                        Bienvenue dans l'équipe de livraison de <strong>%s</strong> ! 
-                                        Pour activer votre compte livreur et commencer vos tournées, 
-                                        utilisez le code d'activation ci-dessous.
-                                    </p>
-                                    
-                                    <!-- Code d'activation -->
-                                    <div style="background: linear-gradient(135deg, #FF6B35 0%%, #F7931E 100%%); padding: 30px; border-radius: 10px; text-align: center; margin: 30px 0;">
-                                        <p style="color: #ffffff; margin: 0 0 10px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9;">
-                                            🔐 Votre code d'activation
-                                        </p>
-                                        <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; display: inline-block; margin: 10px 0;">
-                                            <span style="color: #FF6B35; font-size: 42px; font-weight: 700; letter-spacing: 12px; font-family: 'Courier New', monospace;">
-                                                %s
-                                            </span>
-                                        </div>
-                                        <p style="color: #ffffff; margin: 15px 0 0 0; font-size: 12px; opacity: 0.8;">
-                                            ⏱️ Ce code expire dans 15 minutes
-                                        </p>
+                                    <div style="background-color: #ffffff; padding: 15px; border-radius: 6px; display: inline-block; margin: 8px 0;">
+                                        <span style="color: #FF6B35; font-size: 36px; font-weight: 700; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                                            %s
+                                        </span>
                                     </div>
-                                    
-                               
-                                    
-                                    <!-- Sécurité -->
-                                    <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin: 30px 0;">
-                                        <p style="color: #856404; margin: 0; font-size: 13px; line-height: 1.6;">
-                                            <strong>🔒 Sécurité :</strong> Ne partagez jamais ce code. 
-                                            L'équipe %s ne vous demandera jamais votre code par email ou téléphone.
-                                        </p>
-                                    </div>
-                                    
-                                    <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0;">
-                                        Si vous n'avez pas demandé ce code, ignorez cet email.
+                                    <p style="color: #333333; margin: 10px 0 0 0; font-size: 12px;">
+                                        ⏱️ Ce code expire dans 15 minutes
                                     </p>
-                                    
-                                    <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
-                                        Bonne route ! 🚚<br>
-                                        <strong style="color: #333333;">L'équipe %s</strong>
+                                </div>
+                                
+                                <!-- Sécurité -->
+                                <div style="background-color: #fff3cd; padding: 12px; border-radius: 6px; border-left: 4px solid #ffc107; margin: 20px 0;">
+                                    <p style="color: #856404; margin: 0; font-size: 13px; line-height: 1.5;">
+                                        <strong>🔒 Sécurité :</strong> Ne partagez jamais ce code. 
+                                        L'équipe %s ne vous demandera jamais votre code par email ou téléphone.
                                     </p>
-                                </td>
-                            </tr>
-                            
-                            <!-- Footer -->
-                            <tr>
-                                <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 10px 10px; border-top: 1px solid #e0e0e0;">
-                                    <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">
-                                        Cet email a été envoyé automatiquement, merci de ne pas y répondre.
-                                    </p>
-                                    <p style="color: #999999; font-size: 12px; margin: 0;">
-                                        © %d %s - Tous droits réservés
-                                    </p>
-                                </td>
-                            </tr>
-                            
-                        </table>
-                    </td>
-                </tr>
-            </table>
-        </body>
-        </html>
-        """, appName, appName, firstName, appName, code, appName, appName,
+                                </div>
+                                
+                                <p style="color: #666666; font-size: 14px; line-height: 1.5; margin: 15px 0 0 0;">
+                                    Si vous n'avez pas demandé ce code, ignorez cet email.
+                                </p>
+                                
+                                <p style="color: #666666; font-size: 14px; line-height: 1.5; margin: 15px 0 0 0;">
+                                    Bonne route ! 🚚<br>
+                                    <strong style="color: #333333;">L'équipe %s</strong>
+                                </p>
+                            </td>
+                        </tr>
+                        
+                        <!-- Footer -->
+                        <tr>
+                            <td style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e0e0e0;">
+                                <p style="color: #999999; font-size: 11px; margin: 0 0 8px 0;">
+                                    Cet email a été envoyé automatiquement, merci de ne pas y répondre.
+                                </p>
+                                <p style="color: #999999; font-size: 11px; margin: 0;">
+                                    © %d %s - Tous droits réservés
+                                </p>
+                            </td>
+                        </tr>
+                        
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """, appName, appName, firstName, appName, code, appName, appName,
                 java.time.Year.now().getValue(), appName);
     }
 }

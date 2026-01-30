@@ -1,4 +1,4 @@
-package com.example.coopachat.controllers.auth;
+package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.UserDto;
 import com.example.coopachat.dtos.auth.*;
