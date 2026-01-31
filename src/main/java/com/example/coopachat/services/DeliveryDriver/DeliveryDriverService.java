@@ -1,6 +1,7 @@
 package com.example.coopachat.services.DeliveryDriver;
 
 import com.example.coopachat.dtos.DeliveryDriver.DeliveryDriverPreferenceDTO;
+import com.example.coopachat.dtos.DeliveryDriver.DeliveryZoneDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 
 public interface DeliveryDriverService {
@@ -37,4 +38,17 @@ public interface DeliveryDriverService {
      * @throws RuntimeException si livreur non trouvé
      */
     void saveAvailabilityPreference(DeliveryDriverPreferenceDTO dto);
+
+
+    /**
+     * Récupère toutes les zones de livraison
+     * @return DeliveryZoneDTO contenant la liste des zones
+     */
+    DeliveryZoneDTO getAllZones();
+
+    /**
+     * Crée ou met à jour les zones de livraison
+     * @param dto DTO contenant la liste des noms de zones
+     */
+    void saveZones(DeliveryZoneDTO dto);
 }

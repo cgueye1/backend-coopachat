@@ -1,0 +1,15 @@
+package com.example.coopachat.dtos.DeliveryDriver;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Set;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class DeliveryZoneDTO {
+    private Long id;
+    private Set<String> deliveryZones;
+}

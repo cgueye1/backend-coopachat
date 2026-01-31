@@ -1,6 +1,7 @@
 package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.DeliveryDriver.DeliveryDriverPreferenceDTO;
+import com.example.coopachat.dtos.DeliveryDriver.DeliveryZoneDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 import com.example.coopachat.services.DeliveryDriver.DeliveryDriverService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -55,5 +56,30 @@ public class DeliveryDriverController {
     public ResponseEntity<String> saveAvailabilityPreference(@RequestBody DeliveryDriverPreferenceDTO dto) {
         deliveryDriverService.saveAvailabilityPreference(dto);
         return ResponseEntity.ok("Disponibilités sauvegardées avec succès");
+    }
+    // ============================================================================
+    // 🗺️ ZONES DE LIVRAISON
+    // ============================================================================
+
+    @Operation(
+            summary = "Récupérer les zones de livraison du livreur",
+            description = "Retourne toutes les zones de livraison configurées par le livreur connecté"
+    )
+    @GetMapping("/zones")
+    public ResponseEntity<DeliveryZoneDTO> getDeliveryZones() {
+        DeliveryZoneDTO zones = deliveryDriverService.getAllZones();
+        return ResponseEntity.ok(zones);
+    }
+
+    @Operation(
+            summary = "Sauvegarder ou modifier les zones de livraison",
+            description = "Crée ou met à jour les zones de livraison du livreur. " +
+                    "Pour une modification, il faut envoyer TOUTES les zones, " +
+                    "même celles qui ne changent pas."
+    )
+    @PostMapping("/zones")
+    public ResponseEntity<String> saveDeliveryZones(@RequestBody DeliveryZoneDTO dto) {
+        deliveryDriverService.saveZones(dto);
+        return ResponseEntity.ok("Zones de livraison sauvegardées avec succès");
     }
 }
