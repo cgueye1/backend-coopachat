@@ -54,8 +54,6 @@ public class UserDeliveryPreference {
     @Column(name = "delivery_mode")
     private DeliveryMode deliveryMode;
 
-
-
     // ==================== MÉTADONNÉES ====================
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @CreationTimestamp

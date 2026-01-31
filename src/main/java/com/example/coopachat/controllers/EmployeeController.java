@@ -1,6 +1,6 @@
 package com.example.coopachat.controllers;
 
-import com.example.coopachat.dtos.UserDeliveryPrefererence.DeliveryPreferenceDTO;
+import com.example.coopachat.dtos.employees.DeliveryPreferenceDTO;
 import com.example.coopachat.dtos.cart.CartResponseDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;

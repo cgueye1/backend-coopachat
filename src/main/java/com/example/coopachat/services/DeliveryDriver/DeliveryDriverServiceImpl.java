@@ -1,21 +1,29 @@
 package com.example.coopachat.services.DeliveryDriver;
 
+import com.example.coopachat.dtos.DeliveryDriver.DeliveryDriverPreferenceDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 import com.example.coopachat.entities.Driver;
+import com.example.coopachat.entities.DriverAvailability;
 import com.example.coopachat.entities.Users;
 import com.example.coopachat.repositories.DeliveryDriverRepository;
+import com.example.coopachat.repositories.DriverAvailabilityRepository;
+import com.example.coopachat.repositories.DriverRepository;
 import com.example.coopachat.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DeliveryDriverServiceImpl implements DeliveryDriverService{
 
     private final DeliveryDriverRepository deliveryDriverRepository;
     private final UserRepository userRepository;
+    private final DriverAvailabilityRepository driverAvailabilityRepository;
 
 
     @Override
@@ -28,11 +36,74 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
                .orElseThrow(() -> new RuntimeException("Livreur non trouvé"));
 
         return new DriverPersonalInfoDTO(
-                driver.getId(),
                 user.getFirstName(),
                 user.getLastName(),
                 user.getPhone(),
                 user.getEmail()
+        );
+    }
+
+    @Override
+    @Transactional
+    public void updatePersonalInfo(DriverPersonalInfoDTO updateRequest) {
+
+        Users user = getCurrentUser();
+
+        // Mettre à jour uniquement les champs autorisés
+        if (updateRequest.getFirstName() != null) {
+            user.setFirstName(updateRequest.getFirstName());
+        }
+        if (updateRequest.getLastName() != null) {
+            user.setLastName(updateRequest.getLastName());
+        }
+        if (updateRequest.getPhone() != null) {
+            user.setPhone(updateRequest.getPhone());
+        }
+
+        userRepository.save(user);
+        log.info("Mise à jour réussie pour le livreur : {} {}",
+                user.getFirstName(), user.getLastName());
+    }
+
+    @Override
+    @Transactional
+    public void saveAvailabilityPreference(DeliveryDriverPreferenceDTO dto) {
+
+        // Récupérer user et driver
+        Users user = getCurrentUser();
+        Driver driver = deliveryDriverRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Livreur non trouvé"));
+
+        // Chercher ou créer ses disponibilités
+        DriverAvailability availability = driverAvailabilityRepository.findByDriver(driver)
+                .orElse(new DriverAvailability());
+
+        // Mettre à jour
+        availability.setDriver(driver);
+        availability.setAvailableDays(dto.getPreferredDays());
+        availability.setPreferredTimeSlot(dto.getPreferredTimeSlot());
+
+        // Sauvegarder
+        driverAvailabilityRepository.save(availability);
+        log.info("Disponibilités sauvegardées pour {}", user.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public DeliveryDriverPreferenceDTO getAvailabilityPreference() {
+        Users user = getCurrentUser();
+        Driver driver = deliveryDriverRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Livreur non trouvé"));
+
+        DriverAvailability availability = driverAvailabilityRepository.findByDriver(driver)
+                .orElseThrow(() -> new RuntimeException("Aucune disponibilité trouvée"));
+
+        log.info("Disponibilités récupérées pour {}", user.getEmail());
+
+        return new DeliveryDriverPreferenceDTO(
+                availability.getId(),
+                availability.getAvailableDays(),
+                availability.getPreferredTimeSlot()
         );
     }
 

@@ -1,20 +1,21 @@
 package com.example.coopachat.dtos.employees;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 /**
  * DTO pour l'affichage et la modification des infos personnelles
  */
-@Data
+@Getter
 @AllArgsConstructor
-@NoArgsConstructor
 public class EmployeePersonalInfoDTO {
-    private Long id;
+
+    @Setter
     private String firstName;      // Modifiable
+    @Setter
     private String lastName;       // Modifiable
+    @Setter
     private String phone;          // Modifiable
+
     private String email;          // Lecture seule (affiché mais ignoré à l'update)
     private String companyName;    // Lecture seule (affiché mais ignoré à l'update)
 }

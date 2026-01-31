@@ -1,6 +1,6 @@
 package com.example.coopachat.services.Employee;
 
-import com.example.coopachat.dtos.UserDeliveryPrefererence.DeliveryPreferenceDTO;
+import com.example.coopachat.dtos.employees.DeliveryPreferenceDTO;
 import com.example.coopachat.dtos.cart.CartItemDTO;
 import com.example.coopachat.dtos.cart.CartResponseDTO;
 import com.example.coopachat.dtos.categories.CategoryHomeItemDTO;
@@ -13,13 +13,10 @@ import com.example.coopachat.dtos.order.CreateOrderDTO;
 import com.example.coopachat.dtos.order.OrderResponseDTO;
 import com.example.coopachat.dtos.products.*;
 import com.example.coopachat.entities.*;
-import com.example.coopachat.entities.auth.ActivationCode;
-import com.example.coopachat.enums.CodeType;
 import com.example.coopachat.enums.CouponStatus;
 import com.example.coopachat.enums.DiscountType;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.repositories.*;
-import jakarta.persistence.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -36,10 +33,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 
@@ -410,7 +404,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         // Récupérer user
         Users user = getCurrentUser();
 
-        // Chercher ou créer ses préférences de livraison
+        // Chercher ou créer ses préférences de livraison puisque une préférence = un user soit ça existe soit ça n'existe pas
         UserDeliveryPreference pref = userDeliveryPreferenceRepository.findByUser(user).orElse(new UserDeliveryPreference());
 
         // Mettre à jour
@@ -459,7 +453,6 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
         return new EmployeePersonalInfoDTO(
-                employee.getId(),
                 userEmployee.getFirstName(),
                 userEmployee.getLastName(),
                 userEmployee.getPhone(),

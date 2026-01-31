@@ -1,6 +1,6 @@
 package com.example.coopachat.services.LogisticsManager;
 
-import com.example.coopachat.dtos.RegisterDriverRequestDTO;
+import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;

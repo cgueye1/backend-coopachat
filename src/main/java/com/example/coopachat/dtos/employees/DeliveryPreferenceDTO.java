@@ -1,4 +1,4 @@
-package com.example.coopachat.dtos.UserDeliveryPrefererence;
+package com.example.coopachat.dtos.employees;
 
 
 import com.example.coopachat.enums.DeliveryMode;
