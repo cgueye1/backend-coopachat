@@ -2,6 +2,7 @@ package com.example.coopachat.services.DeliveryDriver;
 
 import com.example.coopachat.dtos.DeliveryDriver.DeliveryDriverPreferenceDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DeliveryZoneDTO;
+import com.example.coopachat.dtos.DeliveryDriver.DeliveryZoneResponseDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 
 public interface DeliveryDriverService {
@@ -42,13 +43,13 @@ public interface DeliveryDriverService {
 
     /**
      * Récupère toutes les zones de livraison
-     * @return DeliveryZoneDTO contenant la liste des zones
+     * @return DeliveryResponseZoneDTO contenant la liste  détaillée des zones
      */
-    DeliveryZoneDTO getAllZones();
+    DeliveryZoneResponseDTO getMyZonesWithDetails();
 
     /**
-     * Crée ou met à jour les zones de livraison
-     * @param dto DTO contenant la liste des noms de zones
+     * Crée les zones de livraison
+     * @param dto DTO contenant la liste des noms de zones choisit par le livreur
      */
-    void saveZones(DeliveryZoneDTO dto);
+    void createZones (DeliveryZoneDTO dto);
 }

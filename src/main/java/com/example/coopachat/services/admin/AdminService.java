@@ -3,6 +3,7 @@ package com.example.coopachat.services.admin;
 import com.example.coopachat.dtos.DeliveryOption.DeliveryOptionDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
+import com.example.coopachat.dtos.deliveryZone.CreateZoneDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
@@ -127,5 +128,6 @@ public interface AdminService {
      * Récupère toutes les options de livraison
      */
     List<DeliveryOptionDTO> getAllDeliveryOptions();
+
 
 }

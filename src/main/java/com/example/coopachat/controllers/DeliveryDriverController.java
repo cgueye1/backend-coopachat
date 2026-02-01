@@ -2,6 +2,7 @@ package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.DeliveryDriver.DeliveryDriverPreferenceDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DeliveryZoneDTO;
+import com.example.coopachat.dtos.DeliveryDriver.DeliveryZoneResponseDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 import com.example.coopachat.services.DeliveryDriver.DeliveryDriverService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -63,23 +64,25 @@ public class DeliveryDriverController {
 
     @Operation(
             summary = "Récupérer les zones de livraison du livreur",
-            description = "Retourne toutes les zones de livraison configurées par le livreur connecté"
+            description = "Retourne les zones configurées pour le livreur avec ID, nom, description et statut. " +
+                    "Si aucune zone, la liste sera vide."
     )
     @GetMapping("/zones")
-    public ResponseEntity<DeliveryZoneDTO> getDeliveryZones() {
-        DeliveryZoneDTO zones = deliveryDriverService.getAllZones();
+    public ResponseEntity<DeliveryZoneResponseDTO> getDeliveryZones() {
+        DeliveryZoneResponseDTO zones = deliveryDriverService.getMyZonesWithDetails();
         return ResponseEntity.ok(zones);
     }
 
     @Operation(
-            summary = "Sauvegarder ou modifier les zones de livraison",
-            description = "Crée ou met à jour les zones de livraison du livreur. " +
-                    "Pour une modification, il faut envoyer TOUTES les zones, " +
-                    "même celles qui ne changent pas."
+            summary = "Créer les zones de livraison du livreur",
+            description = "Crée une nouvelle configuration de zones de livraison pour le livreur. " +
+                    "Le livreur choisit uniquement les zones qu'il souhaite utiliser. "
     )
     @PostMapping("/zones")
     public ResponseEntity<String> saveDeliveryZones(@RequestBody DeliveryZoneDTO dto) {
-        deliveryDriverService.saveZones(dto);
+        deliveryDriverService.createZones(dto);
         return ResponseEntity.ok("Zones de livraison sauvegardées avec succès");
     }
+
+
 }

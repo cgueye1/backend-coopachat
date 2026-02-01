@@ -56,6 +56,10 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private OrderStatus status = OrderStatus.EN_ATTENTE;//status de la commande , en-attente par défaut
 
+    @ManyToOne
+    @JoinColumn(name = "delivery_tour_id" )
+    private DeliveryTour deliveryTour;//la tournée qu'il appartient
+
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @CreationTimestamp
     private LocalDateTime createdAt; // Date de création

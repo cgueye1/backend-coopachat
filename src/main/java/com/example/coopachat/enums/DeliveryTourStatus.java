@@ -1,0 +1,24 @@
+package com.example.coopachat.enums;
+
+import lombok.Getter;
+
+@Getter
+public enum DeliveryTourStatus {
+
+    PLANIFIEE("Planifiée"),           // Le RL a créé la tournée
+    PROPOSEE("Proposée"),             // Le système a notifié le livreur
+    CONFIRMEE("Confirmée"),           // Le livreur a accepté
+    REFUSEE("Refusée"),              // Le livreur a refusé
+    EN_COURS("En cours"),            // Le livreur a démarré la tournée
+    TERMINEE("Terminée");            // Le livreur a terminé toutes les livraisons
+
+    private final String displayName;
+
+    DeliveryTourStatus(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+}
