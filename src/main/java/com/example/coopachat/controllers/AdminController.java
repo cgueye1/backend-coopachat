@@ -3,6 +3,7 @@ package com.example.coopachat.controllers;
 import com.example.coopachat.dtos.DeliveryOption.DeliveryOptionDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
+import com.example.coopachat.dtos.deliveryZone.CreateZoneDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
@@ -369,6 +370,21 @@ public class AdminController {
     public ResponseEntity<List<DeliveryOptionDTO>> getAllDeliveryOptions() {
         List<DeliveryOptionDTO> options = adminService.getAllDeliveryOptions();
         return ResponseEntity.ok(options);
+    }
+    // ============================================================================
+    // 🗺️ GESTION DES ZONES DE LIVRAISON
+    // ============================================================================
+
+    @Operation(
+            summary = "Créer une zone de livraison",
+            description = "Permet à un administrateur de créer une nouvelle zone de livraison. " +
+                    "Le nom de la zone doit être unique."
+    )
+    @PostMapping("/delivery-zones")
+    public ResponseEntity<String> createDeliveryZone(@RequestBody @Valid CreateZoneDTO createZoneDTO) {
+        adminService.createZone(createZoneDTO);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body("Zone de livraison créée avec succès");
     }
 
 

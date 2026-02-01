@@ -130,4 +130,11 @@ public interface AdminService {
     List<DeliveryOptionDTO> getAllDeliveryOptions();
 
 
+    /**
+     * Crée une nouvelle zone de livraison
+     * @param dto DTO contenant les informations de la zone
+     * @return ZoneDTO créée
+     */
+     void createZone(CreateZoneDTO dto);
+
 }
