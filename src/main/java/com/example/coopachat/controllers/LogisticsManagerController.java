@@ -3,6 +3,7 @@ package com.example.coopachat.controllers;
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.delivery.CreateDeliveryTourDTO;
+import com.example.coopachat.dtos.delivery.DeliveryTourDetailsDTO;
 import com.example.coopachat.dtos.delivery.ZoneOptionDTO;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
@@ -444,6 +445,18 @@ public class LogisticsManagerController {
         logisticsManagerService.createDeliveryTour(dto);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body("Tournée créée avec succès");
+    }
+
+    @Operation(
+            summary = "Récupérer les détails d'une tournée",
+            description = "Retourne les détails complets d'une tournée de livraison spécifique."
+    )
+    @GetMapping("/delivery-tours/{tourId}")
+    public ResponseEntity<DeliveryTourDetailsDTO> getDeliveryTourDetails(
+            @PathVariable Long tourId) {
+
+        DeliveryTourDetailsDTO tourDetails = logisticsManagerService.getDeliveryTourDetails(tourId);
+        return ResponseEntity.ok(tourDetails);
     }
 
 

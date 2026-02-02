@@ -32,6 +32,9 @@ public class CreateDeliveryTourDTO {
     @Pattern(regexp = "^[A-Z]{2}-\\d{4,5}-[A-Z]{2}$",//2 lettres majuscules - 4 ou 5 chiffres -2 lettres majuscules
             message = "Format de plaque invalide. Exemple: AA-12345-AB")
     private String vehiclePlate;
+    @NotBlank(message = "le type du véhicule est obligatoire")
+    private String vehicleType;
+
 
     @NotNull(message = "Au moins une commande est requise")
     @Size(min = 1, message = "Au moins une commande est requise")

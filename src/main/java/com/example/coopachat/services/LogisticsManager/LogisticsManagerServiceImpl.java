@@ -3,6 +3,7 @@ package com.example.coopachat.services.LogisticsManager;
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.delivery.CreateDeliveryTourDTO;
+import com.example.coopachat.dtos.delivery.DeliveryTourDetailsDTO;
 import com.example.coopachat.dtos.delivery.ZoneOptionDTO;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListItemDTO;
@@ -1626,7 +1627,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         DeliveryTour tour = new DeliveryTour();
 
         // Générer numéro unique
-        String tourNumber = "TOUR-" + LocalDate.now().getYear() + "-" +
+        String tourNumber = "PL-" + LocalDate.now().getYear() + "-" +
                 String.format("%03d", deliveryTourRepository.count() + 1);
         tour.setTourNumber(tourNumber);
 
@@ -1635,7 +1636,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         tour.setTimeSlot(dto.getTimeSlot());
         tour.setDeliveryZone(deliveryZone);
         tour.setDriver(driver);
-        tour.setVehiclePlate(dto.getVehiclePlate().toUpperCase());
+        tour.setVehicleType(dto.getVehicleType().toUpperCase());
         tour.setCreatedBy(currentUser);
         tour.setNotes(dto.getNotes());
         tour.setStatus(DeliveryTourStatus.PLANIFIEE);
@@ -1652,6 +1653,48 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         log.info("Tournée {} créée par {} avec {} commandes (zone: {}, chauffeur: {})",
                 tourNumber, currentUser.getEmail(), orders.size(),
                 deliveryZone.getZoneName(), driver.getUser().getFirstName());
+
+    }
+
+    @Override
+    public DeliveryTourDetailsDTO getDeliveryTourDetails(Long tourId) {
+
+        // 1. VÉRIFICATION DES DROITS
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut récupérer les détails d'une tournée");
+        }
+
+        // Récupérer la tournée avec ses relations
+        DeliveryTour deliveryTour = deliveryTourRepository.findById(tourId).orElseThrow(()->new RuntimeException("Tournée introuvable"));
+
+        DeliveryTourDetailsDTO dto = new DeliveryTourDetailsDTO();
+        // Tournée
+        dto.setTourNumber(deliveryTour.getTourNumber());
+        dto.setDeliveryDate(deliveryTour.getDeliveryDate());
+        dto.setTimeSlot(deliveryTour.getTimeSlot());
+        dto.setStatus(deliveryTour.getStatus());
+
+        // Chauffeur
+        if (deliveryTour.getDriver() != null) {
+            dto.setDriverName(deliveryTour.getDriver().getUser().getFirstName()+ " "+ deliveryTour.getDriver().getUser().getLastName());
+            dto.setDriverPhone(deliveryTour.getDriver().getUser().getPhone());
+        }
+
+        // Véhicule
+        dto.setVehicleType(deliveryTour.getVehicleType());
+        dto.setVehiclePlate(deliveryTour.getVehiclePlate());
+
+        // Zone
+        if (deliveryTour.getDeliveryZone() != null) {
+            dto.setDeliveryZone(deliveryTour.getDeliveryZone().getZoneName());
+        }
+        // Commandes
+        dto.setOrderCount(deliveryTour.getOrders() != null ?
+                deliveryTour.getOrders().size() : 0);
+
+
+        return dto;
 
     }
 

@@ -3,6 +3,7 @@ package com.example.coopachat.services.LogisticsManager;
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.delivery.CreateDeliveryTourDTO;
+import com.example.coopachat.dtos.delivery.DeliveryTourDetailsDTO;
 import com.example.coopachat.dtos.delivery.ZoneOptionDTO;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
@@ -278,6 +279,13 @@ public interface LogisticsManagerService {
      * @param dto Informations de la tournée à créer
      */
     void createDeliveryTour(CreateDeliveryTourDTO dto);
+
+    /**
+     * Récupère les détails d'une tournée de livraison
+     * @param tourId ID de la tournée
+     * @return DTO avec les détails de la tournée
+     */
+    DeliveryTourDetailsDTO getDeliveryTourDetails(Long tourId);
 
 
 

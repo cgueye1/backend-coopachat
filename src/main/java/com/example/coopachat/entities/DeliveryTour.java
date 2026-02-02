@@ -55,6 +55,10 @@ public class DeliveryTour {
     @Column(nullable = false)
     private String vehiclePlate;
 
+
+    @Column(nullable = false)
+    private String vehicleType;
+
     @ManyToOne
     @JoinColumn(name = "created_by_id", nullable = false)
     private Users createdBy;
