@@ -25,4 +25,10 @@ public class Driver {
     @ManyToOne
     @JoinColumn(name ="created_by" , nullable = false)
     private Users createdBy;
+
+    @OneToOne(mappedBy = "driver", fetch = FetchType.LAZY)
+    private DeliveryDriverZone deliveryDriverZone;//les zones qu'ils couvrent
+
+    @OneToOne(mappedBy = "driver", fetch = FetchType.LAZY)
+    private DriverAvailability availability;//ses disponibilités
 }

@@ -1,6 +1,10 @@
 package com.example.coopachat.services.LogisticsManager;
 
+import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
+import com.example.coopachat.dtos.delivery.CreateDeliveryTourDTO;
+import com.example.coopachat.dtos.delivery.ZoneOptionDTO;
+import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListItemDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
@@ -11,10 +15,7 @@ import com.example.coopachat.dtos.products.StockStatsDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.entities.*;
-import com.example.coopachat.enums.EtatStock;
-import com.example.coopachat.enums.OrderStatus;
-import com.example.coopachat.enums.SupplierOrderStatus;
-import com.example.coopachat.enums.UserRole;
+import com.example.coopachat.enums.*;
 import com.example.coopachat.repositories.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -49,19 +51,24 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // 📦 DEPENDENCIES
     // ============================================================================
 
-    private final DriverRepository driverRepository;
+
     private final UserRepository userRepository;
     private final SupplierRepository supplierRepository;
     private final SupplierOrderRepository supplierOrderRepository;
-    private  final ProductRepository productRepository;
+    private final ProductRepository productRepository;
     private final SupplierOrderItemRepository supplierOrderItemRepository;
     private final CategoryRepository categoryRepository;
     private final OrderRepository orderRepository;
+    private final DeliveryDriverRepository deliveryDriverRepository;
+    private final ZoneReferenceRepository zoneReferenceRepository;
+    private final DeliveryDriverZoneRepository deliveryDriverZoneRepository;
+    private final DeliveryTourRepository deliveryTourRepository;
+
     // ============================================================================
     // 🚚CRÉER UN LIVREUR
     // ============================================================================
 
-     @Override
+    @Override
     @Transactional
     public void createDriver(RegisterDriverRequestDTO driverDTO) {
 
@@ -106,7 +113,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         newDriver.setUser(savedUser);
         newDriver.setCreatedBy(logisticsManager);
 
-        driverRepository.save(newDriver);
+        deliveryDriverRepository.save(newDriver);
 
         log.info("Livreur créé avec succès par le Responsable Logistique: {}", logisticsManager.getEmail());
     }
@@ -125,7 +132,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // ============================================================================
     @Override
     @Transactional
-    public void createSupplierOrder (CreateSupplierOrderDTO createSupplierOrderDTO){
+    public void createSupplierOrder(CreateSupplierOrderDTO createSupplierOrderDTO) {
 
         // Récupérer l'utilisateur connecté
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -209,7 +216,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // ============================================================================
     @Override
     @Transactional
-    public void updateSupplierOrder(Long id , UpdateSupplierOrderDTO updateSupplierOrderDTO) {
+    public void updateSupplierOrder(Long id, UpdateSupplierOrderDTO updateSupplierOrderDTO) {
 
         // Récupérer l'utilisateur connecté
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -394,16 +401,16 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             supplierOrderPage = supplierOrderRepository.findByOrderNumberOrProductNameAndStatus(
                     searchTerm, status, pageable);
         } else if (searchTerm != null) {
-                // Cas 4 : Recherche seulement
-                supplierOrderPage = supplierOrderRepository.findByOrderNumberOrProductName(searchTerm, pageable);
-            } else if (supplierId != null && status != null) {
-                // Cas 5 : Filtre fournisseur + Filtre statut
-                supplierOrderPage = supplierOrderRepository.findBySupplierIdAndStatus(supplierId, status, pageable);
-            } else if (supplierId != null) {
-                // Cas 6 : Filtre fournisseur seulement
-                supplierOrderPage = supplierOrderRepository.findBySupplierId(supplierId, pageable);
-            } else if (status != null) {
-                // Cas 7 : Filtre statut seulement
+            // Cas 4 : Recherche seulement
+            supplierOrderPage = supplierOrderRepository.findByOrderNumberOrProductName(searchTerm, pageable);
+        } else if (supplierId != null && status != null) {
+            // Cas 5 : Filtre fournisseur + Filtre statut
+            supplierOrderPage = supplierOrderRepository.findBySupplierIdAndStatus(supplierId, status, pageable);
+        } else if (supplierId != null) {
+            // Cas 6 : Filtre fournisseur seulement
+            supplierOrderPage = supplierOrderRepository.findBySupplierId(supplierId, pageable);
+        } else if (status != null) {
+            // Cas 7 : Filtre statut seulement
             supplierOrderPage = supplierOrderRepository.findByStatus(status, pageable);
         } else {
             // Cas 8 : Aucune recherche ni filtre
@@ -442,19 +449,19 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         dto.setSupplierName(supplierOrder.getSupplier().getName());
         dto.setExpectedDate(supplierOrder.getExpectedDate());
         dto.setStatus(supplierOrder.getStatus().getLabel()); // Récupérer le label de l'enum
-        dto.setProductsSummary ( buildProductsSummary (supplierOrder.getItems())); // Construire le résumé des produits
+        dto.setProductsSummary(buildProductsSummary(supplierOrder.getItems())); // Construire le résumé des produits
         return dto;
     }
 
 
     /**
-    * Construit le résumé des produits d'une commande (ex: "Riz (100), Huile (50)")
-    *
-    * @param items La liste des items (produits) de la commande
-    * @return String contenant le résumé formaté des produits avec leurs quantités
-    */
-    private String buildProductsSummary (List<SupplierOrderItem> items){
-        if (items == null || items.isEmpty()){
+     * Construit le résumé des produits d'une commande (ex: "Riz (100), Huile (50)")
+     *
+     * @param items La liste des items (produits) de la commande
+     * @return String contenant le résumé formaté des produits avec leurs quantités
+     */
+    private String buildProductsSummary(List<SupplierOrderItem> items) {
+        if (items == null || items.isEmpty()) {
             return "";
         }
         //on va parcourir la liste des items et on va construire une chaîne de caractères avec le nom du produit et sa quantité et on va joindre les chaînes de caractères avec une virgule
@@ -506,7 +513,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // ============================================================================
     @Override
     @Transactional
-    public SupplierOrderStatsDTO getSupplierOrderStats(){
+    public SupplierOrderStatsDTO getSupplierOrderStats() {
 
         // Récupérer l'utilisateur connecté
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -529,12 +536,12 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         long delivered = supplierOrderRepository.countByStatus(SupplierOrderStatus.LIVREE);
         long cancelled = supplierOrderRepository.countByStatus(SupplierOrderStatus.ANNULEE);
 
-        return new SupplierOrderStatsDTO(total,pending,delivered,cancelled) ;
+        return new SupplierOrderStatsDTO(total, pending, delivered, cancelled);
     }
 
     // ============================================================================
-   // 📤 EXPORT DES COMMANDES FOURNISSEURS EN EXCEL
-   // ============================================================================
+    // 📤 EXPORT DES COMMANDES FOURNISSEURS EN EXCEL
+    // ============================================================================
     @Override
     public ByteArrayResource exportSupplierOrders(String search, Long supplierId, SupplierOrderStatus status) {
 
@@ -604,7 +611,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             // Colonnes du tableau Excel
             String[] headers = {"Référence", "Fournisseur", "Date prévue", "Produits", "Statut"};
             Row headerRow = sheet.createRow(0);
-            
+
             //parcourir le tableau des headers et créer une cellule pour chaque en-tête
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
@@ -615,7 +622,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             // Remplir les lignes avec les commandes
             int rowNum = 1;
             DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-            
+
             //parcourir la liste des commandes et créer une ligne pour chaque commande
             for (SupplierOrder order : orders) {
                 Row row = sheet.createRow(rowNum++);
@@ -648,7 +655,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // ============================================================================
     @Override
     @Transactional
-    public ProductStockListResponseDTO getStockList (int page , int size , String search, Long categoryId , Boolean status ){
+    public ProductStockListResponseDTO getStockList(int page, int size, String search, Long categoryId, Boolean status) {
 
         // Récupérer l'utilisateur connecté
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -728,7 +735,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             );
         }).toList();
         // Utiliser directement le constructeur pour remplir la réponse paginée
-        return  new ProductStockListResponseDTO(items , productPage.getTotalElements(),productPage.getTotalPages(), productPage.getNumber(), productPage.getSize(),productPage.hasNext(),productPage.hasPrevious());
+        return new ProductStockListResponseDTO(items, productPage.getTotalElements(), productPage.getTotalPages(), productPage.getNumber(), productPage.getSize(), productPage.hasNext(), productPage.hasPrevious());
 
 
     }
@@ -882,13 +889,13 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // Récupérer le produit
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Produit introuvable"));
-        
+
         //Récupérer le seuil minimum actuel
         Integer currentThreshold = product.getMinThreshold() != null ? product.getMinThreshold() : 0;
 
         //Calculer le delta (la variation ) en fonction du pourcentage
         int delta = (int) Math.round(currentThreshold * (percent / 100.0)); // ex: Combien vaut 10 % de 20 (le seuil) ? et prendre le nombre l'ajouter à notre valeur actuelle
-    
+
         int newThreshold = currentThreshold + delta;
 
         product.setMinThreshold(newThreshold);
@@ -1243,7 +1250,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         Pageable pageable = PageRequest.of(page, size);
 
         // Récupérer la liste des commandes selon les filtres
-        Page <Order>  orderPage = orderRepository.findEmployeeOrders(searchTerm,status, pageable);
+        Page<Order> orderPage = orderRepository.findEmployeeOrders(searchTerm, status, pageable);
 
         // On parcourt la liste paginée des commandes récupérées depuis la base de données
         // Objectif : transformer chaque commande en un DTO prêt pour l’affichage côté RL
@@ -1325,13 +1332,13 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         }
 
         //Récupérons la commande
-        Order order = orderRepository.findById(orderId).orElseThrow(()-> new RuntimeException("Commande introuvable"));
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Commande introuvable"));
 
         // On prépare un DTO contenant  - les infos générales de la commande - la liste des produits associés à la commande
         return new OrderItemDetailsDTO(
                 order.getOrderNumber(),
                 order.getCreatedAt().toLocalDate(),
-                order.getEmployee().getUser().getFirstName() + " "+order.getEmployee().getUser().getLastName(),
+                order.getEmployee().getUser().getFirstName() + " " + order.getEmployee().getUser().getLastName(),
                 order.getStatus().getLabel(),
                 order.getItems().stream().map(item -> new ProductPreviewDTO(
                         item.getProduct().getName(),
@@ -1365,7 +1372,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
 
         // Récupération TOUTES les commandes (sans pagination)
-        List <Order> orders = orderRepository.findEmployeeOrders(searchTerm,status,Pageable.unpaged()).getContent();
+        List<Order> orders = orderRepository.findEmployeeOrders(searchTerm, status, Pageable.unpaged()).getContent();
 
         // Génération Excel
         try (Workbook workbook = new XSSFWorkbook()) {
@@ -1445,6 +1452,232 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         } catch (IOException e) {
             throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
         }
+    }
+    // ============================================================================
+    // 🚚 GESTION DES TOURNÉES DE LIVRAISON
+    // ============================================================================
+
+
+    @Override
+    public List<ZoneOptionDTO> getAvailableZones() {
+
+        // Vérification des droits
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Users user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("Utilisateur non authentifié"));
+
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter les zones");
+        }
+
+        // Récupérer toutes les zones actives depuis ZoneReferenceRepository
+        return zoneReferenceRepository.findByActiveTrue()
+                .stream().map(zone -> new ZoneOptionDTO(
+                        zone.getZoneName()
+                )).toList();
+
+    }
+
+    @Override
+    public List<EligibleOrderDTO> getEligibleOrders(LocalDate deliveryDate, TimeSlot timeSlot) {
+
+        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+        Users user = getCurrentUser();
+
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter les commandes éligibles");
+        }
+        //FILTRAGE DES COMMANDES
+        return orderRepository.findAll().stream()
+                .filter(order -> {
+                    // 1. Statut EN_ATTENTE seulement
+                    if (order.getStatus() != OrderStatus.EN_ATTENTE) {
+                        return false;
+                    }
+                    // 2. Date correspondante
+                    if (!deliveryDate.equals(order.getDeliveryDate())) {
+                        return false;
+                    }
+                    // 3. Créneau (via EmployeeDeliveryPreference la relation one to one)
+                    if (timeSlot != null) {
+                        if (order.getEmployee() == null ||
+                                order.getEmployee().getEmployeeDeliveryPreference() == null ||
+                                order.getEmployee().getEmployeeDeliveryPreference().getPreferredTimeSlot() == null ||
+                                !order.getEmployee().getEmployeeDeliveryPreference().getPreferredTimeSlot().cover(timeSlot)) {
+                            return false;
+                        }
+
+                    }
+                    // 4. Employee actif
+                    if (order.getEmployee() == null || !order.getEmployee().getUser().getIsActive()) {
+                        return false;
+                    }
+                    // 5. Pas déjà dans une tournée
+                    // On vérifie que la commande n'est pas déjà assignée à une tournée existante
+                    // deliveryTour == null → la commande est libre (true = garder)
+                    // deliveryTour != null → la commande est déjà dans une tournée (false = rejeter)
+                    return order.getDeliveryTour() == null;
+
+                }).map(order -> {
+                    // Construire le nom complet du client
+                    String customerName = order.getEmployee().getUser().getFirstName() + " " +
+                            order.getEmployee().getUser().getLastName();
+
+                    // Créer le DTO avec les 2 informations nécessaires
+                    return new EligibleOrderDTO(
+                            order.getOrderNumber(),  // Numéro pour l'affichage frontend
+                            customerName             // Nom du client pour l'identification))
+                    );
+                }).toList();
+
+    }
+
+    @Override
+    public List<AvailableDriverDTO> getAvailableDrivers(LocalDate deliveryDate, TimeSlot timeSlot, String deliveryZone) {
+
+        // 1. VÉRIFICATION DES DROITS
+        Users user = getCurrentUser();
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter les chauffeurs disponibles");
+        }
+
+        // 2. VALIDATION DES PARAMÈTRES
+        if (timeSlot == null) {
+            throw new RuntimeException("Le créneau horaire est obligatoire");
+        }
+        if (deliveryDate == null) {
+            throw new RuntimeException("La date de livraison est obligatoire");
+        }
+
+        if (deliveryZone == null || deliveryZone.trim().isEmpty()) {
+            throw new RuntimeException("La zone de livraison est obligatoire");
+        }
+        return deliveryDriverRepository.findAll().stream().filter(
+                driver -> {
+
+                    // A. Driver actif
+                    if (driver.getUser() == null || !driver.getUser().getIsActive()) {
+                        return false;
+                    }
+
+                    // B. Couvre la zone
+                    // Vérifie si le livreur a des zones configurées
+                    if (driver.getDeliveryDriverZone() == null) {
+                        return false; // Pas de zones = pas éligible
+                    }
+
+                    // Pour chaque zone dans la liste du livreur , Comparer son nom avec la zone demandée
+                    boolean coversZone = driver.getDeliveryDriverZone().getZones().stream()
+                            .anyMatch(zone -> zone.getZoneName().equals(deliveryZone));
+
+                   //  Si pas de correspondance, rejette
+                    if (!coversZone) {
+                        return false; //  Ne couvre pas cette zone
+                    }
+
+                    // C. Disponibilité (timeSlot)
+                    // Récupérer le jour de la semaine de la date fournie
+                    String dayOfWeek = deliveryDate.getDayOfWeek().name();
+
+                    if (driver.getAvailability() == null){
+                        return false;// Pas de disponibilité configurée
+                    }
+                    boolean isAvailable = driver.getAvailability().getAvailableDays().contains(dayOfWeek) &&
+                            driver.getAvailability().getPreferredTimeSlot().cover(timeSlot);
+
+                    return isAvailable;
+                })
+                //transforme chaque driver filtré en AvailableDriverDTO.
+                .map(
+                        driver -> {
+                            String fullName = driver.getUser().getFirstName() + " " +
+                                    driver.getUser().getLastName();
+                            return new AvailableDriverDTO(fullName);}).toList();
+
+
+    }
+
+    @Override
+    @Transactional
+    public void createDeliveryTour(CreateDeliveryTourDTO dto) {
+
+        // 1. VÉRIFICATION DES DROITS
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut créer une tournée");
+        }
+        // 2. RÉCUPÉRATION ET VALIDATION DE LA ZONE
+        DeliveryZoneReference deliveryZone =  zoneReferenceRepository.findById(dto.getDeliveryZoneId())
+                .orElseThrow(() -> new RuntimeException("Zone de livraison introuvable"));
+
+        if (!deliveryZone.getActive()) {
+            throw new RuntimeException("La zone de livraison n'est pas active");
+        }
+        // 3. RÉCUPÉRATION DU CHAUFFEUR
+        Driver driver = deliveryDriverRepository.findById(dto.getDriverId())
+                .orElseThrow(() -> new RuntimeException("Chauffeur introuvable"));
+
+        // 4. RÉCUPÉRATION DES COMMANDES
+        List <Order> orders = orderRepository.findAllById(dto.getOrderIds());
+         if(orders.size() != dto.getOrderIds().size()){
+             throw new RuntimeException("Certaines commandes n'existent pas");
+         }
+        // 5. CRÉATION DE LA TOURNÉE
+        DeliveryTour tour = new DeliveryTour();
+
+        // Générer numéro unique
+        String tourNumber = "TOUR-" + LocalDate.now().getYear() + "-" +
+                String.format("%03d", deliveryTourRepository.count() + 1);
+        tour.setTourNumber(tourNumber);
+
+        // Informations de base
+        tour.setDeliveryDate(dto.getDeliveryDate());
+        tour.setTimeSlot(dto.getTimeSlot());
+        tour.setDeliveryZone(deliveryZone);
+        tour.setDriver(driver);
+        tour.setVehiclePlate(dto.getVehiclePlate().toUpperCase());
+        tour.setCreatedBy(currentUser);
+        tour.setNotes(dto.getNotes());
+        tour.setStatus(DeliveryTourStatus.PLANIFIEE);
+
+        // 6. SAUVEGARDE
+        DeliveryTour savedTour = deliveryTourRepository.save(tour);
+
+        // 7. ASSIGNATION DES COMMANDES
+        for(Order order: orders){
+            order.setDeliveryTour(savedTour);
+            orderRepository.save(order);
+        }
+
+        log.info("Tournée {} créée par {} avec {} commandes (zone: {}, chauffeur: {})",
+                tourNumber, currentUser.getEmail(), orders.size(),
+                deliveryZone.getZoneName(), driver.getUser().getFirstName());
+
+    }
+
+
+    /**
+     * Récupère l'utilisateur actuellement connecté
+     * @return Users l'utilisateur connecté
+     * @throws RuntimeException si aucun utilisateur n'est authentifié
+     */
+    private Users getCurrentUser() {
+        // 1. Récupérer l'authentification Spring Security
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        // 2. Vérifier que l'utilisateur est bien authentifié
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        // 3. Récupérer l'email (username) de l'utilisateur
+        String userEmail = authentication.getName();
+
+        // 4. Chercher l'utilisateur dans la base de données
+        return userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException(
+                        "Utilisateur introuvable avec email: " + userEmail
+                ));
     }
 }
 

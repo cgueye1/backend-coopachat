@@ -1,5 +1,8 @@
 package com.example.coopachat.entities;
 
+import com.example.coopachat.entities.Driver;
+import com.example.coopachat.entities.Order;
+import com.example.coopachat.entities.Users;
 import com.example.coopachat.enums.DeliveryTourStatus;
 import com.example.coopachat.enums.TimeSlot;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -15,7 +18,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-//Tournée de livraison
 @Entity
 @Table(name = "delivery_tours")
 @Data
@@ -28,96 +30,81 @@ public class DeliveryTour {
     private Long id;
 
     @Column(unique = true, nullable = false)
-    private String tourNumber; // Numéro unique de la tournée (ex: TOUR-2025-001)
+    private String tourNumber;
 
     // ==================== INFORMATIONS DE BASE ====================
 
     @Column(nullable = false)
     @JsonFormat(pattern = "dd-MM-yyyy")
-    private LocalDate deliveryDate; // Date de livraison
+    private LocalDate deliveryDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private TimeSlot timeSlot; // Créneau horaire (MORNING, AFTERNOON, ALL_DAY)
+    private TimeSlot timeSlot;
 
-    @Column(nullable = false)
-    private String deliveryZone; // Zone de livraison (ex: "Dakar")
+    @ManyToOne
+    @JoinColumn(name = "delivery_zone_id", nullable = false)
+    private DeliveryZoneReference deliveryZone;
 
     // ==================== ACTEURS ====================
 
     @ManyToOne
     @JoinColumn(name = "driver_id", nullable = false)
-    private Driver driver; // Livreur/Chauffeur assigné
+    private Driver driver;
 
     @Column(nullable = false)
-    private String vehiclePlate; // Plaque d'immatriculation du véhicule (ex: AA-1234-AB)
+    private String vehiclePlate;
 
     @ManyToOne
     @JoinColumn(name = "created_by_id", nullable = false)
-    private Users createdBy; // Responsable Logistique qui a créé la tournée
+    private Users createdBy;
 
     // ==================== COMMANDES ====================
 
     @OneToMany(mappedBy = "deliveryTour")
-    private List<Order> orders = new ArrayList<>(); // Liste des commandes incluses dans cette tournée
+    private List<Order> orders = new ArrayList<>();
 
     // ==================== STATUT ====================
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private DeliveryTourStatus status = DeliveryTourStatus.PLANIFIEE; // Statut par défaut
+    private DeliveryTourStatus status = DeliveryTourStatus.PLANIFIEE;
 
     // ==================== NOTES ====================
 
     @Column(columnDefinition = "TEXT")
-    private String notes; // Notes optionnelles du responsable logistique
+    private String notes;
 
     // ==================== MÉTADONNÉES ====================
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @CreationTimestamp
-    private LocalDateTime createdAt; // Date de création
+    private LocalDateTime createdAt;
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @UpdateTimestamp
-    private LocalDateTime updatedAt; // Date de modification
+    private LocalDateTime updatedAt;
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
-    private LocalDateTime confirmedAt; // Date de confirmation par le livreur
+    private LocalDateTime confirmedAt;
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
-    private LocalDateTime startedAt; // Date de démarrage de la tournée
+    private LocalDateTime startedAt;
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
-    private LocalDateTime completedAt; // Date de fin de la tournée
+    private LocalDateTime completedAt;
 
     // ==================== MÉTHODES UTILES ====================
 
-    /**
-     * Calcule le nombre total de commandes dans la tournée
-     */
-    public int getTotalOrders() {
-        return orders != null ? orders.size() : 0;
-    }
-
-    /**
-     * Vérifie si la tournée peut être modifiée
-     */
     public boolean canBeModified() {
         return status == DeliveryTourStatus.PLANIFIEE ||
                 status == DeliveryTourStatus.PROPOSEE;
     }
 
-    /**
-     * Vérifie si la tournée peut être confirmée
-     */
     public boolean canBeConfirmed() {
         return status == DeliveryTourStatus.PROPOSEE;
     }
 
-    /**
-     * Vérifie si la tournée peut être démarrée
-     */
     public boolean canBeStarted() {
         return status == DeliveryTourStatus.CONFIRMEE;
     }

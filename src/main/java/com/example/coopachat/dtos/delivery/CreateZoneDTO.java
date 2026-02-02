@@ -1,4 +1,4 @@
-package com.example.coopachat.dtos.deliveryZone;
+package com.example.coopachat.dtos.delivery;
 
 // ==================== DTO POUR CRÉER UNE ZONE ====================
 

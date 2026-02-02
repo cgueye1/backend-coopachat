@@ -1,6 +1,10 @@
 package com.example.coopachat.controllers;
 
+import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
+import com.example.coopachat.dtos.delivery.CreateDeliveryTourDTO;
+import com.example.coopachat.dtos.delivery.ZoneOptionDTO;
+import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
@@ -9,6 +13,7 @@ import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.SupplierOrderStatus;
+import com.example.coopachat.enums.TimeSlot;
 import com.example.coopachat.services.LogisticsManager.LogisticsManagerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,12 +21,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -386,6 +393,59 @@ public class LogisticsManagerController {
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(resource);
     }
+
+    // ============================================================================
+   // 🚚 GESTION DES TOURNÉES DE LIVRAISON
+   // ============================================================================
+
+    @Operation(
+            summary = "Récupérer les zones disponibles",
+            description = "Retourne la liste des zones de livraison actives pour le formulaire de création de tournée."
+    )
+    @GetMapping("/delivery-tours/zones")
+    public ResponseEntity<List<ZoneOptionDTO>> getAvailableZones() {
+        List<ZoneOptionDTO> zones = logisticsManagerService.getAvailableZones();
+        return ResponseEntity.ok(zones);
+    }
+
+    @Operation(
+            summary = "Récupérer les commandes éligibles",
+            description = "Retourne la liste des commandes disponibles pour une tournée selon la date et le créneau."
+    )
+    @GetMapping("/delivery-tours/eligible-orders")
+    public ResponseEntity<List<EligibleOrderDTO>> getEligibleOrders(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deliveryDate,
+            @RequestParam TimeSlot timeSlot) {
+
+        List<EligibleOrderDTO> orders = logisticsManagerService.getEligibleOrders(deliveryDate, timeSlot);
+        return ResponseEntity.ok(orders);
+    }
+
+    @Operation(
+            summary = "Récupérer les chauffeurs disponibles",
+            description = "Retourne la liste des chauffeurs disponibles pour une tournée selon la date, le créneau et la zone."
+    )
+    @GetMapping("/delivery-tours/available-drivers")
+    public ResponseEntity<List<AvailableDriverDTO>> getAvailableDrivers(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deliveryDate,
+            @RequestParam TimeSlot timeSlot,
+            @RequestParam String deliveryZone) {
+
+        List<AvailableDriverDTO> drivers = logisticsManagerService.getAvailableDrivers(deliveryDate, timeSlot, deliveryZone);
+        return ResponseEntity.ok(drivers);
+    }
+
+    @Operation(
+            summary = "Créer une tournée de livraison",
+            description = "Permet au responsable logistique de créer une nouvelle tournée de livraison avec un chauffeur et des commandes sélectionnées."
+    )
+    @PostMapping("/delivery-tours")
+    public ResponseEntity<String> createDeliveryTour(@RequestBody @Valid CreateDeliveryTourDTO dto) {
+        logisticsManagerService.createDeliveryTour(dto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body("Tournée créée avec succès");
+    }
+
 
 }
 

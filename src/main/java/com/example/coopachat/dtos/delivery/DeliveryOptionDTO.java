@@ -1,4 +1,4 @@
-package com.example.coopachat.dtos.DeliveryOption;
+package com.example.coopachat.dtos.delivery;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -19,7 +19,7 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserDeliveryPreference {
+public class  EmployeeDeliveryPreference {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,8 +27,8 @@ public class UserDeliveryPreference {
 
     // ==================== UTILISATEUR ====================
     @OneToOne
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
-    private Users user; // Un salarié = une préférence
+    @JoinColumn(name = "employee_id", nullable = false, unique = true)
+    private Employee employee; // Un salarié = une préférence
 
     // ==================== JOURS DE DISPONIBILITÉ ====================
 

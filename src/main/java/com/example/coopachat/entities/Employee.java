@@ -54,6 +54,9 @@ public class Employee {
     @OneToMany(mappedBy = "employee")
     private List<CartItem> cartItems = new ArrayList<>();
 
+    @OneToOne(mappedBy = "employee")
+    private EmployeeDeliveryPreference employeeDeliveryPreference;
+
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @CreationTimestamp
     private LocalDateTime createdAt; // Date de création

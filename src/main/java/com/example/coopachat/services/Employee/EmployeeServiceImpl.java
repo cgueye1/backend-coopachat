@@ -53,7 +53,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final CategoryRepository categoryRepository;
     private final CouponRepository couponRepository;
     private final CartItemRepository cartItemRepository;
-    private final UserDeliveryPreferenceRepository userDeliveryPreferenceRepository;
+    private final EmployeeDeliveryPreferenceRepository employeeDeliveryPreferenceRepository;
     private final EmployeeRepository employeeRepository;
     private final AddressRepository addressRepository;
     private final OrderRepository orderRepository;
@@ -401,39 +401,46 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new RuntimeException("Les données sont nulles");
         }
 
-        // Récupérer user
-        Users user = getCurrentUser();
+        // 1. Récupérer l'employé concerné
+        Users currentUser = getCurrentUser();
+
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
 
         // Chercher ou créer ses préférences de livraison puisque une préférence = un user soit ça existe soit ça n'existe pas
-        UserDeliveryPreference pref = userDeliveryPreferenceRepository.findByUser(user).orElse(new UserDeliveryPreference());
+        EmployeeDeliveryPreference pref = employeeDeliveryPreferenceRepository.findByEmployee(employee).orElse(new EmployeeDeliveryPreference());
 
         // Mettre à jour
-        pref.setUser(user);
+        pref.setEmployee(employee);
         pref.setPreferredDays(dto.getPreferredDays());
         pref.setPreferredTimeSlot(dto.getPreferredTimeSlot());
         pref.setDeliveryMode(dto.getDeliveryMode());
 
         // Sauvegarder
-        userDeliveryPreferenceRepository.save(pref);
-        log.info("Préférences sauvegardées pour {}", user.getEmail());
+       employeeDeliveryPreferenceRepository.save(pref);
+        log.info("Préférences sauvegardées pour {}",employee.getUser().getEmail());
     }
 
     @Override
     @Transactional
     public DeliveryPreferenceDTO getDeliveryPreference() {
 
-        // 1. Récupérer l'utilisateur connecté
-        Users user = getCurrentUser();
+        // 1. Récupérer l'employé concerné
+        Users currentUser = getCurrentUser();
+
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
         // 2. Chercher les préférences en base
-        UserDeliveryPreference preference = userDeliveryPreferenceRepository.findByUser(user)
+        EmployeeDeliveryPreference preference = employeeDeliveryPreferenceRepository.findByEmployee(employee)
                 .orElseThrow(() -> new RuntimeException("Aucune préférence de livraison trouvée"));
 
         // 3. Convertir en DTO
         DeliveryPreferenceDTO dto = convertPreferenceToDto(preference);
 
         log.info("Préférences récupérées pour {}: {} jours, créneau: {}, mode: {}",
-                user.getEmail(),
+                currentUser.getEmail(),
                 dto.getPreferredDays() != null ? dto.getPreferredDays().size() : 0,
                 dto.getPreferredTimeSlot(),
                 dto.getDeliveryMode());
@@ -769,9 +776,9 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     /**
-     * Convertit une entité UserDeliveryPreference en DeliveryPreferenceDTO
+     * Convertit une entité EmployeeDeliveryPreference en DeliveryPreferenceDTO
      */
-    private DeliveryPreferenceDTO convertPreferenceToDto(UserDeliveryPreference entity) {
+    private DeliveryPreferenceDTO convertPreferenceToDto(EmployeeDeliveryPreference entity) {
         DeliveryPreferenceDTO dto = new DeliveryPreferenceDTO();
 
         dto.setPreferredDays(entity.getPreferredDays());

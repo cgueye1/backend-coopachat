@@ -1,6 +1,10 @@
 package com.example.coopachat.services.LogisticsManager;
 
+import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
+import com.example.coopachat.dtos.delivery.CreateDeliveryTourDTO;
+import com.example.coopachat.dtos.delivery.ZoneOptionDTO;
+import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
@@ -9,8 +13,10 @@ import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.SupplierOrderStatus;
+import com.example.coopachat.enums.TimeSlot;
 import org.springframework.core.io.ByteArrayResource;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -239,6 +245,40 @@ public interface LogisticsManagerService {
      * @throws RuntimeException si une erreur survient lors de la génération
      */
     ByteArrayResource exportEmployeeOrders(String search, OrderStatus status);
+
+    // ============================================================================
+   // 🚚 GESTION DES TOURNÉES DE LIVRAISON
+   // ============================================================================
+
+    /**
+     * Récupère la liste des zones de livraison disponibles
+     */
+    List<ZoneOptionDTO> getAvailableZones();
+
+    /**
+     * Récupère la liste des commandes éligibles pour une tournée
+     * @param deliveryDate Date de livraison (obligatoire)
+     * @param timeSlot Créneau horaire (obligatoire)
+     * @return Liste des commandes disponibles
+     */
+    List <EligibleOrderDTO> getEligibleOrders (LocalDate deliveryDate, TimeSlot timeSlot );
+
+
+    /**
+     * Récupère la liste des chauffeurs disponibles selon les filtres
+     * @param deliveryDate Date de livraison
+     * @param timeSlot Créneau horaire
+     * @param deliveryZone Zone de livraison
+     * @return Liste des chauffeurs disponibles
+     */
+    List<AvailableDriverDTO> getAvailableDrivers(LocalDate deliveryDate, TimeSlot timeSlot, String deliveryZone);
+
+    /**
+     * Crée une nouvelle tournée de livraison
+     * @param dto Informations de la tournée à créer
+     */
+    void createDeliveryTour(CreateDeliveryTourDTO dto);
+
 
 
 }

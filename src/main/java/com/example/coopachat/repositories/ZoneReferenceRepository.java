@@ -6,9 +6,12 @@ import jakarta.validation.constraints.Size;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 //ZONES REFERENCES CONFIGUREES PAR ADMIN
 @Repository
 public interface ZoneReferenceRepository extends JpaRepository <DeliveryZoneReference , Long> {
 
     boolean existsByZoneName( String zoneName);
+    List <DeliveryZoneReference> findByActiveTrue ();
 }
