@@ -1460,8 +1460,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // ============================================================================
     // 🚚 GESTION DES TOURNÉES DE LIVRAISON
     // ============================================================================
-
-
     @Override
     public List<ZoneOptionDTO> getAvailableZones() {
 
@@ -1874,6 +1872,125 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         }
         deliveryTourRepository.save(tour);
         log.info("Tournée {} annulée par {}", tourId, currentUser.getEmail());
+    }
+
+    @Override
+    public ByteArrayResource exportDeliveryTours(String tourNumber, DeliveryTourStatus status) {
+
+        // 1. VÉRIFICATION DES DROITS
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut exporter les tournées");
+        }
+
+        // 2. NORMALISATION DU TERME DE RECHERCHE
+        String tourNumberFilter = (tourNumber != null && !tourNumber.trim().isEmpty())
+                ? tourNumber.trim()
+                : null;
+
+        // 3. RÉCUPÉRATION TOUTES LES TOURNÉES (sans pagination)
+        List<DeliveryTour> tours = deliveryTourRepository
+                .findDeliveryTourWithFilters(tourNumberFilter, status, Pageable.unpaged())
+                .getContent();
+
+        // 4. GÉNÉRATION EXCEL
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Tournées de livraison");
+
+            // Style en-tête
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            // Colonnes (adaptées à DeliveryTourListDTO)
+            String[] headers = {
+                    "N° Tournée",           // tour.getTourNumber()
+                    "Date livraison",       // tour.getDeliveryDate()
+                    "Créneau",              // tour.getTimeSlot().getDisplayName()
+                    "Chauffeur",            // Nom complet chauffeur
+                    "Véhicule",             // Type/Plaque
+                    "Zone",                 // tour.getDeliveryZone()
+                    "Nb commandes",         // tour.getOrders().size()
+                    "Statut"                // tour.getStatus().getDisplayName()
+            };
+
+            // Création ligne en-tête
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Remplissage des données
+            int rowNum = 1;
+            for (DeliveryTour tour : tours) {
+                Row row = sheet.createRow(rowNum++); // rowNum++ = utilise PUIS incrémente
+
+                // N° Tournée (colonne 0)
+                row.createCell(0).setCellValue(tour.getTourNumber());
+
+                // Date livraison (colonne 1)
+                row.createCell(1).setCellValue(
+                        tour.getDeliveryDate() != null ?
+                                tour.getDeliveryDate().toString() : "Non définie"
+                );
+
+                // Créneau (colonne 2)
+                row.createCell(2).setCellValue(
+                        tour.getTimeSlot() != null ?
+                                tour.getTimeSlot().getDisplayName() : "Non défini"
+                );
+
+                // Chauffeur (colonne 3)
+                String driverName = "Non assigné";
+                if (tour.getDriver() != null && tour.getDriver().getUser() != null) {
+                    Users driverUser = tour.getDriver().getUser();
+                    driverName = driverUser.getFirstName() + " " + driverUser.getLastName();
+                }
+                row.createCell(3).setCellValue(driverName);
+
+                // Véhicule (colonne 4)
+                String vehicleInfo = "Non spécifié";
+                if (tour.getVehicleTypePlate() != null) {
+                    vehicleInfo = tour.getVehicleTypePlate();
+                }
+                row.createCell(4).setCellValue(vehicleInfo);
+
+                // Zone (colonne 5)
+                String zoneName = "Non spécifiée";
+                if (tour.getDeliveryZone() != null) {
+                    zoneName = tour.getDeliveryZone().getZoneName();
+                }
+                row.createCell(5).setCellValue(zoneName);
+
+                // Nb commandes (colonne 6)
+                int orderCount = tour.getOrders() != null ? tour.getOrders().size() : 0;
+                row.createCell(6).setCellValue(orderCount);
+
+                // Statut (colonne 7)
+                row.createCell(7).setCellValue(tour.getStatus().getDisplayName());
+            }
+
+            // Augmente la largeur de la colonne 'i' pour que tout son contenu soit visible
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            // ByteArrayOutputStream = "Un conteneur temporaire en mémoire"
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+            // workbook.write(outputStream) = "Écris le Excel dans ce conteneur"
+            workbook.write(outputStream);
+
+            // toByteArray() = "Transforme en tableau d'octets"
+            // ByteArrayResource = "Prépare pour l'envoi au navigateur"
+            return new ByteArrayResource(outputStream.toByteArray());
+
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
+        }
     }
 
     private DeliveryTourListDTO mapToDeliveryTourListDTO(DeliveryTour deliveryTour) {

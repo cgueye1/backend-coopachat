@@ -514,6 +514,27 @@ public class LogisticsManagerController {
         return ResponseEntity.ok("Tournée annulée avec succès");
     }
 
+    @Operation(
+            summary = "Exporter les tournées de livraison",
+            description = "Exporte la liste des tournées en fichier Excel"
+    )
+    @GetMapping("/delivery-tours/export")
+    public ResponseEntity<Resource> exportDeliveryTours(
+            @RequestParam(required = false) String tourNumber,
+            @RequestParam(required = false) DeliveryTourStatus status) {
+
+        ByteArrayResource resource = logisticsManagerService.exportDeliveryTours(tourNumber, status);
+
+        String fileName = "tournees_livraison_"
+                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HHmm"))
+                + ".xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(resource);
+    }
+
 
 }
 

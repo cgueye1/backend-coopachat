@@ -323,6 +323,14 @@ public interface LogisticsManagerService {
      */
     void cancelDeliveryTour(Long tourId, CancelDeliveryTourDTO dto);
 
+    /**
+     * Exporte la liste des tournées en fichier Excel
+     * @param tourNumber Filtre par numéro de tournée (optionnel)
+     * @param status Filtre par statut de tournée (optionnel)
+     * @return ByteArrayResource contenant le fichier Excel
+     */
+    ByteArrayResource exportDeliveryTours(String tourNumber, DeliveryTourStatus status);
+
 
 }
 
