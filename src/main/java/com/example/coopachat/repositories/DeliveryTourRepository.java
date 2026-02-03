@@ -30,4 +30,12 @@ public interface DeliveryTourRepository extends JpaRepository<DeliveryTour, Long
             @Param("tourNumber") String tourNumber,
             @Param("status") DeliveryTourStatus status,
             Pageable pageable);
+
+    /**
+     * Compte le nombre de tournées par statut
+     * @param status Statut des tournées à compter
+     * @return Nombre de tournées ayant ce statut
+     */
+    long countByStatus(DeliveryTourStatus status);
+
 }

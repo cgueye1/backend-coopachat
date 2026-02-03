@@ -331,6 +331,11 @@ public interface LogisticsManagerService {
      */
     ByteArrayResource exportDeliveryTours(String tourNumber, DeliveryTourStatus status);
 
+    /**
+     * Récupère les statistiques des tournées par statut
+     * @return Statistiques des tournées
+     */
+    DeliveryTourStatsDTO getDeliveryTourStats();
 
 }
 

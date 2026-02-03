@@ -535,6 +535,16 @@ public class LogisticsManagerController {
                 .body(resource);
     }
 
+    @Operation(
+            summary = "Récupérer les statistiques des tournées",
+            description = "Retourne le nombre de tournées par statut"
+    )
+    @GetMapping("/delivery-tours/stats")
+    public ResponseEntity<DeliveryTourStatsDTO> getDeliveryTourStats() {
+        DeliveryTourStatsDTO stats = logisticsManagerService.getDeliveryTourStats();
+        return ResponseEntity.ok(stats);
+    }
+
 
 }
 

@@ -2032,6 +2032,32 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         return dto;
     }
 
+    @Override
+    public DeliveryTourStatsDTO getDeliveryTourStats() {
+
+        // 1. VÉRIFICATION DES DROITS
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter les statistiques des tournées");
+        }
+
+        // 2. COMPTAGE PAR STATUT
+        long planned = deliveryTourRepository.countByStatus(DeliveryTourStatus.PLANIFIEE);
+        long proposed = deliveryTourRepository.countByStatus(DeliveryTourStatus.PROPOSEE);
+        long confirmed = deliveryTourRepository.countByStatus(DeliveryTourStatus.CONFIRMEE);
+        long completed = deliveryTourRepository.countByStatus(DeliveryTourStatus.TERMINEE);
+        long cancelled = deliveryTourRepository.countByStatus(DeliveryTourStatus.ANNULEE);
+
+
+        // 3. RETOUR DU DTO
+        return new DeliveryTourStatsDTO(
+                planned,
+                proposed,
+                confirmed,
+                completed,
+                cancelled
+        );
+    }
 
 
 
