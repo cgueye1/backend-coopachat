@@ -486,6 +486,19 @@ public class LogisticsManagerController {
         return ResponseEntity.ok("Tournée de livraison mis à jour avec succès");
     }
 
+    @Operation(
+            summary = "Confirmer une tournée",
+            description = "Confirme une tournée planifiée (statut: PLANIFIEE → CONFIRMEE) "
+                    + "après vérification chauffeur assigné et commandes existantes."
+    )
+    @PostMapping("/delivery-tours/{tourId}/confirm")
+    public ResponseEntity<String> confirmDeliveryTour(@PathVariable Long tourId) {
+
+        logisticsManagerService.confirmDeliveryTour(tourId);
+
+        return ResponseEntity.ok("Tournée confirmée avec succès");
+    }
+
 
 }
 

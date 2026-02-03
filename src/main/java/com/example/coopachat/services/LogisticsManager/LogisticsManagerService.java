@@ -15,6 +15,7 @@ import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import com.example.coopachat.enums.TimeSlot;
 import org.springframework.core.io.ByteArrayResource;
+import jakarta.validation.ValidationException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -302,6 +303,17 @@ public interface LogisticsManagerService {
      * @param dto Données de mise à jour
      */
     void updateDeliveryTour(Long tourId, UpdateDeliveryTourDTO dto);
+
+    /**
+     * Confirme une tournée de livraison
+     * Change le statut de PLANIFIEE à CONFIRMEE
+     * Envoie une notification au chauffeur
+     *
+     * @param tourId ID de la tournée à confirmer
+     * @throws IllegalStateException si tournée n'est pas en statut PLANIFIEE
+     * @throws ValidationException si tournée sans chauffeur ou sans commandes
+     */
+    void confirmDeliveryTour(Long tourId);
 
 
 

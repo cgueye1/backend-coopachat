@@ -89,6 +89,11 @@ public class DeliveryTour {
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime confirmedAt;
 
+    @ManyToOne
+    @JoinColumn(name = "confirmed_by_id", nullable = false)
+    private Users confirmedBy;
+
+
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime startedAt;
 

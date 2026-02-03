@@ -10,6 +10,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+
 /**
  * Implémentation du service d'envoi d'emails
  * Envoie des emails HTML professionnels pour l'activation de compte
@@ -734,6 +736,7 @@ public class EmailServiceImpl implements EmailService {
             throw new RuntimeException("Impossible d'envoyer l'email d'activation", e);
         }
     }
+
     /**
      * Génère le template HTML pour l'email d'activation livreur
      *
@@ -830,6 +833,99 @@ public class EmailServiceImpl implements EmailService {
     </html>
     """, appName, appName, firstName, appName, code, appName, appName,
                 java.time.Year.now().getValue(), appName);
+    }
+
+    @Override
+    public void sendTourConfirmationToDriver(String email, String tourNumber, LocalDate deliveryDate, String timeSlot, String driverName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(mailFrom);
+            helper.setTo(email);
+            helper.setSubject("✅ Tournée confirmée - " + tourNumber);
+
+            // Logo
+            ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");
+            helper.addInline("logo", logoResource);
+
+            // Template HTML
+            String emailBody = generateTourConfirmationTemplate(driverName, tourNumber,
+                    deliveryDate, timeSlot);
+
+            helper.setText(emailBody, true);
+            mailSender.send(message);
+
+            log.info("Notification tournée envoyée à: {}", email);
+
+        } catch (Exception e) {
+            log.error("Erreur envoi notification tournée à {}: {}", email, e.getMessage());
+            throw new RuntimeException("Impossible d'envoyer la notification", e);
+        }
+    }
+
+    private String generateTourConfirmationTemplate(String driverName, String tourNumber,
+                                                    LocalDate deliveryDate, String timeSlot) {
+        return String.format("""
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Tournée confirmée</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: white; 
+                       border-radius: 8px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="cid:logo" alt="Logo" style="max-width: 150px;">
+                </div>
+                
+                <h2 style="color: #333; text-align: center;">🚚 Tournée confirmée</h2>
+                
+                <p style="color: #666; font-size: 16px; line-height: 1.5;">
+                    Bonjour <strong>%s</strong>,
+                </p>
+                
+                <p style="color: #666; font-size: 16px; line-height: 1.5;">
+                    Votre tournée <strong>%s</strong> a été confirmée par le responsable logistique.
+                </p>
+                
+                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; 
+                           margin: 20px 0; border-left: 4px solid #28a745;">
+                    <p style="margin: 5px 0; color: #333;">
+                        <strong>📅 Date:</strong> %s
+                    </p>
+                    <p style="margin: 5px 0; color: #333;">
+                        <strong>⏰ Créneau:</strong> %s
+                    </p>
+                    <p style="margin: 5px 0; color: #333;">
+                        <strong>✅ Statut:</strong> Confirmée
+                    </p>
+                </div>
+                
+                <p style="color: #666; font-size: 16px; line-height: 1.5;">
+                    Connectez-vous à votre espace chauffeur pour consulter les détails 
+                    des commandes et l'itinéraire.
+                </p>
+            
+                
+                <p style="color: #999; font-size: 14px; text-align: center; margin-top: 30px;">
+                    Ceci est une notification automatique, merci de ne pas y répondre.<br>
+                    © %d %s
+                </p>
+            </div>
+        </body>
+        </html>
+        """,
+                driverName,
+                tourNumber,
+                deliveryDate,
+                timeSlot,
+                java.time.Year.now().getValue(),
+                appName
+        );
     }
 }
 

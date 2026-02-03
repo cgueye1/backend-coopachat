@@ -16,7 +16,9 @@ import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.entities.*;
 import com.example.coopachat.enums.*;
 import com.example.coopachat.repositories.*;
+import com.example.coopachat.services.auth.EmailService;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -63,6 +65,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     private final ZoneReferenceRepository zoneReferenceRepository;
     private final DeliveryDriverZoneRepository deliveryDriverZoneRepository;
     private final DeliveryTourRepository deliveryTourRepository;
+    private final EmailService emailService;
 
     // ============================================================================
     // 🚚CRÉER UN LIVREUR
@@ -1781,6 +1784,53 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // 8. Sauvegarde
         deliveryTourRepository.save(deliveryTour);
         log.info("Tournée {} mise à jour par {}", tourId, currentUser.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public void confirmDeliveryTour(Long tourId) {
+
+        // 1. VÉRIFICATION DES DROITS
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut confirmer une tournée");
+        }
+        // 2. RÉCUPÉRATION TOURNÉE
+        DeliveryTour tour = deliveryTourRepository.findById(tourId)
+                .orElseThrow(() -> new EntityNotFoundException("Tournée non trouvée"));
+
+        // 3. VÉRIFICATION STATUT = PLANIFIEE
+        if (tour.getStatus() != DeliveryTourStatus.PLANIFIEE) {
+            throw new IllegalStateException(
+                    String.format("Impossible de confirmer : tournée en statut %s. Seule une tournée PLANIFIEE peut être confirmée.",
+                            tour.getStatus())
+            );
+        }
+        // 4. VÉRIFICATION CHAUFFEUR ASSIGNÉ
+        if (tour.getDriver() == null) {
+            throw new ValidationException("Impossible de confirmer : aucun chauffeur assigné à la tournée");
+        }
+
+        // 5. VÉRIFICATION COMMANDES EXISTENT
+        if (tour.getOrders() == null || tour.getOrders().isEmpty()) {
+            throw new ValidationException("Impossible de confirmer : aucune commande dans la tournée");
+        }
+        // 6. CONFIRMATION
+        tour.setStatus(DeliveryTourStatus.CONFIRMEE);
+        tour.setConfirmedAt(LocalDateTime.now());
+        tour.setConfirmedBy(currentUser);
+
+        String driverUserEmail = tour.getDriver().getUser().getEmail();
+        String driverUserName =  tour.getDriver().getUser().getFirstName()+ " "+tour.getDriver().getUser().getLastName();
+
+        //7. Notifier le livreur
+        emailService.sendTourConfirmationToDriver(driverUserEmail, tour.getTourNumber(), tour.getDeliveryDate(),tour.getTimeSlot().getDisplayName(),driverUserName);
+
+        // 8. SAUVEGARDE
+        deliveryTourRepository.save(tour);
+        log.info("Tournée {} confirmée par {}", tourId, currentUser.getEmail());
+
+
     }
 
     private DeliveryTourListDTO mapToDeliveryTourListDTO(DeliveryTour deliveryTour) {

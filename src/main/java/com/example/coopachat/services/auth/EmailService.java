@@ -1,5 +1,7 @@
 package com.example.coopachat.services.auth;
 
+import java.time.LocalDate;
+
 /**
  * Interface pour le service d'envoi d'emails
  * Gère l'envoi d'emails pour l'activation de compte et autres notifications
@@ -51,5 +53,17 @@ public interface EmailService {
      * @param firstName Le prénom du livreur
      */
     void sendDriverActivationCode(String email, String code, String firstName);
+
+    /**
+     * Envoie une notification de confirmation de tournée à un chauffeur
+     * @param email Email du chauffeur
+     * @param tourNumber Numéro de la tournée
+     * @param deliveryDate Date de livraison
+     * @param timeSlot Créneau horaire
+     * @param driverName Nom du chauffeur
+     */
+    void sendTourConfirmationToDriver(String email, String tourNumber, LocalDate deliveryDate, String timeSlot, String driverName);
+
+
 }
 
