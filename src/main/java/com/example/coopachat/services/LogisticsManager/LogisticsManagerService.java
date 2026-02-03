@@ -4,6 +4,7 @@ import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.delivery.CreateDeliveryTourDTO;
 import com.example.coopachat.dtos.delivery.DeliveryTourDetailsDTO;
+import com.example.coopachat.dtos.delivery.DeliveryTourListResponseDTO;
 import com.example.coopachat.dtos.delivery.ZoneOptionDTO;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
@@ -12,6 +13,7 @@ import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.enums.DeliveryTourStatus;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import com.example.coopachat.enums.TimeSlot;
@@ -286,6 +288,16 @@ public interface LogisticsManagerService {
      * @return DTO avec les détails de la tournée
      */
     DeliveryTourDetailsDTO getDeliveryTourDetails(Long tourId);
+
+    /**
+     * Récupère la liste paginée des tournées avec filtres
+     * @param page Numéro de page (0-indexed)
+     * @param size Taille de la page
+     * @param tourNumber Filtre par numéro de tournée (optionnel)
+     * @param status Filtre par statut de tournée (optionnel)
+     * @return Réponse paginée avec la liste des tournées
+     */
+    DeliveryTourListResponseDTO getAllDeliveryTours(int page, int size, String tourNumber, DeliveryTourStatus status);
 
 
 

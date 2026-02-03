@@ -4,6 +4,7 @@ import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.delivery.CreateDeliveryTourDTO;
 import com.example.coopachat.dtos.delivery.DeliveryTourDetailsDTO;
+import com.example.coopachat.dtos.delivery.DeliveryTourListResponseDTO;
 import com.example.coopachat.dtos.delivery.ZoneOptionDTO;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
@@ -12,6 +13,7 @@ import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.enums.DeliveryTourStatus;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import com.example.coopachat.enums.TimeSlot;
@@ -457,6 +459,22 @@ public class LogisticsManagerController {
 
         DeliveryTourDetailsDTO tourDetails = logisticsManagerService.getDeliveryTourDetails(tourId);
         return ResponseEntity.ok(tourDetails);
+    }
+
+    @Operation(
+            summary = "Lister les tournées de livraison",
+            description = "Retourne la liste paginée des tournées avec filtres."
+    )
+    @GetMapping("/delivery-tours")
+    public ResponseEntity<DeliveryTourListResponseDTO> getAllDeliveryTours(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String tourNumber,
+            @RequestParam(required = false) DeliveryTourStatus status) {
+
+        DeliveryTourListResponseDTO response = logisticsManagerService
+                .getAllDeliveryTours(page, size, tourNumber, status);
+        return ResponseEntity.ok(response);
     }
 
 

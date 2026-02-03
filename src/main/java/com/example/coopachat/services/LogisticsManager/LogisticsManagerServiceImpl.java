@@ -2,9 +2,7 @@ package com.example.coopachat.services.LogisticsManager;
 
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
-import com.example.coopachat.dtos.delivery.CreateDeliveryTourDTO;
-import com.example.coopachat.dtos.delivery.DeliveryTourDetailsDTO;
-import com.example.coopachat.dtos.delivery.ZoneOptionDTO;
+import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListItemDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
@@ -1696,6 +1694,82 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
         return dto;
 
+    }
+
+    @Override
+    public DeliveryTourListResponseDTO getAllDeliveryTours(int page, int size, String tourNumber, DeliveryTourStatus status) {
+
+        // VÉRIFICATION DES DROITS
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut récupérer les tournées de livraison ");
+        }
+
+        // Normaliser le paramètre
+        String tourNumberFilter = (tourNumber != null && !tourNumber.trim().isEmpty())
+                ? tourNumber.trim()
+                : null;
+
+        // Créer la pagination
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Récupérer les données si fournies
+        Page<DeliveryTour> deliveryTourPage = deliveryTourRepository.findDeliveryTourWithFilters(tourNumberFilter, status, pageable);
+
+        // Transformer en DTO
+        List<DeliveryTourListDTO> tourList = deliveryTourPage.getContent().stream()
+                .map(this::mapToDeliveryTourListDTO)
+                .toList();
+
+        // Retourner la réponse
+        return new DeliveryTourListResponseDTO(
+                tourList,
+                deliveryTourPage.getTotalElements(),
+                deliveryTourPage.getTotalPages(),
+                deliveryTourPage.getNumber(),
+                deliveryTourPage.getSize(),
+                deliveryTourPage.hasNext(),
+                deliveryTourPage.hasPrevious()
+        );
+    }
+
+    private DeliveryTourListDTO mapToDeliveryTourListDTO(DeliveryTour deliveryTour) {
+        DeliveryTourListDTO dto = new DeliveryTourListDTO();
+
+        // 1. Informations tournée
+        dto.setTourNumber(deliveryTour.getTourNumber());
+        dto.setDeliveryDate(deliveryTour.getDeliveryDate());
+        dto.setTimeSlot(deliveryTour.getTimeSlot());
+
+        // 2. Chauffeur
+        if (deliveryTour.getDriver() != null && deliveryTour.getDriver().getUser() != null) {
+            dto.setDriverName( deliveryTour.getDriver().getUser().getFirstName() + " " +  deliveryTour.getDriver().getUser().getLastName());
+        } else {
+            dto.setDriverName("Non assigné");
+        }
+
+        // 3. Véhicule (format: "Type /Plaque)")
+       if (deliveryTour.getVehicleType() != null && deliveryTour.getVehiclePlate() != null){
+            dto.setVehicle(deliveryTour.getVehicleType()+ "/" +deliveryTour.getVehiclePlate());
+        }else {
+           dto.setVehicle("Non spécifié");
+       }
+
+        // 4. Zone de livraison
+        if (deliveryTour.getDeliveryZone() != null) {
+            dto.setDeliveryZone(deliveryTour.getDeliveryZone().getZoneName());
+        } else {
+            dto.setDeliveryZone("Non spécifiée");
+        }
+
+        // 5. Nombre de commandes
+        dto.setOrderCount(deliveryTour.getOrders() != null ?
+                deliveryTour.getOrders().size() : 0);
+
+        // 6. Statut
+        dto.setStatus(deliveryTour.getStatus());
+
+        return dto;
     }
 
 
