@@ -55,14 +55,20 @@ public interface EmailService {
     void sendDriverActivationCode(String email, String code, String firstName);
 
     /**
-     * Envoie une notification de confirmation de tournée à un chauffeur
+     * Envoie une notification de proposition de tournée à un chauffeur
      * @param email Email du chauffeur
      * @param tourNumber Numéro de la tournée
      * @param deliveryDate Date de livraison
      * @param timeSlot Créneau horaire
      * @param driverName Nom du chauffeur
      */
-    void sendTourConfirmationToDriver(String email, String tourNumber, LocalDate deliveryDate, String timeSlot, String driverName);
+    void sendTourProposalToDriver(String email, String tourNumber, LocalDate deliveryDate, String timeSlot, String driverName);
+
+
+    /**
+     * Envoie un email d'annulation de tournée au livreur
+     */
+    void sendTourCancellationToDriver(String driverEmail, String tourNumber, String reason, String driverName);
 
 
 }

@@ -1,6 +1,7 @@
 package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
+import com.example.coopachat.dtos.DeliveryDriver.CancelDeliveryTourDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
@@ -487,16 +488,30 @@ public class LogisticsManagerController {
     }
 
     @Operation(
-            summary = "Confirmer une tournée",
-            description = "Confirme une tournée planifiée (statut: PLANIFIEE → CONFIRMEE) "
+            summary = "Proposer une tournée",
+            description = "Propose une tournée planifiée à un livreur (statut: PLANIFIEE → PROPOSEE) "
                     + "après vérification chauffeur assigné et commandes existantes."
     )
-    @PostMapping("/delivery-tours/{tourId}/confirm")
-    public ResponseEntity<String> confirmDeliveryTour(@PathVariable Long tourId) {
+    @PostMapping("/delivery-tours/{tourId}/ propose")
+    public ResponseEntity<String> proposeDeliveryTour(@PathVariable Long tourId) {
 
-        logisticsManagerService.confirmDeliveryTour(tourId);
+        logisticsManagerService. proposeDeliveryTour(tourId);
 
-        return ResponseEntity.ok("Tournée confirmée avec succès");
+        return ResponseEntity.ok("Tournée proposée avec succès");
+    }
+
+    @Operation(
+            summary = "Annuler une tournée",
+            description = "Annule une tournée planifiée ou proposée (statut: PLANIFIEE/PROPOSEE → ANNULEE) "
+                    + "avec motif obligatoire."
+    )
+    @PostMapping("/delivery-tours/{tourId}/cancel")
+    public ResponseEntity<String> cancelDeliveryTour(
+            @PathVariable Long tourId,
+            @RequestBody @Valid CancelDeliveryTourDTO dto) {
+
+        logisticsManagerService.cancelDeliveryTour(tourId, dto);
+        return ResponseEntity.ok("Tournée annulée avec succès");
     }
 
 

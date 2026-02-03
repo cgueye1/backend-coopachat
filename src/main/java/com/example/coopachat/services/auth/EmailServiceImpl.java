@@ -836,7 +836,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public void sendTourConfirmationToDriver(String email, String tourNumber, LocalDate deliveryDate, String timeSlot, String driverName) {
+    public void sendTourProposalToDriver(String email, String tourNumber, LocalDate deliveryDate, String timeSlot, String driverName) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -850,7 +850,7 @@ public class EmailServiceImpl implements EmailService {
             helper.addInline("logo", logoResource);
 
             // Template HTML
-            String emailBody = generateTourConfirmationTemplate(driverName, tourNumber,
+            String emailBody = generateTourProposalTemplate(driverName, tourNumber,
                     deliveryDate, timeSlot);
 
             helper.setText(emailBody, true);
@@ -864,7 +864,7 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-    private String generateTourConfirmationTemplate(String driverName, String tourNumber,
+    private String generateTourProposalTemplate(String driverName, String tourNumber,
                                                     LocalDate deliveryDate, String timeSlot) {
         return String.format("""
         <!DOCTYPE html>
@@ -872,7 +872,7 @@ public class EmailServiceImpl implements EmailService {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Tournée confirmée</title>
+            <title>Tournée Proposée</title>
         </head>
         <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
             <div style="max-width: 600px; margin: 0 auto; background-color: white; 
@@ -889,7 +889,7 @@ public class EmailServiceImpl implements EmailService {
                 </p>
                 
                 <p style="color: #666; font-size: 16px; line-height: 1.5;">
-                    Votre tournée <strong>%s</strong> a été confirmée par le responsable logistique.
+                    Votre tournée <strong>%s</strong> a été proposée par le responsable logistique.
                 </p>
                 
                 <div style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; 
@@ -927,5 +927,99 @@ public class EmailServiceImpl implements EmailService {
                 appName
         );
     }
+
+    @Override
+    public void sendTourCancellationToDriver(String email, String tourNumber, String reason, String driverName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(mailFrom);
+            helper.setTo(email);
+            helper.setSubject("❌ Tournée annulée - " + tourNumber);
+
+            // Logo
+            ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");
+            helper.addInline("logo", logoResource);
+
+            // Template HTML
+            String emailBody = generateTourCancellationTemplate(driverName, tourNumber, reason);
+
+            helper.setText(emailBody, true);
+            mailSender.send(message);
+
+            log.info("Notification d'annulation envoyée à: {}", email);
+
+        } catch (Exception e) {
+            log.error("Erreur envoi notification annulation à {}: {}", email, e.getMessage());
+            throw new RuntimeException("Impossible d'envoyer la notification d'annulation", e);
+        }
+    }
+
+    private String generateTourCancellationTemplate(String driverName, String tourNumber, String reason) {
+        return String.format("""
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Tournée Annulée</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: white; 
+                       border-radius: 8px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="cid:logo" alt="Logo" style="max-width: 150px;">
+                </div>
+                
+                <h2 style="color: #333; text-align: center;">❌ Tournée annulée</h2>
+                
+                <p style="color: #666; font-size: 16px; line-height: 1.5;">
+                    Bonjour <strong>%s</strong>,
+                </p>
+                
+                <p style="color: #666; font-size: 16px; line-height: 1.5;">
+                    Nous vous informons que votre tournée <strong>%s</strong> 
+                    a été annulée par le responsable logistique.
+                </p>
+                
+                <div style="background-color: #fff3cd; padding: 15px; border-radius: 6px; 
+                           margin: 20px 0; border-left: 4px solid #dc3545;">
+                    <p style="margin: 5px 0; color: #856404;">
+                        <strong>📋 Référence:</strong> %s
+                    </p>
+                    <p style="margin: 5px 0; color: #856404;">
+                        <strong>📝 Motif d'annulation:</strong> %s
+                    </p>
+                    <p style="margin: 5px 0; color: #856404;">
+                        <strong>❌ Statut:</strong> Annulée
+                    </p>
+                </div>
+                
+                <p style="color: #666; font-size: 16px; line-height: 1.5;">
+                    Cette tournée a été retirée de votre planning de livraison.
+                </p>
+                                
+                <p style="color: #999; font-size: 14px; text-align: center; margin-top: 30px;">
+                    Ceci est une notification automatique, merci de ne pas y répondre.<br>
+                    © %d %s
+                </p>
+            </div>
+        </body>
+        </html>
+        """,
+                driverName,
+                tourNumber,
+                tourNumber, // Répété pour le bloc info
+                reason,
+                java.time.Year.now().getValue(),
+                appName
+        );
+    }
+
+
+
+
 }
 

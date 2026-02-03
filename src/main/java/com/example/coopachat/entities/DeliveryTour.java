@@ -76,6 +76,9 @@ public class DeliveryTour {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Column(columnDefinition = "TEXT")
+    private String cancellationReason;
+
     // ==================== MÉTADONNÉES ====================
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
@@ -86,6 +89,11 @@ public class DeliveryTour {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @ManyToOne
+    @JoinColumn(name = "updated_by_id", nullable = false)
+    private Users  updatedBy;
+
+
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime confirmedAt;
 
@@ -93,6 +101,13 @@ public class DeliveryTour {
     @JoinColumn(name = "confirmed_by_id", nullable = false)
     private Users confirmedBy;
 
+
+    @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
+    private LocalDateTime cancelledAt;
+
+    @ManyToOne
+    @JoinColumn(name = "cancelled_by_id")
+    private Users cancelledBy;
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime startedAt;

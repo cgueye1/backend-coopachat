@@ -1,6 +1,7 @@
 package com.example.coopachat.services.LogisticsManager;
 
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
+import com.example.coopachat.dtos.DeliveryDriver.CancelDeliveryTourDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
@@ -305,16 +306,22 @@ public interface LogisticsManagerService {
     void updateDeliveryTour(Long tourId, UpdateDeliveryTourDTO dto);
 
     /**
-     * Confirme une tournée de livraison
-     * Change le statut de PLANIFIEE à CONFIRMEE
+     * Propose une tournée de livraison
+     * Change le statut de PLANIFIEE à PROPOSEE
      * Envoie une notification au chauffeur
      *
-     * @param tourId ID de la tournée à confirmer
+     * @param tourId ID de la tournée à proposer
      * @throws IllegalStateException si tournée n'est pas en statut PLANIFIEE
      * @throws ValidationException si tournée sans chauffeur ou sans commandes
      */
-    void confirmDeliveryTour(Long tourId);
+    void proposeDeliveryTour(Long tourId);
 
+    /**
+     * Annule une tournée de livraison
+     * @param tourId ID de la tournée
+     * @param dto Motif d'annulation
+     */
+    void cancelDeliveryTour(Long tourId, CancelDeliveryTourDTO dto);
 
 
 }

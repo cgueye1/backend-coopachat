@@ -1,6 +1,7 @@
 package com.example.coopachat.services.LogisticsManager;
 
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
+import com.example.coopachat.dtos.DeliveryDriver.CancelDeliveryTourDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
@@ -1788,12 +1789,12 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
     @Override
     @Transactional
-    public void confirmDeliveryTour(Long tourId) {
+    public void  proposeDeliveryTour(Long tourId) {
 
         // 1. VÉRIFICATION DES DROITS
         Users currentUser = getCurrentUser();
         if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
-            throw new RuntimeException("Seul un responsable logistique peut confirmer une tournée");
+            throw new RuntimeException("Seul un responsable logistique peut proposer une tournée");
         }
         // 2. RÉCUPÉRATION TOURNÉE
         DeliveryTour tour = deliveryTourRepository.findById(tourId)
@@ -1802,21 +1803,21 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // 3. VÉRIFICATION STATUT = PLANIFIEE
         if (tour.getStatus() != DeliveryTourStatus.PLANIFIEE) {
             throw new IllegalStateException(
-                    String.format("Impossible de confirmer : tournée en statut %s. Seule une tournée PLANIFIEE peut être confirmée.",
+                    String.format("Impossible de proposer : tournée en statut %s. Seule une tournée PLANIFIEE peut être proposée à un livreur .",
                             tour.getStatus())
             );
         }
         // 4. VÉRIFICATION CHAUFFEUR ASSIGNÉ
         if (tour.getDriver() == null) {
-            throw new ValidationException("Impossible de confirmer : aucun chauffeur assigné à la tournée");
+            throw new ValidationException("Impossible de proposer cette tournée  : aucun chauffeur assigné à la tournée");
         }
 
         // 5. VÉRIFICATION COMMANDES EXISTENT
         if (tour.getOrders() == null || tour.getOrders().isEmpty()) {
-            throw new ValidationException("Impossible de confirmer : aucune commande dans la tournée");
+            throw new ValidationException("Impossible de proposer la tournée : aucune commande dans la tournée");
         }
         // 6. CONFIRMATION
-        tour.setStatus(DeliveryTourStatus.CONFIRMEE);
+        tour.setStatus(DeliveryTourStatus.PROPOSEE);
         tour.setConfirmedAt(LocalDateTime.now());
         tour.setConfirmedBy(currentUser);
 
@@ -1824,13 +1825,55 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         String driverUserName =  tour.getDriver().getUser().getFirstName()+ " "+tour.getDriver().getUser().getLastName();
 
         //7. Notifier le livreur
-        emailService.sendTourConfirmationToDriver(driverUserEmail, tour.getTourNumber(), tour.getDeliveryDate(),tour.getTimeSlot().getDisplayName(),driverUserName);
+        emailService.sendTourProposalToDriver(driverUserEmail, tour.getTourNumber(), tour.getDeliveryDate(),tour.getTimeSlot().getDisplayName(),driverUserName);
 
         // 8. SAUVEGARDE
         deliveryTourRepository.save(tour);
-        log.info("Tournée {} confirmée par {}", tourId, currentUser.getEmail());
+        log.info("Tournée {} proposée par {}", tourId, currentUser.getEmail());
 
+    }
 
+    @Override
+    @Transactional
+    public void cancelDeliveryTour(Long tourId, CancelDeliveryTourDTO dto) {
+
+        // 1. VÉRIFICATION DES DROITS
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut annuler une tournée");
+        }
+
+        // 2. RÉCUPÉRATION TOURNÉE
+        DeliveryTour tour = deliveryTourRepository.findById(tourId)
+                .orElseThrow(() -> new EntityNotFoundException("Tournée non trouvée"));
+
+        // Vérifier statut annulable
+        if (tour.getStatus() != DeliveryTourStatus.PLANIFIEE &&
+                tour.getStatus() != DeliveryTourStatus.PROPOSEE) {
+            throw new IllegalStateException(
+                    "Seules les tournées PLANIFIEE ou PROPOSEE peuvent être annulées"
+            );
+        }
+
+        // Sauvegarder ancien statut
+        DeliveryTourStatus oldStatus = tour.getStatus();
+
+        // Annuler
+        tour.setStatus(DeliveryTourStatus.ANNULEE);
+        tour.setCancelledAt(LocalDateTime.now());
+        tour.setCancelledBy(currentUser);
+        tour.setCancellationReason(dto.getReason());
+
+        String driverUserEmail = tour.getDriver().getUser().getEmail();
+        String driverUserName =  tour.getDriver().getUser().getFirstName()+ " "+tour.getDriver().getUser().getLastName();
+
+        // Notifier si Proposée à un livreur
+        if (oldStatus == DeliveryTourStatus.PROPOSEE && tour.getDriver() != null) {
+            emailService.sendTourCancellationToDriver(driverUserEmail, tour.getTourNumber(), tour.getCancellationReason(),driverUserName);
+
+        }
+        deliveryTourRepository.save(tour);
+        log.info("Tournée {} annulée par {}", tourId, currentUser.getEmail());
     }
 
     private DeliveryTourListDTO mapToDeliveryTourListDTO(DeliveryTour deliveryTour) {

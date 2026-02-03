@@ -10,7 +10,8 @@ public enum DeliveryTourStatus {
     CONFIRMEE("Confirmée"),           // Le livreur a accepté
     REFUSEE("Refusée"),              // Le livreur a refusé
     EN_COURS("En cours"),            // Le livreur a démarré la tournée
-    TERMINEE("Terminée");            // Le livreur a terminé toutes les livraisons
+    TERMINEE("Terminée"),           // Le livreur a terminé toutes les livraisons
+    ANNULEE("Annulée");             //Le Responsable Logistique a annulé la tournée
 
     private final String displayName;
 
