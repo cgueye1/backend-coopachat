@@ -52,12 +52,9 @@ public class DeliveryTour {
     @JoinColumn(name = "driver_id", nullable = false)
     private Driver driver;
 
-    @Column(nullable = false)
-    private String vehiclePlate;
-
 
     @Column(nullable = false)
-    private String vehicleType;
+    private String vehicleTypePlate;
 
     @ManyToOne
     @JoinColumn(name = "created_by_id", nullable = false)

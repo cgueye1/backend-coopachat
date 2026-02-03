@@ -16,6 +16,7 @@ import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.entities.*;
 import com.example.coopachat.enums.*;
 import com.example.coopachat.repositories.*;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -1634,7 +1635,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         tour.setTimeSlot(dto.getTimeSlot());
         tour.setDeliveryZone(deliveryZone);
         tour.setDriver(driver);
-        tour.setVehicleType(dto.getVehicleType().toUpperCase());
+        tour.setVehicleTypePlate(dto.getVehicleType());
         tour.setCreatedBy(currentUser);
         tour.setNotes(dto.getNotes());
         tour.setStatus(DeliveryTourStatus.PLANIFIEE);
@@ -1680,8 +1681,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         }
 
         // Véhicule
-        dto.setVehicleType(deliveryTour.getVehicleType());
-        dto.setVehiclePlate(deliveryTour.getVehiclePlate());
+        dto.setVehicleType(deliveryTour.getVehicleTypePlate());
 
         // Zone
         if (deliveryTour.getDeliveryZone() != null) {
@@ -1733,6 +1733,56 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         );
     }
 
+    @Override
+    @Transactional
+    public void updateDeliveryTour(Long tourId, UpdateDeliveryTourDTO dto) {
+
+        // 1. Vérification droits
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Accès refusé");
+        }
+
+        // 2. Récupération tournée
+        DeliveryTour deliveryTour = deliveryTourRepository.findById(tourId)
+                .orElseThrow(() -> new EntityNotFoundException("Tournée non trouvée"));
+
+        // 3. Vérification statut = PLANIFIEE
+        if (deliveryTour.getStatus() != DeliveryTourStatus.PLANIFIEE) {
+            throw new IllegalStateException("Modification impossible : tournée déjà confirmée");
+        }
+
+       // 4. Mise à jour zone (si changée ET différente de l'actuelle)
+        if (dto.getZoneId() != null &&
+                !dto.getZoneId().equals(deliveryTour.getDeliveryZone().getId())) {
+
+            DeliveryZoneReference newZone = zoneReferenceRepository.findById(dto.getZoneId())
+                    .orElseThrow(() -> new EntityNotFoundException("Zone non trouvée"));
+
+            deliveryTour.setDeliveryZone(newZone);
+            deliveryTour.setDriver(null);// on met à null la liste des chauffeurs pour récupérer les  chauffeurs de la nouvelle Zone
+
+        }
+        // 5. Mise à jour véhicule
+        if (dto.getVehicleInfo() != null) {
+            deliveryTour.setVehicleTypePlate(dto.getVehicleInfo());
+        }
+
+        // 6. Mise à jour notes
+        if (dto.getNotes() != null) {
+            deliveryTour.setNotes(dto.getNotes());
+        }
+
+        // 7. Mise à jour statut (si changée ET différente de l'actuelle)
+        if (dto.getStatus() != null && dto.getStatus() != deliveryTour.getStatus()) {
+            deliveryTour.setStatus(dto.getStatus());
+        }
+
+        // 8. Sauvegarde
+        deliveryTourRepository.save(deliveryTour);
+        log.info("Tournée {} mise à jour par {}", tourId, currentUser.getEmail());
+    }
+
     private DeliveryTourListDTO mapToDeliveryTourListDTO(DeliveryTour deliveryTour) {
         DeliveryTourListDTO dto = new DeliveryTourListDTO();
 
@@ -1749,8 +1799,8 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         }
 
         // 3. Véhicule (format: "Type /Plaque)")
-       if (deliveryTour.getVehicleType() != null && deliveryTour.getVehiclePlate() != null){
-            dto.setVehicle(deliveryTour.getVehicleType()+ "/" +deliveryTour.getVehiclePlate());
+       if (deliveryTour.getVehicleTypePlate() != null){
+            dto.setVehicle(deliveryTour.getVehicleTypePlate());
         }else {
            dto.setVehicle("Non spécifié");
        }
@@ -1771,6 +1821,8 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
         return dto;
     }
+
+
 
 
     /**

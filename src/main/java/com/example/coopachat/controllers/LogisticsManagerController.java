@@ -2,10 +2,7 @@ package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
-import com.example.coopachat.dtos.delivery.CreateDeliveryTourDTO;
-import com.example.coopachat.dtos.delivery.DeliveryTourDetailsDTO;
-import com.example.coopachat.dtos.delivery.DeliveryTourListResponseDTO;
-import com.example.coopachat.dtos.delivery.ZoneOptionDTO;
+import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
@@ -475,6 +472,18 @@ public class LogisticsManagerController {
         DeliveryTourListResponseDTO response = logisticsManagerService
                 .getAllDeliveryTours(page, size, tourNumber, status);
         return ResponseEntity.ok(response);
+    }
+    @Operation(
+            summary = "Modifier une tournée",
+            description = "Met à jour les informations d'une tournée (zone, véhicule, notes, statut)"
+    )
+    @PatchMapping("/delivery-tours/{tourId}")
+    public ResponseEntity<String> updateDeliveryTour(
+            @PathVariable Long tourId,
+            @RequestBody @Valid UpdateDeliveryTourDTO dto) {
+
+        logisticsManagerService.updateDeliveryTour(tourId, dto);
+        return ResponseEntity.ok("Tournée de livraison mis à jour avec succès");
     }
 
 

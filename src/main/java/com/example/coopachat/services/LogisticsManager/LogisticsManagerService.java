@@ -2,10 +2,7 @@ package com.example.coopachat.services.LogisticsManager;
 
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
-import com.example.coopachat.dtos.delivery.CreateDeliveryTourDTO;
-import com.example.coopachat.dtos.delivery.DeliveryTourDetailsDTO;
-import com.example.coopachat.dtos.delivery.DeliveryTourListResponseDTO;
-import com.example.coopachat.dtos.delivery.ZoneOptionDTO;
+import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
@@ -298,6 +295,13 @@ public interface LogisticsManagerService {
      * @return Réponse paginée avec la liste des tournées
      */
     DeliveryTourListResponseDTO getAllDeliveryTours(int page, int size, String tourNumber, DeliveryTourStatus status);
+
+    /**
+     * Met à jour une tournée de livraison
+     * @param tourId ID de la tournée
+     * @param dto Données de mise à jour
+     */
+    void updateDeliveryTour(Long tourId, UpdateDeliveryTourDTO dto);
 
 
 
