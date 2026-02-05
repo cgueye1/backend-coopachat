@@ -3,7 +3,6 @@ package com.example.coopachat.services.admin;
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
-import com.example.coopachat.dtos.delivery.CreateZoneDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
@@ -129,12 +128,5 @@ public interface AdminService {
      */
     List<DeliveryOptionDTO> getAllDeliveryOptions();
 
-
-    /**
-     * Crée une nouvelle zone de livraison
-     * @param dto DTO contenant les informations de la zone
-     * @return ZoneDTO créée
-     */
-     void createZone(CreateZoneDTO dto);
 
 }

@@ -400,16 +400,6 @@ public class LogisticsManagerController {
    // ============================================================================
 
     @Operation(
-            summary = "Récupérer les zones disponibles",
-            description = "Retourne la liste des zones de livraison actives pour le formulaire de création de tournée."
-    )
-    @GetMapping("/delivery-tours/zones")
-    public ResponseEntity<List<ZoneOptionDTO>> getAvailableZones() {
-        List<ZoneOptionDTO> zones = logisticsManagerService.getAvailableZones();
-        return ResponseEntity.ok(zones);
-    }
-
-    @Operation(
             summary = "Récupérer les commandes éligibles",
             description = "Retourne la liste des commandes disponibles pour une tournée selon la date et le créneau."
     )
@@ -424,15 +414,14 @@ public class LogisticsManagerController {
 
     @Operation(
             summary = "Récupérer les chauffeurs disponibles",
-            description = "Retourne la liste des chauffeurs disponibles pour une tournée selon la date, le créneau et la zone."
+            description = "Retourne la liste des chauffeurs disponibles pour une tournée selon la date et le créneau."
     )
     @GetMapping("/delivery-tours/available-drivers")
     public ResponseEntity<List<AvailableDriverDTO>> getAvailableDrivers(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deliveryDate,
-            @RequestParam TimeSlot timeSlot,
-            @RequestParam String deliveryZone) {
+            @RequestParam TimeSlot timeSlot) {
 
-        List<AvailableDriverDTO> drivers = logisticsManagerService.getAvailableDrivers(deliveryDate, timeSlot, deliveryZone);
+        List<AvailableDriverDTO> drivers = logisticsManagerService.getAvailableDrivers(deliveryDate, timeSlot);
         return ResponseEntity.ok(drivers);
     }
 
@@ -476,7 +465,7 @@ public class LogisticsManagerController {
     }
     @Operation(
             summary = "Modifier une tournée",
-            description = "Met à jour les informations d'une tournée (zone, véhicule, notes, statut)"
+            description = "Met à jour les informations d'une tournée (véhicule, notes, statut)"
     )
     @PatchMapping("/delivery-tours/{tourId}")
     public ResponseEntity<String> updateDeliveryTour(

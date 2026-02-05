@@ -63,8 +63,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     private final CategoryRepository categoryRepository;
     private final OrderRepository orderRepository;
     private final DeliveryDriverRepository deliveryDriverRepository;
-    private final ZoneReferenceRepository zoneReferenceRepository;
-    private final DeliveryDriverZoneRepository deliveryDriverZoneRepository;
     private final DeliveryTourRepository deliveryTourRepository;
     private final EmailService emailService;
 
@@ -1461,26 +1459,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // 🚚 GESTION DES TOURNÉES DE LIVRAISON
     // ============================================================================
     @Override
-    public List<ZoneOptionDTO> getAvailableZones() {
-
-        // Vérification des droits
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Users user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("Utilisateur non authentifié"));
-
-        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
-            throw new RuntimeException("Seul un responsable logistique peut consulter les zones");
-        }
-
-        // Récupérer toutes les zones actives depuis ZoneReferenceRepository
-        return zoneReferenceRepository.findByActiveTrue()
-                .stream().map(zone -> new ZoneOptionDTO(
-                        zone.getZoneName()
-                )).toList();
-
-    }
-
-    @Override
     public List<EligibleOrderDTO> getEligibleOrders(LocalDate deliveryDate, TimeSlot timeSlot) {
 
         // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
@@ -1535,7 +1513,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     }
 
     @Override
-    public List<AvailableDriverDTO> getAvailableDrivers(LocalDate deliveryDate, TimeSlot timeSlot, String deliveryZone) {
+    public List<AvailableDriverDTO> getAvailableDrivers(LocalDate deliveryDate, TimeSlot timeSlot) {
 
         // 1. VÉRIFICATION DES DROITS
         Users user = getCurrentUser();
@@ -1551,9 +1529,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             throw new RuntimeException("La date de livraison est obligatoire");
         }
 
-        if (deliveryZone == null || deliveryZone.trim().isEmpty()) {
-            throw new RuntimeException("La zone de livraison est obligatoire");
-        }
         return deliveryDriverRepository.findAll().stream().filter(
                 driver -> {
 
@@ -1562,22 +1537,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                         return false;
                     }
 
-                    // B. Couvre la zone
-                    // Vérifie si le livreur a des zones configurées
-                    if (driver.getDeliveryDriverZone() == null) {
-                        return false; // Pas de zones = pas éligible
-                    }
-
-                    // Pour chaque zone dans la liste du livreur , Comparer son nom avec la zone demandée
-                    boolean coversZone = driver.getDeliveryDriverZone().getZones().stream()
-                            .anyMatch(zone -> zone.getZoneName().equals(deliveryZone));
-
-                   //  Si pas de correspondance, rejette
-                    if (!coversZone) {
-                        return false; //  Ne couvre pas cette zone
-                    }
-
-                    // C. Disponibilité (timeSlot)
+                    // B. Disponibilité (timeSlot)
                     // Récupérer le jour de la semaine de la date fournie
                     String dayOfWeek = deliveryDate.getDayOfWeek().name();
 
@@ -1608,23 +1568,16 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
             throw new RuntimeException("Seul un responsable logistique peut créer une tournée");
         }
-        // 2. RÉCUPÉRATION ET VALIDATION DE LA ZONE
-        DeliveryZoneReference deliveryZone =  zoneReferenceRepository.findById(dto.getDeliveryZoneId())
-                .orElseThrow(() -> new RuntimeException("Zone de livraison introuvable"));
-
-        if (!deliveryZone.getActive()) {
-            throw new RuntimeException("La zone de livraison n'est pas active");
-        }
-        // 3. RÉCUPÉRATION DU CHAUFFEUR
+        // 2. RÉCUPÉRATION DU CHAUFFEUR
         Driver driver = deliveryDriverRepository.findById(dto.getDriverId())
                 .orElseThrow(() -> new RuntimeException("Chauffeur introuvable"));
 
-        // 4. RÉCUPÉRATION DES COMMANDES
+        // 3. RÉCUPÉRATION DES COMMANDES
         List <Order> orders = orderRepository.findAllById(dto.getOrderIds());
          if(orders.size() != dto.getOrderIds().size()){
              throw new RuntimeException("Certaines commandes n'existent pas");
          }
-        // 5. CRÉATION DE LA TOURNÉE
+        // 4. CRÉATION DE LA TOURNÉE
         DeliveryTour tour = new DeliveryTour();
 
         // Générer numéro unique
@@ -1635,25 +1588,24 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // Informations de base
         tour.setDeliveryDate(dto.getDeliveryDate());
         tour.setTimeSlot(dto.getTimeSlot());
-        tour.setDeliveryZone(deliveryZone);
         tour.setDriver(driver);
         tour.setVehicleTypePlate(dto.getVehicleType());
         tour.setCreatedBy(currentUser);
         tour.setNotes(dto.getNotes());
         tour.setStatus(DeliveryTourStatus.PLANIFIEE);
 
-        // 6. SAUVEGARDE
+        // 5. SAUVEGARDE
         DeliveryTour savedTour = deliveryTourRepository.save(tour);
 
-        // 7. ASSIGNATION DES COMMANDES
+        // 6. ASSIGNATION DES COMMANDES
         for(Order order: orders){
             order.setDeliveryTour(savedTour);
             orderRepository.save(order);
         }
 
-        log.info("Tournée {} créée par {} avec {} commandes (zone: {}, chauffeur: {})",
+        log.info("Tournée {} créée par {} avec {} commandes (chauffeur: {})",
                 tourNumber, currentUser.getEmail(), orders.size(),
-                deliveryZone.getZoneName(), driver.getUser().getFirstName());
+                driver.getUser().getFirstName());
 
     }
 
@@ -1685,10 +1637,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // Véhicule
         dto.setVehicleType(deliveryTour.getVehicleTypePlate());
 
-        // Zone
-        if (deliveryTour.getDeliveryZone() != null) {
-            dto.setDeliveryZone(deliveryTour.getDeliveryZone().getZoneName());
-        }
         // Commandes
         dto.setOrderCount(deliveryTour.getOrders() != null ?
                 deliveryTour.getOrders().size() : 0);
@@ -1754,33 +1702,22 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             throw new IllegalStateException("Modification impossible : tournée déjà confirmée");
         }
 
-       // 4. Mise à jour zone (si changée ET différente de l'actuelle)
-        if (dto.getZoneId() != null &&
-                !dto.getZoneId().equals(deliveryTour.getDeliveryZone().getId())) {
-
-            DeliveryZoneReference newZone = zoneReferenceRepository.findById(dto.getZoneId())
-                    .orElseThrow(() -> new EntityNotFoundException("Zone non trouvée"));
-
-            deliveryTour.setDeliveryZone(newZone);
-            deliveryTour.setDriver(null);// on met à null la liste des chauffeurs pour récupérer les  chauffeurs de la nouvelle Zone
-
-        }
-        // 5. Mise à jour véhicule
+        // 4. Mise à jour véhicule
         if (dto.getVehicleInfo() != null) {
             deliveryTour.setVehicleTypePlate(dto.getVehicleInfo());
         }
 
-        // 6. Mise à jour notes
+        // 5. Mise à jour notes
         if (dto.getNotes() != null) {
             deliveryTour.setNotes(dto.getNotes());
         }
 
-        // 7. Mise à jour statut (si changée ET différente de l'actuelle)
+        // 6. Mise à jour statut (si changée ET différente de l'actuelle)
         if (dto.getStatus() != null && dto.getStatus() != deliveryTour.getStatus()) {
             deliveryTour.setStatus(dto.getStatus());
         }
 
-        // 8. Sauvegarde
+        // 7. Sauvegarde
         deliveryTourRepository.save(deliveryTour);
         log.info("Tournée {} mise à jour par {}", tourId, currentUser.getEmail());
     }
@@ -1910,7 +1847,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                     "Créneau",              // tour.getTimeSlot().getDisplayName()
                     "Chauffeur",            // Nom complet chauffeur
                     "Véhicule",             // Type/Plaque
-                    "Zone",                 // tour.getDeliveryZone()
                     "Nb commandes",         // tour.getOrders().size()
                     "Statut"                // tour.getStatus().getDisplayName()
             };
@@ -1958,19 +1894,12 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 }
                 row.createCell(4).setCellValue(vehicleInfo);
 
-                // Zone (colonne 5)
-                String zoneName = "Non spécifiée";
-                if (tour.getDeliveryZone() != null) {
-                    zoneName = tour.getDeliveryZone().getZoneName();
-                }
-                row.createCell(5).setCellValue(zoneName);
-
-                // Nb commandes (colonne 6)
+                // Nb commandes (colonne 5)
                 int orderCount = tour.getOrders() != null ? tour.getOrders().size() : 0;
-                row.createCell(6).setCellValue(orderCount);
+                row.createCell(5).setCellValue(orderCount);
 
-                // Statut (colonne 7)
-                row.createCell(7).setCellValue(tour.getStatus().getDisplayName());
+                // Statut (colonne 6)
+                row.createCell(6).setCellValue(tour.getStatus().getDisplayName());
             }
 
             // Augmente la largeur de la colonne 'i' pour que tout son contenu soit visible
@@ -2015,18 +1944,11 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
            dto.setVehicle("Non spécifié");
        }
 
-        // 4. Zone de livraison
-        if (deliveryTour.getDeliveryZone() != null) {
-            dto.setDeliveryZone(deliveryTour.getDeliveryZone().getZoneName());
-        } else {
-            dto.setDeliveryZone("Non spécifiée");
-        }
-
-        // 5. Nombre de commandes
+        // 4. Nombre de commandes
         dto.setOrderCount(deliveryTour.getOrders() != null ?
                 deliveryTour.getOrders().size() : 0);
 
-        // 6. Statut
+        // 5. Statut
         dto.setStatus(deliveryTour.getStatus());
 
         return dto;

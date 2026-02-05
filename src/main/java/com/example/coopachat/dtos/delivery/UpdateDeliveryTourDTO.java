@@ -7,7 +7,6 @@ import lombok.Data;
 @Data
 public class UpdateDeliveryTourDTO {
     private DeliveryTourStatus status;
-    private Long zoneId;                // Si changé → change liste chauffeurs
     private String vehicleInfo;         // "Type/Plaque"
     private String notes;               // Commentaires
 }

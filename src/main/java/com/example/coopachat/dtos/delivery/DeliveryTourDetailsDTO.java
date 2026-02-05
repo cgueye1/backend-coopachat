@@ -23,9 +23,6 @@ public class DeliveryTourDetailsDTO {
     private String vehicleType;          // Camionnette
     private String vehiclePlate;         // ABC-123 (optionnel)
 
-    // === ZONE ===
-    private String deliveryZone;         // Dakar Plateau
-
     // === COMMANDES ===
     private Integer orderCount;          // 5
 

@@ -253,11 +253,6 @@ public interface LogisticsManagerService {
    // ============================================================================
 
     /**
-     * Récupère la liste des zones de livraison disponibles
-     */
-    List<ZoneOptionDTO> getAvailableZones();
-
-    /**
      * Récupère la liste des commandes éligibles pour une tournée
      * @param deliveryDate Date de livraison (obligatoire)
      * @param timeSlot Créneau horaire (obligatoire)
@@ -270,10 +265,9 @@ public interface LogisticsManagerService {
      * Récupère la liste des chauffeurs disponibles selon les filtres
      * @param deliveryDate Date de livraison
      * @param timeSlot Créneau horaire
-     * @param deliveryZone Zone de livraison
      * @return Liste des chauffeurs disponibles
      */
-    List<AvailableDriverDTO> getAvailableDrivers(LocalDate deliveryDate, TimeSlot timeSlot, String deliveryZone);
+    List<AvailableDriverDTO> getAvailableDrivers(LocalDate deliveryDate, TimeSlot timeSlot);
 
     /**
      * Crée une nouvelle tournée de livraison

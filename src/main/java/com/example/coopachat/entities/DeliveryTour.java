@@ -42,10 +42,6 @@ public class DeliveryTour {
     @Column(nullable = false)
     private TimeSlot timeSlot;
 
-    @ManyToOne
-    @JoinColumn(name = "delivery_zone_id", nullable = false)
-    private DeliveryZoneReference deliveryZone;
-
     // ==================== ACTEURS ====================
 
     @ManyToOne

@@ -22,9 +22,6 @@ public class CreateDeliveryTourDTO {
     @NotNull(message = "Le créneau horaire est obligatoire")
     private TimeSlot timeSlot;
 
-    @NotNull(message = "La zone de livraison est obligatoire")
-    private Long deliveryZoneId;
-
     @NotNull(message = "Le chauffeur est obligatoire")
     private Long driverId;
 

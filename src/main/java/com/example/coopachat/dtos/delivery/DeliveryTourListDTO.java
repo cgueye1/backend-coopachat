@@ -18,7 +18,6 @@ public class DeliveryTourListDTO {
     private TimeSlot timeSlot;
     private String driverName;
     private String vehicle;//(type/plaque)
-    private String deliveryZone;
     private Integer orderCount;
     private DeliveryTourStatus status;
 

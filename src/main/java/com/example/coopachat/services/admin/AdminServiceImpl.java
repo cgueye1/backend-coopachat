@@ -3,7 +3,6 @@ package com.example.coopachat.services.admin;
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
-import com.example.coopachat.dtos.delivery.CreateZoneDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListItemDTO;
@@ -53,7 +52,6 @@ public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
     private final SupplierRepository supplierRepository;
     private final DeliveryOptionRepository deliveryOptionRepository;
-    private final ZoneReferenceRepository zoneReferenceRepository;
 
     // ============================================================================
     // ============================================================================
@@ -780,39 +778,6 @@ public class AdminServiceImpl implements AdminService {
                         deliveryOption.getIsActive()
                 ))
                 .toList();
-
-    }
-
-    @Override
-    public void createZone(CreateZoneDTO dto) {
-
-        // Récupérer l'utilisateur connecté
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String username = authentication.getName();
-        Users admin = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
-
-        // Vérifier que l'utilisateur connecté est bien un Administrateur
-        if (admin.getRole() != UserRole.ADMINISTRATOR) {
-            throw new RuntimeException("Seul un administrateur peut créer une zone de livraison");
-        }
-        // Vérifier si une zone avec ce nom existe déjà
-        if (zoneReferenceRepository.existsByZoneName(dto.getZoneName())) {
-            throw new RuntimeException("Une zone avec ce nom existe déjà");
-        }
-        DeliveryZoneReference zone = new DeliveryZoneReference();
-        zone.setZoneName(dto.getZoneName());
-        zone.setDescription(dto.getDescription() != null ? dto.getDescription().trim() : null);
-        zone.setActive(true); // Par défaut, active
-        zone.setCreatedBy(admin); // Admin qui crée la zone
-        zoneReferenceRepository.save(zone);
-
-        log.info("Zone de livraison créée avec succès par l'administrateur {}: {})",
-                admin.getEmail(), zone.getZoneName());
 
     }
 

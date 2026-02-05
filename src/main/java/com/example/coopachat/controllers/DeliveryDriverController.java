@@ -1,8 +1,4 @@
 package com.example.coopachat.controllers;
-
-import com.example.coopachat.dtos.DeliveryDriver.DeliveryDriverPreferenceDTO;
-import com.example.coopachat.dtos.DeliveryDriver.DeliveryZoneDTO;
-import com.example.coopachat.dtos.DeliveryDriver.DeliveryZoneResponseDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 import com.example.coopachat.services.DeliveryDriver.DeliveryDriverService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,53 +31,6 @@ public class DeliveryDriverController {
     public ResponseEntity<String> updatePersonalInfo(@RequestBody DriverPersonalInfoDTO dto) {
         deliveryDriverService.updatePersonalInfo(dto);
         return ResponseEntity.ok("Informations personnelles mises à jour avec succès");
-    }
-
-    @Operation(
-            summary = "Récupérer les disponibilités du livreur",
-            description = "Récupère les jours et créneaux  du livreur connecté"
-    )
-    @GetMapping("/availability")
-    public ResponseEntity<DeliveryDriverPreferenceDTO> getAvailabilityPreference() {
-        DeliveryDriverPreferenceDTO availability = deliveryDriverService.getAvailabilityPreference();
-        return ResponseEntity.ok(availability);
-    }
-
-    @Operation(
-            summary = "Sauvegarder ou modifier les disponibilités du livreur",
-            description = "Crée ou met à jour les disponibilités du livreur. " +
-                    "Pour une modification, il faut envoyer TOUS les champs (jours, créneau), " +
-                    "même ceux qui ne changent pas."
-    )
-    @PostMapping("/availability")
-    public ResponseEntity<String> saveAvailabilityPreference(@RequestBody DeliveryDriverPreferenceDTO dto) {
-        deliveryDriverService.saveAvailabilityPreference(dto);
-        return ResponseEntity.ok("Disponibilités sauvegardées avec succès");
-    }
-    // ============================================================================
-    // 🗺️ ZONES DE LIVRAISON
-    // ============================================================================
-
-    @Operation(
-            summary = "Récupérer les zones de livraison du livreur",
-            description = "Retourne les zones configurées pour le livreur avec ID, nom, description et statut. " +
-                    "Si aucune zone, la liste sera vide."
-    )
-    @GetMapping("/zones")
-    public ResponseEntity<DeliveryZoneResponseDTO> getDeliveryZones() {
-        DeliveryZoneResponseDTO zones = deliveryDriverService.getMyZonesWithDetails();
-        return ResponseEntity.ok(zones);
-    }
-
-    @Operation(
-            summary = "Créer les zones de livraison du livreur",
-            description = "Crée une nouvelle configuration de zones de livraison pour le livreur. " +
-                    "Le livreur choisit uniquement les zones qu'il souhaite utiliser. "
-    )
-    @PostMapping("/zones")
-    public ResponseEntity<String> saveDeliveryZones(@RequestBody DeliveryZoneDTO dto) {
-        deliveryDriverService.createZones(dto);
-        return ResponseEntity.ok("Zones de livraison sauvegardées avec succès");
     }
 
 
