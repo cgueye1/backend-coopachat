@@ -412,14 +412,11 @@ public class LogisticsManagerController {
 
     @Operation(
             summary = "Récupérer les chauffeurs disponibles",
-            description = "Retourne la liste des chauffeurs disponibles pour une tournée selon la date et le créneau."
+            description = "Retourne la liste de tous les chauffeurs actifs (éligibles pour une tournée)."
     )
     @GetMapping("/delivery-tours/available-drivers")
-    public ResponseEntity<List<AvailableDriverDTO>> getAvailableDrivers(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deliveryDate,
-            @RequestParam TimeSlot timeSlot) {
-
-        List<AvailableDriverDTO> drivers = logisticsManagerService.getAvailableDrivers(deliveryDate, timeSlot);
+    public ResponseEntity<List<AvailableDriverDTO>> getAvailableDrivers() {
+        List<AvailableDriverDTO> drivers = logisticsManagerService.getAvailableDrivers();
         return ResponseEntity.ok(drivers);
     }
 

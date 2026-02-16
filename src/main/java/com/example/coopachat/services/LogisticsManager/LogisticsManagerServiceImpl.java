@@ -1362,12 +1362,12 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                     if (order.getStatus() != OrderStatus.EN_ATTENTE) {
                         return false;
                     }
-                    // 2. Date correspondante
+                    // 2. Si la date de livraison n'est la même que la date de la commande on prend pas
                     if (!deliveryDate.equals(order.getDeliveryDate())) {
                         return false;
                     }
                     // 3. Créneau (via EmployeeDeliveryPreference la relation one to one)
-                    if (timeSlot != null) {
+                    if (timeSlot != null) {//Si le créneau horaire n'est pas null on vérifie que le créneau horaire de l'employé correspond au créneau horaire de la commande sinon on prend pas
                         if (order.getEmployee() == null ||
                                 order.getEmployee().getEmployeeDeliveryPreference() == null ||
                                 order.getEmployee().getEmployeeDeliveryPreference().getPreferredTimeSlot() == null ||
@@ -1376,7 +1376,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                         }
 
                     }
-                    // 4. Employee actif
+                    // 4. Employee actif (si l'employé n'est pas actif on prend pas)
                     if (order.getEmployee() == null || !order.getEmployee().getUser().getIsActive()) {
                         return false;
                     }
@@ -1387,21 +1387,50 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                     return order.getDeliveryTour() == null;
 
                 }).map(order -> {
-                    // Construire le nom complet du client
                     String customerName = order.getEmployee().getUser().getFirstName() + " " +
                             order.getEmployee().getUser().getLastName();
-
-                    // Créer le DTO avec les 2 informations nécessaires
+                    String zone = buildZoneFromDeliveryAddress(order.getEmployee());
                     return new EligibleOrderDTO(
-                            order.getOrderNumber(),  // Numéro pour l'affichage frontend
-                            customerName             // Nom du client pour l'identification))
+                            order.getOrderNumber(),
+                            customerName,
+                            zone
                     );
                 }).toList();
 
     }
 
+    /**
+     * Construit la zone (ville + quartier) à partir de l'adresse principale de l'employé.
+     * Utilisé pour afficher la zone de chaque commande éligible dans la liste du RL.
+     *
+     * @param employee l'employé dont on veut la zone de livraison
+     * @return "ville, quartier" si les deux sont renseignés, sinon la ville ou le quartier seul, ou null
+     */
+    private String buildZoneFromDeliveryAddress(Employee employee) {
+        // Pas d'adresse → pas de zone
+        if (employee == null || employee.getAddresses() == null || employee.getAddresses().isEmpty()) {
+            return null;
+        }
+        // On ne prend que l'adresse marquée comme principale
+        Address addr = employee.getAddresses().stream()
+                .filter(Address::isPrimary)
+                .findFirst()
+                .orElse(null);
+        if (addr == null) return null;
+
+        String city = addr.getCity();
+        String district = addr.getDistrict();
+        // Ville et quartier → "Dakar, Mermoz"
+        if (city != null && !city.isBlank() && district != null && !district.isBlank()) {
+            return city + ", " + district;
+        }
+        if (city != null && !city.isBlank()) return city;
+        if (district != null && !district.isBlank()) return district;
+        return null;
+    }
+
     @Override
-    public List<AvailableDriverDTO> getAvailableDrivers(LocalDate deliveryDate, TimeSlot timeSlot) {
+    public List<AvailableDriverDTO> getAvailableDrivers() {
 
         // 1. VÉRIFICATION DES DROITS
         Users user = getCurrentUser();
@@ -1409,42 +1438,14 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             throw new RuntimeException("Seul un responsable logistique peut consulter les chauffeurs disponibles");
         }
 
-        // 2. VALIDATION DES PARAMÈTRES
-        if (timeSlot == null) {
-            throw new RuntimeException("Le créneau horaire est obligatoire");
-        }
-        if (deliveryDate == null) {
-            throw new RuntimeException("La date de livraison est obligatoire");
-        }
-
-        return deliveryDriverRepository.findAll().stream().filter(
-                driver -> {
-
-                    // A. Driver actif
-                    if (driver.getUser() == null || !driver.getUser().getIsActive()) {
-                        return false;
-                    }
-
-                    // B. Disponibilité (timeSlot)
-                    // Récupérer le jour de la semaine de la date fournie
-                    String dayOfWeek = deliveryDate.getDayOfWeek().name();
-
-                    if (driver.getAvailability() == null){
-                        return false;// Pas de disponibilité configurée
-                    }
-                    boolean isAvailable = driver.getAvailability().getAvailableDays().contains(dayOfWeek) &&
-                            driver.getAvailability().getPreferredTimeSlot().cover(timeSlot);
-
-                    return isAvailable;
+        // 2. Tous les livreurs actifs sont éligibles
+        return deliveryDriverRepository.findAll().stream()
+                .filter(driver -> driver.getUser() != null && driver.getUser().getIsActive())
+                .map(driver -> {
+                    String fullName = driver.getUser().getFirstName() + " " + driver.getUser().getLastName();
+                    return new AvailableDriverDTO(fullName);
                 })
-                //transforme chaque driver filtré en AvailableDriverDTO.
-                .map(
-                        driver -> {
-                            String fullName = driver.getUser().getFirstName() + " " +
-                                    driver.getUser().getLastName();
-                            return new AvailableDriverDTO(fullName);}).toList();
-
-
+                .toList();
     }
 
     @Override

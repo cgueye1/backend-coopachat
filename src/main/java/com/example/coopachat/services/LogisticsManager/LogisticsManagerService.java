@@ -262,12 +262,10 @@ public interface LogisticsManagerService {
 
 
     /**
-     * Récupère la liste des chauffeurs disponibles selon les filtres
-     * @param deliveryDate Date de livraison
-     * @param timeSlot Créneau horaire
+     * Récupère la liste de tous les chauffeurs actifs (éligibles pour une tournée).
      * @return Liste des chauffeurs disponibles
      */
-    List<AvailableDriverDTO> getAvailableDrivers(LocalDate deliveryDate, TimeSlot timeSlot);
+    List<AvailableDriverDTO> getAvailableDrivers();
 
     /**
      * Crée une nouvelle tournée de livraison
