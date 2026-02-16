@@ -1,10 +1,17 @@
 package com.example.coopachat.controllers;
+
+import com.example.coopachat.dtos.DeliveryDriver.DriverDeliveryListItemDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
+import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.services.DeliveryDriver.DeliveryDriverService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
 
 
 /**
@@ -38,5 +45,16 @@ public class DeliveryDriverController {
         return ResponseEntity.ok("Informations personnelles mises à jour avec succès");
     }
 
-
+    @Operation(
+            summary = "Mes livraisons",
+            description = "Liste des livraisons du livreur connecté (commandes de ses tournées). Filtres optionnels : date, statut, recherche par numéro ou nom client."
+    )
+    @GetMapping("/deliveries")
+    public ResponseEntity<List<DriverDeliveryListItemDTO>> getMyDeliveries(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deliveryDate,
+            @RequestParam(required = false) OrderStatus status,
+            @RequestParam(required = false) String search) {
+        List<DriverDeliveryListItemDTO> list = deliveryDriverService.getMyDeliveries(deliveryDate, status, search);
+        return ResponseEntity.ok(list);
+    }
 }

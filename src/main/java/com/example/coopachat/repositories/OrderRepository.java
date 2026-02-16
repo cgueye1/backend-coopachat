@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.util.List;
+
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
     /**
@@ -33,4 +36,26 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("search") String search,
             @Param("status") OrderStatus status,
             Pageable pageable);
+
+    /**
+     * Commandes du livreur (orders dans ses tournées), avec filtres optionnels.
+     * - driverId : obligatoire (livreur connecté)
+     * - deliveryDate : optionnel (ex. aujourd'hui)
+     * - status : optionnel (À livrer / En cours / Livrée)
+     * - search : optionnel (numéro de commande ou nom du client)
+     * ordonne d'abord par date de livraison, puis id de la tournée, puis id de la commande du plus ancien au plus récent
+     */
+    @Query("SELECT o FROM Order o " +
+            "WHERE o.deliveryTour IS NOT NULL AND o.deliveryTour.driver.id = :driverId " +
+            "AND (:deliveryDate IS NULL OR o.deliveryDate = :deliveryDate) " +
+            "AND (:status IS NULL OR o.status = :status) " +
+            "AND (:search IS NULL OR :search = '' OR " +
+            "      LOWER(o.orderNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "      LOWER(CONCAT(o.employee.user.firstName, ' ', o.employee.user.lastName)) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "ORDER BY o.deliveryDate ASC, o.deliveryTour.id ASC, o.id ASC")
+    List<Order> findDriverDeliveries(
+            @Param("driverId") Long driverId,
+            @Param("deliveryDate") LocalDate deliveryDate,
+            @Param("status") OrderStatus status,
+            @Param("search") String search);
 }
