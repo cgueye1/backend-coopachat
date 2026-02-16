@@ -10,6 +10,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Implémentation du service de gestion des actions du Livreur
+ */
 
 @Service
 @RequiredArgsConstructor

@@ -9,9 +9,13 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-//Adresse de livraison du salarié
+/**
+ * Adresse de livraison du salarié.
+ * Peut contenir des coordonnées GPS (géocodage type Yango/Google).
+ */
 @Entity
 @Data
 @NoArgsConstructor
@@ -24,15 +28,26 @@ public class Address {
 
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
-    private Employee employee; // le salarié concerné
+    private Employee employee;
 
     @Enumerated(EnumType.STRING)
     private DeliveryMode deliveryMode; // "Domicile", "Bureau", "Autre"
-    private String city; //ville
-    private String district; // quartier
-    private String street; // rue
-    private boolean isPrimary;// utiliser ou pas comme adresse principale
+    private String city;
+    private String district;
+    private String street;
+    private boolean isPrimary;
 
+    /** Adresse formatée complète (ex. retour autocomplete Google) */
+    @Column(length = 500)
+    private String formattedAddress;
+
+    /** Latitude (géocodage) */
+    @Column(precision = 10, scale = 8)
+    private BigDecimal latitude;
+
+    /** Longitude (géocodage) */
+    @Column(precision = 11, scale = 8)
+    private BigDecimal longitude;
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @CreationTimestamp

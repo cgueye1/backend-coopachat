@@ -4,7 +4,6 @@ import com.example.coopachat.dtos.companies.*;
 import com.example.coopachat.dtos.coupons.CouponDetailsDTO;
 import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
 import com.example.coopachat.dtos.coupons.CreateCouponDTO;
-import com.example.coopachat.dtos.coupons.UpdateCouponDTO;
 import com.example.coopachat.dtos.coupons.UpdateCouponStatusDTO;
 import com.example.coopachat.dtos.employees.*;
 import com.example.coopachat.enums.CompanySector;
@@ -140,15 +139,7 @@ public interface CommercialService {
     void addCoupon(CreateCouponDTO createCouponDTO);
 
     /**
-     * Modifie un coupon (champs non nuls uniquement).
-     *
-     * @param id L'identifiant du coupon
-     * @param updateCouponDTO Champs à modifier
-     */
-    void updateCoupon(Long id, UpdateCouponDTO updateCouponDTO);
-
-    /**
-     * Active ou desactive un coupon.
+     * Active ou désactive un coupon.
      *
      * @param id L'identifiant du coupon
      * @param updateCouponStatusDTO Nouveau statut d'activation

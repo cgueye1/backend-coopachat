@@ -62,6 +62,10 @@ public class LogisticsManagerController {
                 .body("Livreur créé avec succès. Un email d'invitation a été envoyé.");
     }
 
+    // ============================================================================
+    // 📦 GESTION DES  FOURNISSEURS
+    // ============================================================================
+
     @Operation(
             summary = "Lister les fournisseurs",
             description = "Récupère la liste complète des fournisseurs actifs (id + nom)."
@@ -71,11 +75,6 @@ public class LogisticsManagerController {
         List<SupplierListItemDTO> suppliers = logisticsManagerService.getAllSuppliers();
         return ResponseEntity.ok(suppliers);
     }
-
-    // ============================================================================
-    // 📦 GESTION DES COMMANDES FOURNISSEURS
-    // ============================================================================
-
     @Operation(
             summary = "Créer une nouvelle commande fournisseur",
             description = "Permet à un Responsable Logistique de créer une nouvelle commande fournisseur. " +
@@ -146,6 +145,49 @@ public class LogisticsManagerController {
         SupplierOrderListResponseDTO response = logisticsManagerService.getAllSupplierOrders( page, size, search, supplierId, status);
         return ResponseEntity.ok(response);
     }
+    @Operation(
+            summary = "Modifier le statut d'une commande fournisseur",
+            description = "Permet de modifier le statut d'une commande fournisseur (ex: En attente, En cours, Livrée, Annulée)."
+    )
+    @PatchMapping("/suppliers-orders/{id}/status")
+    public ResponseEntity <String> updateSupplierOrderStatus (@PathVariable Long id, @RequestBody @Valid UpdateSupplierOrderStatusDTO updateSupplierOrderStatusDTO){
+        logisticsManagerService.updateSupplierOrderStatus(id, updateSupplierOrderStatusDTO);
+        return  ResponseEntity.ok("Statut de la commande mis à jour avec succès");
+    }
+
+    @Operation(
+            summary = "Statistiques des commandes fournisseurs",
+            description = "Retourne le total des commandes, le nombre en attente, livrées et annulées."
+    )
+    @GetMapping("/supplier-orders/stats")
+    public ResponseEntity<SupplierOrderStatsDTO> getSupplierOrderStats() {
+        SupplierOrderStatsDTO stats = logisticsManagerService.getSupplierOrderStats();
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/supplier-orders/export")
+    public ResponseEntity<Resource> exportSupplierOrders(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long supplierId,
+            @RequestParam(required = false) SupplierOrderStatus status
+    ) {
+        ByteArrayResource resource = logisticsManagerService.exportSupplierOrders(search, supplierId, status);
+
+        // Générer le nom du fichier avec la date et l'heure actuelles
+        String fileName = "Commandes Fournisseurs_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HHmm")) + ".xlsx";
+
+
+        // Retourner le fichier avec les headers appropriés pour le téléchargement
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"");
+        headers.setContentType(MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(resource);
+
+    }
+
 
     // ============================================================================
     // 📦 SUIVI DES STOCKS
@@ -301,50 +343,6 @@ public class LogisticsManagerController {
                 .body(resource);
     }
 
-    @Operation(
-            summary = "Modifier le statut d'une commande fournisseur",
-            description = "Permet de modifier le statut d'une commande fournisseur (ex: En attente, En cours, Livrée, Annulée)."
-    )
-    @PatchMapping("/suppliers-orders/{id}/status")
-    public ResponseEntity <String> updateSupplierOrderStatus (@PathVariable Long id, @RequestBody @Valid UpdateSupplierOrderStatusDTO updateSupplierOrderStatusDTO){
-        logisticsManagerService.updateSupplierOrderStatus(id, updateSupplierOrderStatusDTO);
-        return  ResponseEntity.ok("Statut de la commande mis à jour avec succès");
-    }
-
-    @Operation(
-            summary = "Statistiques des commandes fournisseurs",
-            description = "Retourne le total des commandes, le nombre en attente, livrées et annulées."
-    )
-    @GetMapping("/supplier-orders/stats")
-    public ResponseEntity<SupplierOrderStatsDTO> getSupplierOrderStats() {
-        SupplierOrderStatsDTO stats = logisticsManagerService.getSupplierOrderStats();
-        return ResponseEntity.ok(stats);
-    }
-    // ============================================================================
-    // 📤 EXPORT DES COMMANDES FOURNISSEURS
-    // ============================================================================
-    @GetMapping("/supplier-orders/export")
-    public ResponseEntity<Resource> exportSupplierOrders(
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) Long supplierId,
-            @RequestParam(required = false) SupplierOrderStatus status
-    ) {
-        ByteArrayResource resource = logisticsManagerService.exportSupplierOrders(search, supplierId, status);
-
-        // Générer le nom du fichier avec la date et l'heure actuelles
-        String fileName = "Commandes Fournisseurs_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HHmm")) + ".xlsx";
-
-
-        // Retourner le fichier avec les headers appropriés pour le téléchargement
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"");
-        headers.setContentType(MediaType.parseMediaType(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-        return ResponseEntity.ok()
-                .headers(headers)
-                .body(resource);
-
-        }
 
     // ============================================================================
     // 📦 GESTION DES COMMANDES SALARIÉS
@@ -477,21 +475,8 @@ public class LogisticsManagerController {
     }
 
     @Operation(
-            summary = "Proposer une tournée",
-            description = "Propose une tournée planifiée à un livreur (statut: PLANIFIEE → PROPOSEE) "
-                    + "après vérification chauffeur assigné et commandes existantes."
-    )
-    @PostMapping("/delivery-tours/{tourId}/ propose")
-    public ResponseEntity<String> proposeDeliveryTour(@PathVariable Long tourId) {
-
-        logisticsManagerService. proposeDeliveryTour(tourId);
-
-        return ResponseEntity.ok("Tournée proposée avec succès");
-    }
-
-    @Operation(
             summary = "Annuler une tournée",
-            description = "Annule une tournée planifiée ou proposée (statut: PLANIFIEE/PROPOSEE → ANNULEE) "
+            description = "Annule une tournée planifiée ou assignée (statut: PLANIFIEE/ASSIGNEE → ANNULEE) "
                     + "avec motif obligatoire."
     )
     @PostMapping("/delivery-tours/{tourId}/cancel")

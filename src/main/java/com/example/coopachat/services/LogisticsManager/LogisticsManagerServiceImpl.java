@@ -213,9 +213,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         return orderNumber;
     }
 
-    // ============================================================================
-    // 🔄 MODIFICATION D'UNE COMMANDE FOURNISSEUR
-    // ============================================================================
     @Override
     @Transactional
     public void updateSupplierOrder(Long id, UpdateSupplierOrderDTO updateSupplierOrderDTO) {
@@ -288,9 +285,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 supplierOrder.getOrderNumber(), user.getEmail());
     }
 
-    // ============================================================================
-    // 👁️ CONSULTATION DES DÉTAILS D'UNE COMMANDE FOURNISSEUR
-    // ============================================================================
     @Transactional
     @Override
     public SupplierOrderDetailsDTO getSupplierOrderById(Long id) {
@@ -317,49 +311,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // Mapper la commande vers le DTO
         return mapToSupplierOrderDetailsDTO(supplierOrder);
     }
-
-    /**
-     * Mappe une entité SupplierOrder vers un DTO SupplierOrderDetailsDTO
-     *
-     * @param supplierOrder L'entité SupplierOrder à mapper
-     * @return SupplierOrderDetailsDTO contenant toutes les informations de la commande
-     */
-    private SupplierOrderDetailsDTO mapToSupplierOrderDetailsDTO(SupplierOrder supplierOrder) {
-        SupplierOrderDetailsDTO dto = new SupplierOrderDetailsDTO();
-        dto.setId(supplierOrder.getId());
-        dto.setOrderNumber(supplierOrder.getOrderNumber());
-        dto.setSupplierName(supplierOrder.getSupplier().getName());
-        dto.setExpectedDate(supplierOrder.getExpectedDate());
-        dto.setStatus(supplierOrder.getStatus().getLabel()); // Récupérer le label de l'enum
-        dto.setNotes(supplierOrder.getNotes());
-
-        // Mapper les items (produits) de la commande
-        dto.setItems(supplierOrder.getItems().stream()
-                .map(this::mapToSupplierOrderItemDetailsDTO)
-                .toList());
-
-        return dto;
-    }
-
-    /**
-     * Mappe une entité SupplierOrderItem vers un DTO SupplierOrderItemDetailsDTO
-     *
-     * @param item L'entité SupplierOrderItem à mapper
-     * @return SupplierOrderItemDetailsDTO contenant les informations du produit
-     */
-    private SupplierOrderItemDetailsDTO mapToSupplierOrderItemDetailsDTO(SupplierOrderItem item) {
-        SupplierOrderItemDetailsDTO dto = new SupplierOrderItemDetailsDTO();
-        dto.setProductId(item.getProduct().getId());
-        dto.setProductName(item.getProduct().getName());
-        dto.setProductCategory(item.getProduct().getCategory().getName());
-        dto.setProductImage(item.getProduct().getImage());
-        dto.setQuantite(item.getQuantity());
-        return dto;
-    }
-
-    // ============================================================================
-    // 📋 LISTE PAGINÉE DES COMMANDES FOURNISSEURS
-    // ============================================================================
 
     @Override
     @Transactional
@@ -438,44 +389,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         return response;
     }
 
-    /**
-     * Mappe une entité SupplierOrder vers un DTO SupplierOrderListItemDTO
-     *
-     * @param supplierOrder L'entité SupplierOrder à mapper
-     * @return SupplierOrderListItemDTO contenant les informations de la commande pour la liste
-     */
-    private SupplierOrderListItemDTO mapToSupplierOrderListItemDTO(SupplierOrder supplierOrder) {
-        SupplierOrderListItemDTO dto = new SupplierOrderListItemDTO();
-        dto.setId(supplierOrder.getId());
-        dto.setOrderNumber(supplierOrder.getOrderNumber());
-        dto.setSupplierName(supplierOrder.getSupplier().getName());
-        dto.setExpectedDate(supplierOrder.getExpectedDate());
-        dto.setStatus(supplierOrder.getStatus().getLabel()); // Récupérer le label de l'enum
-        dto.setProductsSummary(buildProductsSummary(supplierOrder.getItems())); // Construire le résumé des produits
-        return dto;
-    }
-
-
-    /**
-     * Construit le résumé des produits d'une commande (ex: "Riz (100), Huile (50)")
-     *
-     * @param items La liste des items (produits) de la commande
-     * @return String contenant le résumé formaté des produits avec leurs quantités
-     */
-    private String buildProductsSummary(List<SupplierOrderItem> items) {
-        if (items == null || items.isEmpty()) {
-            return "";
-        }
-        //on va parcourir la liste des items et on va construire une chaîne de caractères avec le nom du produit et sa quantité et on va joindre les chaînes de caractères avec une virgule
-        return items.stream()
-                .map(item -> item.getProduct().getName() + " (" + item.getQuantity() + ")")
-                .collect(java.util.stream.Collectors.joining(", "));
-    }
-
-
-    // ============================================================================
-    // 🔄 MODIFICATION DU STATUT D'UNE COMMANDE FOURNISSEUR
-    // ============================================================================
     @Override
     @Transactional
     public void updateSupplierOrderStatus(Long id, UpdateSupplierOrderStatusDTO updateSupplierOrderStatusDTO) {
@@ -510,9 +423,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 supplierOrder.getOrderNumber(), oldStatus, updateSupplierOrderStatusDTO.getStatus(), user.getEmail());
     }
 
-    // ============================================================================
-    // 📊 STATISTIQUES DES COMMANDES FOURNISSEURS
-    // ============================================================================
     @Override
     @Transactional
     public SupplierOrderStatsDTO getSupplierOrderStats() {
@@ -541,9 +451,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         return new SupplierOrderStatsDTO(total, pending, delivered, cancelled);
     }
 
-    // ============================================================================
-    // 📤 EXPORT DES COMMANDES FOURNISSEURS EN EXCEL
-    // ============================================================================
     @Override
     public ByteArrayResource exportSupplierOrders(String search, Long supplierId, SupplierOrderStatus status) {
 
@@ -989,25 +896,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 productPage.getSize(),
                 productPage.hasNext(),
                 productPage.hasPrevious()
-        );
-    }
-
-    /**
-     * Mappe un produit vers ProductStockListItemDTO pour la liste d'alertes
-     */
-    private ProductStockListItemDTO mapToProductStockAlertDTO(Product product) {
-        Integer currentStock = product.getCurrentStock() != null ? product.getCurrentStock() : 0;
-        Integer minThreshold = product.getMinThreshold() != null ? product.getMinThreshold() : 0;
-
-        return new ProductStockListItemDTO(
-                product.getId(),
-                product.getName(),
-                product.getProductCode(),
-                product.getCategory() != null ? product.getCategory().getName() : null,
-                product.getImage(),
-                currentStock,
-                minThreshold,
-                EtatStock.SOUS_SEUIL
         );
     }
 
@@ -1697,9 +1585,9 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         DeliveryTour deliveryTour = deliveryTourRepository.findById(tourId)
                 .orElseThrow(() -> new EntityNotFoundException("Tournée non trouvée"));
 
-        // 3. Vérification statut = PLANIFIEE
-        if (deliveryTour.getStatus() != DeliveryTourStatus.PLANIFIEE) {
-            throw new IllegalStateException("Modification impossible : tournée déjà confirmée");
+        // 3. Vérification statut modifiable (PLANIFIEE ou ASSIGNEE)
+        if (!deliveryTour.canBeModified()) {
+            throw new IllegalStateException("Modification impossible : tournée déjà en cours ou terminée");
         }
 
         // 4. Mise à jour véhicule
@@ -1724,52 +1612,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
     @Override
     @Transactional
-    public void  proposeDeliveryTour(Long tourId) {
-
-        // 1. VÉRIFICATION DES DROITS
-        Users currentUser = getCurrentUser();
-        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
-            throw new RuntimeException("Seul un responsable logistique peut proposer une tournée");
-        }
-        // 2. RÉCUPÉRATION TOURNÉE
-        DeliveryTour tour = deliveryTourRepository.findById(tourId)
-                .orElseThrow(() -> new EntityNotFoundException("Tournée non trouvée"));
-
-        // 3. VÉRIFICATION STATUT = PLANIFIEE
-        if (tour.getStatus() != DeliveryTourStatus.PLANIFIEE) {
-            throw new IllegalStateException(
-                    String.format("Impossible de proposer : tournée en statut %s. Seule une tournée PLANIFIEE peut être proposée à un livreur .",
-                            tour.getStatus())
-            );
-        }
-        // 4. VÉRIFICATION CHAUFFEUR ASSIGNÉ
-        if (tour.getDriver() == null) {
-            throw new ValidationException("Impossible de proposer cette tournée  : aucun chauffeur assigné à la tournée");
-        }
-
-        // 5. VÉRIFICATION COMMANDES EXISTENT
-        if (tour.getOrders() == null || tour.getOrders().isEmpty()) {
-            throw new ValidationException("Impossible de proposer la tournée : aucune commande dans la tournée");
-        }
-        // 6. CONFIRMATION
-        tour.setStatus(DeliveryTourStatus.PROPOSEE);
-        tour.setConfirmedAt(LocalDateTime.now());
-        tour.setConfirmedBy(currentUser);
-
-        String driverUserEmail = tour.getDriver().getUser().getEmail();
-        String driverUserName =  tour.getDriver().getUser().getFirstName()+ " "+tour.getDriver().getUser().getLastName();
-
-        //7. Notifier le livreur
-        emailService.sendTourProposalToDriver(driverUserEmail, tour.getTourNumber(), tour.getDeliveryDate(),tour.getTimeSlot().getDisplayName(),driverUserName);
-
-        // 8. SAUVEGARDE
-        deliveryTourRepository.save(tour);
-        log.info("Tournée {} proposée par {}", tourId, currentUser.getEmail());
-
-    }
-
-    @Override
-    @Transactional
     public void cancelDeliveryTour(Long tourId, CancelDeliveryTourDTO dto) {
 
         // 1. VÉRIFICATION DES DROITS
@@ -1784,9 +1626,9 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
         // Vérifier statut annulable
         if (tour.getStatus() != DeliveryTourStatus.PLANIFIEE &&
-                tour.getStatus() != DeliveryTourStatus.PROPOSEE) {
+                tour.getStatus() != DeliveryTourStatus.ASSIGNEE) {
             throw new IllegalStateException(
-                    "Seules les tournées PLANIFIEE ou PROPOSEE peuvent être annulées"
+                    "Seules les tournées PLANIFIEE ou ASSIGNEE peuvent être annulées"
             );
         }
 
@@ -1799,13 +1641,12 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         tour.setCancelledBy(currentUser);
         tour.setCancellationReason(dto.getReason());
 
-        String driverUserEmail = tour.getDriver().getUser().getEmail();
-        String driverUserName =  tour.getDriver().getUser().getFirstName()+ " "+tour.getDriver().getUser().getLastName();
+        String driverUserEmail = tour.getDriver() != null ? tour.getDriver().getUser().getEmail() : null;
+        String driverUserName = tour.getDriver() != null ? tour.getDriver().getUser().getFirstName() + " " + tour.getDriver().getUser().getLastName() : null;
 
-        // Notifier si Proposée à un livreur
-        if (oldStatus == DeliveryTourStatus.PROPOSEE && tour.getDriver() != null) {
-            emailService.sendTourCancellationToDriver(driverUserEmail, tour.getTourNumber(), tour.getCancellationReason(),driverUserName);
-
+        // Notifier le livreur si la tournée était assignée
+        if (oldStatus == DeliveryTourStatus.ASSIGNEE && driverUserEmail != null) {
+            emailService.sendTourCancellationToDriver(driverUserEmail, tour.getTourNumber(), tour.getCancellationReason(), driverUserName);
         }
         deliveryTourRepository.save(tour);
         log.info("Tournée {} annulée par {}", tourId, currentUser.getEmail());
@@ -1922,6 +1763,36 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         }
     }
 
+
+    @Override
+    public DeliveryTourStatsDTO getDeliveryTourStats() {
+
+        // 1. VÉRIFICATION DES DROITS
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter les statistiques des tournées");
+        }
+
+        // 2. COMPTAGE PAR STATUT
+        long planned = deliveryTourRepository.countByStatus(DeliveryTourStatus.PLANIFIEE);
+        long assigned = deliveryTourRepository.countByStatus(DeliveryTourStatus.ASSIGNEE);
+        long inProgress = deliveryTourRepository.countByStatus(DeliveryTourStatus.EN_COURS);
+        long completed = deliveryTourRepository.countByStatus(DeliveryTourStatus.TERMINEE);
+        long cancelled = deliveryTourRepository.countByStatus(DeliveryTourStatus.ANNULEE);
+
+        // 3. RETOUR DU DTO
+        return new DeliveryTourStatsDTO(
+                planned,
+                assigned,
+                inProgress,
+                completed,
+                cancelled
+        );
+    }
+
+    // ============================================================================
+    // Méthodes utilitaires
+    // ============================================================================
     private DeliveryTourListDTO mapToDeliveryTourListDTO(DeliveryTour deliveryTour) {
         DeliveryTourListDTO dto = new DeliveryTourListDTO();
 
@@ -1938,11 +1809,11 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         }
 
         // 3. Véhicule (format: "Type /Plaque)")
-       if (deliveryTour.getVehicleTypePlate() != null){
+        if (deliveryTour.getVehicleTypePlate() != null){
             dto.setVehicle(deliveryTour.getVehicleTypePlate());
         }else {
-           dto.setVehicle("Non spécifié");
-       }
+            dto.setVehicle("Non spécifié");
+        }
 
         // 4. Nombre de commandes
         dto.setOrderCount(deliveryTour.getOrders() != null ?
@@ -1954,33 +1825,96 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         return dto;
     }
 
-    @Override
-    public DeliveryTourStatsDTO getDeliveryTourStats() {
+    /**
+     * Mappe un produit vers ProductStockListItemDTO pour la liste d'alertes
+     */
+    private ProductStockListItemDTO mapToProductStockAlertDTO(Product product) {
+        Integer currentStock = product.getCurrentStock() != null ? product.getCurrentStock() : 0;
+        Integer minThreshold = product.getMinThreshold() != null ? product.getMinThreshold() : 0;
 
-        // 1. VÉRIFICATION DES DROITS
-        Users currentUser = getCurrentUser();
-        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
-            throw new RuntimeException("Seul un responsable logistique peut consulter les statistiques des tournées");
-        }
-
-        // 2. COMPTAGE PAR STATUT
-        long planned = deliveryTourRepository.countByStatus(DeliveryTourStatus.PLANIFIEE);
-        long proposed = deliveryTourRepository.countByStatus(DeliveryTourStatus.PROPOSEE);
-        long confirmed = deliveryTourRepository.countByStatus(DeliveryTourStatus.CONFIRMEE);
-        long completed = deliveryTourRepository.countByStatus(DeliveryTourStatus.TERMINEE);
-        long cancelled = deliveryTourRepository.countByStatus(DeliveryTourStatus.ANNULEE);
-
-
-        // 3. RETOUR DU DTO
-        return new DeliveryTourStatsDTO(
-                planned,
-                proposed,
-                confirmed,
-                completed,
-                cancelled
+        return new ProductStockListItemDTO(
+                product.getId(),
+                product.getName(),
+                product.getProductCode(),
+                product.getCategory() != null ? product.getCategory().getName() : null,
+                product.getImage(),
+                currentStock,
+                minThreshold,
+                EtatStock.SOUS_SEUIL
         );
     }
+    /**
+     * Mappe une entité SupplierOrder vers un DTO SupplierOrderDetailsDTO
+     *
+     * @param supplierOrder L'entité SupplierOrder à mapper
+     * @return SupplierOrderDetailsDTO contenant toutes les informations de la commande
+     */
+    private SupplierOrderDetailsDTO mapToSupplierOrderDetailsDTO(SupplierOrder supplierOrder) {
+        SupplierOrderDetailsDTO dto = new SupplierOrderDetailsDTO();
+        dto.setId(supplierOrder.getId());
+        dto.setOrderNumber(supplierOrder.getOrderNumber());
+        dto.setSupplierName(supplierOrder.getSupplier().getName());
+        dto.setExpectedDate(supplierOrder.getExpectedDate());
+        dto.setStatus(supplierOrder.getStatus().getLabel()); // Récupérer le label de l'enum
+        dto.setNotes(supplierOrder.getNotes());
 
+        // Mapper les items (produits) de la commande
+        dto.setItems(supplierOrder.getItems().stream()
+                .map(this::mapToSupplierOrderItemDetailsDTO)
+                .toList());
+
+        return dto;
+    }
+
+    /**
+     * Mappe une entité SupplierOrderItem vers un DTO SupplierOrderItemDetailsDTO
+     *
+     * @param item L'entité SupplierOrderItem à mapper
+     * @return SupplierOrderItemDetailsDTO contenant les informations du produit
+     */
+    private SupplierOrderItemDetailsDTO mapToSupplierOrderItemDetailsDTO(SupplierOrderItem item) {
+        SupplierOrderItemDetailsDTO dto = new SupplierOrderItemDetailsDTO();
+        dto.setProductId(item.getProduct().getId());
+        dto.setProductName(item.getProduct().getName());
+        dto.setProductCategory(item.getProduct().getCategory().getName());
+        dto.setProductImage(item.getProduct().getImage());
+        dto.setQuantite(item.getQuantity());
+        return dto;
+    }
+
+    /**
+     * Mappe une entité SupplierOrder vers un DTO SupplierOrderListItemDTO
+     *
+     * @param supplierOrder L'entité SupplierOrder à mapper
+     * @return SupplierOrderListItemDTO contenant les informations de la commande pour la liste
+     */
+    private SupplierOrderListItemDTO mapToSupplierOrderListItemDTO(SupplierOrder supplierOrder) {
+        SupplierOrderListItemDTO dto = new SupplierOrderListItemDTO();
+        dto.setId(supplierOrder.getId());
+        dto.setOrderNumber(supplierOrder.getOrderNumber());
+        dto.setSupplierName(supplierOrder.getSupplier().getName());
+        dto.setExpectedDate(supplierOrder.getExpectedDate());
+        dto.setStatus(supplierOrder.getStatus().getLabel()); // Récupérer le label de l'enum
+        dto.setProductsSummary(buildProductsSummary(supplierOrder.getItems())); // Construire le résumé des produits
+        return dto;
+    }
+
+
+    /**
+     * Construit le résumé des produits d'une commande (ex: "Riz (100), Huile (50)")
+     *
+     * @param items La liste des items (produits) de la commande
+     * @return String contenant le résumé formaté des produits avec leurs quantités
+     */
+    private String buildProductsSummary(List<SupplierOrderItem> items) {
+        if (items == null || items.isEmpty()) {
+            return "";
+        }
+        //on va parcourir la liste des items et on va construire une chaîne de caractères avec le nom du produit et sa quantité et on va joindre les chaînes de caractères avec une virgule
+        return items.stream()
+                .map(item -> item.getProduct().getName() + " (" + item.getQuantity() + ")")
+                .collect(java.util.stream.Collectors.joining(", "));
+    }
 
 
     /**

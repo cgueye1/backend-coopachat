@@ -115,14 +115,10 @@ public class DeliveryTour {
 
     public boolean canBeModified() {
         return status == DeliveryTourStatus.PLANIFIEE ||
-                status == DeliveryTourStatus.PROPOSEE;
-    }
-
-    public boolean canBeConfirmed() {
-        return status == DeliveryTourStatus.PROPOSEE;
+                status == DeliveryTourStatus.ASSIGNEE;
     }
 
     public boolean canBeStarted() {
-        return status == DeliveryTourStatus.CONFIRMEE;
+        return status == DeliveryTourStatus.ASSIGNEE;
     }
 }

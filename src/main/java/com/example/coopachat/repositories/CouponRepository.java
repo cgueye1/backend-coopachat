@@ -27,15 +27,6 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
      */
     boolean existsByName(String name);
 
-    /**
-     * Vérifie si un coupon existe déjà avec ce code (hors coupon courant).
-     */
-    boolean existsByCodeAndIdNot(String code, Long id);
-
-    /**
-     * Vérifie si un coupon existe déjà avec ce nom (hors coupon courant).
-     */
-    boolean existsByNameAndIdNot(String name, Long id);
 
     /**
      * Liste paginée des coupons avec filtres optionnels.

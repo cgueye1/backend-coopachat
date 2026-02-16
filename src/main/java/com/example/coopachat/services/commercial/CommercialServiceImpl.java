@@ -6,7 +6,6 @@ import com.example.coopachat.dtos.coupons.CouponListItemDTO;
 import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
 import com.example.coopachat.dtos.coupons.CouponProductItemDTO;
 import com.example.coopachat.dtos.coupons.CreateCouponDTO;
-import com.example.coopachat.dtos.coupons.UpdateCouponDTO;
 import com.example.coopachat.dtos.coupons.UpdateCouponStatusDTO;
 import com.example.coopachat.dtos.employees.*;
 import com.example.coopachat.entities.Category;
@@ -62,22 +61,7 @@ public class CommercialServiceImpl implements CommercialService {
     @Transactional
     public void createCompany(CreateCompanyDTO createCompanyDTO) {
 
-        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String userEmail = authentication.getName();
-
-        if (userEmail == null) {
-            throw new RuntimeException("Email utilisateur introuvable");
-        }
-
-        // Récupérer le commercial connecté
-        Users commercial = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+        Users commercial = getCurrentUser();
 
         // Vérifier que l'utilisateur est bien un commercial
         if (commercial.getRole() != UserRole.COMMERCIAL) {
@@ -112,22 +96,7 @@ public class CommercialServiceImpl implements CommercialService {
     @Transactional
     public CompanyListResponseDTO getAllCompanies(int page, int size, String search, CompanySector sector, Boolean isActive) {
 
-        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String userEmail = authentication.getName();
-
-        if (userEmail == null) {
-            throw new RuntimeException("Email utilisateur introuvable");
-        }
-
-        // Récupérer le commercial connecté
-        Users commercial = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+        Users commercial = getCurrentUser();
 
         // Vérifier que l'utilisateur est bien un commercial
         if (commercial.getRole() != UserRole.COMMERCIAL) {
@@ -208,22 +177,7 @@ public class CommercialServiceImpl implements CommercialService {
     @Transactional
     public CompanyDetailsDTO getCompanyById(Long id) {
 
-        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String userEmail = authentication.getName();
-
-        if (userEmail == null) {
-            throw new RuntimeException("Email utilisateur introuvable");
-        }
-
-        // Récupérer le commercial connecté
-        Users commercial = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+        Users commercial = getCurrentUser();
 
         // Vérifier que l'utilisateur est bien un commercial
         if (commercial.getRole() != UserRole.COMMERCIAL) {
@@ -252,22 +206,7 @@ public class CommercialServiceImpl implements CommercialService {
     @Transactional
     public void updateCompany(Long id, UpdateCompanyDTO updateCompanyDTO) {
 
-        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String userEmail = authentication.getName();
-
-        if (userEmail == null) {
-            throw new RuntimeException("Email utilisateur introuvable");
-        }
-
-        // Récupérer le commercial connecté
-        Users commercial = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+        Users commercial = getCurrentUser();
 
         // Vérifier que l'utilisateur est bien un commercial
         if (commercial.getRole() != UserRole.COMMERCIAL) {
@@ -320,22 +259,7 @@ public class CommercialServiceImpl implements CommercialService {
     @Transactional
     public void updateCompanyStatus(Long id, UpdateCompanyStatusDTO updateCompanyStatusDTO) {
 
-        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String userEmail = authentication.getName();
-
-        if (userEmail == null) {
-            throw new RuntimeException("Email utilisateur introuvable");
-        }
-
-        // Récupérer le commercial connecté
-        Users commercial = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+        Users commercial = getCurrentUser();
 
         // Vérifier que l'utilisateur est bien un commercial
         if (commercial.getRole() != UserRole.COMMERCIAL) {
@@ -371,22 +295,7 @@ public class CommercialServiceImpl implements CommercialService {
     @Transactional
     public CompanyStatsDTO getCompanyStats() {
 
-        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String userEmail = authentication.getName();
-
-        if (userEmail == null) {
-            throw new RuntimeException("Email utilisateur introuvable");
-        }
-
-        // Récupérer le commercial connecté
-        Users commercial = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+        Users commercial = getCurrentUser();
 
         // Vérifier que l'utilisateur est bien un commercial
         if (commercial.getRole() != UserRole.COMMERCIAL) {
@@ -419,15 +328,7 @@ public class CommercialServiceImpl implements CommercialService {
     @Transactional
     public void createEmployee(CreateEmployeeDTO employee) {
 
-        // Récupérer l'utilisateur connecté
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-        String username = authentication.getName();
-
-        Users commercial = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+        Users commercial = getCurrentUser();
 
         // Vérifier que l'utilisateur est bien un commercial
         if (commercial.getRole() != UserRole.COMMERCIAL) {
@@ -475,22 +376,7 @@ public class CommercialServiceImpl implements CommercialService {
     @Transactional
     public EmployeeListResponseDTO getAllEmployees(int page, int size, String search, Long companyId, Boolean isActive) {
 
-        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String userEmail = authentication.getName();
-
-        if (userEmail == null) {
-            throw new RuntimeException("Email utilisateur introuvable");
-        }
-
-        // Récupérer le commercial connecté
-        Users commercial = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+        Users commercial = getCurrentUser();
 
         // Vérifier que l'utilisateur est bien un commercial
         if (commercial.getRole() != UserRole.COMMERCIAL) {
@@ -581,22 +467,7 @@ public class CommercialServiceImpl implements CommercialService {
     @Transactional
     public EmployeeStatsDTO getEmployeeStats() {
 
-        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String userEmail = authentication.getName();
-
-        if (userEmail == null) {
-            throw new RuntimeException("Email utilisateur introuvable");
-        }
-
-        // Récupérer le commercial connecté
-        Users commercial = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+        Users commercial = getCurrentUser();
 
         // Vérifier que l'utilisateur est bien un commercial
         if (commercial.getRole() != UserRole.COMMERCIAL) {
@@ -624,22 +495,7 @@ public class CommercialServiceImpl implements CommercialService {
     @Transactional
     public EmployeeDetailsDTO getEmployeeById(Long id) {
 
-        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String userEmail = authentication.getName();
-
-        if (userEmail == null) {
-            throw new RuntimeException("Email utilisateur introuvable");
-        }
-
-        // Récupérer le commercial connecté
-        Users commercial = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+        Users commercial = getCurrentUser();
 
         // Vérifier que l'utilisateur est bien un commercial
         if (commercial.getRole() != UserRole.COMMERCIAL) {
@@ -668,22 +524,7 @@ public class CommercialServiceImpl implements CommercialService {
     @Transactional
     public void updateEmployee(Long id, UpdateEmployeeDTO updateEmployeeDTO) {
 
-        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String userEmail = authentication.getName();
-
-        if (userEmail == null) {
-            throw new RuntimeException("Email utilisateur introuvable");
-        }
-
-        // Récupérer le commercial connecté
-        Users commercial = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+        Users commercial = getCurrentUser();
 
         // Vérifier que l'utilisateur est bien un commercial
         if (commercial.getRole() != UserRole.COMMERCIAL) {
@@ -751,22 +592,7 @@ public class CommercialServiceImpl implements CommercialService {
     @Transactional
     public void updateEmployeeStatus(Long id, UpdateEmployeeStatusDTO updateEmployeeStatusDTO) {
 
-        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String userEmail = authentication.getName();
-
-        if (userEmail == null) {
-            throw new RuntimeException("Email utilisateur introuvable");
-        }
-
-        // Récupérer le commercial connecté
-        Users commercial = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+        Users commercial = getCurrentUser();
 
         // Vérifier que l'utilisateur est bien un commercial
         if (commercial.getRole() != UserRole.COMMERCIAL) {
@@ -807,22 +633,7 @@ public class CommercialServiceImpl implements CommercialService {
     @Override
     @Transactional
     public CouponDetailsDTO getCouponById(Long id) {
-        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String userEmail = authentication.getName();
-
-        if (userEmail == null) {
-            throw new RuntimeException("Email utilisateur introuvable");
-        }
-
-        // Récupérer le commercial connecté
-        Users commercial = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+        Users commercial = getCurrentUser();
 
         // Vérifier que l'utilisateur est bien un commercial
         if (commercial.getRole() != UserRole.COMMERCIAL) {
@@ -854,22 +665,7 @@ public class CommercialServiceImpl implements CommercialService {
     public CouponListResponseDTO getAllCoupons(int page, int size, String search,
                                                CouponStatus status, CouponScope scope, Boolean isActive) {
 
-        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String userEmail = authentication.getName();
-
-        if (userEmail == null) {
-            throw new RuntimeException("Email utilisateur introuvable");
-        }
-
-        // Récupérer le commercial connecté
-        Users commercial = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
+        Users commercial = getCurrentUser();
 
         // Vérifier que l'utilisateur est bien un commercial
         if (commercial.getRole() != UserRole.COMMERCIAL) {
@@ -972,136 +768,6 @@ public class CommercialServiceImpl implements CommercialService {
 
     }
 
-    @Override
-    @Transactional
-    public void updateCoupon(Long id, UpdateCouponDTO updateCouponDTO) {
-
-        // Récupérer l'email de l'utilisateur connecté depuis le contexte Spring Security
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String userEmail = authentication.getName();
-
-        if (userEmail == null) {
-            throw new RuntimeException("Email utilisateur introuvable");
-        }
-
-        // Récupérer le commercial connecté
-        Users commercial = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Commercial introuvable"));
-
-        // Vérifier que l'utilisateur est bien un commercial
-        if (commercial.getRole() != UserRole.COMMERCIAL) {
-            throw new RuntimeException("Seuls les commerciaux peuvent modifier les coupons");
-        }
-
-        Coupon coupon = couponRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Coupon introuvable"));
-
-        if (updateCouponDTO.getCode() != null) {
-            String normalizedCode = updateCouponDTO.getCode().trim().toUpperCase();
-            if (couponRepository.existsByCodeAndIdNot(normalizedCode, coupon.getId())) {
-                throw new RuntimeException("Un coupon avec ce code existe déjà");
-            }
-            coupon.setCode(normalizedCode);
-        }
-
-        if (updateCouponDTO.getName() != null) {
-            String normalizedName = updateCouponDTO.getName().trim();
-            if (couponRepository.existsByNameAndIdNot(normalizedName, coupon.getId())) {
-                throw new RuntimeException("Un coupon avec ce nom existe déjà");
-            }
-            coupon.setName(normalizedName);
-        }
-
-        if (updateCouponDTO.getValue() != null) {
-            coupon.setValue(updateCouponDTO.getValue());
-        }
-
-        if (updateCouponDTO.getStartDate() != null) {
-            coupon.setStartDate(updateCouponDTO.getStartDate());
-        }
-
-        if (updateCouponDTO.getEndDate() != null) {
-            coupon.setEndDate(updateCouponDTO.getEndDate());
-        }
-
-        if (coupon.getEndDate().isBefore(coupon.getStartDate())) {
-            throw new RuntimeException("La date de fin doit être après la date de début");
-        }
-
-        if (updateCouponDTO.getIsActive() != null) {
-            coupon.setIsActive(updateCouponDTO.getIsActive());
-        }
-
-        if (updateCouponDTO.getScope() != null) {
-            coupon.setScope(updateCouponDTO.getScope());
-        }
-
-        boolean shouldUpdateAssociations = updateCouponDTO.getScope() != null
-                || updateCouponDTO.getProductIds() != null
-                || updateCouponDTO.getCategoryIds() != null;
-
-        if (shouldUpdateAssociations) {
-            clearCouponAssociations(coupon.getId());
-
-            CouponScope effectiveScope = updateCouponDTO.getScope() != null
-                    ? updateCouponDTO.getScope()
-                    : coupon.getScope();
-
-            if (updateCouponDTO.getProductIds() != null && effectiveScope != CouponScope.PRODUCTS) {
-                throw new RuntimeException("Le scope doit être PRODUCTS pour définir des produits");
-            }
-
-            if (updateCouponDTO.getCategoryIds() != null && effectiveScope != CouponScope.CATEGORIES) {
-                throw new RuntimeException("Le scope doit être CATEGORIES pour définir des catégories");
-            }
-
-            if (effectiveScope == CouponScope.ALL_PRODUCTS) {
-                List<Product> activeProducts = productRepository.findByStatus(true);
-                for (Product p : activeProducts) {
-                    p.setCoupon(coupon);
-                }
-                productRepository.saveAll(activeProducts);
-            }
-
-            if (effectiveScope == CouponScope.PRODUCTS) {
-                if (updateCouponDTO.getProductIds() == null || updateCouponDTO.getProductIds().isEmpty()) {
-                    throw new RuntimeException("Veuillez sélectionner au moins un produit");
-                }
-                List<Product> products = productRepository.findAllById(updateCouponDTO.getProductIds());
-                for (Product p : products) {
-                    if (Boolean.FALSE.equals(p.getStatus())) {
-                        throw new RuntimeException("Produit inactif détecté: " + p.getName());
-                    }
-                    p.setCoupon(coupon);
-                }
-                productRepository.saveAll(products);
-            }
-
-            if (effectiveScope == CouponScope.CATEGORIES) {
-                if (updateCouponDTO.getCategoryIds() == null || updateCouponDTO.getCategoryIds().isEmpty()) {
-                    throw new RuntimeException("Veuillez sélectionner au moins une catégorie");
-                }
-                List<Category> categories = categoryRepository.findAllById(updateCouponDTO.getCategoryIds());
-                for (Category c : categories) {
-                    c.setCoupon(coupon);
-                }
-                categoryRepository.saveAll(categories);
-            }
-        }
-
-        if (updateCouponDTO.getIsActive() != null
-                || updateCouponDTO.getStartDate() != null
-                || updateCouponDTO.getEndDate() != null) {
-            coupon.setStatus(computeStatus(coupon.getStartDate(), coupon.getEndDate(), coupon.getIsActive()));
-        }
-
-        couponRepository.save(coupon);
-    }
 
     @Override
     @Transactional
@@ -1115,30 +781,30 @@ public class CommercialServiceImpl implements CommercialService {
         couponRepository.save(coupon);
     }
 
-    /**
-     * Calcule automatiquement le statut d'un coupon selon les dates et l'activation manuelle.
-     * @param startDate La date de début du coupon
-     * @param endDate La date de fin du coupon
-     * @param isActive La valeur de l'activation manuelle du coupon
-     */
-    private CouponStatus computeStatus(LocalDateTime startDate, LocalDateTime endDate, boolean isActive) {
-        LocalDateTime now = LocalDateTime.now();//Récupère la date et l'heure actuelle
 
-        if (isActive == false) {
-            return CouponStatus.DISABLED;//Si le coupon n'est pas activé, le statut est DISABLED
-        }
-        if (now.isAfter(endDate)) {
-            return CouponStatus.EXPIRED;//Si la date de fin est passée, le statut est EXPIRED
-        }
-        if (now.isBefore(startDate)) {
-            return CouponStatus.PLANNED;//Si la date de début est dans le futur, le statut est PLANNED
-        }
-        return CouponStatus.ACTIVE;//Sinon, le statut est ACTIVE
-    }
 
     // ============================================================================
     // 🔧 MÉTHODES UTILITAIRES
     // ============================================================================
+
+    /**
+     * Récupère l'utilisateur actuellement connecté.
+     *
+     * @return Users l'utilisateur connecté
+     * @throws RuntimeException si aucun utilisateur n'est authentifié
+     */
+    private Users getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String userEmail = authentication.getName();
+        return userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException(
+                        "Utilisateur introuvable avec email: " + userEmail
+                ));
+    }
 
     /**
      * Génère un code unique pour l'entreprise
@@ -1375,22 +1041,24 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     /**
-     * Supprime les associations existantes d'un coupon sur produits et catégories.
-     *
-     * @param couponId Identifiant du coupon
+     * Calcule automatiquement le statut d'un coupon selon les dates et l'activation manuelle.
+     * @param startDate La date de début du coupon
+     * @param endDate La date de fin du coupon
+     * @param isActive La valeur de l'activation manuelle du coupon
      */
-    private void clearCouponAssociations(Long couponId) {
-        List<Product> linkedProducts = productRepository.findByCouponId(couponId);
-        for (Product p : linkedProducts) {
-            p.setCoupon(null);
-        }
-        productRepository.saveAll(linkedProducts);
+    private CouponStatus computeStatus(LocalDateTime startDate, LocalDateTime endDate, boolean isActive) {
+        LocalDateTime now = LocalDateTime.now();//Récupère la date et l'heure actuelle
 
-        List<Category> linkedCategories = categoryRepository.findByCouponId(couponId);
-        for (Category c : linkedCategories) {
-            c.setCoupon(null);
+        if (isActive == false) {
+            return CouponStatus.DISABLED;//Si le coupon n'est pas activé, le statut est DISABLED
         }
-        categoryRepository.saveAll(linkedCategories);
+        if (now.isAfter(endDate)) {
+            return CouponStatus.EXPIRED;//Si la date de fin est passée, le statut est EXPIRED
+        }
+        if (now.isBefore(startDate)) {
+            return CouponStatus.PLANNED;//Si la date de début est dans le futur, le statut est PLANNED
+        }
+        return CouponStatus.ACTIVE;//Sinon, le statut est ACTIVE
     }
 }
 

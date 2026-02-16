@@ -5,6 +5,7 @@ import com.example.coopachat.dtos.cart.CartResponseDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
+import com.example.coopachat.dtos.employees.UpdateAddressFromPlaceDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.order.CreateOrderDTO;
 import com.example.coopachat.dtos.order.OrderResponseDTO;
@@ -14,6 +15,7 @@ import com.example.coopachat.services.Employee.EmployeeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,7 +33,7 @@ public class EmployeeController {
     private final EmployeeService employeeService;
 
     // ============================================================================
-    // 🏠 ACCUEIL
+    // ACCUEIL
     // ============================================================================
 
     @Operation(
@@ -200,6 +202,15 @@ public class EmployeeController {
         return ResponseEntity.ok("Adresse modifiée");
     }
 
+    @Operation(
+            summary = "Créer ou modifier une adresse depuis un lieu (carte/autocomplete)",
+            description = "placeId (ID du lieu) obligatoire. Si addressId(ID de l'adresse) fourni : mise à jour de l'adresse. Sinon : création (deliveryMode obligatoire)."
+    )
+    @PostMapping("/adresses/from-place")
+    public ResponseEntity<String> updateAddressFromPlace(@RequestBody @Valid UpdateAddressFromPlaceDTO dto) {
+        employeeService.updateAddressFromPlace(dto);
+        return ResponseEntity.ok("Adresse enregistrée");
+    }
 
     @Operation(summary = "Mes adresses de livraison ", description = "Liste les différentes adresses du salarié")
     @GetMapping("/adresses")

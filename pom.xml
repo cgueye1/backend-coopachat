@@ -6,7 +6,7 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.5.5</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath/>
 	</parent>
 	<groupId>com.example.rml</groupId>
 	<artifactId>back-office-rml</artifactId>
@@ -138,7 +138,7 @@
 			<version>5.2.5</version>
 		</dependency>
 
-       <!-- Service Google -->
+		<!-- Service Google -->
 		<dependency>
 			<groupId>com.google.api-client</groupId>
 			<artifactId>google-api-client</artifactId>

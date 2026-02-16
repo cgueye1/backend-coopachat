@@ -1,0 +1,51 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: coopachat-db
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-coopachat}
+      MYSQL_USER: ${DB_USER:-coopachat}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-coopachat}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass}
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    container_name: coopachat-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_NAME: ${DB_NAME:-coopachat}
+      DB_USER: ${DB_USER:-coopachat}
+      DB_PASSWORD: ${DB_PASSWORD:-coopachat}
+      JWT_SECRET: ${JWT_SECRET:-coopachat-secret-key-256-bits-minimum-required-for-security-2025}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:4200}
+      FRONTEND_RESET_PASSWORD_URL: ${FRONTEND_RESET_PASSWORD_URL:-http://localhost:4200/reset-password?token=}
+      FRONTEND_ACTIVATE_EMPLOYEE_URL: ${FRONTEND_ACTIVATE_EMPLOYEE_URL:-http://localhost:4200/activate?token=}
+      SFTP_HOST: ${SFTP_HOST:-}
+      SFTP_PORT: ${SFTP_PORT:-22}
+      SFTP_USER: ${SFTP_USER:-}
+      SFTP_PASSWORD: ${SFTP_PASSWORD:-}
+      SFTP_REMOTE_DIR: ${SFTP_REMOTE_DIR:-/coopacha/}
+    ports:
+      - "8083:8082"
+    restart: unless-stopped
+
+volumes:
+  db_data:

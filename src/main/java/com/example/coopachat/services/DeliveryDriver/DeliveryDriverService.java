@@ -2,6 +2,10 @@ package com.example.coopachat.services.DeliveryDriver;
 
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 
+
+/**
+ * Interface pour le service de gestion des actions du Livreur
+ */
 public interface DeliveryDriverService {
 
     /**

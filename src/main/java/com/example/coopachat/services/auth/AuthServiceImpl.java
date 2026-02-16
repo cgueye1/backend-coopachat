@@ -367,7 +367,6 @@ public class AuthServiceImpl implements AuthService {
 
     }
 
-
     /**
      * Renvoie un code d'activation avec vérification du cooldown
      */

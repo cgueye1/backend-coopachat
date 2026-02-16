@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * DTO pour activer/desactiver un coupon
+ * DTO pour activer/désactiver un coupon
  */
 @Data
 @NoArgsConstructor

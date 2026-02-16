@@ -123,6 +123,7 @@ public class JwtServiceImpl implements JwtService {
         return extractEmail(token);
     }
 
+    //Extrait la date d'expiration
     @Override
     public Date extractExpiration(String token) {
         final Claims claims = extractAllClaims(token);

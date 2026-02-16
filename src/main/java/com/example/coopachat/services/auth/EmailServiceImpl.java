@@ -58,9 +58,8 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(email);
             helper.setSubject("🔐 Code d'activation - " + appName);
 
-            // Attacher le logo
-            ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");
-            helper.addInline("logo", logoResource);
+            // Attacher le logo si disponible
+            addLogoInline(helper);
 
             // Génération du template HTML
             String emailBody = generateActivationEmailTemplate(firstName, code);
@@ -220,9 +219,8 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(email);
             helper.setSubject("🔐 Code OTP de vérification - " + appName);
 
-            // Attacher le logo
-            ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");
-            helper.addInline("logo", logoResource);
+            // Attacher le logo si disponible
+            addLogoInline(helper);
 
 
             // Génération du template HTML
@@ -380,9 +378,8 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(email);
             helper.setSubject("🔑 Réinitialisation de votre mot de passe - " + appName);
 
-            // Attacher le logo
-            ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");
-            helper.addInline("logo", logoResource);
+            // Attacher le logo si disponible
+            addLogoInline(helper);
 
             // Génération du template HTML
             String emailBody = generatePasswordResetEmailTemplate(firstName, token);
@@ -544,9 +541,8 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(email);
             helper.setSubject("🎉 Invitation à rejoindre " + companyName + " - " + appName);
 
-            // Attacher le logo
-            ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");
-            helper.addInline("logo", logoResource);
+            // Attacher le logo si disponible
+            addLogoInline(helper);
 
             // Génération du template HTML
             String emailBody = generateEmployeeInvitationEmailTemplate(firstName, code, commercialName, companyName);
@@ -716,8 +712,8 @@ public class EmailServiceImpl implements EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");
-            helper.addInline("logo", logoResource);
+            // Attacher le logo si disponible
+            addLogoInline(helper);
 
             helper.setFrom(mailFrom);
             helper.setTo(email);
@@ -843,11 +839,10 @@ public class EmailServiceImpl implements EmailService {
 
             helper.setFrom(mailFrom);
             helper.setTo(email);
-            helper.setSubject("✅ Tournée confirmée - " + tourNumber);
+            helper.setSubject("✅ Tournée Proposée - " + tourNumber);
 
-            // Logo
-            ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");
-            helper.addInline("logo", logoResource);
+            // Attacher le logo si disponible
+            addLogoInline(helper);
 
             // Template HTML
             String emailBody = generateTourProposalTemplate(driverName, tourNumber,
@@ -882,7 +877,7 @@ public class EmailServiceImpl implements EmailService {
                     <img src="cid:logo" alt="Logo" style="max-width: 150px;">
                 </div>
                 
-                <h2 style="color: #333; text-align: center;">🚚 Tournée confirmée</h2>
+                <h2 style="color: #333; text-align: center;">🚚 Tournée Proposée</h2>
                 
                 <p style="color: #666; font-size: 16px; line-height: 1.5;">
                     Bonjour <strong>%s</strong>,
@@ -938,9 +933,8 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(email);
             helper.setSubject("❌ Tournée annulée - " + tourNumber);
 
-            // Logo
-            ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");
-            helper.addInline("logo", logoResource);
+            // Attacher le logo si disponible
+            addLogoInline(helper);
 
             // Template HTML
             String emailBody = generateTourCancellationTemplate(driverName, tourNumber, reason);
@@ -1016,6 +1010,19 @@ public class EmailServiceImpl implements EmailService {
                 java.time.Year.now().getValue(),
                 appName
         );
+    }
+
+    private void addLogoInline(MimeMessageHelper helper) {
+        try {
+            ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");
+            if (logoResource.exists() && logoResource.isReadable()) {
+                helper.addInline("logo", logoResource);
+            } else {
+                log.warn("Logo email introuvable: static/images/logo.png");
+            }
+        } catch (Exception e) {
+            log.warn("Impossible d'attacher le logo email: {}", e.getMessage());
+        }
     }
 
 

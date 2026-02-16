@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+//Stocker localement les fichiers (images)
 @RestController
 @RequestMapping({"/files", "/api/files"})
 public class FileController {

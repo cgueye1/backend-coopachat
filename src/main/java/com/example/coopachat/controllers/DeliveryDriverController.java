@@ -6,6 +6,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+
+/**
+ * Contrôleur pour la gestion des actions du livreur
+ * Regroupe toutes les fonctionnalités liées au rôle Livreur
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/driver")

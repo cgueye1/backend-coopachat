@@ -300,17 +300,6 @@ public interface LogisticsManagerService {
     void updateDeliveryTour(Long tourId, UpdateDeliveryTourDTO dto);
 
     /**
-     * Propose une tournée de livraison
-     * Change le statut de PLANIFIEE à PROPOSEE
-     * Envoie une notification au chauffeur
-     *
-     * @param tourId ID de la tournée à proposer
-     * @throws IllegalStateException si tournée n'est pas en statut PLANIFIEE
-     * @throws ValidationException si tournée sans chauffeur ou sans commandes
-     */
-    void proposeDeliveryTour(Long tourId);
-
-    /**
      * Annule une tournée de livraison
      * @param tourId ID de la tournée
      * @param dto Motif d'annulation

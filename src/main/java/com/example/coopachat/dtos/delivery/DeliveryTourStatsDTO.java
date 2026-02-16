@@ -13,19 +13,19 @@ import lombok.NoArgsConstructor;
 public class DeliveryTourStatsDTO {
 
     /**
-     * Tournées planifiées
+     * Tournées planifiées (brouillon)
      */
     private long plannedTours;
 
     /**
-     * Tournées proposées
+     * Tournées assignées au livreur
      */
-    private long proposedTours;
+    private long assignedTours;
 
     /**
-     * Tournées confirmées
+     * Tournées en cours
      */
-    private long confirmedTours;
+    private long inProgressTours;
 
     /**
      * Tournées terminées

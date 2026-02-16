@@ -8,6 +8,8 @@ import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.coupons.CouponPromoDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
+import com.example.coopachat.dtos.employees.UpdateAddressFromPlaceDTO;
+import com.example.coopachat.dtos.geocoding.PlaceDetailsResult;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.order.CreateOrderDTO;
 import com.example.coopachat.dtos.order.OrderResponseDTO;
@@ -17,6 +19,7 @@ import com.example.coopachat.enums.CouponStatus;
 import com.example.coopachat.enums.DiscountType;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.repositories.*;
+import com.example.coopachat.services.geocoding.PlacesService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -36,9 +39,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
 /**
- * Implémentation du service de gestion des salariés
+ * Implémentation du service de gestion des actions de l'employé
  */
 @Service
 @RequiredArgsConstructor
@@ -58,6 +60,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final AddressRepository addressRepository;
     private final OrderRepository orderRepository;
     private final DeliveryOptionRepository deliveryOptionRepository;
+    private final PlacesService placesService;
 
 
     // ============================================================================
@@ -488,6 +491,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         log.info("Mise à jour réussie pour l'employé : {}", userEmployee.getFirstName());
     }
 
+   // Flux saisi manuellement par l'utilisateur
     @Override
     @Transactional
     public void createAddress(AddressDTO dto) {
@@ -516,7 +520,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             //on va parcourir les adresses existantes et les mettre à "false "
             employee.getAddresses().forEach((addr -> addr.setPrimary(false)));
         }
-        // 5. Créer l'adresse
+        // 5. Créer l'adresse (avec GPS si fourni / géocodage futur)
         Address address = new Address();
         address.setEmployee(employee);
         address.setDeliveryMode(dto.getDeliveryMode());
@@ -524,6 +528,9 @@ public class EmployeeServiceImpl implements EmployeeService {
         address.setDistrict(dto.getDistrict());
         address.setStreet(dto.getStreet());
         address.setPrimary(dto.isPrimary());
+        address.setFormattedAddress(dto.getFormattedAddress());
+        address.setLatitude(dto.getLatitude());
+        address.setLongitude(dto.getLongitude());
 
         // 6. Sauvegarder
         addressRepository.save(address);
@@ -582,6 +589,15 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (dto.getStreet() != null) {
             address.setStreet(dto.getStreet());
         }
+        if (dto.getFormattedAddress() != null) {
+            address.setFormattedAddress(dto.getFormattedAddress());
+        }
+        if (dto.getLatitude() != null) {
+            address.setLatitude(dto.getLatitude());
+        }
+        if (dto.getLongitude() != null) {
+            address.setLongitude(dto.getLongitude());
+        }
 
         // Toujours mettre à jour le statut "principale"
         address.setPrimary(dto.isPrimary());
@@ -603,15 +619,82 @@ public class EmployeeServiceImpl implements EmployeeService {
         // 3. Récupérer toutes les adresses de cet employé
         List<Address> addresses = addressRepository.findByEmployee(employee);
 
-        // 4. Convertir en DTOs chaque adresse retournée
+        // 4. Convertir en DTOs chaque adresse retournée (avec GPS)
         return addresses.stream()
-                .map(address -> new AddressDTO(
-                        address.getDeliveryMode(),
-                        address.getCity(),
-                        address.getDistrict(),
-                        address.getStreet(),
-                        address.isPrimary()
-                )).toList();
+                .map(address -> {
+                    AddressDTO dto = new AddressDTO();
+                    dto.setDeliveryMode(address.getDeliveryMode());
+                    dto.setCity(address.getCity());
+                    dto.setDistrict(address.getDistrict());
+                    dto.setStreet(address.getStreet());
+                    dto.setPrimary(address.isPrimary());
+                    dto.setFormattedAddress(address.getFormattedAddress());
+                    dto.setLatitude(address.getLatitude());
+                    dto.setLongitude(address.getLongitude());
+                    return dto;
+                }).toList();
+    }
+    // Flux saisi à partir d'un lieu suggéré par Carte
+    /**
+     * Met à jour ou crée une adresse à partir d'un choix utilisateur (suggestion type Yango/Google).
+     * Récupère l'adresse formatée + GPS via Place Details puis enregistre dans Address.
+     */
+    @Override
+    @Transactional
+    public void updateAddressFromPlace(UpdateAddressFromPlaceDTO dto) {
+        // 1. Salarié connecté
+        Users currentUser = getCurrentUser();
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
+        // 2. Appel Google Place Details : placeId → adresse formatée + latitude + longitude
+        PlaceDetailsResult details = placesService.getPlaceDetails(dto.getPlaceId());
+
+        if (dto.getAddressId() != null) {
+            // --- CAS 1 : Mise à jour d'une adresse existante ---
+            Address address = addressRepository.findById(dto.getAddressId())
+                    .orElseThrow(() -> new RuntimeException("Adresse non trouvée"));
+            if (!address.getEmployee().getId().equals(employee.getId())) {
+                throw new RuntimeException("Cette adresse ne vous appartient pas");
+            }
+            // Remplacer par les données Google (adresse + GPS)
+            address.setFormattedAddress(details.getFormattedAddress());
+            address.setLatitude(details.getLatitude());
+            address.setLongitude(details.getLongitude());
+            if (dto.getDeliveryMode() != null) {
+                address.setDeliveryMode(dto.getDeliveryMode());
+            }
+            address.setPrimary(dto.isPrimary());
+            if (dto.isPrimary()) {
+                employee.getAddresses().forEach(a -> a.setPrimary(false));
+                address.setPrimary(true);
+            }
+            addressRepository.save(address);
+            log.info("Adresse {} mise à jour depuis Place pour {}", address.getId(), currentUser.getEmail());
+        } else {
+            // --- CAS 2 : Création d'une nouvelle adresse ---
+            if (dto.getDeliveryMode() == null) {
+                throw new RuntimeException("deliveryMode obligatoire pour créer une nouvelle adresse");
+            }
+            //vérifier qu'on ne dépasse pas la limite
+            long count = addressRepository.countByEmployee(employee);
+            if (count >= 3) {
+                throw new RuntimeException("Vous ne pouvez pas avoir plus de 3 adresses");
+            }
+            //Gestion de l'adresse principale si dto.isPrimary est true , alors on met toutes les autres adresses à false
+            if (dto.isPrimary()) {
+                employee.getAddresses().forEach(a -> a.setPrimary(false));
+            }
+            Address address = new Address();
+            address.setEmployee(employee);
+            address.setDeliveryMode(dto.getDeliveryMode());
+            address.setFormattedAddress(details.getFormattedAddress());
+            address.setLatitude(details.getLatitude());
+            address.setLongitude(details.getLongitude());
+            address.setPrimary(dto.isPrimary());
+            addressRepository.save(address);
+            log.info("Adresse créée depuis Place pour {}", currentUser.getEmail());
+        }
     }
     // ============================================================================
     // Commande Salarié🛒
@@ -757,6 +840,15 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     }
 
+
+    // ============================================================================
+    // 🔧 MÉTHODES UTILITAIRES
+    // ============================================================================
+
+    /**
+     * Calcule la date de livraison
+     */
+
     private  LocalDate calculateDeliveryDate (DeliveryOption deliveryOption) {
         LocalDate today = LocalDate.now();
 
@@ -844,9 +936,6 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         return dto;
     }
-
-
-
 
     private ProductPromoItemDTO mapToProductPromoItemDTO(Product product) {
         ProductPromoItemDTO dto = new ProductPromoItemDTO();
@@ -948,9 +1037,6 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     /**
      * Mappe une entité Product vers un ProductDetailsDTO
-     *
-     * @param product L'entité Product à mapper
-     * @return Le DTO de détails correspondant
      */
     private ProductMobileDetailsDTO mapToProductDetailsDTO(Product product) {
         ProductMobileDetailsDTO dto = new ProductMobileDetailsDTO();

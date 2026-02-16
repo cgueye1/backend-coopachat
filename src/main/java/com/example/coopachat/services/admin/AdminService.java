@@ -27,6 +27,7 @@ public interface AdminService {
      * @throws RuntimeException si le nom de la catégorie existe déjà ou si une erreur survient
      */
     void createCategory(CreateCategoryDTO createCategoryDTO);
+
     /**
      * Récupère la liste des catégories
      *
@@ -120,11 +121,16 @@ public interface AdminService {
 
     /**
      * Crée une nouvelle option de livraison
+     *
+     * @param dto Les informations de l'option de livraison à créer
+     * @throws RuntimeException si une option avec le même nom existe déjà ou si une erreur survient
      */
     void createDeliveryOption(DeliveryOptionDTO dto);
 
     /**
      * Récupère toutes les options de livraison
+     *
+     * @return Liste des options de livraison
      */
     List<DeliveryOptionDTO> getAllDeliveryOptions();
 

@@ -9,7 +9,6 @@ import com.example.coopachat.dtos.companies.UpdateCompanyStatusDTO;
 import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
 import com.example.coopachat.dtos.coupons.CouponDetailsDTO;
 import com.example.coopachat.dtos.coupons.CreateCouponDTO;
-import com.example.coopachat.dtos.coupons.UpdateCouponDTO;
 import com.example.coopachat.dtos.coupons.UpdateCouponStatusDTO;
 import com.example.coopachat.dtos.employees.CreateEmployeeDTO;
 import com.example.coopachat.dtos.employees.EmployeeDetailsDTO;
@@ -36,7 +35,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/commercial")
 @RequiredArgsConstructor
-@Tag(name = "Commercial", description = "API pour la gestion des actions du commercial (entreprises et employés)")
+@Tag(name = "Commercial", description = "API pour la gestion des actions du commercial ")
 public class CommercialController {
 
     private final CommercialService commercialService;
@@ -229,7 +228,7 @@ public class CommercialController {
 
     @Operation(
             summary = "Créer un coupon",
-            description = "Permet à un commercial de créer un coupon et l'applique selon son scope."
+            description = "Permet à un commercial de créer un coupon"
     )
     @PostMapping("/coupons")
     public ResponseEntity<String> createCoupon(@RequestBody @Valid CreateCouponDTO createCouponDTO) {
@@ -238,18 +237,6 @@ public class CommercialController {
                 .body("Coupon créé avec succès");
     }
 
-    @Operation(
-            summary = "Modifier un coupon",
-            description = "Modifie un coupon. Seuls les champs non nuls sont pris en compte."
-    )
-    @PutMapping("/coupons/{id}")
-    public ResponseEntity<String> updateCoupon(
-            @PathVariable Long id,
-            @RequestBody @Valid UpdateCouponDTO updateCouponDTO
-    ) {
-        commercialService.updateCoupon(id, updateCouponDTO);
-        return ResponseEntity.ok("Coupon modifié avec succès");
-    }
 
     @Operation(
             summary = "Activer/Désactiver un coupon",

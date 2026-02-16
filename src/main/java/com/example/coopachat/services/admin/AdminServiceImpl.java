@@ -54,24 +54,15 @@ public class AdminServiceImpl implements AdminService {
     private final DeliveryOptionRepository deliveryOptionRepository;
 
     // ============================================================================
-    // ============================================================================
     // 📁 GESTION DES CATÉGORIES
     // ============================================================================
-    // ============================================================================
+
 
     @Override
     @Transactional
     public void createCategory(CreateCategoryDTO createCategoryDTO) {
 
-        // Récupérer l'utilisateur connecté
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String username = authentication.getName();
-        Users admin = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+        Users admin = getCurrentUser();
 
         // Vérifier que l'utilisateur connecté est bien un Administrateur
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
@@ -102,24 +93,13 @@ public class AdminServiceImpl implements AdminService {
     }
 
     // ============================================================================
-    // ============================================================================
     // 📦 GESTION DES PRODUITS
     // ============================================================================
-    // ============================================================================
-
     @Override
     @Transactional
     public void createProduct(CreateProductDTO createProductDTO) {
 
-        // Récupérer l'utilisateur connecté
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String username = authentication.getName();
-        Users admin = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+        Users admin = getCurrentUser();
 
         // Vérifier que l'utilisateur connecté est bien un Administrateur
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
@@ -156,43 +136,10 @@ public class AdminServiceImpl implements AdminService {
                 admin.getEmail(), product.getName(), productCode);
     }
 
-    // ----------------------------------------------------------------------------
-    // 🔧 MÉTHODES UTILITAIRES POUR LES PRODUITS
-    // ----------------------------------------------------------------------------
-
-    /**
-     * Génère un code produit unique au format "CP-YYYY-XXX"
-     */
-    private String generateUniqueProductCode() {
-        String year = String.valueOf(LocalDateTime.now().getYear());
-        String baseCode = "CP-" + year + "-";
-        String productCode;
-        int counter = 1;
-
-        do {
-            productCode = baseCode + String.format("%03d", counter);
-            counter++;
-        } while (productRepository.existsByProductCode(productCode));
-
-        return productCode;
-    }
-
-    // ----------------------------------------------------------------------------
-    // 📋 LISTER LES PRODUITS
-    // ----------------------------------------------------------------------------
-
     @Override
     public ProductListResponseDTO getAllProducts(int page, int size, String search, Long categoryId, Boolean status) {
 
-        // Récupérer l'utilisateur connecté
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String username = authentication.getName();
-        Users admin = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+        Users admin = getCurrentUser();
 
         // Vérifier que l'utilisateur connecté est bien un Administrateur
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
@@ -274,22 +221,10 @@ public class AdminServiceImpl implements AdminService {
         return response;
     }
 
-    // ----------------------------------------------------------------------------
-    // 👁️ VOIR LES DÉTAILS D'UN PRODUIT
-    // ----------------------------------------------------------------------------
-
     @Override
     public ProductDetailsDTO getProductById(Long id) {
 
-        // Récupérer l'utilisateur connecté
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String username = authentication.getName();
-        Users admin = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+        Users admin = getCurrentUser();
 
         // Vérifier que l'utilisateur connecté est bien un Administrateur
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
@@ -309,94 +244,11 @@ public class AdminServiceImpl implements AdminService {
         return productDetails;
     }
 
-    // ----------------------------------------------------------------------------
-    // 🔧 MÉTHODES UTILITAIRES DE MAPPING
-    // ----------------------------------------------------------------------------
-
-    /**
-     * Convertit le booléen status en statut textuel pour l'affichage
-     *
-     * @param status L'état actif/inactif du produit
-     * @return "Actif" si true, "Inactif" si false
-     */
-    private String status(Boolean status) {
-        if (status != null && status) {
-            return "Actif";
-        }
-        return "Inactif";
-    }
-
-    /**
-     * Mappe une entité Product vers un ProductListItemDTO
-     *
-     * @param product L'entité Product à mapper
-     * @return Le DTO correspondant
-     */
-    private ProductListItemDTO mapToProductListItemDTO(Product product) {
-        ProductListItemDTO dto = new ProductListItemDTO();
-        dto.setId(product.getId());
-        dto.setName(product.getName());
-        dto.setProductCode(product.getProductCode());
-        dto.setCategoryName(product.getCategory().getName());
-        dto.setPrice(product.getPrice());
-        dto.setCurrentStock(product.getCurrentStock());
-        dto.setImage(product.getImage());
-        dto.setUpdatedAt(product.getUpdatedAt());
-        dto.setStatus(status(product.getStatus())); // Convertit status en "Actif" ou "Inactif"
-        return dto;
-    }
-
-    /**
-     * Mappe une entité Product vers un ProductDetailsDTO
-     *
-     * @param product L'entité Product à mapper
-     * @return Le DTO de détails correspondant
-     */
-    private ProductDetailsDTO mapToProductDetailsDTO(Product product) {
-        ProductDetailsDTO dto = new ProductDetailsDTO();
-        dto.setProductCode(product.getProductCode());
-        dto.setImage(product.getImage());
-        dto.setName(product.getName());
-        dto.setDescription(product.getDescription());
-        dto.setCategoryName(product.getCategory().getName());
-        dto.setPrice(product.getPrice());
-        dto.setStatus(product.getStatus());
-        dto.setCurrentStockStatus(getStockStatus(product.getCurrentStock())); // "En stock" ou "Rupture de stock"
-        return dto;
-    }
-
-    /**
-     * Détermine le statut du stock en fonction de la quantité disponible
-     *
-     * @param currentStock La quantité en stock
-     * @return "En stock" si stock > 0, "Rupture de stock" sinon
-     */
-    private String getStockStatus(Integer currentStock) {
-        if (currentStock != null && currentStock > 0) {
-            return "En stock";
-        }
-        return "Rupture de stock";
-    }
-
-    // ============================================================================
-    // ============================================================================
-    // 🔄 MODIFICATION D'UN PRODUIT
-    // ============================================================================
-    // ============================================================================
-
     @Override
     @Transactional
     public void updateProduct(Long id, UpdateProductDTO updateProductDTO) {
-        
-        // Récupérer l'utilisateur connecté
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
 
-        String username = authentication.getName();
-        Users admin = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+        Users admin = getCurrentUser();
 
         // Vérifier que l'utilisateur connecté est bien un Administrateur
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
@@ -453,25 +305,11 @@ public class AdminServiceImpl implements AdminService {
                 product.getName(), admin.getEmail());
     }
 
-    // ============================================================================
-    // ============================================================================
-    // 🔄 ACTIVATION/DÉSACTIVATION D'UN PRODUIT
-    // ============================================================================
-    // ============================================================================
-
     @Override
     @Transactional
     public void updateProductStatus(Long id, UpdateProductStatusDTO updateProductStatusDTO) {
 
-        // Récupérer l'utilisateur connecté
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String username = authentication.getName();
-        Users admin = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+        Users admin = getCurrentUser();
 
         // Vérifier que l'utilisateur connecté est bien un Administrateur
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
@@ -494,21 +332,10 @@ public class AdminServiceImpl implements AdminService {
                 product.getName(), statusChange, admin.getEmail(), oldStatus, updateProductStatusDTO.getStatus());
     }
 
-    // ============================================================================
-    // 📤 EXPORT DES PRODUITS EN EXCEL
-    // ============================================================================
     @Override
     public ByteArrayResource exportProducts(String search, Long categoryId, Boolean status) {
 
-        // Récupérer l'utilisateur connecté
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String username = authentication.getName();
-        Users admin = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+        Users admin = getCurrentUser();
 
         // Vérifier que l'utilisateur connecté est bien un Administrateur
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
@@ -580,9 +407,9 @@ public class AdminServiceImpl implements AdminService {
             dataStyle.setAlignment(HorizontalAlignment.LEFT);
 
             // Remplir les données
-            int rowNum = 1; //on va commencer à la deuxième ligne = 1
+            int rowNum = 1;
             DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy"); //on va formatter la date en français
-            
+
             //on va parcourir les produits et on va créer une ligne pour chaque produit
             for (Product product : products) {
                 Row row = sheet.createRow(rowNum++);
@@ -640,21 +467,10 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
-    // ============================================================================
-    // 📊 STATISTIQUES DU CATALOGUE PRODUITS
-    // ============================================================================
     @Override
     public ProductStatsDTO getProductStats() {
 
-        // Récupérer l'utilisateur connecté
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String username = authentication.getName();
-        Users admin = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+        Users admin = getCurrentUser();
 
         // Vérifier que l'utilisateur connecté est bien un Administrateur
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
@@ -675,15 +491,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public void createSupplier(CreateSupplierDTO createSupplierDTO) {
-        // Récupérer l'utilisateur connecté
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String username = authentication.getName();
-        Users admin = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+        Users admin = getCurrentUser();
 
         // Vérifier que l'utilisateur connecté est bien un Administrateur
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
@@ -724,15 +532,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public void createDeliveryOption(DeliveryOptionDTO dto) {
-        // Récupérer l'utilisateur connecté
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String username = authentication.getName();
-        Users admin = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+        Users admin = getCurrentUser();
 
         // Vérifier que l'utilisateur connecté est bien un Administrateur
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
@@ -756,15 +556,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public List<DeliveryOptionDTO> getAllDeliveryOptions() {
 
-        // Récupérer l'utilisateur connecté
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String username = authentication.getName();
-        Users admin = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+        Users admin = getCurrentUser();
 
         // Vérifier que l'utilisateur connecté est bien un Administrateur
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
@@ -779,6 +571,110 @@ public class AdminServiceImpl implements AdminService {
                 ))
                 .toList();
 
+    }
+
+    // ----------------------------------------------------------------------------
+    // 🔧 MÉTHODES UTILITAIRES
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Génère un code produit unique au format "CP-YYYY-XXX"
+     */
+    private String generateUniqueProductCode() {
+        String year = String.valueOf(LocalDateTime.now().getYear());
+        String baseCode = "CP-" + year + "-";
+        String productCode;
+        int counter = 1;
+
+        do {
+            productCode = baseCode + String.format("%03d", counter);
+            counter++;
+        } while (productRepository.existsByProductCode(productCode));
+
+        return productCode;
+    }
+
+    /**
+     * Convertit le booléen status en statut textuel pour l'affichage
+     *
+     * @param status L'état actif/inactif du produit
+     * @return "Actif" si true, "Inactif" si false
+     */
+    private String status(Boolean status) {
+        if (status != null && status) {
+            return "Actif";
+        }
+        return "Inactif";
+    }
+
+    /**
+     * Mappe une entité Product vers un ProductListItemDTO
+     *
+     * @param product L'entité Product à mapper
+     * @return Le DTO correspondant
+     */
+    private ProductListItemDTO mapToProductListItemDTO(Product product) {
+        ProductListItemDTO dto = new ProductListItemDTO();
+        dto.setId(product.getId());
+        dto.setName(product.getName());
+        dto.setProductCode(product.getProductCode());
+        dto.setCategoryName(product.getCategory().getName());
+        dto.setPrice(product.getPrice());
+        dto.setCurrentStock(product.getCurrentStock());
+        dto.setImage(product.getImage());
+        dto.setUpdatedAt(product.getUpdatedAt());
+        dto.setStatus(status(product.getStatus())); // Convertit status en "Actif" ou "Inactif"
+        return dto;
+    }
+
+    /**
+     * Mappe une entité Product vers un ProductDetailsDTO
+     *
+     * @param product L'entité Product à mapper
+     * @return Le DTO de détails correspondant
+     */
+    private ProductDetailsDTO mapToProductDetailsDTO(Product product) {
+        ProductDetailsDTO dto = new ProductDetailsDTO();
+        dto.setProductCode(product.getProductCode());
+        dto.setImage(product.getImage());
+        dto.setName(product.getName());
+        dto.setDescription(product.getDescription());
+        dto.setCategoryName(product.getCategory().getName());
+        dto.setPrice(product.getPrice());
+        dto.setStatus(product.getStatus());
+        dto.setCurrentStockStatus(getStockStatus(product.getCurrentStock())); // "En stock" ou "Rupture de stock"
+        return dto;
+    }
+
+    /**
+     * Détermine le statut du stock en fonction de la quantité disponible
+     *
+     * @param currentStock La quantité en stock
+     * @return "En stock" si stock > 0, "Rupture de stock" sinon
+     */
+    private String getStockStatus(Integer currentStock) {
+        if (currentStock != null && currentStock > 0) {
+            return "En stock";
+        }
+        return "Rupture de stock";
+    }
+
+    /**
+     * Récupère l'utilisateur actuellement connecté.
+     * @return Users l'utilisateur connecté
+     * @throws RuntimeException si aucun utilisateur n'est authentifié
+     */
+    private Users getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+
+        String userEmail = authentication.getName();
+        return userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException(
+                        "Utilisateur introuvable avec email: " + userEmail
+                ));
     }
 
 }

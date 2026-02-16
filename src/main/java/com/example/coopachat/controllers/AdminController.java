@@ -40,7 +40,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-@Tag(name = "Administrateur", description = "API pour la gestion des actions de l'administrateur (catalogue, catégories, fournisseurs)")
+@Tag(name = "Administrateur", description = "API pour la gestion des actions de l'administrateur")
 public class AdminController {
 
     private final AdminService adminService;

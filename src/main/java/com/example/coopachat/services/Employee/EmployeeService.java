@@ -5,6 +5,7 @@ import com.example.coopachat.dtos.cart.CartResponseDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
+import com.example.coopachat.dtos.employees.UpdateAddressFromPlaceDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.order.CreateOrderDTO;
 import com.example.coopachat.dtos.order.OrderResponseDTO;
@@ -12,7 +13,9 @@ import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
 import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
 
 import java.util.List;
-
+/**
+ * Interface pour le service de gestion des actions de l'employé
+ */
 public interface EmployeeService {
 
      // ============================================================================
@@ -159,6 +162,12 @@ public interface EmployeeService {
      * @return Les détails de la commande créée
      */
     OrderResponseDTO createOrder(CreateOrderDTO dto);
+
+    /**
+     * Met à jour une adresse à partir d'un lieu
+     * @param dto Données de l'adresse
+     */
+    void updateAddressFromPlace(UpdateAddressFromPlaceDTO dto);
 
 
 }
