@@ -7,4 +7,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface DeliveryOptionRepository extends JpaRepository<DeliveryOption, Long> {
   boolean existsByName(String name);
+
+  /** Options actives (pour le salarié qui passe commande). */
+  java.util.List<DeliveryOption> findByIsActiveTrue();
 }

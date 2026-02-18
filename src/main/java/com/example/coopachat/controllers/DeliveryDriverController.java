@@ -1,10 +1,13 @@
 package com.example.coopachat.controllers;
 
+import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDeliveryListItemDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
+import com.example.coopachat.dtos.DeliveryDriver.OrderDetailsForDriverDTO;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.services.DeliveryDriver.DeliveryDriverService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +48,19 @@ public class DeliveryDriverController {
         return ResponseEntity.ok("Informations personnelles mises à jour avec succès");
     }
 
+    @Operation(summary = "Mon adresse", description = "Récupère l'adresse du livreur (formattedAddress + lat/long). Pas de mode ni isPrimary.")
+    @GetMapping("/address")
+    public ResponseEntity<DriverAddressDTO> getMyAddress() {
+        return ResponseEntity.ok(deliveryDriverService.getMyAddress());
+    }
+
+    @Operation(summary = "Modifier mon adresse", description = "Met à jour l'adresse du livreur (formattedAddress + lat/long, rempli par le mobile via Google Places).")
+    @PutMapping("/address")
+    public ResponseEntity<String> updateMyAddress(@RequestBody @Valid DriverAddressDTO dto) {
+        deliveryDriverService.updateMyAddress(dto);
+        return ResponseEntity.ok("Adresse mise à jour");
+    }
+
     @Operation(
             summary = "Mes livraisons",
             description = "Liste des livraisons du livreur connecté (commandes de ses tournées). Filtres optionnels : date, statut, recherche par numéro ou nom client."
@@ -56,5 +72,42 @@ public class DeliveryDriverController {
             @RequestParam(required = false) String search) {
         List<DriverDeliveryListItemDTO> list = deliveryDriverService.getMyDeliveries(deliveryDate, status, search);
         return ResponseEntity.ok(list);
+    }
+
+    @Operation(
+            summary = "Détail d'une commande",
+            description = "Détail d'une livraison pour le livreur : produits, total, client, adresse, suivi (timeline). La commande doit appartenir à une de ses tournées."
+    )
+    @GetMapping("/deliveries/{orderId}/details")
+    public ResponseEntity<OrderDetailsForDriverDTO> getOrderDetails(@PathVariable Long orderId) {
+        return ResponseEntity.ok(deliveryDriverService.getOrderDetails(orderId));
+    }
+
+    @Operation(summary = "Confirmer la récupération au dépôt", description = "Le livreur confirme avoir récupéré les colis → tournée EN_COURS.")
+    @PostMapping("/delivery-tours/{tourId}/pickup")
+    public ResponseEntity<String> confirmPickup(@PathVariable Long tourId) {
+        deliveryDriverService.confirmPickup(tourId);
+        return ResponseEntity.ok("Récupération confirmée");
+    }
+
+    @Operation(summary = "Lancer la livraison", description = "Le livreur part vers le client → commande EN_COURS.")
+    @PostMapping("/deliveries/{orderId}/start")
+    public ResponseEntity<String> startDelivery(@PathVariable Long orderId) {
+        deliveryDriverService.startDelivery(orderId);
+        return ResponseEntity.ok("Livraison en cours");
+    }
+
+    @Operation(summary = "Confirmer l'arrivée", description = "Le livreur est sur place → commande ARRIVE.")
+    @PostMapping("/deliveries/{orderId}/arrive")
+    public ResponseEntity<String> confirmArrival(@PathVariable Long orderId) {
+        deliveryDriverService.confirmArrival(orderId);
+        return ResponseEntity.ok("Arrivée confirmée");
+    }
+
+    @Operation(summary = "Finaliser la livraison", description = "Colis remis au client → commande LIVREE. Si toutes les commandes de la tournée sont livrées → tournée TERMINEE.")
+    @PostMapping("/deliveries/{orderId}/complete")
+    public ResponseEntity<String> completeDelivery(@PathVariable Long orderId) {
+        deliveryDriverService.completeDelivery(orderId);
+        return ResponseEntity.ok("Livraison finalisée");
     }
 }

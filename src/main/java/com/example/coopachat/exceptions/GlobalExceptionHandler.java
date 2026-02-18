@@ -4,6 +4,7 @@ import com.example.coopachat.dtos.ErrorResponseDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -49,6 +50,18 @@ public class GlobalExceptionHandler {
                 HttpStatus.NOT_FOUND.value()
         );
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    /** Négociation de contenu : le client demande un format que l'API ne produit pas (ex. XML). */
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<ErrorResponseDTO> handleMediaTypeNotAcceptable(HttpMediaTypeNotAcceptableException ex) {
+        ErrorResponseDTO error = new ErrorResponseDTO(
+                "Format de réponse non accepté. Utilisez Accept: application/json",
+                null,
+                LocalDateTime.now(),
+                HttpStatus.NOT_ACCEPTABLE.value()
+        );
+        return new ResponseEntity<>(error, HttpStatus.NOT_ACCEPTABLE);
     }
 
     // Gérer les erreurs de validation (@Valid)

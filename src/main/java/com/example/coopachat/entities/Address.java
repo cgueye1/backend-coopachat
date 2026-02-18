@@ -32,16 +32,14 @@ public class Address {
 
     @Enumerated(EnumType.STRING)
     private DeliveryMode deliveryMode; // "Domicile", "Bureau", "Autre"
-    private String city;
-    private String district;
-    private String street;
-    private boolean isPrimary;
 
-    /** Adresse formatée complète (ex. retour autocomplete Google) */
+    private boolean isPrimary;// Adresse principale
+
+    /** Adresse formatée (Google Places). Si présent, on utilise uniquement celui-ci ; sinon null. */
     @Column(length = 500)
     private String formattedAddress;
 
-    /** Latitude (géocodage) */
+    /** Latitude (géocodage) precision=10 : nombre total de chiffres (avant + après la virgule) scale=8:nombre de chiffres après la virgule.  */
     @Column(precision = 10, scale = 8)
     private BigDecimal latitude;
 

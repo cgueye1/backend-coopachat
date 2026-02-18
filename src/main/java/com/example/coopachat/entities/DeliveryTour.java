@@ -4,7 +4,6 @@ import com.example.coopachat.entities.Driver;
 import com.example.coopachat.entities.Order;
 import com.example.coopachat.entities.Users;
 import com.example.coopachat.enums.DeliveryTourStatus;
-import com.example.coopachat.enums.TimeSlot;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -37,10 +36,6 @@ public class DeliveryTour {
     @Column(nullable = false)
     @JsonFormat(pattern = "dd-MM-yyyy")
     private LocalDate deliveryDate;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private TimeSlot timeSlot;
 
     // ==================== ACTEURS ====================
 
@@ -94,7 +89,7 @@ public class DeliveryTour {
     private LocalDateTime confirmedAt;
 
     @ManyToOne
-    @JoinColumn(name = "confirmed_by_id", nullable = false)
+    @JoinColumn(name = "confirmed_by_id")
     private Users confirmedBy;
 
 

@@ -20,10 +20,15 @@ public class CartItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Quel utilisateur ?
+    // Employé propriétaire du panier
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
+
+    // Utilisateur (pour colonne user_id en base si présente)
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private Users user;
 
     //  Quel produit ?
     @ManyToOne

@@ -1,7 +1,9 @@
 package com.example.coopachat.services.DeliveryDriver;
 
+import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDeliveryListItemDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
+import com.example.coopachat.dtos.DeliveryDriver.OrderDetailsForDriverDTO;
 import com.example.coopachat.enums.OrderStatus;
 
 import java.time.LocalDate;
@@ -35,7 +37,27 @@ public interface DeliveryDriverService {
      */
     List<DriverDeliveryListItemDTO> getMyDeliveries(LocalDate deliveryDate, OrderStatus status, String search);
 
+    /** Livreur confirme la récupération des colis au dépôt → tournée EN_COURS. */
+    void confirmPickup(Long tourId);
 
+    /** Livreur lance la livraison (en route vers le client) → commande EN_COURS. */
+    void startDelivery(Long orderId);
 
+    /** Livreur confirme son arrivée sur place → commande ARRIVE. */
+    void confirmArrival(Long orderId);
 
+    /** Livreur finalise la remise du colis → commande LIVREE ; si toutes livrées → tournée TERMINEE. */
+    void completeDelivery(Long orderId);
+
+    /**
+     * Détail d'une commande pour l'écran "Détail commande" du livreur (produits, total, client, adresse, suivi).
+     * La commande doit appartenir à une tournée assignée au livreur connecté.
+     */
+    OrderDetailsForDriverDTO getOrderDetails(Long orderId);
+
+    /** Récupère l'adresse du livreur connecté (formattedAddress + lat/long). */
+    DriverAddressDTO getMyAddress();
+
+    /** Met à jour l'adresse du livreur (formattedAddress + lat/long, rempli par le mobile via Google). */
+    void updateMyAddress(DriverAddressDTO dto);
 }

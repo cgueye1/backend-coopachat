@@ -1,6 +1,12 @@
 package com.example.coopachat.services.admin;
 
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
+import com.example.coopachat.dtos.fee.CreateFeeDTO;
+import com.example.coopachat.dtos.fee.FeeDTO;
+import com.example.coopachat.dtos.payment.CreatePaymentMethodDTO;
+import com.example.coopachat.dtos.payment.CreatePaymentTimingDTO;
+import com.example.coopachat.dtos.payment.PaymentMethodDTO;
+import com.example.coopachat.dtos.payment.PaymentTimingDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
@@ -52,6 +58,9 @@ public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
     private final SupplierRepository supplierRepository;
     private final DeliveryOptionRepository deliveryOptionRepository;
+    private final PaymentTimingRepository paymentTimingRepository;
+    private final PaymentMethodRepository paymentMethodRepository;
+    private final FeeRepository feeRepository;
 
     // ============================================================================
     // 📁 GESTION DES CATÉGORIES
@@ -565,12 +574,115 @@ public class AdminServiceImpl implements AdminService {
         }
         return deliveryOptionRepository.findAll().stream()
                 .map(deliveryOption -> new DeliveryOptionDTO(
+                        deliveryOption.getId(),
                         deliveryOption.getName(),
                         deliveryOption.getDescription(),
                         deliveryOption.getIsActive()
                 ))
                 .toList();
 
+    }
+
+    // ----------------------------------------------------------------------------
+    // 💳 PAIEMENTS (moments + modes)
+    // ----------------------------------------------------------------------------
+    @Override
+    public List<PaymentTimingDTO> getAllPaymentTimings() {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut lister les moments de paiement");
+        }
+        return paymentTimingRepository.findAll().stream()
+                .map(pt -> new PaymentTimingDTO(pt.getId(), pt.getName(), pt.getDescription()))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void createPaymentTiming(CreatePaymentTimingDTO dto) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut créer un moment de paiement");
+        }
+        if (paymentTimingRepository.existsByName(dto.getName())) {
+            throw new RuntimeException("Un moment de paiement avec ce nom existe déjà");
+        }
+        PaymentTiming pt = new PaymentTiming();
+        pt.setName(dto.getName());
+        pt.setDescription(dto.getDescription());
+        paymentTimingRepository.save(pt);
+    }
+
+    @Override
+    public List<PaymentMethodDTO> getAllPaymentMethods() {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut lister les modes de paiement");
+        }
+        return paymentMethodRepository.findAll().stream()
+                .map(pm -> new PaymentMethodDTO(pm.getId(), pm.getName(), pm.getDescription()))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void createPaymentMethod(CreatePaymentMethodDTO dto) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut créer un mode de paiement");
+        }
+        if (paymentMethodRepository.existsByName(dto.getName())) {
+            throw new RuntimeException("Un mode de paiement avec ce nom existe déjà");
+        }
+        PaymentMethod pm = new PaymentMethod();
+        pm.setName(dto.getName());
+        pm.setDescription(dto.getDescription());
+        paymentMethodRepository.save(pm);
+    }
+
+    // ============================================================================
+    // 💰 FRAIS (paramétrables par l'admin)
+    // ============================================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FeeDTO> getAllFees() {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut lister les frais");
+        }
+        return feeRepository.findAll().stream()
+                .map(this::mapToFeeDTO)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void createFee(CreateFeeDTO dto) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut créer un frais");
+        }
+        if (feeRepository.existsByName(dto.getName())) {
+            throw new RuntimeException("Un frais avec ce nom existe déjà");
+        }
+        Fee fee = new Fee();
+        fee.setName(dto.getName());
+        fee.setDescription(dto.getDescription());
+        fee.setAmount(dto.getAmount());
+        fee.setIsActive(true);
+        feeRepository.save(fee);
+        log.info("Frais créé : {} = {} FCFA", dto.getName(), dto.getAmount());
+    }
+
+    private FeeDTO mapToFeeDTO(Fee fee) {
+        return new FeeDTO(
+                fee.getId(),
+                fee.getName(),
+                fee.getDescription(),
+                fee.getAmount(),
+                fee.getIsActive()
+        );
     }
 
     // ----------------------------------------------------------------------------

@@ -8,13 +8,12 @@ import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.coupons.CouponPromoDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
-import com.example.coopachat.dtos.employees.UpdateAddressFromPlaceDTO;
 import com.example.coopachat.dtos.geocoding.PlaceDetailsResult;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
-import com.example.coopachat.dtos.order.CreateOrderDTO;
-import com.example.coopachat.dtos.order.OrderResponseDTO;
+import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.*;
 import com.example.coopachat.entities.*;
+import com.example.coopachat.exceptions.ResourceNotFoundException;
 import com.example.coopachat.enums.CouponStatus;
 import com.example.coopachat.enums.DiscountType;
 import com.example.coopachat.enums.OrderStatus;
@@ -36,7 +35,10 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -61,6 +63,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final OrderRepository orderRepository;
     private final DeliveryOptionRepository deliveryOptionRepository;
     private final PlacesService placesService;
+    private final DriverReviewRepository driverReviewRepository;
 
 
     // ============================================================================
@@ -244,6 +247,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
             CartItem newItem = new CartItem();
             newItem.setEmployee(employee);
+            newItem.setUser(currentUser);
             newItem.setProduct(product);
             newItem.setQuantity(requestedQuantity);
 
@@ -520,17 +524,14 @@ public class EmployeeServiceImpl implements EmployeeService {
             //on va parcourir les adresses existantes et les mettre à "false "
             employee.getAddresses().forEach((addr -> addr.setPrimary(false)));
         }
-        // 5. Créer l'adresse (avec GPS si fourni / géocodage futur)
+        // 5. Créer l'adresse (formattedAddress + lat/long uniquement)
         Address address = new Address();
         address.setEmployee(employee);
         address.setDeliveryMode(dto.getDeliveryMode());
-        address.setCity(dto.getCity());
-        address.setDistrict(dto.getDistrict());
-        address.setStreet(dto.getStreet());
-        address.setPrimary(dto.isPrimary());
         address.setFormattedAddress(dto.getFormattedAddress());
         address.setLatitude(dto.getLatitude());
         address.setLongitude(dto.getLongitude());
+        address.setPrimary(dto.isPrimary());
 
         // 6. Sauvegarder
         addressRepository.save(address);
@@ -576,18 +577,9 @@ public class EmployeeServiceImpl implements EmployeeService {
             employee.getAddresses().forEach(addr -> addr.setPrimary(false));
         }
 
-        // 5. Mise à jour des champs (uniquement si fournis)
+        // 5. Mise à jour (formattedAddress + lat/long uniquement)
         if (dto.getDeliveryMode() != null) {
             address.setDeliveryMode(dto.getDeliveryMode());
-        }
-        if (dto.getCity() != null) {
-            address.setCity(dto.getCity());
-        }
-        if (dto.getDistrict() != null) {
-            address.setDistrict(dto.getDistrict());
-        }
-        if (dto.getStreet() != null) {
-            address.setStreet(dto.getStreet());
         }
         if (dto.getFormattedAddress() != null) {
             address.setFormattedAddress(dto.getFormattedAddress());
@@ -598,8 +590,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (dto.getLongitude() != null) {
             address.setLongitude(dto.getLongitude());
         }
-
-        // Toujours mettre à jour le statut "principale"
         address.setPrimary(dto.isPrimary());
 
         // Sauvegarde automatique grâce à @Transactional
@@ -623,82 +613,31 @@ public class EmployeeServiceImpl implements EmployeeService {
         return addresses.stream()
                 .map(address -> {
                     AddressDTO dto = new AddressDTO();
+                    dto.setId(address.getId());
                     dto.setDeliveryMode(address.getDeliveryMode());
-                    dto.setCity(address.getCity());
-                    dto.setDistrict(address.getDistrict());
-                    dto.setStreet(address.getStreet());
-                    dto.setPrimary(address.isPrimary());
                     dto.setFormattedAddress(address.getFormattedAddress());
                     dto.setLatitude(address.getLatitude());
                     dto.setLongitude(address.getLongitude());
+                    dto.setPrimary(address.isPrimary());
                     return dto;
                 }).toList();
     }
-    // Flux saisi à partir d'un lieu suggéré par Carte
-    /**
-     * Met à jour ou crée une adresse à partir d'un choix utilisateur (suggestion type Yango/Google).
-     * Récupère l'adresse formatée + GPS via Place Details puis enregistre dans Address.
-     */
-    @Override
-    @Transactional
-    public void updateAddressFromPlace(UpdateAddressFromPlaceDTO dto) {
-        // 1. Salarié connecté
-        Users currentUser = getCurrentUser();
-        Employee employee = employeeRepository.findByUser(currentUser)
-                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
-        // 2. Appel Google Place Details : placeId → adresse formatée + latitude + longitude
-        PlaceDetailsResult details = placesService.getPlaceDetails(dto.getPlaceId());
-
-        if (dto.getAddressId() != null) {
-            // --- CAS 1 : Mise à jour d'une adresse existante ---
-            Address address = addressRepository.findById(dto.getAddressId())
-                    .orElseThrow(() -> new RuntimeException("Adresse non trouvée"));
-            if (!address.getEmployee().getId().equals(employee.getId())) {
-                throw new RuntimeException("Cette adresse ne vous appartient pas");
-            }
-            // Remplacer par les données Google (adresse + GPS)
-            address.setFormattedAddress(details.getFormattedAddress());
-            address.setLatitude(details.getLatitude());
-            address.setLongitude(details.getLongitude());
-            if (dto.getDeliveryMode() != null) {
-                address.setDeliveryMode(dto.getDeliveryMode());
-            }
-            address.setPrimary(dto.isPrimary());
-            if (dto.isPrimary()) {
-                employee.getAddresses().forEach(a -> a.setPrimary(false));
-                address.setPrimary(true);
-            }
-            addressRepository.save(address);
-            log.info("Adresse {} mise à jour depuis Place pour {}", address.getId(), currentUser.getEmail());
-        } else {
-            // --- CAS 2 : Création d'une nouvelle adresse ---
-            if (dto.getDeliveryMode() == null) {
-                throw new RuntimeException("deliveryMode obligatoire pour créer une nouvelle adresse");
-            }
-            //vérifier qu'on ne dépasse pas la limite
-            long count = addressRepository.countByEmployee(employee);
-            if (count >= 3) {
-                throw new RuntimeException("Vous ne pouvez pas avoir plus de 3 adresses");
-            }
-            //Gestion de l'adresse principale si dto.isPrimary est true , alors on met toutes les autres adresses à false
-            if (dto.isPrimary()) {
-                employee.getAddresses().forEach(a -> a.setPrimary(false));
-            }
-            Address address = new Address();
-            address.setEmployee(employee);
-            address.setDeliveryMode(dto.getDeliveryMode());
-            address.setFormattedAddress(details.getFormattedAddress());
-            address.setLatitude(details.getLatitude());
-            address.setLongitude(details.getLongitude());
-            address.setPrimary(dto.isPrimary());
-            addressRepository.save(address);
-            log.info("Adresse créée depuis Place pour {}", currentUser.getEmail());
-        }
-    }
     // ============================================================================
     // Commande Salarié🛒
     // ============================================================================
+
+    @Override
+    public List<com.example.coopachat.dtos.delivery.DeliveryOptionDTO> getActiveDeliveryOptions() {
+        return deliveryOptionRepository.findByIsActiveTrue().stream()
+                .map(opt -> new com.example.coopachat.dtos.delivery.DeliveryOptionDTO(
+                        opt.getId(),
+                        opt.getName(),
+                        opt.getDescription(),
+                        opt.getIsActive()
+                ))
+                .toList();
+    }
 
     @Override
     @Transactional
@@ -716,14 +655,15 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new RuntimeException("Votre panier est vide");
         }
 
-        // 3. Récupérer l'option de livraison
+        // 3. Récupérer l'option de livraison (obligatoire : fréquence choisie par le salarié)
         DeliveryOption deliveryOption = deliveryOptionRepository.findById(dto.getDeliveryOptionId())
-                .orElseThrow(() -> new RuntimeException("Option de livraison introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Option de livraison introuvable"));
 
         // 4. Créer la commande
         Order order = new Order();
         order.setOrderNumber("CMD-" + (orderRepository.count() + 1));
         order.setEmployee(employee);
+        order.setUser(currentUser);
         order.setStatus(OrderStatus.EN_ATTENTE);
         order.setDeliveryOption(deliveryOption);
         order.setDeliveryDate(calculateDeliveryDate(deliveryOption));
@@ -826,8 +766,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         // Récupérer l’adresse de livraison principale de l’employé
         Address primaryAddress = addressRepository.findByEmployeeAndIsPrimaryTrue(employee);
 
-        String deliveryAddress = primaryAddress != null
-                ? primaryAddress.getCity() + ", " + primaryAddress.getDistrict() + ", " + primaryAddress.getStreet()
+        String deliveryAddress = primaryAddress != null && primaryAddress.getFormattedAddress() != null && !primaryAddress.getFormattedAddress().isBlank()
+                ? primaryAddress.getFormattedAddress()
                 : "Adresse non définie";
 
         return new OrderResponseDTO(
@@ -840,6 +780,216 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     }
 
+    // ============================================================================
+    // 📋 MES COMMANDES (profil client)
+    // ============================================================================
+
+    // ---------- getMyOrders : liste "Mes commandes" avec filtres + pagination ----------
+    @Override
+    @Transactional(readOnly = true)
+    public ClientOrderListResponseDTO getMyOrders(String status, String search, int page, int size) {
+        // 1. Employé connecté (client = salarié)
+        Users currentUser = getCurrentUser();
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
+        // 2. Filtre statut : si présent, on parse (ex. "LIVREE" -> OrderStatus.LIVREE) ; invalide = ignoré
+        OrderStatus statusFilter = null;
+        //le but est de convertir le statut en Enum OrderStatus
+        if (status != null && !status.trim().isEmpty()) {
+            try {
+                statusFilter = OrderStatus.valueOf(status.trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) { } //si le statut n'est pas valide, on ignore statusFilter=null
+        }
+        //Normaliser terme de recherche
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        // 3. Récupération paginée (tri du plus récent au plus ancien)
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Order> orderPage = orderRepository.findByEmployeeWithFilters(employee, searchTerm, statusFilter, pageable);
+        List<ClientOrderListItemDTO> dtos = orderPage.getContent().stream()
+                .map(this::mapOrderToClientOrderListItemDTO)
+                .collect(Collectors.toList());
+
+        // 4. Réponse : liste + pagination "X commandes" sur l’écran)
+        ClientOrderListResponseDTO response = new ClientOrderListResponseDTO();
+        response.setOrders(dtos);
+        response.setTotalElements(orderPage.getTotalElements());
+        response.setTotalPages(orderPage.getTotalPages());
+        response.setCurrentPage(orderPage.getNumber());
+        return response;
+    }
+
+    // ---------- getOrderDetails : détail d'une commande (client clique sur une commande) ----------
+    @Override
+    @Transactional(readOnly = true)
+    public ClientOrderDetailsDTO getOrderDetails(Long orderId) {
+        // 1. Employé connecté
+        Users currentUser = getCurrentUser();
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
+        // 2. Charger la commande
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        // 3. Vérifier que la commande appartient à l'employé (sécurité)
+        if (!order.getEmployee().getId().equals(employee.getId())) {
+            throw new RuntimeException("Cette commande ne vous appartient pas");
+        }
+
+        // 4. Construire le DTO détail (timeline, driver si EN_COURS/ARRIVE, rating/canRate si LIVREE)
+        return buildClientOrderDetailsDTO(order);
+    }
+
+    // ----------"Noter le livreur" (bouton après livraison) ----------
+    @Override
+    @Transactional
+    public void submitReview(Long orderId, SubmitReviewDTO reviewDTO) {
+        // 1. Employé connecté
+        Users currentUser = getCurrentUser();
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        // 2. La commande doit appartenir au client
+        if (!order.getEmployee().getId().equals(employee.getId())) {
+            throw new RuntimeException("Cette commande ne vous appartient pas");
+        }
+
+        // 3. On ne note que si la commande est livrée (pas en cours de livraison)
+        if (order.getStatus() != OrderStatus.LIVREE) {
+            throw new RuntimeException("Seule une commande livrée peut être notée");
+        }
+
+        // 4. Une seule note par commande : si déjà noté, on refuse (le client ne peut plus modifier)
+        if (driverReviewRepository.existsByOrderId(orderId)) {
+            throw new RuntimeException("Vous avez déjà noté cette livraison");
+        }
+
+        // 5. Note obligatoire entre 1 et 5
+        if (reviewDTO.getRating() == null || reviewDTO.getRating() < 1 || reviewDTO.getRating() > 5) {
+            throw new RuntimeException("La note doit être entre 1 et 5");
+        }
+
+        // 6. Livreur obligatoire pour lier l'avis à la commande
+        if (order.getDeliveryTour() == null || order.getDeliveryTour().getDriver() == null) {
+            throw new RuntimeException("Impossible d'associer un livreur à cette commande");
+        }
+        Driver driver = order.getDeliveryTour().getDriver();
+
+        // 7. Créer l'avis (tags et comment optionnels)
+        DriverReview review = new DriverReview();
+        review.setOrder(order);
+        review.setDriver(driver);
+        review.setRating(reviewDTO.getRating());//Note donnée par l'employé (Les étoiles)
+        review.setTags(reviewDTO.getTags() != null ? new ArrayList<>(reviewDTO.getTags()) : new ArrayList<>());//Tags donnés par l'employé(Les boutons qu’ils cliquent remplissent la liste)
+        review.setComment(reviewDTO.getComment());//Commentaire donné par l'employé 
+        driverReviewRepository.save(review);
+        log.info("Avis enregistré pour la commande {} (note {}/5)", order.getOrderNumber(), reviewDTO.getRating());
+    }
+
+    /**
+     * Mappe une commande vers un item de la liste "Mes commandes".
+     * - driver : renseigné uniquement si statut = EN_COURS ou ARRIVE (en cours de livraison → afficher nom + téléphone).
+     * - Noter / canRate : si LIVREE, afficher la note si déjà noté, sinon canRate = true (bouton "Noter").
+     */
+    private ClientOrderListItemDTO mapOrderToClientOrderListItemDTO(Order order) {
+        ClientOrderListItemDTO dto = new ClientOrderListItemDTO();
+        dto.setOrderId(order.getId());//ID de la commande
+        dto.setOrderNumber(order.getOrderNumber());//Numéro de la commande
+        dto.setDeliveryAddress(getDeliveryAddressFromOrder(order));//Adresse de livraison
+        dto.setOrderDate(order.getDeliveryDate() != null ? order.getDeliveryDate() : (order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate() : null));//Date de la commande
+        dto.setItemCount(order.getTotalItems() != null ? order.getTotalItems() : 0);//Nombre total d'articles commandés
+        dto.setStatusLabel(order.getStatus() != null ? order.getStatus().getLabel() : "");//Statut de la commande
+
+        // Infos livreur : seulement si En cours de livraison ou Arrivé (sinon null → pas d'affichage)
+        if (order.getStatus() == OrderStatus.EN_COURS || order.getStatus() == OrderStatus.ARRIVE) {
+            dto.setDriver(buildDriverInfoForClient(order));//Informations du livreur
+        } else {
+            dto.setDriver(null);//Pas de livreur
+        }
+
+        // Si commande livrée : afficher les étoiles si déjà noté, sinon canRate = true (bouton "Noter")
+        if (order.getStatus() == OrderStatus.LIVREE) {
+            Optional<DriverReview> existingReview = driverReviewRepository.findByOrder(order);// Récupérer l'avis si déjà noté
+            if (existingReview.isPresent()) {
+                dto.setRating(existingReview.get().getRating());//Note donnée par l'employé
+                dto.setCanRate(false);//Pas de bouton "Noter"
+            } else {
+                dto.setRating(null);//Pas de note
+                dto.setCanRate(true);//Bouton "Noter"
+            }
+        } else {
+            dto.setRating(null);//Pas de note
+            dto.setCanRate(false);//Pas de bouton "Noter"
+        }
+        return dto;
+    }
+
+    // ---------- buildClientOrderDetailsDTO : détail d'une commande (client clique sur une commande) ----------
+    private ClientOrderDetailsDTO buildClientOrderDetailsDTO(Order order) {
+        ClientOrderDetailsDTO dto = new ClientOrderDetailsDTO();
+        dto.setOrderId(order.getId());//ID de la commande
+        dto.setOrderNumber(order.getOrderNumber());//Numéro de la commande
+        dto.setOrderDate(order.getDeliveryDate() != null ? order.getDeliveryDate() : (order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate() : null));//Date de la commande
+        dto.setStatusLabel(order.getStatus() != null ? order.getStatus().getLabel() : "");//Statut de la commande
+        dto.setProductCount(order.getItems() != null ? order.getItems().size() : 0);//Nombre total d'articles commandés
+        dto.setTotalAmount(order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO);//Montant total de la commande
+        dto.setDeliveryAddress(getDeliveryAddressFromOrder(order));//Adresse de livraison
+        dto.setDeliveryDate(order.getDeliveryDate());//Date de livraison
+        dto.setCreatedAt(order.getCreatedAt());//Date de création de la commande
+        dto.setValidatedAt(order.getValidatedAt());//Date de validation de la commande
+        dto.setDeliveryStartedAt(order.getDeliveryStartedAt());//Date de début de livraison
+        dto.setDeliveryArrivedAt(order.getDeliveryArrivedAt());//Date d'arrivée de la commande
+        dto.setDeliveryCompletedAt(order.getDeliveryCompletedAt());//Date de fin de livraison
+        //Liste des articles commandés
+        List<ClientOrderItemDTO> items = new ArrayList<>();
+        //On parcourt la liste des articles commandés et on crée un DTO pour chaque article
+        if (order.getItems() != null) {
+            for (OrderItem oi : order.getItems()) {
+                ClientOrderItemDTO itemDto = new ClientOrderItemDTO();
+                itemDto.setProductName(oi.getProduct() != null ? oi.getProduct().getName() : "");
+                itemDto.setQuantity(oi.getQuantity());
+                itemDto.setUnitPrice(oi.getUnitPrice());
+                itemDto.setImageUrl(oi.getProduct() != null ? oi.getProduct().getImage() : null);
+                items.add(itemDto);
+            }
+        }
+        dto.setItems(items);//Liste des articles commandés
+        // Infos livreur (nom, téléphone) : uniquement si EN_COURS ou ARRIVE. Si statut = Validé seulement → pas d’infos livreur (null).
+        // Les infos de livraison (adresse, date) sont toujours dans le DTO. Les boutons (Noter, Télécharger facture, Réclamation) s’affichent côté UI si statut = Livrée.
+        if (order.getStatus() == OrderStatus.EN_COURS || order.getStatus() == OrderStatus.ARRIVE) {
+            dto.setDriver(buildDriverInfoForClient(order));
+        } else {
+            dto.setDriver(null);
+        }
+    
+        return dto;
+    }
+
+    private DriverInfoForClientDTO buildDriverInfoForClient(Order order) {
+        if (order.getDeliveryTour() == null || order.getDeliveryTour().getDriver() == null) return null;
+        Driver driver = order.getDeliveryTour().getDriver();
+        Users user = driver.getUser();
+        if (user == null) return null;
+        String name = (user.getFirstName() != null ? user.getFirstName() : "") + " " + (user.getLastName() != null ? user.getLastName() : "");
+        return new DriverInfoForClientDTO(name.trim(), user.getPhone(), null);
+    }
+
+    /** Adresse de livraison : on utilise uniquement formattedAddress s'il est présent, sinon null. */
+    private String getDeliveryAddressFromOrder(Order order) {
+        if (order.getEmployee() == null || order.getEmployee().getAddresses() == null || order.getEmployee().getAddresses().isEmpty()) {
+            return null;
+        }
+        Address addr = order.getEmployee().getAddresses().stream()
+                .filter(Address::isPrimary)
+                .findFirst()
+                .orElse(null);
+        if (addr == null) return null;
+        return (addr.getFormattedAddress() != null && !addr.getFormattedAddress().isBlank()) ? addr.getFormattedAddress() : null;
+    }
 
     // ============================================================================
     // 🔧 MÉTHODES UTILITAIRES

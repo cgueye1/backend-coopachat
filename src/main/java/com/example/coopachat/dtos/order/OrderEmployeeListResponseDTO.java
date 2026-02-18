@@ -1,6 +1,8 @@
 package com.example.coopachat.dtos.order;
 
 import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -8,6 +10,8 @@ import java.util.List;
  * DTO de réponse pour la liste paginée des commandes salariés
  * Contient la liste des commandes de la page actuelle et les métadonnées de pagination
  */
+@Data
+@NoArgsConstructor
 @AllArgsConstructor
 public class OrderEmployeeListResponseDTO {
 

@@ -1,19 +1,15 @@
 package com.example.coopachat.dtos.delivery;
 
 import com.example.coopachat.enums.DeliveryTourStatus;
-import com.example.coopachat.enums.TimeSlot;
 import lombok.Data;
 import java.time.LocalDate;
 
-// DTO détails tournée de livraison
 @Data
 public class DeliveryTourDetailsDTO {
 
-    // === INFORMATIONS TOURNÉE ===
-    private String tourNumber;           // TOUR-2024-001
-    private LocalDate deliveryDate;      // 15/01/2024
-    private TimeSlot timeSlot;           // MORNING (Matin)
-    private DeliveryTourStatus status;   // PLANIFIEE
+    private String tourNumber;
+    private LocalDate deliveryDate;
+    private DeliveryTourStatus status;
 
     // === CHAUFFEUR ===
     private String driverName;           // Jean Dupont

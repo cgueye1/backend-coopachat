@@ -8,5 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AvailableDriverDTO {
+    private Long driverId;
     private String fullName; // user.getFirstName() + " " + user.getLastName()
 }

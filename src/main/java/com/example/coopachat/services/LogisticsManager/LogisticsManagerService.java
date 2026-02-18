@@ -5,6 +5,7 @@ import com.example.coopachat.dtos.DeliveryDriver.CancelDeliveryTourDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
+import com.example.coopachat.dtos.order.EligibleOrderLotDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
@@ -14,7 +15,6 @@ import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.enums.DeliveryTourStatus;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.SupplierOrderStatus;
-import com.example.coopachat.enums.TimeSlot;
 import org.springframework.core.io.ByteArrayResource;
 import jakarta.validation.ValidationException;
 
@@ -253,12 +253,19 @@ public interface LogisticsManagerService {
    // ============================================================================
 
     /**
-     * Récupère la liste des commandes éligibles pour une tournée
+     * Récupère la liste des commandes éligibles pour une tournée (par date uniquement).
      * @param deliveryDate Date de livraison (obligatoire)
-     * @param timeSlot Créneau horaire (obligatoire)
      * @return Liste des commandes disponibles
      */
-    List <EligibleOrderDTO> getEligibleOrders (LocalDate deliveryDate, TimeSlot timeSlot );
+    List<EligibleOrderDTO> getEligibleOrders(LocalDate deliveryDate);
+
+    /**
+     * Commandes éligibles groupées par proximité GPS (lots).
+     * @param deliveryDate Date de livraison
+     * @param lotSize Nombre max de commandes par lot
+     * @return Liste de lots (chaque lot : zoneLabel, orderCount, orders)
+     */
+    List <EligibleOrderLotDTO> getGroupedEligibleOrders (LocalDate deliveryDate, int lotSize);
 
 
     /**

@@ -19,7 +19,6 @@ public class DriverDeliveryListItemDTO {
     private String address;//Adresse de livraison
     private Double latitude;//Latitude
     private Double longitude;//Longitude
-    private String timeSlot;//Créneau horaire
     private OrderStatus status;//Statut de la commande
     private Long tourId;//ID de la tournée
 }

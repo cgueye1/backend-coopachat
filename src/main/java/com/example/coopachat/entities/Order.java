@@ -33,6 +33,10 @@ public class Order {
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee; // le salarié concerné
 
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private Users user; // utilisateur connecté (celui qui a passé la commande)
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<OrderItem> items = new ArrayList<>();//Liste des produits concernés
 
@@ -67,4 +71,20 @@ public class Order {
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @UpdateTimestamp
     private LocalDateTime updatedAt; // Date de modification
+
+    /** Heure à laquelle la commande a été validée (mise en tournée par le RL). */
+    @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
+    private LocalDateTime validatedAt;
+
+    /** Heure à laquelle le livreur a démarré la livraison (statut EN_COURS). Affichage heure:minute uniquement. */
+    @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
+    private LocalDateTime deliveryStartedAt;
+
+    /** Heure à laquelle le livreur a confirmé son arrivée sur place (statut ARRIVE). */
+    @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
+    private LocalDateTime deliveryArrivedAt;
+
+    /** Heure à laquelle le colis a été remis au client (statut LIVREE). Affichage heure:minute uniquement. */
+    @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
+    private LocalDateTime deliveryCompletedAt;
 }

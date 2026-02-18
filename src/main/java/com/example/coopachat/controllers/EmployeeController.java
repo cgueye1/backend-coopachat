@@ -5,10 +5,9 @@ import com.example.coopachat.dtos.cart.CartResponseDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
-import com.example.coopachat.dtos.employees.UpdateAddressFromPlaceDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
-import com.example.coopachat.dtos.order.CreateOrderDTO;
-import com.example.coopachat.dtos.order.OrderResponseDTO;
+import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
+import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
 import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
 import com.example.coopachat.services.Employee.EmployeeService;
@@ -202,16 +201,6 @@ public class EmployeeController {
         return ResponseEntity.ok("Adresse modifiée");
     }
 
-    @Operation(
-            summary = "Créer ou modifier une adresse depuis un lieu (carte/autocomplete)",
-            description = "placeId (ID du lieu) obligatoire. Si addressId(ID de l'adresse) fourni : mise à jour de l'adresse. Sinon : création (deliveryMode obligatoire)."
-    )
-    @PostMapping("/adresses/from-place")
-    public ResponseEntity<String> updateAddressFromPlace(@RequestBody @Valid UpdateAddressFromPlaceDTO dto) {
-        employeeService.updateAddressFromPlace(dto);
-        return ResponseEntity.ok("Adresse enregistrée");
-    }
-
     @Operation(summary = "Mes adresses de livraison ", description = "Liste les différentes adresses du salarié")
     @GetMapping("/adresses")
     public ResponseEntity<List<AddressDTO>> getMyAddresses() {
@@ -221,14 +210,63 @@ public class EmployeeController {
     // ============================================================================
     // Commande Salarié🛒
     // ============================================================================
+
+    @Operation(
+            summary = "Lister les options de livraison",
+            description = "Retourne les options de livraison actives (fréquence : Hebdomadaire, etc.) à envoyer comme deliveryOptionId dans POST /orders."
+    )
+    @GetMapping("/delivery-options")
+    public ResponseEntity<List<DeliveryOptionDTO>> getDeliveryOptions() {
+        return ResponseEntity.ok(employeeService.getActiveDeliveryOptions());
+    }
+
     @Operation(
             summary = "Passer une commande",
-            description = "Finalise la commande à partir du panier. Vérifie le stock du produit , applique coupon si disponible et valide, vide le panier."
+            description = "Finalise la commande à partir du panier. Requiert deliveryOptionId (id d'une option renvoyée par GET /delivery-options). couponCode optionnel."
     )
     @PostMapping("/orders")
     public ResponseEntity<OrderResponseDTO> createOrder(@RequestBody CreateOrderDTO dto) {
         OrderResponseDTO order = employeeService.createOrder(dto);
         return ResponseEntity.ok(order);
+    }
+
+    // ============================================================================
+    // 📋 MES COMMANDES (profil client)
+    // ============================================================================
+
+    @Operation(
+            summary = "Mes commandes",
+            description = "Liste les commandes du client avec pagination. Filtres optionnels : status (ex. LIVREE), search (numéro). " +
+                    "Infos livreur si En cours/Arrivé, rating/canRate si Livrée."
+    )
+    @GetMapping("/orders")
+    public ResponseEntity<ClientOrderListResponseDTO> getMyOrders(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(employeeService.getMyOrders(status, search, page, size));
+    }
+
+    @Operation(
+            summary = "Détail d'une commande",
+            description = "Détails d'une commande (client clique sur une commande). Inclut timeline, infos livreur si En cours de livraison, rating/canRate si Livrée."
+    )
+    @GetMapping("/orders/{orderId}")
+    public ResponseEntity<ClientOrderDetailsDTO> getOrderDetails(@PathVariable Long orderId) {
+        return ResponseEntity.ok(employeeService.getOrderDetails(orderId));
+    }
+
+    @Operation(
+            summary = "Noter le livreur",
+            description = "Envoie une note pour une commande livrée (bouton \"Noter le livreur\"). Possible uniquement si statut = LIVREE, pas déjà noté, note 1 à 5. Délai 30 jours après livraison."
+    )
+    @PostMapping("/orders/{orderId}/review")
+    public ResponseEntity<String> submitReview(
+            @PathVariable Long orderId,
+            @RequestBody @Valid SubmitReviewDTO dto) {
+        employeeService.submitReview(orderId, dto);
+        return ResponseEntity.ok("Avis enregistré avec succès");
     }
 
 }

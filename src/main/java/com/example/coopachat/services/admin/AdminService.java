@@ -1,6 +1,13 @@
 package com.example.coopachat.services.admin;
 
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
+import com.example.coopachat.dtos.payment.CreatePaymentMethodDTO;
+import com.example.coopachat.dtos.payment.CreatePaymentTimingDTO;
+import com.example.coopachat.dtos.payment.PaymentMethodDTO;
+import com.example.coopachat.dtos.payment.PaymentTimingDTO;
+import com.example.coopachat.dtos.fee.CreateFeeDTO;
+import com.example.coopachat.dtos.fee.FeeDTO;
+import com.example.coopachat.dtos.fee.UpdateFeeDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
@@ -134,5 +141,20 @@ public interface AdminService {
      */
     List<DeliveryOptionDTO> getAllDeliveryOptions();
 
+    // ============================================================================
+    // 💳 PAIEMENTS (moments + modes)
+    // ============================================================================
 
+    List<PaymentTimingDTO> getAllPaymentTimings();
+    void createPaymentTiming(CreatePaymentTimingDTO dto);
+
+    List<PaymentMethodDTO> getAllPaymentMethods();
+    void createPaymentMethod(CreatePaymentMethodDTO dto);
+
+    // ============================================================================
+    // 💰 FRAIS (paramétrables par l'admin)
+    // ============================================================================
+
+    List<FeeDTO> getAllFees();
+    void createFee(CreateFeeDTO dto);
 }

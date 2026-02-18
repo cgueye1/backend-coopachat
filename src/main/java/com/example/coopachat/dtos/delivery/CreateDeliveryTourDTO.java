@@ -1,6 +1,5 @@
 package com.example.coopachat.dtos.delivery;
 
-import com.example.coopachat.enums.TimeSlot;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,7 +8,6 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.util.List;
 
-// DTO pour créer une tournée
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,9 +16,6 @@ public class CreateDeliveryTourDTO {
     @NotNull(message = "La date de livraison est obligatoire")
     @FutureOrPresent(message = "La date doit être aujourd'hui ou dans le futur")
     private LocalDate deliveryDate;
-
-    @NotNull(message = "Le créneau horaire est obligatoire")
-    private TimeSlot timeSlot;
 
     @NotNull(message = "Le chauffeur est obligatoire")
     private Long driverId;

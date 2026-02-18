@@ -5,6 +5,7 @@ import com.example.coopachat.dtos.DeliveryDriver.CancelDeliveryTourDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
+import com.example.coopachat.dtos.order.EligibleOrderLotDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
@@ -14,7 +15,6 @@ import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.enums.DeliveryTourStatus;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.SupplierOrderStatus;
-import com.example.coopachat.enums.TimeSlot;
 import com.example.coopachat.services.LogisticsManager.LogisticsManagerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -351,15 +351,28 @@ public class LogisticsManagerController {
             summary = "Lister les commandes salariés",
             description = "Récupère la liste paginée des commandes passées par les salariés avec recherche et filtres optionnels."
     )
-    @GetMapping("/employee-orders")
+    @GetMapping(value = "/employee-orders", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OrderEmployeeListResponseDTO> getAllEmployeeOrders(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) OrderStatus status) {
+            @RequestParam(required = false) String status) {
 
-        OrderEmployeeListResponseDTO response = logisticsManagerService.getAllEmployeeOrders(page, size, search, status);
+        OrderStatus orderStatus = parseOrderStatus(status);
+        OrderEmployeeListResponseDTO response = logisticsManagerService.getAllEmployeeOrders(page, size, search, orderStatus);
         return ResponseEntity.ok(response);
+    }
+
+    /** Convertit le paramètre status (optionnel) en OrderStatus. null si vide ou invalide. */
+    private static OrderStatus parseOrderStatus(String status) {
+        if (status == null || status.isBlank() || "--".equals(status.trim())) {
+            return null;
+        }
+        try {
+            return OrderStatus.valueOf(status.trim());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     @Operation(
@@ -379,9 +392,10 @@ public class LogisticsManagerController {
     @GetMapping("/employee-orders/export")
     public ResponseEntity<Resource> exportEmployeeOrders(
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) OrderStatus status) {
+            @RequestParam(required = false) String status) {
 
-        ByteArrayResource resource = logisticsManagerService.exportEmployeeOrders(search, status);
+        OrderStatus orderStatus = parseOrderStatus(status);
+        ByteArrayResource resource = logisticsManagerService.exportEmployeeOrders(search, orderStatus);
         //le nom du fichier
         String fileName = "commandes_salaries_"
                 + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HHmm"))
@@ -399,15 +413,25 @@ public class LogisticsManagerController {
 
     @Operation(
             summary = "Récupérer les commandes éligibles",
-            description = "Retourne la liste des commandes disponibles pour une tournée selon la date et le créneau."
+            description = "Retourne la liste des commandes disponibles pour une tournée selon la date."
     )
     @GetMapping("/delivery-tours/eligible-orders")
     public ResponseEntity<List<EligibleOrderDTO>> getEligibleOrders(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deliveryDate,
-            @RequestParam TimeSlot timeSlot) {
-
-        List<EligibleOrderDTO> orders = logisticsManagerService.getEligibleOrders(deliveryDate, timeSlot);
+            @RequestParam @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate deliveryDate) {
+        List<EligibleOrderDTO> orders = logisticsManagerService.getEligibleOrders(deliveryDate);
         return ResponseEntity.ok(orders);
+    }
+
+    @Operation(
+            summary = "Commandes éligibles groupées par proximité",
+            description = "Retourne les commandes éligibles regroupées en lots par proximité GPS (date + lotSize)."
+    )
+    @GetMapping("/delivery-tours/eligible-orders/grouped")
+    public ResponseEntity<List<EligibleOrderLotDTO>> getGroupedEligibleOrders(
+            @RequestParam @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate deliveryDate,
+            @RequestParam(defaultValue = "5") int lotSize) {
+        List<EligibleOrderLotDTO> lots = logisticsManagerService.getGroupedEligibleOrders(deliveryDate, lotSize);
+        return ResponseEntity.ok(lots);
     }
 
     @Operation(

@@ -8,8 +8,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EligibleOrderDTO {
-    private String orderNumber;
-    private String customerName;
-    /** Zone = ville + quartier de l'adresse de livraison (ex. "Dakar, Mermoz"). */
-    private String zone;
+    private Long orderId; // id de la commande
+    private String orderNumber; // numéro de la commande
+    private String customerName; // nom du client
+    private String formattedAddress; // adresse formatée
 }

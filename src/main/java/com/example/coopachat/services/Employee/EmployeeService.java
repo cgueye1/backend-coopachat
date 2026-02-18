@@ -5,10 +5,8 @@ import com.example.coopachat.dtos.cart.CartResponseDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
-import com.example.coopachat.dtos.employees.UpdateAddressFromPlaceDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
-import com.example.coopachat.dtos.order.CreateOrderDTO;
-import com.example.coopachat.dtos.order.OrderResponseDTO;
+import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
 import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
 
@@ -156,18 +154,44 @@ public interface EmployeeService {
      */
     List<AddressDTO> getMyAddresses();
 
+
+    // ============================================================================
+    // Mes commandes (profil client)
+    // ============================================================================
+
+    /**
+     * Liste des options de livraison actives (pour le formulaire de commande : fréquence Hebdomadaire, etc.).
+     */
+    List<com.example.coopachat.dtos.delivery.DeliveryOptionDTO> getActiveDeliveryOptions();
+
     /**
      * Crée une nouvelle commande à partir du panier de l'utilisateur connecté
-     * @param dto Contient l'option de livraison et le code promo (optionnel)
+     * @param dto Contient l'option de livraison (deliveryOptionId) et le code promo (optionnel)
      * @return Les détails de la commande créée
      */
     OrderResponseDTO createOrder(CreateOrderDTO dto);
 
     /**
-     * Met à jour une adresse à partir d'un lieu
-     * @param dto Données de l'adresse
+     * Liste des commandes du client (salarié connecté), avec filtres optionnels et pagination.
+     * Chaque commande inclut les infos livreur si EN_COURS/ARRIVE, rating/canRate si LIVREE.
+     *
+     * @param status filtre par statut (ex. LIVREE) ou null
+     * @param search recherche sur le numéro de commande ou null
+     * @param page   numéro de page (0-based)
+     * @param size   nombre d'éléments par page
      */
-    void updateAddressFromPlace(UpdateAddressFromPlaceDTO dto);
+    ClientOrderListResponseDTO getMyOrders(String status, String search, int page, int size);
 
+    /**
+     * Détail d'une commande (client clique sur une commande).
+     * Vérifie que la commande appartient à l'employé connecté.
+     * Inclut driver si EN_COURS/ARRIVE, rating/canRate si LIVREE.
+     */
+    ClientOrderDetailsDTO getOrderDetails(Long orderId);
 
+    /**
+     * Envoyer une note pour une commande livrée (bouton "Noter le livreur").
+     * Possible uniquement si statut = LIVREE, pas déjà noté, note 1-5, optionnellement délai 30 jours.
+     */
+    void submitReview(Long orderId, SubmitReviewDTO dto);
 }

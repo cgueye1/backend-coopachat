@@ -4,10 +4,7 @@ import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.CancelDeliveryTourDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.delivery.*;
-import com.example.coopachat.dtos.order.EligibleOrderDTO;
-import com.example.coopachat.dtos.order.OrderEmployeeListItemDTO;
-import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
-import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
+import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.ProductPreviewDTO;
 import com.example.coopachat.dtos.products.ProductStockListItemDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
@@ -15,6 +12,7 @@ import com.example.coopachat.dtos.products.StockStatsDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.entities.*;
+import com.example.coopachat.entities.util.GeoUtil;
 import com.example.coopachat.enums.*;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.auth.EmailService;
@@ -38,7 +36,9 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -1147,42 +1147,30 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         List<OrderEmployeeListItemDTO> orderList = orderPage.getContent().stream()
                 .map(order -> {
 
-                    // À ce stade, on est sur UNE commande
-                    // On récupère la liste des articles qui la composent
-                    List<String> products = order.getItems().stream()
-                            // Pour chaque article de la commande,
-                            // on récupère uniquement le nom du produit
-                            // Exemple : ["Riz", "Lait", "Sucre", "Huile"]
+                    // Liste des noms de produits (items ou product peuvent être null)
+                    List<OrderItem> items = order.getItems() != null ? order.getItems() : new ArrayList<OrderItem>();
+                    List<String> products = items.stream()
+                            .filter(item -> item.getProduct() != null)
                             .map(item -> item.getProduct().getName())
                             .collect(Collectors.toList());
 
-                    // Maintenant, on prépare une version "résumée" pour l’affichage
-                    // Objectif : ne pas surcharger la liste côté front
-                    //
-                    // Exemples :
-                    // - 4 produits → ["Riz", "Lait", "+2"]
-                    // - 3 produits → ["Riz", "Lait", "+1"]
-                    // - 2 produits → ["Riz", "Lait"]
-                    // - 1 produit  → ["Riz"]
                     List<String> display = products.size() > 2
-                            // S’il y a plus de 2 produits :
-                            // → on affiche les 2 premiers
-                            // → on ajoute "+X" (X = nombre de produits restants)
                             ? Arrays.asList(products.get(0), products.get(1), "+" + (products.size() - 2))
-                            // Sinon (2 produits ou moins), on affiche directement tous les produits
                             : products;
 
-                    // À ce stade, toutes les informations nécessaires sont prêtes
-                    // On construit l’objet DTO final à envoyer au front
+                    String deliveryFrequency = (order.getDeliveryOption() != null && order.getDeliveryOption().getName() != null)
+                            ? order.getDeliveryOption().getName()
+                            : "—";
+
                     return new OrderEmployeeListItemDTO(
                             order.getId(),
-                            order.getOrderNumber(), // Ex : "CMD-0012"
+                            order.getOrderNumber(),
                             order.getEmployee().getUser().getFirstName() + " "
                                     + order.getEmployee().getUser().getLastName(),
-                            order.getCreatedAt().toLocalDate(),
-                            display, // Ex : ["Riz", "Lait", "+2"]
-                            order.getDeliveryOption().getName(), // Ex : "Quotidienne"
-                            order.getStatus().getLabel() // Ex : "En attente"
+                            order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate() : null,
+                            display,
+                            deliveryFrequency,
+                            order.getStatus().getLabel()
                     );
                 })
                 // Ici, on termine le parcours et on récupère la liste finale des DTO
@@ -1346,88 +1334,145 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // ============================================================================
     // 🚚 GESTION DES TOURNÉES DE LIVRAISON
     // ============================================================================
+
+    /** Filtre : date + EN_ATTENTE + employé actif + pas en tournée. Retourne les Order pour liste ou regroupement. */
+    private List<Order> filterEligibleOrders(LocalDate deliveryDate) {
+        return orderRepository.findEligibleOrdersForDate(deliveryDate, OrderStatus.EN_ATTENTE);
+    }
+
     @Override
-    public List<EligibleOrderDTO> getEligibleOrders(LocalDate deliveryDate, TimeSlot timeSlot) {
-
-        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
+    public List<EligibleOrderDTO> getEligibleOrders(LocalDate deliveryDate) {
         Users user = getCurrentUser();
-
         if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
             throw new RuntimeException("Seul un responsable logistique peut consulter les commandes éligibles");
         }
-        //FILTRAGE DES COMMANDES
-        return orderRepository.findAll().stream()
-                .filter(order -> {
-                    // 1. Statut EN_ATTENTE seulement
-                    if (order.getStatus() != OrderStatus.EN_ATTENTE) {
-                        return false;
-                    }
-                    // 2. Si la date de livraison n'est la même que la date de la commande on prend pas
-                    if (!deliveryDate.equals(order.getDeliveryDate())) {
-                        return false;
-                    }
-                    // 3. Créneau (via EmployeeDeliveryPreference la relation one to one)
-                    if (timeSlot != null) {//Si le créneau horaire n'est pas null on vérifie que le créneau horaire de l'employé correspond au créneau horaire de la commande sinon on prend pas
-                        if (order.getEmployee() == null ||
-                                order.getEmployee().getEmployeeDeliveryPreference() == null ||
-                                order.getEmployee().getEmployeeDeliveryPreference().getPreferredTimeSlot() == null ||
-                                !order.getEmployee().getEmployeeDeliveryPreference().getPreferredTimeSlot().cover(timeSlot)) {
-                            return false;
-                        }
+        return filterEligibleOrders(deliveryDate).stream()
+                .map(this::mapToEligibleOrderDTO)
+                .toList();
+    }
 
-                    }
-                    // 4. Employee actif (si l'employé n'est pas actif on prend pas)
-                    if (order.getEmployee() == null || !order.getEmployee().getUser().getIsActive()) {
-                        return false;
-                    }
-                    // 5. Pas déjà dans une tournée
-                    // On vérifie que la commande n'est pas déjà assignée à une tournée existante
-                    // deliveryTour == null → la commande est libre (true = garder)
-                    // deliveryTour != null → la commande est déjà dans une tournée (false = rejeter)
-                    return order.getDeliveryTour() == null;
+    @Override
+    public List<EligibleOrderLotDTO> getGroupedEligibleOrders(LocalDate deliveryDate, int lotSize) {
 
-                }).map(order -> {
-                    String customerName = order.getEmployee().getUser().getFirstName() + " " +
-                            order.getEmployee().getUser().getLastName();
-                    String zone = buildZoneFromDeliveryAddress(order.getEmployee());
-                    return new EligibleOrderDTO(
-                            order.getOrderNumber(),
-                            customerName,
-                            zone
+        // On récupère l'utilisateur connecté
+        Users user = getCurrentUser();
+
+        // On vérifie que seul le responsable logistique peut accéder à cette méthode
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter les commandes éligibles groupées");
+        }
+
+        // ------------------------------------------------------------
+        // ETAPE 1 : Récupérer les commandes éligibles depuis la base
+        // ------------------------------------------------------------
+        // Cette méthode appelle le repository et retourne les commandes qui respectent :
+        // - deliveryDate = date demandée
+        // - status = EN_ATTENTE
+        // - employé actif
+        // - pas encore affectées à une tournée
+
+        List<Order> eligible = filterEligibleOrders(deliveryDate);
+
+        // ------------------------------------------------------------
+        // ETAPE 2 : Regrouper les commandes par proximité GPS
+        // ------------------------------------------------------------
+
+        List<List<Order>> lots = groupOrdersByProximity(eligible, lotSize);
+
+        // Exemple si lotSize = 3 :
+        //
+        // lots =
+        // [
+        //   [O1, O2, O3],   // Lot 1 (Plateau +Pikine)
+        //   [O4, O5]        // Lot 2 (Yeumbeul)
+        // ]
+
+        // Liste finale des DTO qui sera retournée au frontend
+        List<EligibleOrderLotDTO> result = new ArrayList<>();
+
+        // ------------------------------------------------------------
+        // ETAPE 3 : Transformer chaque lot en DTO
+        // ------------------------------------------------------------
+        for (int i = 0; i < lots.size(); i++) {
+
+            // Récupérer les commandes du lot courant
+            List<Order> lotOrders = lots.get(i);
+
+            // Exemple :
+            // i = 0
+            // lotOrders = [O1, O2, O3]
+
+            // ------------------------------------------------------------
+            // ETAPE 4 : Créer un nom de zone pour le lot
+            // ------------------------------------------------------------
+
+            // Nom par défaut :
+            String zoneLabel = "Lot " + (i + 1);
+
+            // Exemple :
+            // zoneLabel = "Lot 1"
+
+            // ------------------------------------------------------------
+            // ETAPE 5 : Convertir les commandes en DTO
+            // ------------------------------------------------------------
+
+            // Chaque Order devient EligibleOrderDTO
+
+            // Exemple conversion :
+            //
+            // O1 →
+            // EligibleOrderDTO {
+            //    orderId = 1
+            //    orderNumber = "CMD001"
+            //    customerName = "Sokhna Faye"
+            //    formattedAddress = "sacréCoeur,Dakar"
+            // }
+
+            List<EligibleOrderDTO> orderDTOs =
+                    lotOrders.stream()
+                            .map(this::mapToEligibleOrderDTO)
+                            .toList();
+
+
+            // ------------------------------------------------------------
+            // ETAPE 6 : Créer le DTO du lot
+            // ------------------------------------------------------------
+
+            EligibleOrderLotDTO lotDTO =
+                    new EligibleOrderLotDTO(
+                            i + 1,             // numéro du lot (1, 2, 3...)
+                            lotOrders.size(),  // nombre de commandes
+                            orderDTOs,        // liste des commandes DTO
+                            zoneLabel         // nom de zone pour affichage (ex. "Lot 1")
                     );
-                }).toList();
 
+            // Ajouter à la liste finale
+            result.add(lotDTO);
+        }
+
+        // ------------------------------------------------------------
+        // ETAPE 7 : Retourner le résultat final au controller
+        // ------------------------------------------------------------
+
+        // Exemple résultat final :
+        //
+        // result =
+        // [
+        //   {
+        //     lotNumber: 1,
+        //     orderCount: 3,
+        //     orders: [...]
+        //   },
+        //   {
+        //     lotNumber: 2,
+        //     orderCount: 2,
+        //     orders: [...]
+        //   }
+        // ]
+
+        return result;
     }
 
-    /**
-     * Construit la zone (ville + quartier) à partir de l'adresse principale de l'employé.
-     * Utilisé pour afficher la zone de chaque commande éligible dans la liste du RL.
-     *
-     * @param employee l'employé dont on veut la zone de livraison
-     * @return "ville, quartier" si les deux sont renseignés, sinon la ville ou le quartier seul, ou null
-     */
-    private String buildZoneFromDeliveryAddress(Employee employee) {
-        // Pas d'adresse → pas de zone
-        if (employee == null || employee.getAddresses() == null || employee.getAddresses().isEmpty()) {
-            return null;
-        }
-        // On ne prend que l'adresse marquée comme principale
-        Address addr = employee.getAddresses().stream()
-                .filter(Address::isPrimary)
-                .findFirst()
-                .orElse(null);
-        if (addr == null) return null;
-
-        String city = addr.getCity();
-        String district = addr.getDistrict();
-        // Ville et quartier → "Dakar, Mermoz"
-        if (city != null && !city.isBlank() && district != null && !district.isBlank()) {
-            return city + ", " + district;
-        }
-        if (city != null && !city.isBlank()) return city;
-        if (district != null && !district.isBlank()) return district;
-        return null;
-    }
 
     @Override
     public List<AvailableDriverDTO> getAvailableDrivers() {
@@ -1443,7 +1488,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 .filter(driver -> driver.getUser() != null && driver.getUser().getIsActive())
                 .map(driver -> {
                     String fullName = driver.getUser().getFirstName() + " " + driver.getUser().getLastName();
-                    return new AvailableDriverDTO(fullName);
+                    return new AvailableDriverDTO(driver.getId(), fullName);
                 })
                 .toList();
     }
@@ -1476,19 +1521,22 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
         // Informations de base
         tour.setDeliveryDate(dto.getDeliveryDate());
-        tour.setTimeSlot(dto.getTimeSlot());
         tour.setDriver(driver);
         tour.setVehicleTypePlate(dto.getVehicleType());
         tour.setCreatedBy(currentUser);
+        tour.setUpdatedBy(currentUser);
         tour.setNotes(dto.getNotes());
-        tour.setStatus(DeliveryTourStatus.PLANIFIEE);
+        // Tournée directement assignée au livreur (pas de brouillon PLANIFIEE)
+        tour.setStatus(DeliveryTourStatus.ASSIGNEE);
 
         // 5. SAUVEGARDE
         DeliveryTour savedTour = deliveryTourRepository.save(tour);
 
-        // 6. ASSIGNATION DES COMMANDES
-        for(Order order: orders){
+        // 6. ASSIGNATION DES COMMANDES + passage en VALIDEE (RL valide en les mettant dans la tournée)
+        for (Order order : orders) {
             order.setDeliveryTour(savedTour);
+            order.setStatus(OrderStatus.VALIDEE);
+            order.setValidatedAt(LocalDateTime.now());
             orderRepository.save(order);
         }
 
@@ -1511,10 +1559,8 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         DeliveryTour deliveryTour = deliveryTourRepository.findById(tourId).orElseThrow(()->new RuntimeException("Tournée introuvable"));
 
         DeliveryTourDetailsDTO dto = new DeliveryTourDetailsDTO();
-        // Tournée
         dto.setTourNumber(deliveryTour.getTourNumber());
         dto.setDeliveryDate(deliveryTour.getDeliveryDate());
-        dto.setTimeSlot(deliveryTour.getTimeSlot());
         dto.setStatus(deliveryTour.getStatus());
 
         // Chauffeur
@@ -1682,15 +1728,13 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             headerFont.setBold(true);
             headerStyle.setFont(headerFont);
 
-            // Colonnes (adaptées à DeliveryTourListDTO)
             String[] headers = {
-                    "N° Tournée",           // tour.getTourNumber()
-                    "Date livraison",       // tour.getDeliveryDate()
-                    "Créneau",              // tour.getTimeSlot().getDisplayName()
-                    "Chauffeur",            // Nom complet chauffeur
-                    "Véhicule",             // Type/Plaque
-                    "Nb commandes",         // tour.getOrders().size()
-                    "Statut"                // tour.getStatus().getDisplayName()
+                    "N° Tournée",
+                    "Date livraison",
+                    "Chauffeur",
+                    "Véhicule",
+                    "Nb commandes",
+                    "Statut"
             };
 
             // Création ligne en-tête
@@ -1715,33 +1759,27 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                                 tour.getDeliveryDate().toString() : "Non définie"
                 );
 
-                // Créneau (colonne 2)
-                row.createCell(2).setCellValue(
-                        tour.getTimeSlot() != null ?
-                                tour.getTimeSlot().getDisplayName() : "Non défini"
-                );
-
-                // Chauffeur (colonne 3)
+                // Chauffeur (colonne 2)
                 String driverName = "Non assigné";
                 if (tour.getDriver() != null && tour.getDriver().getUser() != null) {
                     Users driverUser = tour.getDriver().getUser();
                     driverName = driverUser.getFirstName() + " " + driverUser.getLastName();
                 }
-                row.createCell(3).setCellValue(driverName);
+                row.createCell(2).setCellValue(driverName);
 
-                // Véhicule (colonne 4)
+                // Véhicule (colonne 3)
                 String vehicleInfo = "Non spécifié";
                 if (tour.getVehicleTypePlate() != null) {
                     vehicleInfo = tour.getVehicleTypePlate();
                 }
-                row.createCell(4).setCellValue(vehicleInfo);
+                row.createCell(3).setCellValue(vehicleInfo);
 
-                // Nb commandes (colonne 5)
+                // Nb commandes (colonne 4)
                 int orderCount = tour.getOrders() != null ? tour.getOrders().size() : 0;
-                row.createCell(5).setCellValue(orderCount);
+                row.createCell(4).setCellValue(orderCount);
 
-                // Statut (colonne 6)
-                row.createCell(6).setCellValue(tour.getStatus().getDisplayName());
+                // Statut (colonne 5)
+                row.createCell(5).setCellValue(tour.getStatus().getDisplayName());
             }
 
             // Augmente la largeur de la colonne 'i' pour que tout son contenu soit visible
@@ -1791,6 +1829,130 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         );
     }
 
+
+    /** Mappe une commande vers le DTO (orderId, orderNumber, customerName, formattedAddress). */
+    private EligibleOrderDTO mapToEligibleOrderDTO(Order order) {
+        String customerName = order.getEmployee() != null && order.getEmployee().getUser() != null
+                ? order.getEmployee().getUser().getFirstName() + " " + order.getEmployee().getUser().getLastName()
+                : "";
+        Address addr = getPrimaryAddress(order.getEmployee());
+        String formattedAddress = (addr != null && addr.getFormattedAddress() != null && !addr.getFormattedAddress().isBlank())
+                ? addr.getFormattedAddress() : null;
+        return new EligibleOrderDTO(
+                order.getId(),
+                order.getOrderNumber(),
+                customerName,
+                formattedAddress
+        );
+    }
+
+    /**
+     *
+     * On commence avec une commande comme “graine” du lot → calcule le centre du lot → ajoute la commande restante la plus proche → recalcul du centre → répète jusqu’à remplir le lot.
+     * Les commandes sans lat/lng sont ignorées (adresse obligatoire à la commande prévue plus tard).
+     *
+     * Exemple :
+     *   Orders = [O1, O2, O3, O4, O5]
+     *   LotSize = 3
+     *   Après regroupement :
+     *      Lot 1 = [O1, O2, O3]
+     *      Lot 2 = [O4, O5]
+     */
+    private List<List<Order>> groupOrdersByProximity(List<Order> orders, int lotSize) {
+        if (orders == null || orders.isEmpty() || lotSize <= 0) {
+            return new ArrayList<>(); // Si pas de commandes ou lotSize <= 0, retourne vide
+        }
+
+        // Tri des commandes par ID pour un ordre stable
+        // Exemple : sorted = [O1, O2, O3, O4, O5]
+        List<Order> sorted = orders.stream()
+                .sorted(Comparator.comparing(Order::getId))
+                .toList();
+
+        // Filtrer uniquement les commandes avec adresse principale et lat/lng
+        List<Order> remaining = new ArrayList<>(); // variable qui va garder ces commandes valides
+        for (Order o : sorted) {
+            Address addr = getPrimaryAddress(o.getEmployee());
+            if (addr != null && addr.getLatitude() != null && addr.getLongitude() != null) {
+                remaining.add(o);
+            }
+        }
+        // Exemple : remaining = [O1, O2, O3, O4, O5] si toutes ont lat/lng
+
+        List<List<Order>> lots = new ArrayList<>(); // variable qui va stocker les lots
+        while (!remaining.isEmpty()) { // Tant qu'il reste des commandes à traiter
+
+            // --- Création d'un nouveau lot ---
+            List<Order> lot = new ArrayList<>(); // nouveau lot vide
+            lot.add(remaining.remove(0)); // on prend la première commande comme "graine"
+            // Exemple : lot = [O1], remaining = [O2, O3, O4, O5]
+
+            // --- Remplissage du lot ---
+            // Tant que le lot n'est pas plein et qu'il reste des commandes
+            while (lot.size() < lotSize && !remaining.isEmpty()) {
+
+                // --- Calcul du centre du lot ---
+                // Centre = moyenne des latitudes et longitudes des commandes dans le lot
+                double centerLat = lot.stream()
+                        .mapToDouble(o -> getPrimaryAddress(o.getEmployee()).getLatitude().doubleValue())
+                        .average().orElse(0);
+                double centerLng = lot.stream()
+                        .mapToDouble(o -> getPrimaryAddress(o.getEmployee()).getLongitude().doubleValue())
+                        .average().orElse(0);
+                // Exemple : si lot = [O1, O2]
+                // centerLat = (O1.lat + O2.lat)/2
+                // centerLng = (O1.lng + O2.lng)/2
+
+                // --- Chercher la commande la plus proche du centre ---
+                Order nearest = null;               // commande la plus proche
+                double minDist = Double.MAX_VALUE;  // distance minimale initiale
+                int nearestIndex = -1;              // index de la commande la plus proche dans 'remaining'
+
+                for (int i = 0; i < remaining.size(); i++) {
+                    Order c = remaining.get(i); // commande courante
+                    Address a = getPrimaryAddress(c.getEmployee());
+                    double d = GeoUtil.calculateDistanceKm(
+                            centerLat, centerLng,
+                            a.getLatitude().doubleValue(), a.getLongitude().doubleValue());
+                    if (d < minDist) { // Si plus proche que toutes les précédentes
+                        minDist = d;      // mise à jour de la distance minimale
+                        nearest = c;      // on garde la commande la plus proche
+                        nearestIndex = i; // son index pour suppression après ajout
+                    }
+                }
+
+                lot.add(nearest);                 // Ajouter la commande la plus proche au lot
+                remaining.remove(nearestIndex);   // Retirer la commande de remaining
+                // Exemple : lot = [O1, O2], remaining = [O3, O4, O5] → après ajout O3 :
+                // lot = [O1, O2, O3], remaining = [O4, O5]
+            }
+
+            lots.add(lot); // Ajouter le lot complet à la liste des lots
+            // Exemple après 1er lot : lots = [[O1, O2, O3]], remaining = [O4, O5]
+        }
+
+        // Exemple final pour lotSize = 3 :
+        // lots = [
+        //   [O1, O2, O3],
+        //   [O4, O5]
+        // ]
+        return lots;
+    }
+
+    /**
+     * Retourne l'adresse principale de l'employé (livraison).
+     * Utilisée pour lat/lng et formattedAddress des commandes éligibles.
+     */
+    private Address getPrimaryAddress(Employee employee) {
+        if (employee == null || employee.getAddresses() == null || employee.getAddresses().isEmpty()) {
+            return null;
+        }
+        return employee.getAddresses().stream()
+                .filter(Address::isPrimary)
+                .findFirst()
+                .orElse(employee.getAddresses().get(0));
+    }
+
     // ============================================================================
     // Méthodes utilitaires
     // ============================================================================
@@ -1800,7 +1962,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // 1. Informations tournée
         dto.setTourNumber(deliveryTour.getTourNumber());
         dto.setDeliveryDate(deliveryTour.getDeliveryDate());
-        dto.setTimeSlot(deliveryTour.getTimeSlot());
 
         // 2. Chauffeur
         if (deliveryTour.getDriver() != null && deliveryTour.getDriver().getUser() != null) {

@@ -1,6 +1,5 @@
-package com.example.coopachat.dtos.employees;
+package com.example.coopachat.dtos.DeliveryDriver;
 
-import com.example.coopachat.enums.DeliveryMode;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -10,19 +9,13 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 
 /**
- * DTO pour créer ou mettre à jour une adresse.
- * Type (Domicile/Bureau/Autre) + adresse formatée Google + lat/long.
+ * Adresse du livreur : uniquement formattedAddress + lat/long (pas de mode ni isPrimary).
+ * Le mobile remplit via Google Places puis envoie au back.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class AddressDTO {
-
-    /** Pour la réponse getMyAddresses (null en création). */
-    private Long id;
-
-    @NotNull(message = "Le type d'adresse est obligatoire")
-    private DeliveryMode deliveryMode;
+public class DriverAddressDTO {
 
     @NotBlank(message = "L'adresse est obligatoire")
     private String formattedAddress;
@@ -32,6 +25,4 @@ public class AddressDTO {
 
     @NotNull(message = "La longitude est obligatoire")
     private BigDecimal longitude;
-
-    private boolean primary = false;
 }
