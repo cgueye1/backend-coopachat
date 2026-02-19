@@ -285,10 +285,10 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         String deliveryAddress = getDeliveryAddressFromOrder(order);
 
         // 9. Construire le DTO avec toutes les infos + timeline (createdAt, deliveryStartedAt, etc.)
-        BigDecimal productsTotal = order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;
-        BigDecimal deliveryAmount = feeService.calculateTotalFees();
-        if (deliveryAmount == null) deliveryAmount = BigDecimal.ZERO;
-        BigDecimal totalToReceive = productsTotal.add(deliveryAmount);
+        BigDecimal productsTotal = order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;//On récupère le sous-total de la commande
+        BigDecimal deliveryAmount = feeService.calculateTotalFees();//On calcule les frais de service
+        if (deliveryAmount == null) deliveryAmount = BigDecimal.ZERO;//Si les frais de service sont nuls, on met 0
+        BigDecimal totalToReceive = productsTotal.add(deliveryAmount);//On calcule le total à percevoir
 
         OrderDetailsForDriverDTO dto = new OrderDetailsForDriverDTO();
         dto.setOrderNumber(order.getOrderNumber());
