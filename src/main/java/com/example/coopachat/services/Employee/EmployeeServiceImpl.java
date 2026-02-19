@@ -13,11 +13,10 @@ import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.*;
 import com.example.coopachat.entities.*;
+import com.example.coopachat.enums.*;
 import com.example.coopachat.exceptions.ResourceNotFoundException;
-import com.example.coopachat.enums.CouponStatus;
-import com.example.coopachat.enums.DiscountType;
-import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.repositories.*;
+import com.example.coopachat.services.fee.FeeService;
 import com.example.coopachat.services.geocoding.PlacesService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,10 +34,8 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.ArrayList;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -64,7 +61,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final DeliveryOptionRepository deliveryOptionRepository;
     private final PlacesService placesService;
     private final DriverReviewRepository driverReviewRepository;
-
+    private final FeeService feeService;
+    private final PaymentRepository paymentRepository;
 
     // ============================================================================
     // 🏠 ACCUEIL SALARIÉ
@@ -842,6 +840,132 @@ public class EmployeeServiceImpl implements EmployeeService {
         return buildClientOrderDetailsDTO(order);
     }
 
+    // ---------- getPaymentInfo : infos paiement pour l'écran "Payer la facture" ----------
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentInfoDTO getPaymentInfo(Long orderId) {
+        Users currentUser = getCurrentUser();
+
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        if (!order.getEmployee().getId().equals(employee.getId())) {
+            throw new RuntimeException("Cette commande ne vous appartient pas");
+        }
+
+        //on récupère le sous-total de la commande
+        BigDecimal subtotal = order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;
+        //on récupère les frais de service
+        BigDecimal serviceFee = feeService.calculateTotalFees();
+        if (serviceFee == null) serviceFee = BigDecimal.ZERO;
+        //on calcule le total de la commande
+        BigDecimal total = subtotal.add(serviceFee);
+
+        //on récupère le statut de paiement
+        String paymentStatus = order.getPayment() != null && order.getPayment().getStatus() != null
+                ? order.getPayment().getStatus().getLabel()
+                : PaymentStatus.UNPAID.getLabel();
+
+        return new PaymentInfoDTO(
+                order.getOrderNumber(),
+                order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate() : null,
+                order.getItems() != null ? order.getItems().size() : 0,
+                subtotal,
+                serviceFee,
+                total,
+                paymentStatus
+        );
+    }
+
+    //---------------------- Traite un paiement (simulation) pour une commande-----------
+    @Override
+    @Transactional
+    public PaymentResponseDTO processPayment(Long orderId, ProcessPaymentDTO request) {
+        Users currentUser = getCurrentUser();
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        if (!order.getEmployee().getId().equals(employee.getId())) {
+            throw new RuntimeException("Cette commande ne vous appartient pas");
+        }
+        if (order.getPayment() != null && order.getPayment().getStatus() == PaymentStatus.PAID) {
+            throw new RuntimeException("Cette commande est déjà payée");
+        }
+        if (order.getStatus() == OrderStatus.EN_ATTENTE) {
+            throw new RuntimeException("Votre commande n'est pas encore validée");
+        }
+        if (request.getPaymentMethod() == null || request.getPaymentTiming() == null) {
+            throw new RuntimeException("La méthode et le moment de paiement sont obligatoires");
+        }
+
+        //on crée un nouveau paiement
+        Payment payment = new Payment();
+        payment.setOrder(order);
+        payment.setPaymentMethod(request.getPaymentMethod());
+        payment.setPaymentTiming(request.getPaymentTiming());
+
+        //on vérifie si le paiement est par mobile money ou par carte bancaire
+        if (request.getPaymentMethod() == PaymentMethodType.MOBILE_MONEY) {
+            //on vérifie si l'opérateur de mobile money est choisi
+            if (request.getMobileOperator() == null) {
+                throw new RuntimeException("Veuillez choisir un opérateur Mobile Money");
+            }
+            payment.setMobileOperator(request.getMobileOperator());
+            log.info("💰 SIMULATION paiement {} pour commande {}",
+                    request.getMobileOperator().getLabel(), order.getOrderNumber());
+
+        } //si le paiement est par carte bancaire
+        else if (request.getPaymentMethod() == PaymentMethodType.CREDIT_CARD) {
+            //on vérifie si le numéro de carte est valide
+            //replaceAll("\\s", "") => remplace tous les espaces par une chaîne vide
+            //matches("\\d{16}") => vérifie si le numéro de carte est composé de 16 chiffres
+            if (request.getCardNumber() == null ||
+                    !request.getCardNumber().replaceAll("\\s", "").matches("\\d{16}")) {
+                throw new RuntimeException("Numéro de carte invalide (16 chiffres requis)");
+            }
+
+            //on vérifie si la date d'expiration est valide
+            //matches("(0[1-9]|1[0-2])/\\d{2}") => vérifie si la date d'expiration est composée d'un mois (01-12) et d'une année (2 chiffres)
+            if (request.getCardExpiry() == null ||
+                    !request.getCardExpiry().matches("(0[1-9]|1[0-2])/\\d{2}")) {
+                throw new RuntimeException("Date d'expiration invalide (format MM/AA)");
+            }
+            //on vérifie si le CVV est valide
+            //matches("\\d{3}") => vérifie si le CVV est composé de 3 chiffres
+            if (request.getCardCvv() == null || !request.getCardCvv().matches("\\d{3}")) {
+                throw new RuntimeException("CVV invalide (3 chiffres requis)");
+            }
+            log.info("💳 SIMULATION paiement carte pour commande {}", order.getOrderNumber());
+        }
+
+        String transactionRef = generateTransactionReference();//Ref de la transaction
+        payment.setStatus(PaymentStatus.PAID);
+        payment.setTransactionReference(transactionRef);
+        payment.setPaidAt(LocalDateTime.now());
+        Payment savedPayment = paymentRepository.save(payment);
+        order.setPayment(savedPayment);
+
+        BigDecimal subtotal = order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;
+        BigDecimal serviceFee = feeService.calculateTotalFees();
+        if (serviceFee == null) serviceFee = BigDecimal.ZERO;
+        BigDecimal totalPaid = subtotal.add(serviceFee);
+
+        log.info("✅ Paiement simulé avec succès - Ref: {}", transactionRef);
+        return new PaymentResponseDTO(
+                true,
+                "Paiement simulé avec succès !",
+                transactionRef,
+                savedPayment.getPaidAt(),
+                totalPaid
+        );
+    }
+
     // ----------"Noter le livreur" (bouton après livraison) ----------
     @Override
     @Transactional
@@ -890,6 +1014,67 @@ public class EmployeeServiceImpl implements EmployeeService {
         log.info("Avis enregistré pour la commande {} (note {}/5)", order.getOrderNumber(), reviewDTO.getRating());
     }
 
+    // ---------- buildClientOrderDetailsDTO : détail d'une commande (client clique sur une commande) ----------
+    private ClientOrderDetailsDTO buildClientOrderDetailsDTO(Order order) {
+        ClientOrderDetailsDTO dto = new ClientOrderDetailsDTO();
+        dto.setOrderId(order.getId());//ID de la commande
+        dto.setOrderNumber(order.getOrderNumber());//Numéro de la commande
+        dto.setOrderDate(order.getDeliveryDate() != null ? order.getDeliveryDate() : (order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate() : null));//Date de la commande
+        dto.setStatusLabel(order.getStatus() != null ? order.getStatus().getLabel() : "");//Statut de la commande
+        dto.setProductCount(order.getItems() != null ? order.getItems().size() : 0);//Nombre total d'articles commandés
+        dto.setTotalAmount(order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO);//Montant total de la commande
+        dto.setDeliveryAddress(getDeliveryAddressFromOrder(order));//Adresse de livraison
+        dto.setDeliveryDate(order.getDeliveryDate());//Date de livraison
+        dto.setCreatedAt(order.getCreatedAt());//Date de création de la commande
+        dto.setValidatedAt(order.getValidatedAt());//Date de validation de la commande
+        dto.setDeliveryStartedAt(order.getDeliveryStartedAt());//Date de début de livraison
+        dto.setDeliveryArrivedAt(order.getDeliveryArrivedAt());//Date d'arrivée de la commande
+        dto.setDeliveryCompletedAt(order.getDeliveryCompletedAt());//Date de fin de livraison
+        //Liste des articles commandés
+        List<ClientOrderItemDTO> items = new ArrayList<>();
+        //On parcourt la liste des articles commandés et on crée un DTO pour chaque article
+        if (order.getItems() != null) {
+            for (OrderItem oi : order.getItems()) {
+                ClientOrderItemDTO itemDto = new ClientOrderItemDTO();
+                itemDto.setProductName(oi.getProduct() != null ? oi.getProduct().getName() : "");
+                itemDto.setQuantity(oi.getQuantity());
+                itemDto.setUnitPrice(oi.getUnitPrice());
+                itemDto.setImageUrl(oi.getProduct() != null ? oi.getProduct().getImage() : null);
+                items.add(itemDto);
+            }
+        }
+        dto.setItems(items);//Liste des articles commandés
+        // Infos livreur (nom, téléphone) : uniquement si EN_COURS ou ARRIVE. Si statut = Validé seulement → pas d’infos livreur (null).
+        // Les infos de livraison (adresse, date) sont toujours dans le DTO. Les boutons (Noter, Télécharger facture, Réclamation) s’affichent côté UI si statut = Livrée.
+        if (order.getStatus() == OrderStatus.EN_COURS || order.getStatus() == OrderStatus.ARRIVE) {
+            dto.setDriver(buildDriverInfoForClient(order));
+        } else {
+            dto.setDriver(null);
+        }
+        //Les infos du paiement 
+        dto.setPaymentTimingType(order.getPayment().getPaymentTiming().getLabel());
+        dto.setPaymentStatusLabel(order.getPayment().getStatus().getLabel());
+        return dto;
+    }
+
+    // ============================================================================
+    // 🔧 MÉTHODES UTILITAIRES
+    // ============================================================================
+
+    // ════════════════════════════════════════════
+    // Génération Référence de  paiement 
+    // ════════════════════════════════════════════
+
+    private String generateTransactionReference() { 
+        String date = LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        //on génère un UUID unique en faisant un substring de 6 caractères et en mettant en majuscule
+        String unique = UUID.randomUUID()
+                .toString()
+                .substring(0, 6)
+                .toUpperCase();
+        return "TXN-" + date + "-" + unique;
+    }
     /**
      * Mappe une commande vers un item de la liste "Mes commandes".
      * - driver : renseigné uniquement si statut = EN_COURS ou ARRIVE (en cours de livraison → afficher nom + téléphone).
@@ -928,47 +1113,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         return dto;
     }
 
-    // ---------- buildClientOrderDetailsDTO : détail d'une commande (client clique sur une commande) ----------
-    private ClientOrderDetailsDTO buildClientOrderDetailsDTO(Order order) {
-        ClientOrderDetailsDTO dto = new ClientOrderDetailsDTO();
-        dto.setOrderId(order.getId());//ID de la commande
-        dto.setOrderNumber(order.getOrderNumber());//Numéro de la commande
-        dto.setOrderDate(order.getDeliveryDate() != null ? order.getDeliveryDate() : (order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate() : null));//Date de la commande
-        dto.setStatusLabel(order.getStatus() != null ? order.getStatus().getLabel() : "");//Statut de la commande
-        dto.setProductCount(order.getItems() != null ? order.getItems().size() : 0);//Nombre total d'articles commandés
-        dto.setTotalAmount(order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO);//Montant total de la commande
-        dto.setDeliveryAddress(getDeliveryAddressFromOrder(order));//Adresse de livraison
-        dto.setDeliveryDate(order.getDeliveryDate());//Date de livraison
-        dto.setCreatedAt(order.getCreatedAt());//Date de création de la commande
-        dto.setValidatedAt(order.getValidatedAt());//Date de validation de la commande
-        dto.setDeliveryStartedAt(order.getDeliveryStartedAt());//Date de début de livraison
-        dto.setDeliveryArrivedAt(order.getDeliveryArrivedAt());//Date d'arrivée de la commande
-        dto.setDeliveryCompletedAt(order.getDeliveryCompletedAt());//Date de fin de livraison
-        //Liste des articles commandés
-        List<ClientOrderItemDTO> items = new ArrayList<>();
-        //On parcourt la liste des articles commandés et on crée un DTO pour chaque article
-        if (order.getItems() != null) {
-            for (OrderItem oi : order.getItems()) {
-                ClientOrderItemDTO itemDto = new ClientOrderItemDTO();
-                itemDto.setProductName(oi.getProduct() != null ? oi.getProduct().getName() : "");
-                itemDto.setQuantity(oi.getQuantity());
-                itemDto.setUnitPrice(oi.getUnitPrice());
-                itemDto.setImageUrl(oi.getProduct() != null ? oi.getProduct().getImage() : null);
-                items.add(itemDto);
-            }
-        }
-        dto.setItems(items);//Liste des articles commandés
-        // Infos livreur (nom, téléphone) : uniquement si EN_COURS ou ARRIVE. Si statut = Validé seulement → pas d’infos livreur (null).
-        // Les infos de livraison (adresse, date) sont toujours dans le DTO. Les boutons (Noter, Télécharger facture, Réclamation) s’affichent côté UI si statut = Livrée.
-        if (order.getStatus() == OrderStatus.EN_COURS || order.getStatus() == OrderStatus.ARRIVE) {
-            dto.setDriver(buildDriverInfoForClient(order));
-        } else {
-            dto.setDriver(null);
-        }
-    
-        return dto;
-    }
-
     private DriverInfoForClientDTO buildDriverInfoForClient(Order order) {
         if (order.getDeliveryTour() == null || order.getDeliveryTour().getDriver() == null) return null;
         Driver driver = order.getDeliveryTour().getDriver();
@@ -990,10 +1134,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (addr == null) return null;
         return (addr.getFormattedAddress() != null && !addr.getFormattedAddress().isBlank()) ? addr.getFormattedAddress() : null;
     }
-
-    // ============================================================================
-    // 🔧 MÉTHODES UTILITAIRES
-    // ============================================================================
 
     /**
      * Calcule la date de livraison

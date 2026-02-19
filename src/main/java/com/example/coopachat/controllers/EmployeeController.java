@@ -258,8 +258,28 @@ public class EmployeeController {
     }
 
     @Operation(
+            summary = "Infos de paiement pour une commande",
+            description = "Retourne sous-total, frais de service, total et statut de paiement pour l'écran \"Payer la facture\"."
+    )
+    @GetMapping("/orders/{orderId}/payment-info")
+    public ResponseEntity<PaymentInfoDTO> getPaymentInfo(@PathVariable Long orderId) {
+        return ResponseEntity.ok(employeeService.getPaymentInfo(orderId));
+    }
+
+    @Operation(
+            summary = "Payer une commande (simulation)",
+            description = "Traite un paiement simulé : Mobile Money (opérateur requis) ou Carte bancaire (numéro 16 chiffres, MM/AA, CVV 3 chiffres). Commande doit être validée, pas encore payée."
+    )
+    @PostMapping("/orders/{orderId}/pay")
+    public ResponseEntity<PaymentResponseDTO> processPayment(
+            @PathVariable Long orderId,
+            @RequestBody @Valid ProcessPaymentDTO dto) {
+        return ResponseEntity.ok(employeeService.processPayment(orderId, dto));
+    }
+
+    @Operation(
             summary = "Noter le livreur",
-            description = "Envoie une note pour une commande livrée (bouton \"Noter le livreur\"). Possible uniquement si statut = LIVREE, pas déjà noté, note 1 à 5. Délai 30 jours après livraison."
+            description = "Envoie une note pour une commande livrée (bouton \"Noter le livreur\"). Possible uniquement si statut = LIVREE, pas déjà noté, note 1 à 5."
     )
     @PostMapping("/orders/{orderId}/review")
     public ResponseEntity<String> submitReview(

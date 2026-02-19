@@ -60,6 +60,9 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private OrderStatus status = OrderStatus.EN_ATTENTE;//status de la commande , en-attente par défaut
 
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
+    private Payment payment;//le paiement associé
+
     @ManyToOne
     @JoinColumn(name = "delivery_tour_id" )
     private DeliveryTour deliveryTour;//la tournée qu'il appartient

@@ -1,13 +1,8 @@
 package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
-import com.example.coopachat.dtos.payment.CreatePaymentMethodDTO;
-import com.example.coopachat.dtos.payment.CreatePaymentTimingDTO;
-import com.example.coopachat.dtos.payment.PaymentMethodDTO;
-import com.example.coopachat.dtos.payment.PaymentTimingDTO;
 import com.example.coopachat.dtos.fee.CreateFeeDTO;
 import com.example.coopachat.dtos.fee.FeeDTO;
-import com.example.coopachat.dtos.fee.UpdateFeeDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
@@ -379,36 +374,7 @@ public class AdminController {
     }
 
     // ============================================================================
-    // 💳 PAIEMENTS (moments + modes)
-    // ============================================================================
-    @Operation(summary = "Lister les moments de paiement", description = "Ex. Paiement en ligne, Paiement à la livraison")
-    @GetMapping("/payment-timings")
-    public ResponseEntity<List<PaymentTimingDTO>> getAllPaymentTimings() {
-        return ResponseEntity.ok(adminService.getAllPaymentTimings());
-    }
-
-    @Operation(summary = "Ajouter un moment de paiement", description = "Nom obligatoire, description optionnelle")
-    @PostMapping("/payment-timings")
-    public ResponseEntity<String> createPaymentTiming(@RequestBody @Valid CreatePaymentTimingDTO dto) {
-        adminService.createPaymentTiming(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Moment de paiement créé");
-    }
-
-    @Operation(summary = "Lister les modes de paiement", description = "Ex. Mobile Money, Carte bancaire, Espèces")
-    @GetMapping("/payment-methods")
-    public ResponseEntity<List<PaymentMethodDTO>> getAllPaymentMethods() {
-        return ResponseEntity.ok(adminService.getAllPaymentMethods());
-    }
-
-    @Operation(summary = "Ajouter un mode de paiement", description = "Nom obligatoire, description optionnelle")
-    @PostMapping("/payment-methods")
-    public ResponseEntity<String> createPaymentMethod(@RequestBody @Valid CreatePaymentMethodDTO dto) {
-        adminService.createPaymentMethod(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Mode de paiement créé");
-    }
-
-    // ============================================================================
-    // 💰 FRAIS (paramétrables par l'admin)
+    // 💰 FRAIS
     // ============================================================================
 
     @Operation(summary = "Lister les frais", description = "Ex. Frais de livraison, Frais d'emballage (nom + montant fixe)")
@@ -424,12 +390,4 @@ public class AdminController {
         return ResponseEntity.status(HttpStatus.CREATED).body("Frais créé avec succès");
     }
 
-    @Operation(summary = "Modifier un frais", description = "Modifier nom, description, montant ou statut actif")
-    @PutMapping("/fees/{id}")
-    public ResponseEntity<String> updateFee(
-            @Parameter(description = "ID du frais") @PathVariable Long id,
-            @RequestBody @Valid UpdateFeeDTO dto) {
-        adminService.updateFee(id, dto);
-        return ResponseEntity.ok("Frais modifié avec succès");
-    }
 }

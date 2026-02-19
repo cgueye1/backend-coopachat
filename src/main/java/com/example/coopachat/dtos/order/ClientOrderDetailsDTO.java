@@ -45,4 +45,8 @@ public class ClientOrderDetailsDTO {
 
     /** Infos livreur : présent uniquement si En cours de livraison / Arrivé. */
     private DriverInfoForClientDTO driver;
+
+    /** Statut de paiement (ex. "Impayé", "Payé") et Moment de paiement  pour l’affichage "Informations de paiement". */
+    private String paymentTimingType;
+    private String paymentStatusLabel;
 }

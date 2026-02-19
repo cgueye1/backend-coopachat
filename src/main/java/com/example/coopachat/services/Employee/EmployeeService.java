@@ -190,8 +190,19 @@ public interface EmployeeService {
     ClientOrderDetailsDTO getOrderDetails(Long orderId);
 
     /**
+     * Infos de paiement pour l'écran "Payer la facture" (sous-total, frais de service, total, statut).
+     * Vérifie que la commande appartient au client connecté.
+     */
+    PaymentInfoDTO getPaymentInfo(Long orderId);
+
+    /**
+     * Traite un paiement (simulation) pour une commande : Mobile Money ou Carte bancaire.
+     */
+    PaymentResponseDTO processPayment(Long orderId, ProcessPaymentDTO request);
+
+    /**
      * Envoyer une note pour une commande livrée (bouton "Noter le livreur").
-     * Possible uniquement si statut = LIVREE, pas déjà noté, note 1-5, optionnellement délai 30 jours.
+     * Possible uniquement si statut = LIVREE, pas déjà noté, note 1-5.
      */
     void submitReview(Long orderId, SubmitReviewDTO dto);
 }
