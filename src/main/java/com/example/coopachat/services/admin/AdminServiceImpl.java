@@ -54,9 +54,7 @@ public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
     private final SupplierRepository supplierRepository;
     private final DeliveryOptionRepository deliveryOptionRepository;
-    private final PaymentTimingRepository paymentTimingRepository;
-    private final PaymentMethodRepository paymentMethodRepository;
-    private final FeeRepository feeRepository;
+     private final FeeRepository feeRepository;
 
     // ============================================================================
     // 📁 GESTION DES CATÉGORIES
