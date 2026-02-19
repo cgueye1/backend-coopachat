@@ -6,6 +6,7 @@ import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
+import com.example.coopachat.dtos.claim.CreateClaimDTO;
 import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
 import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
@@ -201,8 +202,24 @@ public interface EmployeeService {
     PaymentResponseDTO processPayment(Long orderId, ProcessPaymentDTO request);
 
     /**
+     * Historique des paiements du salarié connecté (commandes payées, tri par date de paiement décroissante).
+     */
+    List<PaymentHistoryItemDTO> getPaymentHistory();
+
+    /**
      * Envoyer une note pour une commande livrée (bouton "Noter le livreur").
      * Possible uniquement si statut = LIVREE, pas déjà noté, note 1-5.
      */
     void submitReview(Long orderId, SubmitReviewDTO dto);
+
+    /**
+     * Soumettre une réclamation sur une commande (produits concernés, nature du problème, commentaire).
+     * Commande doit être livrée et appartenir au salarié connecté. Images gérées plus tard via un autre serveur.
+     */
+    void submitClaim(Long orderId, CreateClaimDTO dto);
+
+    /**
+     * Annuler une commande. Uniquement si la commande appartient au salarié connecté et si le statut est EN_ATTENTE.
+     */
+    void cancelOrder(Long orderId);
 }

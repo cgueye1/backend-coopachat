@@ -7,6 +7,7 @@ import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
+import com.example.coopachat.dtos.claim.CreateClaimDTO;
 import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
 import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
@@ -44,6 +45,10 @@ public class EmployeeController {
         HomeResponseDTO response = employeeService.getHomeData();
         return ResponseEntity.ok(response);
     }
+
+   // ============================================================================
+    //CATALOGUE
+    // ============================================================================
 
     @Operation(
             summary = "Lister les catégories (catalogue)",
@@ -161,6 +166,10 @@ public class EmployeeController {
         return ResponseEntity.ok(preferences);
     }
 
+    // ============================================================================
+    // INFOS USER
+    // ============================================================================
+
     @Operation(
             summary = "Récupérer mes informations personnelles",
             description = "Retourne les informations personnelles de l'employé connecté " +
@@ -207,10 +216,6 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.getMyAddresses());
     }
 
-    // ============================================================================
-    // Commande Salarié🛒
-    // ============================================================================
-
     @Operation(
             summary = "Lister les options de livraison",
             description = "Retourne les options de livraison actives (fréquence : Hebdomadaire, etc.) à envoyer comme deliveryOptionId dans POST /orders."
@@ -220,6 +225,9 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.getActiveDeliveryOptions());
     }
 
+    // ============================================================================
+    // Commande Salarié🛒
+    // ============================================================================
     @Operation(
             summary = "Passer une commande",
             description = "Finalise la commande à partir du panier. Requiert deliveryOptionId (id d'une option renvoyée par GET /delivery-options). couponCode optionnel."
@@ -229,10 +237,6 @@ public class EmployeeController {
         OrderResponseDTO order = employeeService.createOrder(dto);
         return ResponseEntity.ok(order);
     }
-
-    // ============================================================================
-    // 📋 MES COMMANDES (profil client)
-    // ============================================================================
 
     @Operation(
             summary = "Mes commandes",
@@ -278,6 +282,15 @@ public class EmployeeController {
     }
 
     @Operation(
+            summary = "Historique des paiements",
+            description = "Retourne la liste des paiements du salarié connecté (commandes payées), triée par date de paiement décroissante."
+    )
+    @GetMapping("/payment-history")
+    public ResponseEntity<List<PaymentHistoryItemDTO>> getPaymentHistory() {
+        return ResponseEntity.ok(employeeService.getPaymentHistory());
+    }
+
+    @Operation(
             summary = "Noter le livreur",
             description = "Envoie une note pour une commande livrée (bouton \"Noter le livreur\"). Possible uniquement si statut = LIVREE, pas déjà noté, note 1 à 5."
     )
@@ -287,6 +300,28 @@ public class EmployeeController {
             @RequestBody @Valid SubmitReviewDTO dto) {
         employeeService.submitReview(orderId, dto);
         return ResponseEntity.ok("Avis enregistré avec succès");
+    }
+
+    @Operation(
+            summary = "Soumettre une réclamation",
+            description = "Soumet une réclamation sur une commande livrée : produits concernés, nature du problème, commentaire (optionnel)"
+    )
+    @PostMapping("/orders/{orderId}/claims")
+    public ResponseEntity<String> submitClaim(
+            @PathVariable Long orderId,
+            @RequestBody @Valid CreateClaimDTO dto) {
+        employeeService.submitClaim(orderId, dto);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body("Réclamation enregistrée");
+    }
+
+    @Operation(
+            summary = "Annuler une commande",
+            description = "Annule une commande. Uniquement si elle appartient au salarié connecté et si son statut est En attente (pas encore validée / dans une tournée)."
+    )
+    @PostMapping("/orders/{orderId}/cancel")
+    public ResponseEntity<String> cancelOrder(@PathVariable Long orderId) {
+        employeeService.cancelOrder(orderId);
+        return ResponseEntity.ok("Commande annulée");
     }
 
 }

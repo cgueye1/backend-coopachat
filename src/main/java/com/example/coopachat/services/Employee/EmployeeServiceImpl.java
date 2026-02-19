@@ -10,6 +10,7 @@ import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.geocoding.PlaceDetailsResult;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
+import com.example.coopachat.dtos.claim.CreateClaimDTO;
 import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.*;
 import com.example.coopachat.entities.*;
@@ -28,7 +29,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -63,6 +63,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final DriverReviewRepository driverReviewRepository;
     private final FeeService feeService;
     private final PaymentRepository paymentRepository;
+    private final ClaimRepository claimRepository;
 
     // ============================================================================
     // 🏠 ACCUEIL SALARIÉ
@@ -966,6 +967,32 @@ public class EmployeeServiceImpl implements EmployeeService {
                 totalPaid
         );
     }
+    @Override
+    public List<PaymentHistoryItemDTO> getPaymentHistory() {
+        Users currentUser = getCurrentUser();
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
+        List<Order> paidOrders = orderRepository.findByEmployeeAndPaymentStatusOrderByPaidAtDesc(employee, PaymentStatus.PAID);
+
+        BigDecimal serviceFee = feeService.calculateTotalFees();
+        if (serviceFee == null) serviceFee = BigDecimal.ZERO;
+        List<PaymentHistoryItemDTO> result = new ArrayList<>();
+        for (Order order : paidOrders) {
+            Payment payment = order.getPayment();
+            if (payment == null) continue;
+            BigDecimal subtotal = order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;
+            BigDecimal amountPaid = subtotal.add(serviceFee);
+            PaymentHistoryItemDTO dto = new PaymentHistoryItemDTO();
+            dto.setOrderNumber(order.getOrderNumber());
+            dto.setPaidAt(payment.getPaidAt());
+            dto.setAmountPaid(amountPaid);
+            dto.setPaymentMethodLabel(payment.getPaymentMethod() != null ? payment.getPaymentMethod().getLabel() : null);
+            dto.setMobileOperatorLabel(payment.getMobileOperator() != null ? payment.getMobileOperator().getLabel() : null);
+            result.add(dto);
+        }
+        return result;
+    }
 
     // ----------"Noter le livreur" (bouton après livraison) ----------
     @Override
@@ -1014,6 +1041,64 @@ public class EmployeeServiceImpl implements EmployeeService {
         driverReviewRepository.save(review);
         log.info("Avis enregistré pour la commande {} (note {}/5)", order.getOrderNumber(), reviewDTO.getRating());
     }
+
+    // ---------- submitClaim : soumettre une réclamation sur une commande ----------
+    @Override
+    @Transactional
+    public void submitClaim(Long orderId, CreateClaimDTO dto) {
+
+        Users currentUser = getCurrentUser();
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+        if (!order.getEmployee().getId().equals(employee.getId())) {
+            throw new RuntimeException("Cette commande ne vous appartient pas");
+        }
+        if (order.getStatus() != OrderStatus.LIVREE) {
+            throw new RuntimeException("Seule une commande livrée peut faire l'objet d'une réclamation");
+        }
+        List<OrderItem> orderItems = new ArrayList<>();//cette liste contiendra les articles concernés par la réclamation
+        if (dto.getOrderItemIds() != null && !dto.getOrderItemIds().isEmpty() && order.getItems() != null) {//si la liste des ids d'articles n'est pas nulle et si la liste des ids d'articles n'est pas vide et si la liste des articles de la commande existante n'est pas nulle
+            List<Long> ids = dto.getOrderItemIds();//on récupère la liste des ids d'articles
+            for (OrderItem oi : order.getItems()) {//on parcourt la liste des articles de la commande
+                if (oi.getId() != null && ids.contains(oi.getId())) {//si l'id de l'article de la commande  n'est pas nul et si l'id de l'article est dans la liste des ids d'articles reçus en paramètre
+                    orderItems.add(oi);//on ajoute l'article à la liste des articles concernés par la réclamation
+                }
+            }
+        }
+        Claim claim = new Claim();//on crée une nouvelle réclamation
+        claim.setOrder(order);//on associe la commande à la réclamation
+        claim.setEmployee(employee);//on associe l'employé à la réclamation
+        claim.setOrderItems(orderItems);//on associe les articles concernés à la réclamation
+        claim.setProblemType(dto.getProblemType());//on associe la nature du problème à la réclamation
+        claim.setComment(dto.getComment());
+        claim.setStatus(ClaimStatus.EN_ATTENTE);
+        claimRepository.save(claim);
+        log.info("Réclamation créée pour la commande {} (nature: {})", order.getOrderNumber(), dto.getProblemType().getLabel());
+    }
+
+    // ---------- cancelOrder : annuler une commande (uniquement si EN_ATTENTE) ----------
+    @Override
+    @Transactional
+    public void cancelOrder(Long orderId) {
+        Users currentUser = getCurrentUser();
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+        if (!order.getEmployee().getId().equals(employee.getId())) {
+            throw new RuntimeException("Cette commande ne vous appartient pas");
+        }
+        if (order.getStatus() != OrderStatus.EN_ATTENTE) {
+            throw new RuntimeException("Annulation impossible : seules les commandes en attente peuvent être annulées");
+        }
+        order.setStatus(OrderStatus.ANNULEE);
+        orderRepository.save(order);
+        log.info("Commande {} annulée par le salarié", order.getOrderNumber());
+    }
+
 
     // ---------- buildClientOrderDetailsDTO : détail d'une commande (client clique sur une commande) ----------
     private ClientOrderDetailsDTO buildClientOrderDetailsDTO(Order order) {

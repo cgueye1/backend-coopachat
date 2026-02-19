@@ -3,6 +3,7 @@ package com.example.coopachat.repositories;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Order;
 import com.example.coopachat.enums.OrderStatus;
+import com.example.coopachat.enums.PaymentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -92,5 +93,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findEligibleOrdersForDate(
             @Param("deliveryDate") LocalDate deliveryDate,
             @Param("status") OrderStatus status);
+
+    /**
+     * Commandes de l'employé ayant un paiement avec le statut donné (ex. PAID), tri par date de paiement décroissante.
+     */
+    @Query("SELECT o FROM Order o JOIN FETCH o.payment p WHERE o.employee = :employee AND p.status = :paymentStatus ORDER BY p.paidAt DESC")
+    List<Order> findByEmployeeAndPaymentStatusOrderByPaidAtDesc(
+            @Param("employee") Employee employee,
+            @Param("paymentStatus") PaymentStatus paymentStatus);
 
 }
