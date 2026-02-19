@@ -110,4 +110,14 @@ public class DeliveryDriverController {
         deliveryDriverService.completeDelivery(orderId);
         return ResponseEntity.ok("Livraison finalisée");
     }
+
+    @Operation(
+            summary = "Confirmer le paiement en espèces",
+            description = "Le livreur confirme avoir reçu le montant en espèces du client (bouton \"Confirmer le paiement\"). Interface dédiée au livreur uniquement."
+    )
+    @PostMapping("/deliveries/{orderId}/confirm-cash-payment")
+    public ResponseEntity<String> confirmCashPayment(@PathVariable Long orderId) {
+        deliveryDriverService.confirmCashPayment(orderId);
+        return ResponseEntity.ok("Paiement en espèces confirmé");
+    }
 }

@@ -50,6 +50,12 @@ public interface DeliveryDriverService {
     void completeDelivery(Long orderId);
 
     /**
+     * Livreur confirme avoir reçu le paiement en espèces du client (bouton "Confirmer le paiement").
+     * Réservé au livreur : la commande doit être dans sa tournée. Crée ou met à jour le Payment en CASH / PAID.
+     */
+    void confirmCashPayment(Long orderId);
+
+    /**
      * Détail d'une commande pour l'écran "Détail commande" du livreur (produits, total, client, adresse, suivi).
      * La commande doit appartenir à une tournée assignée au livreur connecté.
      */

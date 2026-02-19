@@ -24,6 +24,11 @@ public class OrderDetailsForDriverDTO {
     private LocalDate orderDate;
     private String statusLabel;
     private int productCount;
+    /** Montant total des produits (sous-total). */
+    private BigDecimal productsTotal;
+    /** Montant livraison (frais de service). */
+    private BigDecimal deliveryAmount;
+    /** Total à percevoir (produits + livraison) – pour affichage "Montant reçu" (espèces). */
     private BigDecimal totalAmount;
     private List<OrderItemForDriverDTO> items;
 
@@ -47,4 +52,9 @@ public class OrderDetailsForDriverDTO {
     /** Commande livrée (pour timeline). */
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
     private LocalDateTime deliveryCompletedAt;
+
+    /** Méthode de paiement (ex. Espèces, Mobile Money, Carte bancaire) pour "Informations de paiement". */
+    private String paymentMethodLabel;
+    /** Statut du paiement (ex. Payé, Impayé) pour que le livreur vérifie avant de finaliser. */
+    private String paymentStatusLabel;
 }

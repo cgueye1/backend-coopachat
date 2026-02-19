@@ -903,50 +903,51 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (request.getPaymentMethod() == null || request.getPaymentTiming() == null) {
             throw new RuntimeException("La méthode et le moment de paiement sont obligatoires");
         }
+        // Paiement en espèces : interface dédiée au livreur uniquement (à la livraison)
+        if (request.getPaymentMethod() == PaymentMethodType.CASH) {
+            throw new RuntimeException("Le paiement en espèces est géré par le livreur à la livraison. Choisissez Mobile Money ou Carte bancaire.");
+        }
 
-        //on crée un nouveau paiement
         Payment payment = new Payment();
         payment.setOrder(order);
         payment.setPaymentMethod(request.getPaymentMethod());
         payment.setPaymentTiming(request.getPaymentTiming());
 
-        //on vérifie si le paiement est par mobile money ou par carte bancaire
+        // on vérifie si le paiement est par mobile money ou par carte bancaire
         if (request.getPaymentMethod() == PaymentMethodType.MOBILE_MONEY) {
-            //on vérifie si l'opérateur de mobile money est choisi
+            // on vérifie si l'opérateur de mobile money est choisi
             if (request.getMobileOperator() == null) {
                 throw new RuntimeException("Veuillez choisir un opérateur Mobile Money");
             }
             payment.setMobileOperator(request.getMobileOperator());
             log.info("💰 SIMULATION paiement {} pour commande {}",
                     request.getMobileOperator().getLabel(), order.getOrderNumber());
-
-        } //si le paiement est par carte bancaire
+        } // si le paiement est par carte bancaire
         else if (request.getPaymentMethod() == PaymentMethodType.CREDIT_CARD) {
-            //on vérifie si le numéro de carte est valide
-            //replaceAll("\\s", "") => remplace tous les espaces par une chaîne vide
-            //matches("\\d{16}") => vérifie si le numéro de carte est composé de 16 chiffres
+            // on vérifie si le numéro de carte est valide
+            // replaceAll("\\s", "") => remplace tous les espaces par une chaîne vide
+            // matches("\\d{16}") => vérifie si le numéro de carte est composé de 16 chiffres
             if (request.getCardNumber() == null ||
                     !request.getCardNumber().replaceAll("\\s", "").matches("\\d{16}")) {
                 throw new RuntimeException("Numéro de carte invalide (16 chiffres requis)");
             }
-
-            //on vérifie si la date d'expiration est valide
-            //matches("(0[1-9]|1[0-2])/\\d{2}") => vérifie si la date d'expiration est composée d'un mois (01-12) et d'une année (2 chiffres)
+            // on vérifie si la date d'expiration est valide
+            // matches("(0[1-9]|1[0-2])/\\d{2}") => vérifie si la date d'expiration est composée d'un mois (01-12) et d'une année (2 chiffres)
             if (request.getCardExpiry() == null ||
                     !request.getCardExpiry().matches("(0[1-9]|1[0-2])/\\d{2}")) {
                 throw new RuntimeException("Date d'expiration invalide (format MM/AA)");
             }
-            //on vérifie si le CVV est valide
-            //matches("\\d{3}") => vérifie si le CVV est composé de 3 chiffres
+            // on vérifie si le CVV est valide
+            // matches("\\d{3}") => vérifie si le CVV est composé de 3 chiffres
             if (request.getCardCvv() == null || !request.getCardCvv().matches("\\d{3}")) {
                 throw new RuntimeException("CVV invalide (3 chiffres requis)");
             }
             log.info("💳 SIMULATION paiement carte pour commande {}", order.getOrderNumber());
         }
 
-        String transactionRef = generateTransactionReference();//Ref de la transaction
-        payment.setStatus(PaymentStatus.PAID);
+        String transactionRef = generateTransactionReference();
         payment.setTransactionReference(transactionRef);
+        payment.setStatus(PaymentStatus.PAID);
         payment.setPaidAt(LocalDateTime.now());
         Payment savedPayment = paymentRepository.save(payment);
         order.setPayment(savedPayment);
