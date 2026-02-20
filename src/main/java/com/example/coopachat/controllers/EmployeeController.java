@@ -16,6 +16,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -288,6 +290,24 @@ public class EmployeeController {
     @GetMapping("/payment-history")
     public ResponseEntity<List<PaymentHistoryItemDTO>> getPaymentHistory() {
         return ResponseEntity.ok(employeeService.getPaymentHistory());
+    }
+
+    @Operation(
+            summary = "Facture d'un paiement ",
+            description = "Télécharge la facture d'un paiement d'une commande d'un salarié"
+    )
+    @GetMapping("/payment/{orderId}/download")
+    public ResponseEntity<byte[]> downloadInvoice(@PathVariable Long orderId) {
+
+        byte[] pdfBytes = employeeService.generateInvoicePdf(orderId);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "facture-" + orderId + ".pdf");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(pdfBytes);
     }
 
     @Operation(

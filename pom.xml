@@ -91,6 +91,14 @@
 			<version>2.8.15</version>
 		</dependency>
 
+		<!-- Pdf -->
+		<dependency>
+			<groupId>com.itextpdf</groupId>
+			<artifactId>itext7-core</artifactId>
+			<version>7.2.5</version>
+			<type>pom</type>
+		</dependency>
+
 
 
 		<!-- MySQL Connector -->

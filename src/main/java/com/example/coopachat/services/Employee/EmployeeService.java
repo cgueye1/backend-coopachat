@@ -207,6 +207,13 @@ public interface EmployeeService {
     List<PaymentHistoryItemDTO> getPaymentHistory();
 
     /**
+     * Génère une facture au format PDF pour un paiement déjà effectué sur une commande.
+     *  @param orderId l'identifiant de la commande dont le paiement a été réalisé
+     *  @return un tableau de bytes représentant le contenu du fichier PDF de la facture
+     */
+    byte[] generateInvoicePdf(Long orderId);
+
+    /**
      * Envoyer une note pour une commande livrée (bouton "Noter le livreur").
      * Possible uniquement si statut = LIVREE, pas déjà noté, note 1-5.
      */

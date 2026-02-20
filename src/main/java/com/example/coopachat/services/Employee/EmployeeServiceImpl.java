@@ -19,6 +19,11 @@ import com.example.coopachat.exceptions.ResourceNotFoundException;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.fee.FeeService;
 import com.example.coopachat.services.geocoding.PlacesService;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.properties.TextAlignment;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -29,6 +34,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+
+import java.io.ByteArrayOutputStream;
+import com.itextpdf.layout.Document;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -967,6 +976,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 totalPaid
         );
     }
+    // ----------"Historique Paiement" ----------
     @Override
     public List<PaymentHistoryItemDTO> getPaymentHistory() {
         // 1. Récupérer l'utilisateur connecté
@@ -1006,6 +1016,219 @@ public class EmployeeServiceImpl implements EmployeeService {
         // 6. Retourner la liste des DTO
         return result;
     }
+
+    // ---------- Génération  Facture ----------
+    @Override
+    public byte[] generateInvoicePdf(Long orderId) {
+
+        Users currentUser = getCurrentUser();
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        if (!order.getEmployee().getId().equals(employee.getId())) {
+            throw new RuntimeException("Cette commande ne vous appartient pas");
+        }
+
+        // Vérifier que la commande est payée
+        if (order.getPayment() == null ||
+                order.getPayment().getStatus() != PaymentStatus.PAID) {
+            throw new RuntimeException("Impossible de générer une facture pour une commande non payée");
+        }
+
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PdfWriter writer = new PdfWriter(baos);
+            PdfDocument pdf = new PdfDocument(writer);
+            Document document = new Document(pdf);
+
+            // ═══════════════════════════════════
+            // EN-TÊTE
+            // ═══════════════════════════════════
+
+            Paragraph title = new Paragraph("FACTURE")
+                    .setFontSize(24)
+                    .setBold()
+                    .setTextAlignment(TextAlignment.CENTER);
+            document.add(title);
+
+            document.add(new Paragraph("Coop Achat Salarié")
+                    .setFontSize(12)
+                    .setTextAlignment(TextAlignment.CENTER));
+
+            document.add(new Paragraph("Dakar, Sénégal")
+                    .setFontSize(10)
+                    .setTextAlignment(TextAlignment.CENTER));
+
+            document.add(new Paragraph(" "));
+
+            // ═══════════════════════════════════
+            // INFOS FACTURE
+            // ═══════════════════════════════════
+
+            document.add(new Paragraph("Facture N° : " + order.getOrderNumber())
+                    .setFontSize(12)
+                    .setBold());
+
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            document.add(new Paragraph("Date : " +
+                    order.getCreatedAt().format(dateFormatter)));
+
+            document.add(new Paragraph("Client : " +
+                    employee.getUser().getFirstName() + " " +
+                    employee.getUser().getLastName()));
+
+            if (employee.getCompany() != null) {
+                document.add(new Paragraph("Entreprise : " +
+                        employee.getCompany().getName()));
+            }
+
+            document.add(new Paragraph(" "));
+
+            // ═══════════════════════════════════
+            // TABLEAU DES PRODUITS
+            // ═══════════════════════════════════
+
+            document.add(new Paragraph("DÉTAIL DES ARTICLES")
+                    .setFontSize(14)
+                    .setBold());
+
+            Table table = new Table(4);
+            table.addHeaderCell("Produit");
+            table.addHeaderCell("Qté");
+            table.addHeaderCell("Prix unitaire");
+            table.addHeaderCell("Total");
+
+
+            for (OrderItem item : order.getItems()) {
+                BigDecimal effectiveUnitPrice = item.getPromoPrice() != null
+                        ? item.getPromoPrice()
+                        : item.getUnitPrice();
+
+                table.addCell(item.getProduct().getName());
+                table.addCell(String.valueOf(item.getQuantity()));
+                table.addCell(effectiveUnitPrice + " F CFA");
+                table.addCell(effectiveUnitPrice
+                        .multiply(new BigDecimal(item.getQuantity())) + " F CFA");
+            }
+
+            document.add(table);
+            document.add(new Paragraph(" "));
+
+            // ═══════════════════════════════════
+            // TOTAUX
+            // ═══════════════════════════════════
+
+            BigDecimal subtotalOrder = order.getTotalPrice() != null
+                    ? order.getTotalPrice()
+                    : BigDecimal.ZERO;
+
+            BigDecimal serviceFee = feeService.calculateTotalFees();
+            if (serviceFee == null) serviceFee = BigDecimal.ZERO;
+
+            BigDecimal totalPaid = subtotalOrder.add(serviceFee);
+
+            document.add(new Paragraph("Sous-total : " + subtotalOrder + " F CFA")
+                    .setTextAlignment(TextAlignment.RIGHT));
+
+            document.add(new Paragraph("Frais de service : " + serviceFee + " F CFA")
+                    .setTextAlignment(TextAlignment.RIGHT));
+
+            document.add(new Paragraph("TOTAL : " + totalPaid + " F CFA")
+                    .setFontSize(14)
+                    .setBold()
+                    .setTextAlignment(TextAlignment.RIGHT));
+
+            document.add(new Paragraph(" "));
+
+            // ═══════════════════════════════════
+            // PAIEMENT
+            // ═══════════════════════════════════
+
+            Payment payment = order.getPayment();
+
+            document.add(new Paragraph("PAIEMENT")
+                    .setFontSize(14)
+                    .setBold());
+
+            document.add(new Paragraph("Mode : " +
+                    payment.getPaymentMethod().getLabel()));
+
+            if (payment.getMobileOperator() != null) {
+                document.add(new Paragraph("Opérateur : " +
+                        payment.getMobileOperator().getLabel()));
+            }
+
+            document.add(new Paragraph("Statut : " +
+                    payment.getStatus().getLabel()));
+
+            document.add(new Paragraph("Référence : " +
+                    payment.getTransactionReference()));
+
+            DateTimeFormatter dateTimeFormatter =
+                    DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            document.add(new Paragraph("Date de paiement : " +
+                    payment.getPaidAt().format(dateTimeFormatter)));
+
+            document.add(new Paragraph(" "));
+
+            // ═══════════════════════════════════
+            // LIVRAISON
+            // ═══════════════════════════════════
+
+            if (order.getStatus() == OrderStatus.LIVREE) {
+
+                document.add(new Paragraph("LIVRAISON")
+                        .setFontSize(14)
+                        .setBold());
+
+                Address address = employee.getAddresses().stream()
+                        .filter(Address::isPrimary)
+                        .findFirst()
+                        .orElse(null);
+
+                if (address != null) {
+                    document.add(new Paragraph("Adresse : " +
+                            address.getFormattedAddress()));
+                }
+
+                if (order.getDeliveryCompletedAt() != null) {
+                    document.add(new Paragraph("Date de livraison : " +
+                            order.getDeliveryCompletedAt().format(dateFormatter)));
+                }
+
+                if (order.getDeliveryTour() != null &&
+                        order.getDeliveryTour().getDriver() != null) {
+                    Driver driver = order.getDeliveryTour().getDriver();
+                    document.add(new Paragraph("Livreur : " +
+                            driver.getUser().getFirstName() + " " +
+                            driver.getUser().getLastName()));
+                }
+            }
+
+            document.add(new Paragraph(" "));
+
+            // ═══════════════════════════════════
+            // PIED DE PAGE
+            // ═══════════════════════════════════
+
+            document.add(new Paragraph("Merci pour votre confiance !")
+                    .setFontSize(12)
+                    .setTextAlignment(TextAlignment.CENTER));
+            document.close();
+
+            log.info("Facture générée pour commande {}", order.getOrderNumber());
+
+            return baos.toByteArray();
+
+        } catch (Exception e) {
+            log.error("Erreur génération facture", e);
+            throw new RuntimeException("Erreur lors de la génération de la facture");
+        }
+    }
+
     // ----------"Noter le livreur" (bouton après livraison) ----------
     @Override
     @Transactional
