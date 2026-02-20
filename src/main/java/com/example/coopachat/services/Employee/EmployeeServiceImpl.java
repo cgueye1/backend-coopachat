@@ -969,31 +969,43 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
     @Override
     public List<PaymentHistoryItemDTO> getPaymentHistory() {
+        // 1. Récupérer l'utilisateur connecté
         Users currentUser = getCurrentUser();
+
+        // 2. Trouver l'employé associé à cet utilisateur
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
-        List<Order> paidOrders = orderRepository.findByEmployeeAndPaymentStatusOrderByPaidAtDesc(employee, PaymentStatus.PAID);
+        // 3. Récupérer toutes les commandes de l'employé dont le paiement a le statut PAID
+        List<Order> paidOrders = orderRepository.findPaidOrdersByEmployee(employee, PaymentStatus.PAID);
 
+        // 4. Calculer les frais de service
         BigDecimal serviceFee = feeService.calculateTotalFees();
         if (serviceFee == null) serviceFee = BigDecimal.ZERO;
+
+        // 5. Transformer chaque commande en DTO pour l'historique des paiements
         List<PaymentHistoryItemDTO> result = new ArrayList<>();
         for (Order order : paidOrders) {
-            Payment payment = order.getPayment();
-            if (payment == null) continue;
+            Payment payment = order.getPayment(); //  pour chaque commande payé de l'employé  on recupére son paiement
+
+            // Calculer le montant total payé = total de la commande + frais de service
             BigDecimal subtotal = order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;
             BigDecimal amountPaid = subtotal.add(serviceFee);
+
+            // Construire le DTO
             PaymentHistoryItemDTO dto = new PaymentHistoryItemDTO();
             dto.setOrderNumber(order.getOrderNumber());
             dto.setPaidAt(payment.getPaidAt());
             dto.setAmountPaid(amountPaid);
             dto.setPaymentMethodLabel(payment.getPaymentMethod() != null ? payment.getPaymentMethod().getLabel() : null);
             dto.setMobileOperatorLabel(payment.getMobileOperator() != null ? payment.getMobileOperator().getLabel() : null);
+
             result.add(dto);
         }
+
+        // 6. Retourner la liste des DTO
         return result;
     }
-
     // ----------"Noter le livreur" (bouton après livraison) ----------
     @Override
     @Transactional

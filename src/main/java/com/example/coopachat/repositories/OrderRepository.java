@@ -97,9 +97,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     /**
      * Commandes de l'employé ayant un paiement avec le statut donné (ex. PAID), tri par date de paiement décroissante.
      */
-    @Query("SELECT o FROM Order o JOIN FETCH o.payment p WHERE o.employee = :employee AND p.status = :paymentStatus ORDER BY p.paidAt DESC")
-    List<Order> findByEmployeeAndPaymentStatusOrderByPaidAtDesc(
+    @Query("SELECT o FROM Order o " +
+            "JOIN FETCH o.payment p " +        // JOIN FETCH = charge Order + Payment en 1 requête
+            "WHERE o.employee = :employee " +   // Filtre : commandes de cet employé
+            "AND p.status = :status " +         // Filtre : paiements avec ce statut
+            "ORDER BY p.paidAt DESC")           // Tri : plus récents en premier
+    List<Order> findPaidOrdersByEmployee(
             @Param("employee") Employee employee,
-            @Param("paymentStatus") PaymentStatus paymentStatus);
-
+            @Param("status") PaymentStatus status
+    );
 }
