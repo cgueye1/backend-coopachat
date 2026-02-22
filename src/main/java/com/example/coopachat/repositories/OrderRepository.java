@@ -32,7 +32,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
        Résultats triés du plus récent au plus ancien
        Charge en une requête les items et les produits pour éviter products vides (lazy).
      **/
-    @EntityGraph(attributePaths = {"items", "items.product"})
     @Query("SELECT o FROM Order o " +
             "WHERE (:search IS NULL OR LOWER(o.orderNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             " CONCAT(LOWER(o.employee.user.firstName), ' ', LOWER(o.employee.user.lastName)) LIKE LOWER(CONCAT('%', :search, '%'))) " +
@@ -83,6 +82,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     /**
      * Commandes éligibles pour une tournée : date + EN_ATTENTE + pas en tournée + employé actif.
+     * Join -> seules les lignes qui ont une correspondance dans les deux tables sont retournées.
+     * JOIN FETCH, en récupérant chaque commande, Hibernate charge en même temps son employé et l'utilisateur lié à cet employé, le tout dans une seule requête SQL
      */
     @Query("SELECT DISTINCT o FROM Order o " +                           // on prend les commandes, sans doublon
             "JOIN FETCH o.employee e " +                            // on charge l'employé

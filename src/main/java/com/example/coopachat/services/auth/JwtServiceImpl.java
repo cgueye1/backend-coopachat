@@ -1,9 +1,5 @@
 package com.example.coopachat.services.auth;
 
-import com.example.coopachat.dtos.UserDto;
-import com.example.coopachat.dtos.auth.LoginResponseDTO;
-import com.example.coopachat.exceptions.EmailAlreadyExistsException;
-import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

@@ -11,8 +11,16 @@ import com.example.coopachat.dtos.products.ProductListResponseDTO;
 import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.ProductStatsDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
+import com.example.coopachat.dtos.user.SaveUserDTO;
+import com.example.coopachat.dtos.user.UpdateUserStatusDTO;
+import com.example.coopachat.dtos.user.UserDetailsDTO;
+import com.example.coopachat.dtos.user.UserListResponseDTO;
+import com.example.coopachat.dtos.user.UserStatsByRoleItemDTO;
+import com.example.coopachat.dtos.user.UserStatsByStatusItemDTO;
+import com.example.coopachat.dtos.user.UserStatsDTO;
 import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.enums.UserRole;
 import org.springframework.core.io.ByteArrayResource;
 
 import java.util.List;
@@ -142,4 +150,54 @@ public interface AdminService {
 
     List<FeeDTO> getAllFees();
     void createFee(CreateFeeDTO dto);
+
+    /**
+     * Crée un nouvel utilisateur "agent": Admin, Responsable logistique, Commercial ou Livreur.
+     * Les salariés (EMPLOYEE) ne se créent pas ici — ils sont créés par les commerciaux.
+     * Envoi d'un code d'activation par email  si nécessaire .
+     *
+     * @param dto Données du nouvel utilisateur (prénom, nom, email, téléphone, rôle)
+     */
+    void createUser(SaveUserDTO dto);
+
+    /**
+     * Liste paginée de tous les utilisateurs (tous rôles) avec filtres optionnels.
+     *
+     * @param page   numéro de page (0-based)
+     * @param size   nombre d'éléments par page
+     * @param search recherche sur prénom, nom ou email (optionnel)
+     * @param role   filtre par rôle (optionnel)
+     * @param status filtre par statut actif/inactif (optionnel, true = actif, false = inactif)
+     */
+    UserListResponseDTO getUsers(int page, int size, String search, UserRole role, Boolean status);
+
+    /**
+     * Statistiques utilisateurs pour la page Gestion des utilisateurs (total, actifs, inactifs).
+     */
+    UserStatsDTO getUsersStats();
+
+    /**
+     * Statistiques utilisateurs par rôle (effectif et % par rôle) pour le graphique "Utilisateurs par rôle".
+     */
+    List<UserStatsByRoleItemDTO> getUsersStatsByRole();
+
+    /**
+     * Répartition des statuts (Actifs / Inactifs) pour le graphique "Répartition des statuts" (donut).
+     */
+    List<UserStatsByStatusItemDTO> getUsersStatsByStatus();
+
+    /**
+     * Voir détails d'un utilisateur par son id .
+     */
+    UserDetailsDTO getUserById(Long id);
+
+    /**
+     * Activer ou désactiver un utilisateur (toggle statut).
+     */
+    void updateUserStatus(Long id, UpdateUserStatusDTO dto);
+
+    /**
+     * Modifier les infos de base d'un utilisateur (prénom, nom, email, téléphone, rôle, companyCommercial).
+     */
+    void updateUser(Long id, SaveUserDTO dto);
 }

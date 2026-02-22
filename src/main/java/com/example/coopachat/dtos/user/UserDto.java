@@ -1,4 +1,4 @@
-package com.example.coopachat.dtos;
+package com.example.coopachat.dtos.user;
 
 import com.example.coopachat.enums.UserRole;
 import com.fasterxml.jackson.annotation.JsonProperty;

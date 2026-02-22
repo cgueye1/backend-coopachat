@@ -10,8 +10,15 @@ import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
+import com.example.coopachat.dtos.claim.ClaimDetailDTO;
+import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
+import com.example.coopachat.dtos.claim.ClaimStatsDTO;
+import com.example.coopachat.dtos.claim.RejectClaimDTO;
+import com.example.coopachat.dtos.claim.ValidateClaimDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.enums.ClaimDecisionType;
+import com.example.coopachat.enums.ClaimStatus;
 import com.example.coopachat.enums.DeliveryTourStatus;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.SupplierOrderStatus;
@@ -540,6 +547,67 @@ public class LogisticsManagerController {
         return ResponseEntity.ok(stats);
     }
 
+    // ============================================================================
+    // 📋 GESTION DES RÉCLAMATIONS
+    // ============================================================================
+
+    @Operation(
+            summary = "Statistiques des retours",
+            description = "Total, Validés, Rejetés, Réintégrés, Montant remboursé "
+    )
+    @GetMapping("/claims/stats")
+    public ResponseEntity<ClaimStatsDTO> getClaimStats() {
+        return ResponseEntity.ok(logisticsManagerService.getClaimStats());
+    }
+
+    @Operation(
+            summary = "Liste des réclamations",
+            description = "Liste paginée des réclamations avec recherche (référence ou client) et filtre par statut (En attente, Validé, Rejeté)."
+    )
+    @GetMapping("/claims")
+    public ResponseEntity<ClaimListResponseDTO> getClaims(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) ClaimStatus status) {
+        return ResponseEntity.ok(logisticsManagerService.getClaims(page, size, search, status));
+    }
+
+    @Operation(
+            summary = "Voir détails d'une réclamation",
+            description = "Retourne les détails complets d'une réclamation (produit, client, motif, commentaire, photos, etc.)."
+    )
+    @GetMapping("/claims/{id}")
+    public ResponseEntity<ClaimDetailDTO> getClaimById(@PathVariable Long id) {
+        return ResponseEntity.ok(logisticsManagerService.getClaimById(id));
+    }
+
+    @Operation(
+            summary = "Valider une réclamation",
+            description = "Réintégration au stock (quantité remise en stock) ou remboursement (montant obligatoire). Réclamation doit être en attente."
+    )
+    @PostMapping("/claims/{id}/validate")
+    public ResponseEntity<String> validateClaim(
+            @PathVariable Long id,
+            @RequestBody @Valid ValidateClaimDTO dto) {
+        logisticsManagerService.validateClaim(id, dto);
+        return ResponseEntity.ok(
+                dto.getDecisionType() == ClaimDecisionType.REINTEGRATION
+                        ? "Retour enregistré - Produit réintégré au stock"
+                        : "Retour enregistré - Remboursement enregistré");
+    }
+
+    @Operation(
+            summary = "Rejeter une réclamation",
+            description = "Rejette la réclamation avec un motif obligatoire. Réclamation doit être en attente."
+    )
+    @PostMapping("/claims/{id}/reject")
+    public ResponseEntity<String> rejectClaim(
+            @PathVariable Long id,
+            @RequestBody @Valid RejectClaimDTO dto) {
+        logisticsManagerService.rejectClaim(id, dto);
+        return ResponseEntity.ok("Réclamation rejetée");
+    }
 
 }
 

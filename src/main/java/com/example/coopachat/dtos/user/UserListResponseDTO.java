@@ -1,0 +1,24 @@
+package com.example.coopachat.dtos.user;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+/**
+ * Réponse paginée pour la liste des utilisateurs (admin).
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserListResponseDTO {
+
+    private List<UserListItemDTO> content;
+    private long totalElements;
+    private int totalPages;
+    private int currentPage;
+    private int pageSize;
+    private boolean hasNext;
+    private boolean hasPrevious;
+}

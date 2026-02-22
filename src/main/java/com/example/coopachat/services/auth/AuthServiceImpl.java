@@ -1,6 +1,6 @@
 package com.example.coopachat.services.auth;
 
-import com.example.coopachat.dtos.UserDto;
+import com.example.coopachat.dtos.user.UserDto;
 import com.example.coopachat.dtos.auth.LoginResponseDTO;
 import com.example.coopachat.dtos.auth.RegisterMobileDTO;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;

@@ -15,17 +15,19 @@ import java.util.List;
  */
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class CreateClaimDTO {
 
-    /** IDs des articles de la commande concernés (vide = réclamation sur toute la commande). */
-    private List<Long> orderItemIds = new ArrayList<>();
+    //ID du produit concerné (UN SEUL)
+    @NotNull(message = "Le produit concerné est obligatoire")
+    private Long orderItemId;
 
-    /** Nature du problème. */
+    //Nature du problème
     @NotNull(message = "La nature du problème est obligatoire")
     private ClaimProblemType problemType;
 
-    /** Commentaire de la réclamation (optionnel). */
-    @Size(max = 2000, message = "Commentaire trop long (max 2000 caractères)")
+    // Commentaire explicatif
     private String comment;
+
+    // Photos (optionnel)
+    private List<String> photoUrls;
 }

@@ -3,6 +3,11 @@ package com.example.coopachat.services.LogisticsManager;
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.CancelDeliveryTourDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
+import com.example.coopachat.dtos.claim.ClaimDetailDTO;
+import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
+import com.example.coopachat.dtos.claim.ClaimStatsDTO;
+import com.example.coopachat.dtos.claim.RejectClaimDTO;
+import com.example.coopachat.dtos.claim.ValidateClaimDTO;
 import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.EligibleOrderLotDTO;
@@ -12,6 +17,7 @@ import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.enums.ClaimStatus;
 import com.example.coopachat.enums.DeliveryTourStatus;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.SupplierOrderStatus;
@@ -324,6 +330,51 @@ public interface LogisticsManagerService {
      * @return Statistiques des tournées
      */
     DeliveryTourStatsDTO getDeliveryTourStats();
+
+    // ============================================================================
+    // GESTION DES RÉCLAMATIONS
+    // ============================================================================
+
+    /**
+     * Statistiques des retours (Total, Validés, Rejetés, Réintégrés, Montant remboursé).
+     */
+    ClaimStatsDTO getClaimStats();
+
+    /**
+     * Liste paginée des réclamations avec recherche et filtre par statut.
+     *
+     * @param page   numéro de page (0-based)
+     * @param size   nombre d'éléments par page
+     * @param search recherche par référence commande ou nom client (optionnel)
+     * @param status filtre par statut (optionnel)
+     * @return liste paginée des réclamations
+     */
+    ClaimListResponseDTO getClaims(int page, int size, String search, ClaimStatus status);
+
+    /**
+     * Détails d'une réclamation par son id.
+     *
+     * @param id id de la réclamation
+     * @return DTO avec les détails complets
+     * @throws RuntimeException si la réclamation n'existe pas
+     */
+    ClaimDetailDTO getClaimById(Long id);
+
+    /**
+     * Valider une réclamation : réintégration au stock (quantité du produit remise en stock) ou remboursement (montant enregistré).
+     *
+     * @param id  id de la réclamation
+     * @param dto type de décision (REINTEGRATION / REMBOURSEMENT) et montant si remboursement
+     */
+    void validateClaim(Long id, ValidateClaimDTO dto);
+
+    /**
+     * Rejeter une réclamation avec un motif.
+     *
+     * @param id  id de la réclamation
+     * @param dto motif du rejet (obligatoire)
+     */
+    void rejectClaim(Long id, RejectClaimDTO dto);
 
 }
 

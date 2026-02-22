@@ -1,5 +1,6 @@
 package com.example.coopachat.entities;
 
+import com.example.coopachat.enums.ClaimDecisionType;
 import com.example.coopachat.enums.ClaimProblemType;
 import com.example.coopachat.enums.ClaimStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -9,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,14 +37,10 @@ public class Claim {
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 
-    /** Produits concernés **/
-    @ManyToMany
-    @JoinTable(
-            name = "claim_order_items",//Nom de la table de jointure
-            joinColumns = @JoinColumn(name = "claim_id"),//Nom de la colonne de la table de jointure qui référence l'id de la réclamation
-            inverseJoinColumns = @JoinColumn(name = "order_item_id")//Nom de la colonne de la table de jointure qui pointe vers l'id de l'article
-    )
-    private List<OrderItem> orderItems = new ArrayList<>();//Liste des articles concernés par la réclamation
+    // ⭐ UN SEUL PRODUIT
+    @ManyToOne
+    @JoinColumn(name = "order_item_id")
+    private OrderItem orderItem;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "problem_type", nullable = false)
@@ -50,6 +48,9 @@ public class Claim {
 
     @Column(name = "comment", columnDefinition = "TEXT")
     private String comment;//Commentaire de la réclamation
+
+    // Photos (optionnel)
+    private List<String> photoUrls;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -60,6 +61,17 @@ public class Claim {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    /** Type de décision à la validation : réintégration au stock ou remboursement. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "decision_type")
+    private ClaimDecisionType decisionType;
 
+    /** Montant remboursé (rempli lorsque decisionType = REMBOURSEMENT). */
+    @Column(name = "refund_amount")
+    private BigDecimal refundAmount;
+
+    /** Motif du rejet (rempli lorsque status = REJETE). */
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
 
 }

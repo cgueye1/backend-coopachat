@@ -1,5 +1,13 @@
 package com.example.coopachat.services.admin;
 
+import com.example.coopachat.dtos.user.SaveUserDTO;
+import com.example.coopachat.dtos.user.UpdateUserStatusDTO;
+import com.example.coopachat.dtos.user.UserDetailsDTO;
+import com.example.coopachat.dtos.user.UserListItemDTO;
+import com.example.coopachat.dtos.user.UserListResponseDTO;
+import com.example.coopachat.dtos.user.UserStatsByRoleItemDTO;
+import com.example.coopachat.dtos.user.UserStatsByStatusItemDTO;
+import com.example.coopachat.dtos.user.UserStatsDTO;
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
 import com.example.coopachat.dtos.fee.CreateFeeDTO;
 import com.example.coopachat.dtos.fee.FeeDTO;
@@ -17,6 +25,8 @@ import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.entities.*;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.repositories.*;
+import com.example.coopachat.services.auth.ActivationCodeService;
+import com.example.coopachat.services.auth.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -37,6 +47,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import java.util.ArrayList;
+
 /**
  * Implémentation du service de gestion des actions de l'administrateur
  */
@@ -54,7 +66,10 @@ public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
     private final SupplierRepository supplierRepository;
     private final DeliveryOptionRepository deliveryOptionRepository;
-     private final FeeRepository feeRepository;
+    private final FeeRepository feeRepository;
+    private final ActivationCodeService activationCodeService;
+    private final EmailService emailService;
+    private final DeliveryDriverRepository deliveryDriverRepository;
 
     // ============================================================================
     // 📁 GESTION DES CATÉGORIES
@@ -612,6 +627,264 @@ public class AdminServiceImpl implements AdminService {
         log.info("Frais créé : {} = {} FCFA", dto.getName(), dto.getAmount());
     }
 
+    // ============================================================================
+    // 👤 Gestion des Utilisateurs
+    // ============================================================================
+
+    @Override
+    @Transactional
+    public void createUser(SaveUserDTO dto) {
+        Users admin = getCurrentUser();
+
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut créer un utilisateur");
+        }
+        // Champs obligatoires à la création
+        if (dto.getFirstName() == null || dto.getFirstName().isBlank()) {
+            throw new RuntimeException("Le prénom est obligatoire");
+        }
+        if (dto.getLastName() == null || dto.getLastName().isBlank()) {
+            throw new RuntimeException("Le nom est obligatoire");
+        }
+        if (dto.getEmail() == null || dto.getEmail().isBlank()) {
+            throw new RuntimeException("L'adresse email est obligatoire");
+        }
+        if (dto.getPhoneNumber() == null || dto.getPhoneNumber().isBlank()) {
+            throw new RuntimeException("Le téléphone est obligatoire");
+        }
+        if (dto.getRole() == null) {
+            throw new RuntimeException("Le rôle est obligatoire");
+        }
+        if (userRepository.existsByEmail(dto.getEmail())) {
+            throw new RuntimeException("Cet email est déjà utilisé");
+        }
+        if (userRepository.existsByPhone(dto.getPhoneNumber())) {
+            throw new RuntimeException("Ce numéro de téléphone est déjà utilisé");
+        }
+
+        Users user = new Users();
+        user.setFirstName(dto.getFirstName());
+        user.setLastName(dto.getLastName());
+        user.setEmail(dto.getEmail());
+        user.setPhone(dto.getPhoneNumber());
+        user.setRole(dto.getRole());
+        user.setCompanyCommercial(dto.getCompanyCommercial());
+        user.setIsActive(false);
+
+        Users savedUser = userRepository.save(user);
+
+        // Seuls les rôles "agents" : Admin, Responsable logistique, Commercial, Livreur.
+        switch (dto.getRole()) {
+            case EMPLOYEE -> throw new RuntimeException(
+                    "Les salariés ne se créent pas ici. Utilisez le flux Commercial (Créer un employé).");
+            case DELIVERY_DRIVER -> {
+                Driver driver = new Driver();
+                driver.setUser(savedUser);
+                driver.setCreatedBy(admin);
+                deliveryDriverRepository.save(driver);
+                //les liveurs on les envoie de code d'activation que lorsqu'ils souhaitent activer leurs comptes
+            }
+            case COMMERCIAL, LOGISTICS_MANAGER, ADMINISTRATOR -> {
+                String code = activationCodeService.generateAndStoreCode(dto.getEmail());
+                emailService.sendActivationCode(dto.getEmail(), code, dto.getFirstName());
+                log.info("Utilisateur {} créé par l'admin : {}, code d'activation envoyé", dto.getRole(), dto.getEmail());
+            }
+        }
+    }
+
+    @Override
+    public UserListResponseDTO getUsers(int page, int size, String search, UserRole role, Boolean status) {
+        // Vérifier que l'utilisateur connecté est bien un administrateur
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut consulter la liste des utilisateurs");
+        }
+
+        // Normaliser la recherche (null si vide ou blanc)
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Récupérer la page d'utilisateurs avec les filtres (recherche, rôle, statut actif/inactif)
+        Page<Users> userPage = userRepository.findAllWithFilters(searchTerm, role, status, pageable);
+
+        // Mapper chaque utilisateur vers un DTO de liste
+        List<UserListItemDTO> content = userPage.getContent().stream()
+                .map(u -> {
+                    UserListItemDTO dto = new UserListItemDTO();
+                    dto.setId(u.getId());
+                    String ref = u.getRefUser();
+                    if (ref == null || ref.isEmpty()) {
+                        int year = u.getCreatedAt() != null ? u.getCreatedAt().getYear() : LocalDateTime.now().getYear();
+                        ref = "US-" + year + "-" + u.getId();
+                    }
+                    dto.setReference(ref);
+                    dto.setFirstName(u.getFirstName());
+                    dto.setLastName(u.getLastName());
+                    dto.setEmail(u.getEmail());
+                    dto.setRoleLabel(u.getRole() != null ? u.getRole().getLabel() : "");
+                    dto.setCreatedAt(u.getCreatedAt());
+                    dto.setIsActive(u.getIsActive());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+
+        // Retourner la réponse paginée (contenu + métadonnées)
+        return new UserListResponseDTO(
+                content,
+                userPage.getTotalElements(),
+                userPage.getTotalPages(),
+                userPage.getNumber(),
+                userPage.getSize(),
+                userPage.hasNext(),
+                userPage.hasPrevious()
+        );
+    }
+
+    @Override
+    public UserStatsDTO getUsersStats() {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut consulter les statistiques des utilisateurs");
+        }
+        long total = userRepository.count();
+        long active = userRepository.countByIsActiveTrue();
+        long inactive = userRepository.countByIsActiveFalse();
+        log.info("Statistiques utilisateurs : total={}, actifs={}, inactifs={}", total, active, inactive);
+        return new UserStatsDTO(total, active, inactive);
+    }
+
+    @Override
+    public List<UserStatsByRoleItemDTO> getUsersStatsByRole() {
+        // Vérifier que l'utilisateur connecté est bien un administrateur
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut consulter les statistiques des utilisateurs par rôle");
+        }
+
+        // Nombre total d'utilisateurs (pour calculer les pourcentages)
+        long total = userRepository.count();
+        List<UserStatsByRoleItemDTO> result = new ArrayList<>();
+
+        // Parcourir tous les rôles définis dans l'enum (EMPLOYEE, COMMERCIAL, DELIVERY_DRIVER, etc.)
+        for (UserRole role : UserRole.values()) {
+            // UserRole.values() renvoie toutes les valeurs de l'enum UserRole 
+            // Nombre d'utilisateurs ayant ce rôle
+            long count = userRepository.countByRole(role);
+            // Part en % par rapport au total (0 si aucun utilisateur)
+            double percentage = total > 0 ? count * 100.0 / total : 0;
+            // Ajouter au résultat : rôle, libellé affichable, effectif, pourcentage
+            result.add(new UserStatsByRoleItemDTO(role, role.getLabel(), count, percentage));
+        }
+        return result;
+    }
+
+    @Override
+    public List<UserStatsByStatusItemDTO> getUsersStatsByStatus() {
+        // Vérifier que l'utilisateur connecté est bien un administrateur
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut consulter la répartition des statuts");
+        }
+
+        // Total et effectifs actifs / inactifs (isActive = true / false)
+        long total = userRepository.count();
+        long active = userRepository.countByIsActiveTrue();
+        long inactive = userRepository.countByIsActiveFalse();
+
+        // Si total est supérieur à 0, on calcule le pourcentage d'actifs et inactifs ; sinon on retourne 0
+        double activePct = total > 0 ? active * 100.0 / total : 0;
+        double inactivePct = total > 0 ? inactive * 100.0 / total : 0;
+
+        // Deux éléments : Actifs, puis Inactifs (label, count, percentage)
+        List<UserStatsByStatusItemDTO> result = new ArrayList<>();
+        result.add(new UserStatsByStatusItemDTO("Actifs", active, activePct));
+        result.add(new UserStatsByStatusItemDTO("Inactifs", inactive, inactivePct));
+        return result;
+    }
+
+    @Override
+    public UserDetailsDTO getUserById(Long id) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut consulter les détails d'un utilisateur");
+        }
+        Users u = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+        UserDetailsDTO dto = new UserDetailsDTO();
+        dto.setId(u.getId());
+        dto.setRefUser(u.getRefUser());
+        dto.setFirstName(u.getFirstName());
+        dto.setLastName(u.getLastName());
+        dto.setEmail(u.getEmail());
+        dto.setPhoneNumber(u.getPhone());
+        dto.setRole(u.getRole());
+        dto.setRoleLabel(u.getRole() != null ? u.getRole().getLabel() : "");
+        dto.setCompanyCommercial(u.getCompanyCommercial());
+        dto.setIsActive(u.getIsActive());
+        dto.setCreatedAt(u.getCreatedAt());
+        return dto;
+    }
+    @Override
+    @Transactional
+    public void updateUserStatus(Long id, UpdateUserStatusDTO dto) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut activer ou désactiver un utilisateur");
+        }
+        if (dto.getIsActive() == null) {
+            throw new RuntimeException("Le statut (isActive) est obligatoire");
+        }
+        Users u = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+        u.setIsActive(dto.getIsActive());
+        userRepository.save(u);
+        log.info("Statut utilisateur {} mis à jour : isActive={}", u.getEmail(), dto.getIsActive());
+    }
+
+    @Override
+    @Transactional
+    public void updateUser(Long id, SaveUserDTO dto) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut modifier un utilisateur");
+        }
+        Users u = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        // Ne mettre à jour que les champs non null
+        if (dto.getFirstName() != null) {
+            u.setFirstName(dto.getFirstName());
+        }
+        if (dto.getLastName() != null) {
+            u.setLastName(dto.getLastName());
+        }
+        //on vérifie que l'email n'est pas déjà utilisé par un autre utilisateur (sauf pour l'utilisateur lui-même)
+        if (dto.getEmail() != null) {
+            if (Boolean.TRUE.equals(userRepository.existsByEmailAndIdNot(dto.getEmail(), id))) {
+                throw new RuntimeException("Cet email est déjà utilisé par un autre utilisateur");
+            }
+            u.setEmail(dto.getEmail());
+        }
+        //on vérifie que le numéro de téléphone n'est pas déjà utilisé par un autre utilisateur (sauf pour l'utilisateur lui-même)
+        if (dto.getPhoneNumber() != null) {
+            if (Boolean.TRUE.equals(userRepository.existsByPhoneAndIdNot(dto.getPhoneNumber(), id))) {
+                throw new RuntimeException("Ce numéro de téléphone est déjà utilisé par un autre utilisateur");
+            }
+            u.setPhone(dto.getPhoneNumber());
+        }
+        if (dto.getRole() != null) {
+            u.setRole(dto.getRole());
+        }
+        if (dto.getCompanyCommercial() != null) {
+            u.setCompanyCommercial(dto.getCompanyCommercial());
+        }
+        userRepository.save(u);
+        log.info("Utilisateur {} mis à jour par l'admin", u.getEmail());
+    }
+
+    // ----------------------------------------------------------------------------
+    // 🔧 MÉTHODES UTILITAIRES
+    // ----------------------------------------------------------------------------
     private FeeDTO mapToFeeDTO(Fee fee) {
         return new FeeDTO(
                 fee.getId(),
@@ -621,10 +894,6 @@ public class AdminServiceImpl implements AdminService {
                 fee.getIsActive()
         );
     }
-
-    // ----------------------------------------------------------------------------
-    // 🔧 MÉTHODES UTILITAIRES
-    // ----------------------------------------------------------------------------
 
     /**
      * Génère un code produit unique au format "CP-YYYY-XXX"

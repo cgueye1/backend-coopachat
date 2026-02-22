@@ -1,5 +1,12 @@
 package com.example.coopachat.controllers;
 
+import com.example.coopachat.dtos.user.SaveUserDTO;
+import com.example.coopachat.dtos.user.UpdateUserStatusDTO;
+import com.example.coopachat.dtos.user.UserDetailsDTO;
+import com.example.coopachat.dtos.user.UserListResponseDTO;
+import com.example.coopachat.dtos.user.UserStatsByRoleItemDTO;
+import com.example.coopachat.dtos.user.UserStatsByStatusItemDTO;
+import com.example.coopachat.dtos.user.UserStatsDTO;
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
 import com.example.coopachat.dtos.fee.CreateFeeDTO;
 import com.example.coopachat.dtos.fee.FeeDTO;
@@ -13,6 +20,7 @@ import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
 import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.services.admin.AdminService;
 import com.example.coopachat.util.FileTransferUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -388,6 +396,99 @@ public class AdminController {
     public ResponseEntity<String> createFee(@RequestBody @Valid CreateFeeDTO dto) {
         adminService.createFee(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body("Frais créé avec succès");
+    }
+
+    // ============================================================================
+    // 👤 GESTION DES UTILISATEURS
+    // ============================================================================
+
+    @Operation(
+            summary = "Créer un utilisateur (agent)",
+            description = "Crée un nouvel utilisateur : Administrateur, Responsable logistique, Commercial ou Livreur. " +
+                    "Les salariés (EMPLOYEE) se créent via le flux Commercial."
+    )
+    @PostMapping("/users")
+    public ResponseEntity<String> createUser(@RequestBody @Valid SaveUserDTO dto) {
+        adminService.createUser(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Utilisateur créé avec succès. Un code d'activation a été envoyé par email.");
+    }
+
+    @Operation(
+            summary = "Liste des utilisateurs",
+            description = "Liste paginée de tous les utilisateurs (tous rôles). Filtres optionnels : search (prénom, nom ou email), role (EMPLOYEE, COMMERCIAL, etc.), status (true = actif, false = inactif)."
+    )
+    @GetMapping("/users")
+    public ResponseEntity<UserListResponseDTO> getUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) UserRole role,
+            @RequestParam(required = false) Boolean status) {
+        return ResponseEntity.ok(adminService.getUsers(page, size, search, role, status));
+    }
+
+    // ----- Statistiques (cartes : Utilisateurs, Actifs, Inactifs) -----
+    @Operation(
+            summary = "Statistiques utilisateurs",
+            description = "Retourne le nombre total d'utilisateurs, le nombre d'actifs et d'inactifs (pour les cartes de la page Gestion des utilisateurs)."
+    )
+    @GetMapping("/users/stats")
+    public ResponseEntity<UserStatsDTO> getUsersStats() {
+        return ResponseEntity.ok(adminService.getUsersStats());
+    }
+
+    @Operation(
+            summary = "Répartition des utilisateurs par rôle",
+            description = "Retourne pour chaque rôle (Salarié, Commercial, Livreur, etc.) l'effectif et le % pour le graphique « Utilisateurs par rôle »."
+    )
+    @GetMapping("/users/stats/by-role")
+    public ResponseEntity<List<UserStatsByRoleItemDTO>> getUsersStatsByRole() {
+        return ResponseEntity.ok(adminService.getUsersStatsByRole());
+    }
+
+    @Operation(
+            summary = "Répartition des statuts ",
+            description = "Retourne Actifs et Inactifs avec effectif et % pour le graphique « Répartition des statuts »."
+    )
+    @GetMapping("/users/stats/by-status")
+    public ResponseEntity<List<UserStatsByStatusItemDTO>> getUsersStatsByStatus() {
+        return ResponseEntity.ok(adminService.getUsersStatsByStatus());
+    }
+
+    // ----- Voir détails -----
+    @Operation(
+            summary = "Voir détails d'un utilisateur",
+            description = "Retourne les informations détaillées d'un utilisateur (référence, nom, email, rôle, statut, date de création, etc.)."
+    )
+    @GetMapping("/users/{id}")
+    public ResponseEntity<UserDetailsDTO> getUserById(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.getUserById(id));
+    }
+
+    // ----- Activer / Désactiver (toggle) -----
+    @Operation(
+            summary = "Activer ou désactiver un utilisateur",
+            description = "Met à jour le statut actif/inactif d'un utilisateur."
+    )
+    @PatchMapping("/users/{id}/status")
+    public ResponseEntity<String> updateUserStatus(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateUserStatusDTO dto) {
+        adminService.updateUserStatus(id, dto);
+        return ResponseEntity.ok(dto.getIsActive() ? "Utilisateur activé" : "Utilisateur désactivé");
+    }
+
+    // ----- Modifier les infos de base -----
+    @Operation(
+            summary = "Modifier les infos de base d'un utilisateur",
+            description = "Met à jour prénom, nom, email, téléphone et (optionnel) companyCommercial. Email et téléphone doivent rester uniques."
+    )
+    @PutMapping("/users/{id}")
+    public ResponseEntity<String> updateUser(
+            @PathVariable Long id,
+            @RequestBody @Valid SaveUserDTO dto) {
+        adminService.updateUser(id, dto);
+        return ResponseEntity.ok("Utilisateur mis à jour avec succès");
     }
 
 }

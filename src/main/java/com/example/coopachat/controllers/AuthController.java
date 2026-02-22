@@ -1,6 +1,6 @@
 package com.example.coopachat.controllers;
 
-import com.example.coopachat.dtos.UserDto;
+import com.example.coopachat.dtos.user.UserDto;
 import com.example.coopachat.dtos.auth.*;
 import com.example.coopachat.services.auth.AuthService;
 import io.swagger.v3.oas.annotations.Operation;

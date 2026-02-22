@@ -3,6 +3,12 @@ package com.example.coopachat.services.LogisticsManager;
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.CancelDeliveryTourDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
+import com.example.coopachat.dtos.claim.ClaimDetailDTO;
+import com.example.coopachat.dtos.claim.ClaimListItemDTO;
+import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
+import com.example.coopachat.dtos.claim.ClaimStatsDTO;
+import com.example.coopachat.dtos.claim.RejectClaimDTO;
+import com.example.coopachat.dtos.claim.ValidateClaimDTO;
 import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.ProductPreviewDTO;
@@ -33,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -64,6 +71,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     private final OrderRepository orderRepository;
     private final DeliveryDriverRepository deliveryDriverRepository;
     private final DeliveryTourRepository deliveryTourRepository;
+    private final ClaimRepository claimRepository;
     private final EmailService emailService;
 
     // ============================================================================
@@ -1802,7 +1810,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         }
     }
 
-
     @Override
     public DeliveryTourStatsDTO getDeliveryTourStats() {
 
@@ -1829,12 +1836,211 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         );
     }
 
+    // ============================================================================
+    // GESTION DES RÉCLAMATIONS
+    // ============================================================================
+
+    @Override
+    public ClaimStatsDTO getClaimStats() {
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter les statistiques des retours");
+        }
+        long total = claimRepository.count();
+        long validatedCount = claimRepository.countByStatus(ClaimStatus.VALIDE);
+        long rejectedCount = claimRepository.countByStatus(ClaimStatus.REJETE);
+        long reintegratedCount = claimRepository.countByDecisionType(ClaimDecisionType.REINTEGRATION);
+        BigDecimal sumRefund = claimRepository.sumRefundAmount();
+        BigDecimal totalRefundAmount = sumRefund != null ? sumRefund : BigDecimal.ZERO;
+        return new ClaimStatsDTO(total, validatedCount, rejectedCount, reintegratedCount, totalRefundAmount);
+    }
+
+    @Override
+    public ClaimListResponseDTO getClaims(int page, int size, String search, ClaimStatus status) {
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter la liste des réclamations");
+        }
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Claim> claimPage = claimRepository.findAllWithFilters(searchTerm, status, pageable);
+
+        List<ClaimListItemDTO> content = claimPage.getContent().stream()
+                .map(this::mapToClaimListItemDTO)
+                .collect(Collectors.toList());
+
+        return new ClaimListResponseDTO(
+                content,
+                claimPage.getTotalElements(),
+                claimPage.getTotalPages(),
+                claimPage.getNumber(),
+                claimPage.getSize(),
+                claimPage.hasNext(),
+                claimPage.hasPrevious()
+        );
+    }
+
+    @Override
+    public ClaimDetailDTO getClaimById(Long id) {
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter les détails d'une réclamation");
+        }
+        Claim claim = claimRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Réclamation introuvable"));
+        return mapToClaimDetailDTO(claim);
+    }
+
+    @Override
+    @Transactional
+    public void validateClaim(Long id, ValidateClaimDTO dto) {
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut valider une réclamation");
+        }
+        Claim claim = claimRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Réclamation introuvable"));
+        if (claim.getStatus() != ClaimStatus.EN_ATTENTE) {
+            throw new RuntimeException("Seule une réclamation en attente peut être validée");
+        }
+        claim.setDecisionType(dto.getDecisionType());
+        if (dto.getDecisionType() == ClaimDecisionType.REINTEGRATION) {
+            // Réintégration : remettre tout ou partie de la quantité en stock
+            if (claim.getOrderItem() == null || claim.getOrderItem().getProduct() == null) {
+                throw new RuntimeException("Réclamation sans produit associé : impossible de réintégrer au stock");
+            }
+            Product product = claim.getOrderItem().getProduct();
+            int quantityOrdered = claim.getOrderItem().getQuantity() != null ? claim.getOrderItem().getQuantity() : 0;
+            if (quantityOrdered <= 0) {
+                throw new RuntimeException("Quantité commandée invalide pour la réintégration");
+            }
+            // Si quantityToReintegrate fourni : doit être entre 1 et quantityOrdered ; sinon on réintègre toute la quantité
+            int quantity = dto.getQuantityToReintegrate() != null
+                    ? dto.getQuantityToReintegrate()
+                    : quantityOrdered;
+            if (quantity <= 0 || quantity > quantityOrdered) {
+                throw new RuntimeException("La quantité à réintégrer doit être entre 1 et " + quantityOrdered + " (quantité commandée)");
+            }
+            int currentStock = product.getCurrentStock() != null ? product.getCurrentStock() : 0;
+            product.setCurrentStock(currentStock + quantity);
+            productRepository.save(product);
+            claim.setRefundAmount(null);
+        } else {
+            // Remboursement : montant obligatoire
+            if (dto.getRefundAmount() == null || dto.getRefundAmount().signum() < 0) {
+                throw new RuntimeException("Le montant du remboursement est obligatoire et doit être positif");
+            }
+            claim.setRefundAmount(dto.getRefundAmount());
+        }
+        claim.setStatus(ClaimStatus.VALIDE);
+        claimRepository.save(claim);
+    }
+
+    @Override
+    @Transactional
+    public void rejectClaim(Long id, RejectClaimDTO dto) {
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut rejeter une réclamation");
+        }
+        Claim claim = claimRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Réclamation introuvable"));
+        if (claim.getStatus() != ClaimStatus.EN_ATTENTE) {
+            throw new RuntimeException("Seule une réclamation en attente peut être rejetée");
+        }
+        claim.setStatus(ClaimStatus.REJETE);
+        claim.setRejectionReason(dto.getRejectionReason());
+        claimRepository.save(claim);
+    }
+
+    // ============================================================================
+    // Méthodes Utilitaires
+    // ============================================================================
+
+    /**
+     * Mappe une entité Claim vers le DTO de liste (une ligne du tableau des réclamations).
+     */
+    private ClaimListItemDTO mapToClaimListItemDTO(Claim c) {
+        ClaimListItemDTO dto = new ClaimListItemDTO();
+        dto.setClaimId(c.getId());
+        dto.setOrderNumber(c.getOrder() != null ? c.getOrder().getOrderNumber() : null);
+        // Nom du salarié (client) : prénom + nom de l'utilisateur lié à l'employé
+        if (c.getEmployee() != null && c.getEmployee().getUser() != null) {
+            Users u = c.getEmployee().getUser();
+            dto.setEmployeeName(u.getFirstName() + " " + u.getLastName());
+        } else { // sinon on met null
+            dto.setEmployeeName(null);
+        }
+        // Si l'item de la commande et le produit existent : nom, image et quantité du produit concerné
+        // sinon on met null
+        if (c.getOrderItem() != null && c.getOrderItem().getProduct() != null) {
+            dto.setProductName(c.getOrderItem().getProduct().getName());
+            dto.setProductImage(c.getOrderItem().getProduct().getImage());
+            dto.setQuantity(c.getOrderItem().getQuantity());
+        } else {
+            dto.setProductName(null);
+            dto.setProductImage(null);
+            dto.setQuantity(null);
+        }
+        // Type de problème : label du type de problème
+        dto.setProblemTypeLabel(c.getProblemType() != null ? c.getProblemType().getLabel() : null);
+        // Statut : label du statut
+        dto.setStatus(c.getStatus() != null ? c.getStatus().getLabel() : null);
+        // Date de création
+        dto.setCreatedAt(c.getCreatedAt());
+        // Décision et montant remboursé (si validé)
+        dto.setDecisionLabel(c.getDecisionType() != null ? c.getDecisionType().getLabel() : null);
+        dto.setRefundAmount(c.getRefundAmount());
+        return dto;
+    }
+
+    /**
+     * Mappe une entité Claim vers le DTO de détail (écran « Voir détails » d'une réclamation).
+     */
+    private ClaimDetailDTO mapToClaimDetailDTO(Claim c) {
+        ClaimDetailDTO dto = new ClaimDetailDTO();
+        dto.setClaimId(c.getId());
+        dto.setOrderNumber(c.getOrder() != null ? c.getOrder().getOrderNumber() : null);
+        dto.setStatus(c.getStatus() != null ? c.getStatus().getLabel() : null);
+        dto.setCreatedAt(c.getCreatedAt());
+        // Infos du salarié (nom et téléphone)
+        if (c.getEmployee() != null && c.getEmployee().getUser() != null) {
+            Users u = c.getEmployee().getUser();
+            dto.setEmployeeName(u.getFirstName() + " " + u.getLastName());
+            dto.setEmployeePhone(u.getPhone());
+        }
+        // Produit concerné : quantité commandée, sous-total, id / nom / image du produit(orderIem: un item de la commande)
+        // sinon on met null
+        if (c.getOrderItem() != null) {
+            OrderItem oi = c.getOrderItem();
+            dto.setQuantityOrdered(oi.getQuantity());
+            dto.setSubtotalProduct(oi.getSubtotal());
+            if (oi.getProduct() != null) {
+                dto.setProductId(oi.getProduct().getId());
+                dto.setProductName(oi.getProduct().getName());
+                dto.setProductImage(oi.getProduct().getImage());
+            }
+        }
+        // Type de problème : label du type de problème
+        dto.setProblemTypeLabel(c.getProblemType() != null ? c.getProblemType().getLabel() : null);
+        // Commentaire
+        dto.setComment(c.getComment());
+        // URLs des photos
+        dto.setPhotoUrls(c.getPhotoUrls());
+        // Décision (si validé ou rejeté)
+        dto.setDecisionTypeLabel(c.getDecisionType() != null ? c.getDecisionType().getLabel() : null);
+        dto.setRefundAmount(c.getRefundAmount());
+        dto.setRejectionReason(c.getRejectionReason());
+        return dto;
+    }
 
     /** Mappe une commande vers le DTO (orderId, orderNumber, customerName, formattedAddress). */
     private EligibleOrderDTO mapToEligibleOrderDTO(Order order) {
+        // Nom du client = salarié (prénom + nom)
         String customerName = order.getEmployee() != null && order.getEmployee().getUser() != null
                 ? order.getEmployee().getUser().getFirstName() + " " + order.getEmployee().getUser().getLastName()
                 : "";
+        // Adresse principale de livraison pour la tournée
         Address addr = getPrimaryAddress(order.getEmployee());
         String formattedAddress = (addr != null && addr.getFormattedAddress() != null && !addr.getFormattedAddress().isBlank())
                 ? addr.getFormattedAddress() : null;

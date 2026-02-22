@@ -6,8 +6,11 @@ import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
+import com.example.coopachat.dtos.claim.ClaimDetailDTO;
+import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
 import com.example.coopachat.dtos.claim.CreateClaimDTO;
 import com.example.coopachat.dtos.order.*;
+import com.example.coopachat.enums.ClaimStatus;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
 import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
 
@@ -220,10 +223,20 @@ public interface EmployeeService {
     void submitReview(Long orderId, SubmitReviewDTO dto);
 
     /**
-     * Soumettre une réclamation sur une commande (produits concernés, nature du problème, commentaire).
-     * Commande doit être livrée et appartenir au salarié connecté. Images gérées plus tard via un autre serveur.
+     * Soumettre une réclamation sur une commande (produit concerné, nature du problème, commentaire).
+     * Commande doit être livrée et appartenir au salarié connecté.
      */
     void submitClaim(Long orderId, CreateClaimDTO dto);
+
+    /**
+     * Historique des réclamations du salarié connecté (liste paginée). Filtre optionnel par statut.
+     */
+    ClaimListResponseDTO getMyClaims(int page, int size, ClaimStatus status);
+
+    /**
+     * Détail d'une réclamation par id. Uniquement si la réclamation appartient au salarié connecté.
+     */
+    ClaimDetailDTO getMyClaimById(Long id);
 
     /**
      * Annuler une commande. Uniquement si la commande appartient au salarié connecté et si le statut est EN_ATTENTE.

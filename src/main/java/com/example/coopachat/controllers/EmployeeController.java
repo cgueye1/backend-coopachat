@@ -7,7 +7,10 @@ import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
+import com.example.coopachat.dtos.claim.ClaimDetailDTO;
+import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
 import com.example.coopachat.dtos.claim.CreateClaimDTO;
+import com.example.coopachat.enums.ClaimStatus;
 import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
 import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
@@ -324,7 +327,7 @@ public class EmployeeController {
 
     @Operation(
             summary = "Soumettre une réclamation",
-            description = "Soumet une réclamation sur une commande livrée : produits concernés, nature du problème, commentaire (optionnel)"
+            description = "Soumet une réclamation sur une commande livrée : produit concerné, nature du problème, commentaire (optionnel)"
     )
     @PostMapping("/orders/{orderId}/claims")
     public ResponseEntity<String> submitClaim(
@@ -332,6 +335,27 @@ public class EmployeeController {
             @RequestBody @Valid CreateClaimDTO dto) {
         employeeService.submitClaim(orderId, dto);
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body("Réclamation enregistrée");
+    }
+
+    @Operation(
+            summary = "Historique des réclamations",
+            description = "Liste paginée des réclamations du salarié connecté (historique des retours). Filtre optionnel par statut."
+    )
+    @GetMapping("/claims")
+    public ResponseEntity<ClaimListResponseDTO> getMyClaims(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) ClaimStatus status) {
+        return ResponseEntity.ok(employeeService.getMyClaims(page, size, status));
+    }
+
+    @Operation(
+            summary = "Détail d'une réclamation",
+            description = "Détails d'une réclamation par id. Uniquement si elle appartient au salarié connecté."
+    )
+    @GetMapping("/claims/{id}")
+    public ResponseEntity<ClaimDetailDTO> getMyClaimById(@PathVariable Long id) {
+        return ResponseEntity.ok(employeeService.getMyClaimById(id));
     }
 
     @Operation(

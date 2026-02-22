@@ -10,6 +10,9 @@ import com.example.coopachat.dtos.employees.AddressDTO;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.geocoding.PlaceDetailsResult;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
+import com.example.coopachat.dtos.claim.ClaimDetailDTO;
+import com.example.coopachat.dtos.claim.ClaimListItemDTO;
+import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
 import com.example.coopachat.dtos.claim.CreateClaimDTO;
 import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.*;
@@ -1282,39 +1285,93 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Transactional
     public void submitClaim(Long orderId, CreateClaimDTO dto) {
 
+        // 1. Récupérer l'utilisateur connecté
         Users currentUser = getCurrentUser();
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
+        // 2. Récupérer la commande
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        // 3. Vérifier la propriété
         if (!order.getEmployee().getId().equals(employee.getId())) {
             throw new RuntimeException("Cette commande ne vous appartient pas");
         }
+
+        // 4. Vérifier le statut
         if (order.getStatus() != OrderStatus.LIVREE) {
             throw new RuntimeException("Seule une commande livrée peut faire l'objet d'une réclamation");
         }
-        List<OrderItem> orderItems = new ArrayList<>();//cette liste contiendra les articles concernés par la réclamation
-        if (dto.getOrderItemIds() != null && !dto.getOrderItemIds().isEmpty() && order.getItems() != null) {//si la liste des ids d'articles n'est pas nulle et si la liste des ids d'articles n'est pas vide et si la liste des articles de la commande existante n'est pas nulle
-            List<Long> ids = dto.getOrderItemIds();//on récupère la liste des ids d'articles
-            for (OrderItem oi : order.getItems()) {//on parcourt la liste des articles de la commande
-                if (oi.getId() != null && ids.contains(oi.getId())) {//si l'id de l'article de la commande  n'est pas nul et si l'id de l'article est dans la liste des ids d'articles reçus en paramètre
-                    orderItems.add(oi);//on ajoute l'article à la liste des articles concernés par la réclamation
-                }
-            }
-        }
-        Claim claim = new Claim();//on crée une nouvelle réclamation
-        claim.setOrder(order);//on associe la commande à la réclamation
-        claim.setEmployee(employee);//on associe l'employé à la réclamation
-        claim.setOrderItems(orderItems);//on associe les articles concernés à la réclamation
-        claim.setProblemType(dto.getProblemType());//on associe la nature du problème à la réclamation
+
+        // 5. ⭐ RÉCUPÉRER LE PRODUIT CONCERNÉ
+        OrderItem concernedItem = order.getItems().stream()
+                .filter(item -> item.getId() != null &&
+                        item.getId().equals(dto.getOrderItemId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException(
+                        "Le produit sélectionné n'appartient pas à cette commande"
+                ));
+
+        // 6. Créer la réclamation
+        Claim claim = new Claim();
+        claim.setOrder(order);
+        claim.setEmployee(employee);
+        claim.setOrderItem(concernedItem);  // ← UN seul produit
+        claim.setProblemType(dto.getProblemType());
         claim.setComment(dto.getComment());
         claim.setStatus(ClaimStatus.EN_ATTENTE);
+
+        // 7. Sauvegarder
         claimRepository.save(claim);
-        log.info("Réclamation créée pour la commande {} (nature: {})", order.getOrderNumber(), dto.getProblemType().getLabel());
+
+        log.info("Réclamation créée pour la commande {} - Produit: {} (nature: {})",
+                order.getOrderNumber(),
+                concernedItem.getProduct().getName(),
+                dto.getProblemType().getLabel());
     }
 
-    // ---------- cancelOrder : annuler une commande (uniquement si EN_ATTENTE) ----------
+    // ---------- getMyClaims : historique des réclamations du salarié connecté ----------
+    @Override
+    public ClaimListResponseDTO getMyClaims(int page, int size, ClaimStatus status) {
+        // Récupérer l'employé connecté (propriétaire des réclamations)
+        Users currentUser = getCurrentUser();
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+        // Liste paginée : uniquement les réclamations de cet employé, tri par date décroissante
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Claim> claimPage = claimRepository.findByEmployeeIdOrderByCreatedAtDesc(employee.getId(), status, pageable);
+        // Mapper chaque réclamation en DTO de liste (vue globale / historique)
+        List<ClaimListItemDTO> content = claimPage.getContent().stream()
+                .map(this::mapClaimToListItemDTO)
+                .collect(Collectors.toList());
+        return new ClaimListResponseDTO(
+                content,
+                claimPage.getTotalElements(),
+                claimPage.getTotalPages(),
+                claimPage.getNumber(),
+                claimPage.getSize(),
+                claimPage.hasNext(),
+                claimPage.hasPrevious()
+        );
+    }
+
+    // ---------- getMyClaimById : détail d'une réclamation (uniquement si elle appartient au salarié) ----------
+    @Override
+    public ClaimDetailDTO getMyClaimById(Long id) {
+        Users currentUser = getCurrentUser();
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+        Claim claim = claimRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Réclamation introuvable"));
+        // Sécurité : on ne retourne le détail que si la réclamation a été créée par cet employé
+        if (!claim.getEmployee().getId().equals(employee.getId())) {
+            throw new RuntimeException("Cette réclamation ne vous appartient pas");
+        }
+        return mapClaimToDetailDTO(claim);
+    }
+
+      // ---------- cancelOrder : annuler une commande (uniquement si EN_ATTENTE) ----------
     @Override
     @Transactional
     public void cancelOrder(Long orderId) {
@@ -1335,6 +1392,94 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
 
+
+    // ============================================================================
+    // 🔧 MÉTHODES UTILITAIRES
+    // ============================================================================
+
+    /**
+     * Mappe une réclamation vers le DTO de liste (une ligne de l'historique des retours).
+     */
+    private ClaimListItemDTO mapClaimToListItemDTO(Claim c) {
+        ClaimListItemDTO dto = new ClaimListItemDTO();
+        dto.setClaimId(c.getId());
+        dto.setOrderNumber(c.getOrder() != null ? c.getOrder().getOrderNumber() : null);
+        // Nom du salarié (déclarant)
+        if (c.getEmployee() != null && c.getEmployee().getUser() != null) {
+            Users u = c.getEmployee().getUser();
+            dto.setEmployeeName(u.getFirstName() + " " + u.getLastName());
+        } else {
+            dto.setEmployeeName(null);
+        }
+        // Produit concerné : nom, image, quantité
+        if (c.getOrderItem() != null && c.getOrderItem().getProduct() != null) {
+            dto.setProductName(c.getOrderItem().getProduct().getName());
+            dto.setProductImage(c.getOrderItem().getProduct().getImage());
+            dto.setQuantity(c.getOrderItem().getQuantity());
+        } else {
+            dto.setProductName(null);
+            dto.setProductImage(null);
+            dto.setQuantity(null);
+        }
+        dto.setProblemTypeLabel(c.getProblemType() != null ? c.getProblemType().getLabel() : null);
+        dto.setStatus(c.getStatus() != null ? c.getStatus().getLabel() : null);
+        dto.setCreatedAt(c.getCreatedAt());
+        // Décision et montant remboursé (si la réclamation a été traitée)
+        dto.setDecisionLabel(c.getDecisionType() != null ? c.getDecisionType().getLabel() : null);
+        dto.setRefundAmount(c.getRefundAmount());
+        return dto;
+    }
+
+    /**
+     * Mappe une réclamation vers le DTO de détail (écran « Voir détails » au clic).
+     */
+    private ClaimDetailDTO mapClaimToDetailDTO(Claim c) {
+        ClaimDetailDTO dto = new ClaimDetailDTO();
+        dto.setClaimId(c.getId());
+        dto.setOrderNumber(c.getOrder() != null ? c.getOrder().getOrderNumber() : null);
+        dto.setStatus(c.getStatus() != null ? c.getStatus().getLabel() : null);
+        dto.setCreatedAt(c.getCreatedAt());
+        // Infos du salarié (nom, téléphone)
+        if (c.getEmployee() != null && c.getEmployee().getUser() != null) {
+            Users u = c.getEmployee().getUser();
+            dto.setEmployeeName(u.getFirstName() + " " + u.getLastName());
+            dto.setEmployeePhone(u.getPhone());
+        }
+        // Produit concerné : quantité, sous-total, id / nom / image
+        if (c.getOrderItem() != null) {
+            OrderItem oi = c.getOrderItem();
+            dto.setQuantityOrdered(oi.getQuantity());
+            dto.setSubtotalProduct(oi.getSubtotal());
+            if (oi.getProduct() != null) {
+                dto.setProductId(oi.getProduct().getId());
+                dto.setProductName(oi.getProduct().getName());
+                dto.setProductImage(oi.getProduct().getImage());
+            }
+        }
+        dto.setProblemTypeLabel(c.getProblemType() != null ? c.getProblemType().getLabel() : null);
+        dto.setComment(c.getComment());
+        dto.setPhotoUrls(c.getPhotoUrls());
+        // Décision (réintégration / remboursement) et motif de rejet si rejeté
+        dto.setDecisionTypeLabel(c.getDecisionType() != null ? c.getDecisionType().getLabel() : null);
+        dto.setRefundAmount(c.getRefundAmount());
+        dto.setRejectionReason(c.getRejectionReason());
+        return dto;
+    }
+
+    // ════════════════════════════════════════════
+    // Génération Référence de  paiement 
+    // ════════════════════════════════════════════
+
+    private String generateTransactionReference() { 
+        String date = LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        //on génère un UUID unique en faisant un substring de 6 caractères et en mettant en majuscule
+        String unique = UUID.randomUUID()
+                .toString()
+                .substring(0, 6)
+                .toUpperCase();
+        return "TXN-" + date + "-" + unique;
+    }
     // ---------- buildClientOrderDetailsDTO : détail d'une commande (client clique sur une commande) ----------
     private ClientOrderDetailsDTO buildClientOrderDetailsDTO(Order order) {
         ClientOrderDetailsDTO dto = new ClientOrderDetailsDTO();
@@ -1372,30 +1517,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         } else {
             dto.setDriver(null);
         }
-        //Les infos du paiement 
+        //Les infos du paiement
         dto.setPaymentTimingType(order.getPayment().getPaymentTiming().getLabel());
         dto.setPaymentStatusLabel(order.getPayment().getStatus().getLabel());
         return dto;
     }
 
-    // ============================================================================
-    // 🔧 MÉTHODES UTILITAIRES
-    // ============================================================================
-
-    // ════════════════════════════════════════════
-    // Génération Référence de  paiement 
-    // ════════════════════════════════════════════
-
-    private String generateTransactionReference() { 
-        String date = LocalDateTime.now()
-                .format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        //on génère un UUID unique en faisant un substring de 6 caractères et en mettant en majuscule
-        String unique = UUID.randomUUID()
-                .toString()
-                .substring(0, 6)
-                .toUpperCase();
-        return "TXN-" + date + "-" + unique;
-    }
     /**
      * Mappe une commande vers un item de la liste "Mes commandes".
      * - driver : renseigné uniquement si statut = EN_COURS ou ARRIVE (en cours de livraison → afficher nom + téléphone).
