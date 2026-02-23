@@ -1,5 +1,6 @@
 package com.example.coopachat.services.DeliveryDriver;
 
+import com.example.coopachat.dtos.DeliveryDriver.CreateDriverReportDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDeliveryListItemDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
@@ -66,4 +67,10 @@ public interface DeliveryDriverService {
 
     /** Met à jour l'adresse du livreur (formattedAddress + lat/long, rempli par le mobile via Google). */
     void updateMyAddress(DriverAddressDTO dto);
+
+    /**
+     * Soumettre un signalement sur une ligne de commande (orderItemId).
+     * Email envoyé au RL qui a créé la tournée.
+     */
+    void submitReport(Long orderItemId, CreateDriverReportDTO dto);
 }

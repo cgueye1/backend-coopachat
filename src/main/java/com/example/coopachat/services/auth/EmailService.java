@@ -70,6 +70,15 @@ public interface EmailService {
      */
     void sendTourCancellationToDriver(String driverEmail, String tourNumber, String reason, String driverName);
 
-
+    /**
+     * Notifie le Responsable Logistique par email lorsqu'un livreur soumet un signalement.
+     *
+     * @param rlEmail         Email du RL
+     * @param driverName     Nom du livreur (prénom + nom)
+     * @param reportTypeLabel Nature du signalement
+     * @param comment        Commentaire du livreur (peut être vide)
+     * @param orderNumber    Numéro de commande
+     */
+    void sendDriverReportToLogisticsManager(String rlEmail, String driverName, String reportTypeLabel, String comment, String orderNumber);
 }
 

@@ -85,7 +85,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/logistics/**").hasAnyRole("LOGISTICS_MANAGER", "ADMINISTRATOR")
 
                         // Livreur + Admin
-                        .requestMatchers("/api/deliveries/**").hasAnyRole("DELIVERY_DRIVER", "ADMINISTRATOR")
+                        .requestMatchers("/api/deliveries/**", "/api/driver/**").hasAnyRole("DELIVERY_DRIVER", "ADMINISTRATOR")
 
                         // ==================================
                         // 🔴 TOUT LE RESTE

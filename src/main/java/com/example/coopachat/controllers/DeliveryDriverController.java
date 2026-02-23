@@ -1,5 +1,6 @@
 package com.example.coopachat.controllers;
 
+import com.example.coopachat.dtos.DeliveryDriver.CreateDriverReportDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDeliveryListItemDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
@@ -119,5 +120,15 @@ public class DeliveryDriverController {
     public ResponseEntity<String> confirmCashPayment(@PathVariable Long orderId) {
         deliveryDriverService.confirmCashPayment(orderId);
         return ResponseEntity.ok("Paiement en espèces confirmé");
+    }
+
+    @Operation(
+            summary = "Signaler un problème",
+            description = "Le livreur soumet un signalement sur une ligne de commande. Le bouton apparaît en swipant sur l’article."
+    )
+    @PostMapping("/reports/{orderItemId}")
+    public ResponseEntity<String> submitReport(@PathVariable Long orderItemId, @RequestBody @Valid CreateDriverReportDTO dto) {
+        deliveryDriverService.submitReport(orderItemId, dto);
+        return ResponseEntity.ok("Signalement enregistré");
     }
 }

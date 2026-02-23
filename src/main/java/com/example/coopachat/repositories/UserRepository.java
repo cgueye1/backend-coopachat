@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 
@@ -67,4 +68,7 @@ public interface UserRepository extends JpaRepository<Users, Long> {
 
     /** Nombre d'utilisateurs pour un rôle donné (pour le graphique "Utilisateurs par rôle"). */
     long countByRole(UserRole role);
+
+    /** Liste des utilisateurs actifs ayant le rôle donné (ex. tous les RL pour notification). */
+    List<Users> findByRoleAndIsActiveTrue(UserRole role);
 }

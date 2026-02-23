@@ -1012,6 +1012,81 @@ public class EmailServiceImpl implements EmailService {
         );
     }
 
+    // ============================================================================
+    // 📧 NOTIFICATION SIGNALEMENT LIVREUR → RESPONSABLE LOGISTIQUE
+    // ============================================================================
+
+    @Override
+    public void sendDriverReportToLogisticsManager(String rlEmail, String driverName, String reportTypeLabel, String comment, String orderNumber) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(mailFrom);
+            helper.setTo(rlEmail);
+            helper.setSubject("⚠️ Signalement livreur - " + reportTypeLabel + " - " + appName);
+
+            addLogoInline(helper);
+
+            String emailBody = generateDriverReportNotificationTemplate(driverName, reportTypeLabel, comment, orderNumber);
+            helper.setText(emailBody, true);
+            mailSender.send(message);
+
+            log.info("Notification signalement livreur envoyée au RL: {}", rlEmail);
+        } catch (Exception e) {
+            log.error("Erreur envoi notification signalement à {}: {}", rlEmail, e.getMessage());
+            throw new RuntimeException("Impossible d'envoyer la notification au responsable logistique", e);
+        }
+    }
+
+    private String generateDriverReportNotificationTemplate(String driverName, String reportTypeLabel, String comment, String orderNumber) {
+        String orderInfo = (orderNumber != null && !orderNumber.isBlank())
+                ? "<p style=\"margin: 5px 0; color: #333;\"><strong>📦 Commande:</strong> " + orderNumber + "</p>"
+                : "";
+        String commentBlock = (comment != null && !comment.isBlank())
+                ? "<div style=\"background-color: #f8f9fa; padding: 12px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #F97316;\">"
+                + "<p style=\"margin: 0; color: #333; font-size: 14px;\">" + comment + "</p></div>"
+                : "";
+        return String.format("""
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Signalement livreur</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: white;
+                       border-radius: 8px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="cid:logo" alt="Logo" style="max-width: 150px;">
+                </div>
+                <h2 style="color: #333; text-align: center;">⚠️ Signalement d'un livreur</h2>
+                <p style="color: #666; font-size: 16px;">Un livreur a soumis un signalement depuis l'application.</p>
+                <div style="background-color: #fff3cd; padding: 15px; border-radius: 6px;
+                           margin: 20px 0; border-left: 4px solid #F97316;">
+                    <p style="margin: 5px 0; color: #333;"><strong>👤 Livreur:</strong> %s</p>
+                    <p style="margin: 5px 0; color: #333;"><strong>📋 Nature:</strong> %s</p>
+                    %s
+                </div>
+                %s
+                <p style="color: #999; font-size: 14px; text-align: center; margin-top: 30px;">
+                    Notification automatique - %s<br>© %d %s
+                </p>
+            </div>
+        </body>
+        </html>
+        """,
+                driverName,
+                reportTypeLabel,
+                orderInfo,
+                commentBlock,
+                appName,
+                java.time.Year.now().getValue(),
+                appName
+        );
+    }
+
     private void addLogoInline(MimeMessageHelper helper) {
         try {
             ClassPathResource logoResource = new ClassPathResource("static/images/logo.png");

@@ -14,10 +14,7 @@ import com.example.coopachat.entities.Coupon;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Product;
 import com.example.coopachat.entities.Users;
-import com.example.coopachat.enums.CompanySector;
-import com.example.coopachat.enums.CouponScope;
-import com.example.coopachat.enums.CouponStatus;
-import com.example.coopachat.enums.UserRole;
+import com.example.coopachat.enums.*;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
 import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
 import com.example.coopachat.repositories.*;
@@ -343,6 +340,10 @@ public class CommercialServiceImpl implements CommercialService {
         // Récupérer l'entreprise associée
         Company company = companyRepository.findById(employee.getCompanyId())
                 .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
+
+        if (company.getStatus() != CompanyStatus.PARTNER_SIGNED){
+            throw new RuntimeException ();
+        }
 
 
         // Créer l'utilisateur (employé)

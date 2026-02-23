@@ -1,5 +1,6 @@
 package com.example.coopachat.services.DeliveryDriver;
 
+import com.example.coopachat.dtos.DeliveryDriver.CreateDriverReportDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDeliveryListItemDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
@@ -12,6 +13,7 @@ import com.example.coopachat.enums.PaymentMethodType;
 import com.example.coopachat.enums.PaymentStatus;
 import com.example.coopachat.enums.PaymentTimingType;
 import com.example.coopachat.repositories.*;
+import com.example.coopachat.services.auth.EmailService;
 import com.example.coopachat.services.fee.FeeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +46,9 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     private final DeliveryTourRepository deliveryTourRepository;
     private final FeeService feeService;
     private final PaymentRepository paymentRepository;
+    private final DriverReportRepository driverReportRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final EmailService emailService;
 
 
     //---------------------- Récupère les informations personnelles du livreur-----------
@@ -340,6 +345,40 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         driver.setLongitude(dto.getLongitude());
         deliveryDriverRepository.save(driver);
         log.info("Adresse livreur mise à jour pour {}", driver.getUser().getEmail());
+    }
+
+    //---------------------- Signaler un problème (signalement livreur) -----------
+    @Override
+    @Transactional
+    public void submitReport(Long orderItemId, CreateDriverReportDTO dto) {
+        Driver driver = getDriverOrThrow();
+        OrderItem orderItem = orderItemRepository.findById(orderItemId)
+                .orElseThrow(() -> new RuntimeException("Ligne de commande introuvable"));
+        Order order = orderItem.getOrder();
+        if (order == null || order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
+            throw new RuntimeException("Cette ligne ne fait pas partie de vos livraisons");
+        }
+
+        DriverReport report = new DriverReport();
+        report.setDriver(driver);
+        report.setReportType(dto.getReportType());
+        report.setComment(dto.getComment());
+        report.setOrderItem(orderItem);
+        driverReportRepository.save(report);
+
+        // Email au RL qui a créé la tournée
+        Users rlCreatedTour = order.getDeliveryTour().getCreatedBy();
+        if (rlCreatedTour != null && rlCreatedTour.getEmail() != null && !rlCreatedTour.getEmail().isBlank()) {
+            String driverName = driver.getUser().getFirstName() + " " + driver.getUser().getLastName();
+            emailService.sendDriverReportToLogisticsManager(
+                    rlCreatedTour.getEmail(),
+                    driverName,
+                    dto.getReportType().getLabel(),
+                    dto.getComment() != null ? dto.getComment() : "",
+                    order.getOrderNumber()
+            );
+        }
+        log.info("Signalement livreur enregistré, RL notifié : {} - {}", driver.getUser().getEmail(), dto.getReportType().getLabel());
     }
 
 //---------------- Les méthodes Utilitaires -------------------
