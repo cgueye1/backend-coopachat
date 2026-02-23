@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 
 /**
  * Signalement soumis par un livreur (formulaire "Signaler un problème").
- * Toujours lié à une ligne de commande (orderItem) affichée lors du swipe.
+ * Toujours lié à une commande / livraison (Order).
  */
 @Entity
 @Table(name = "driver_reports")
@@ -36,10 +36,10 @@ public class DriverReport {
     @Column(name = "comment", columnDefinition = "TEXT")
     private String comment;
 
-    /** Ligne de commande concernée. */
+    /** Commande / livraison concernée. */
     @ManyToOne
-    @JoinColumn(name = "order_item_id", nullable = false)
-    private OrderItem orderItem;
+    @JoinColumn(name = "order_id", nullable = false)
+    private Order order;
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @CreationTimestamp

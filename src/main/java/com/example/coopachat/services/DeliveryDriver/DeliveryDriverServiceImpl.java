@@ -3,6 +3,7 @@ package com.example.coopachat.services.DeliveryDriver;
 import com.example.coopachat.dtos.DeliveryDriver.CreateDriverReportDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDeliveryListItemDTO;
+import com.example.coopachat.dtos.DeliveryDriver.DriverDashboardDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 import com.example.coopachat.dtos.DeliveryDriver.OrderDetailsForDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.OrderItemForDriverDTO;
@@ -47,8 +48,8 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     private final FeeService feeService;
     private final PaymentRepository paymentRepository;
     private final DriverReportRepository driverReportRepository;
-    private final OrderItemRepository orderItemRepository;
     private final EmailService emailService;
+    private final DriverReviewRepository driverReviewRepository;
 
 
     //---------------------- Récupère les informations personnelles du livreur-----------
@@ -350,20 +351,19 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     //---------------------- Signaler un problème (signalement livreur) -----------
     @Override
     @Transactional
-    public void submitReport(Long orderItemId, CreateDriverReportDTO dto) {
+    public void submitReport(Long orderId, CreateDriverReportDTO dto) {
         Driver driver = getDriverOrThrow();
-        OrderItem orderItem = orderItemRepository.findById(orderItemId)
-                .orElseThrow(() -> new RuntimeException("Ligne de commande introuvable"));
-        Order order = orderItem.getOrder();
-        if (order == null || order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
-            throw new RuntimeException("Cette ligne ne fait pas partie de vos livraisons");
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+        if (order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
+            throw new RuntimeException("Cette commande ne fait pas partie de vos livraisons");
         }
 
         DriverReport report = new DriverReport();
         report.setDriver(driver);
         report.setReportType(dto.getReportType());
         report.setComment(dto.getComment());
-        report.setOrderItem(orderItem);
+        report.setOrder(order);
         driverReportRepository.save(report);
 
         // Email au RL qui a créé la tournée
@@ -379,6 +379,24 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
             );
         }
         log.info("Signalement livreur enregistré, RL notifié : {} - {}", driver.getUser().getEmail(), dto.getReportType().getLabel());
+    }
+
+    //---------------------- Tableau de bord livreur -----------
+    /** Livraisons aujourd'hui, total livraisons (statut LIVREE), et moyenne des notes des avis clients. */
+    @Override
+    @Transactional(readOnly = true)
+    public DriverDashboardDTO getDashboard() {
+        Driver driver = getDriverOrThrow();
+        LocalDate today = LocalDate.now();
+        // Nombre de commandes livrées aujourd'hui par ce livreur
+        long livraisonsAujourdhui = orderRepository.countByDeliveryTourDriverIdAndStatusAndDeliveryDate(
+                driver.getId(), OrderStatus.LIVREE, today);
+        // Nombre total de commandes livrées par ce livreur (toutes dates)
+        long totalLivraisons = orderRepository.countByDeliveryTourDriverIdAndStatus(
+                driver.getId(), OrderStatus.LIVREE);
+        // Moyenne des notes (1 à 5) des avis clients ; null si aucun avis
+        Double satisfactionMoyenne = driverReviewRepository.getAverageRatingByDriverId(driver.getId());
+        return new DriverDashboardDTO(livraisonsAujourdhui, totalLivraisons, satisfactionMoyenne);
     }
 
 //---------------- Les méthodes Utilitaires -------------------
@@ -464,4 +482,7 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
                 order.getStatus(),
                 order.getDeliveryTour() != null ? order.getDeliveryTour().getId() : null
         );}
+
+
+
 }

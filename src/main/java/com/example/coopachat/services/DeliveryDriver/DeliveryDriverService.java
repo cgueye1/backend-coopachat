@@ -3,6 +3,7 @@ package com.example.coopachat.services.DeliveryDriver;
 import com.example.coopachat.dtos.DeliveryDriver.CreateDriverReportDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDeliveryListItemDTO;
+import com.example.coopachat.dtos.DeliveryDriver.DriverDashboardDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 import com.example.coopachat.dtos.DeliveryDriver.OrderDetailsForDriverDTO;
 import com.example.coopachat.enums.OrderStatus;
@@ -69,8 +70,13 @@ public interface DeliveryDriverService {
     void updateMyAddress(DriverAddressDTO dto);
 
     /**
-     * Soumettre un signalement sur une ligne de commande (orderItemId).
+     * Soumettre un signalement pour une livraison (commande).
      * Email envoyé au RL qui a créé la tournée.
      */
-    void submitReport(Long orderItemId, CreateDriverReportDTO dto);
+    void submitReport(Long orderId, CreateDriverReportDTO dto);
+
+    /**
+     * Tableau de bord du livreur : livraisons aujourd'hui, total livraisons, satisfaction moyenne.
+     */
+    DriverDashboardDTO getDashboard();
 }

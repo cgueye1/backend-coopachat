@@ -1,51 +1,115 @@
+# ═══════════════════════════════════════════════════════════════
+# DOCKER COMPOSE – COOPACHAT
+# ═══════════════════════════════════════════════════════════════
+# Ce fichier permet de lancer :
+# 1️⃣ La base de données MySQL
+# 2️⃣ L’application Spring Boot
+#
+# Les services communiquent automatiquement via un réseau interne Docker.
+# ═══════════════════════════════════════════════════════════════
+
 services:
+
+  # ===============================
+  # SERVICE : BASE DE DONNÉES MYSQL
+  # ===============================
   db:
-    image: mysql:8.0
-    container_name: coopachat-db
+    image: mysql:8.0 #image mysql
+    container_name: coopachat-db #Nom du conteneur
+
+    # Variables d’environnement utilisées par MySQL
+    # Les valeurs sont récupérées depuis le système
+    # Si elles ne sont pas définies, les valeurs par défaut sont utilisées.
     environment:
       MYSQL_DATABASE: ${DB_NAME:-coopachat}
       MYSQL_USER: ${DB_USER:-coopachat}
       MYSQL_PASSWORD: ${DB_PASSWORD:-coopachat}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpass}
+
+    # Mapping des ports
+    # 3307 → Port accessible depuis l’extérieur (PC)
+    # 3306 → Port interne du conteneur MySQL
     ports:
       - "3307:3306"
+
+    # Volume persistant
+    # Les données sont sauvegardées même si le conteneur est supprimé.
     volumes:
       - db_data:/var/lib/mysql
+
+    # Vérifie si MySQL est prêt avant de démarrer les autres services
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
       timeout: 5s
       retries: 20
 
+
+  # ==================================
+  # SERVICE : APPLICATION SPRING BOOT
+  # ==================================
   app:
+    # Docker construit l’image à partir du Dockerfile présent dans le dossier courant
     build: .
-    container_name: coopachat-app
+
+    container_name: coopachat-app #Nom du conteneur
+
+    # L’application attend que la base de données soit "healthy"
+    # avant de démarrer.
     depends_on:
       db:
         condition: service_healthy
+
+    # Variables d’environnement Nécéssaires
+    # Elles permettent de configurer :
+    # - Connexion base de données
+    # - JWT
+    # - Email
+    # - Google Auth
+    # - SFTP
     environment:
       DB_NAME: ${DB_NAME:-coopachat}
       DB_USER: ${DB_USER:-coopachat}
       DB_PASSWORD: ${DB_PASSWORD:-coopachat}
+
       JWT_SECRET: ${JWT_SECRET:-coopachat-secret-key-256-bits-minimum-required-for-security-2025}
+
+      # Configuration Email
       MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+
+      # Google OAuth
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+
+      # URLs du frontend utilisées pour redirections
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:4200}
       FRONTEND_RESET_PASSWORD_URL: ${FRONTEND_RESET_PASSWORD_URL:-http://localhost:4200/reset-password?token=}
       FRONTEND_ACTIVATE_EMPLOYEE_URL: ${FRONTEND_ACTIVATE_EMPLOYEE_URL:-http://localhost:4200/activate?token=}
+
+      # Configuration SFTP (stockage externe)
       SFTP_HOST: ${SFTP_HOST:-}
       SFTP_PORT: ${SFTP_PORT:-22}
       SFTP_USER: ${SFTP_USER:-}
       SFTP_PASSWORD: ${SFTP_PASSWORD:-}
       SFTP_REMOTE_DIR: ${SFTP_REMOTE_DIR:-/coopacha/}
+
+    # Ports
+    # 8083 → Port accessible depuis mon PC
+    # 8082 → Port interne de l’application
     ports:
       - "8083:8082"
+
+    # Redémarre automatiquement si le container crash
     restart: unless-stopped
 
+
+# ===============================
+# VOLUMES PERSISTANTS
+# ===============================
+# Permet de conserver les données MySQL même si les containers sont supprimés
 volumes:
   db_data:

@@ -107,4 +107,21 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("employee") Employee employee,
             @Param("status") PaymentStatus status
     );
+
+    /**
+     * Nombre de commandes livrées par un livreur à une date donnée (ex. aujourd'hui).
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.deliveryTour.driver.id = :driverId AND o.status = :status AND o.deliveryDate = :deliveryDate")
+    long countByDeliveryTourDriverIdAndStatusAndDeliveryDate(
+            @Param("driverId") Long driverId,
+            @Param("status") OrderStatus status,
+            @Param("deliveryDate") LocalDate deliveryDate);
+
+    /**
+     * Nombre total de commandes livrées par un livreur (toutes dates).
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.deliveryTour.driver.id = :driverId AND o.status = :status")
+    long countByDeliveryTourDriverIdAndStatus(
+            @Param("driverId") Long driverId,
+            @Param("status") OrderStatus status);
 }

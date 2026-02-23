@@ -3,6 +3,7 @@ package com.example.coopachat.controllers;
 import com.example.coopachat.dtos.DeliveryDriver.CreateDriverReportDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDeliveryListItemDTO;
+import com.example.coopachat.dtos.DeliveryDriver.DriverDashboardDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 import com.example.coopachat.dtos.DeliveryDriver.OrderDetailsForDriverDTO;
 import com.example.coopachat.enums.OrderStatus;
@@ -53,6 +54,15 @@ public class DeliveryDriverController {
     @GetMapping("/address")
     public ResponseEntity<DriverAddressDTO> getMyAddress() {
         return ResponseEntity.ok(deliveryDriverService.getMyAddress());
+    }
+
+    @Operation(
+            summary = "Tableau de bord",
+            description = "Livraisons aujourd'hui, total des livraisons, satisfaction moyenne (moyenne des notes des avis clients)."
+    )
+    @GetMapping("/dashboard")
+    public ResponseEntity<DriverDashboardDTO> getDashboard() {
+        return ResponseEntity.ok(deliveryDriverService.getDashboard());
     }
 
     @Operation(summary = "Modifier mon adresse", description = "Met à jour l'adresse du livreur (formattedAddress + lat/long, rempli par le mobile via Google Places).")
@@ -126,9 +136,9 @@ public class DeliveryDriverController {
             summary = "Signaler un problème",
             description = "Le livreur soumet un signalement sur une ligne de commande. Le bouton apparaît en swipant sur l’article."
     )
-    @PostMapping("/reports/{orderItemId}")
-    public ResponseEntity<String> submitReport(@PathVariable Long orderItemId, @RequestBody @Valid CreateDriverReportDTO dto) {
-        deliveryDriverService.submitReport(orderItemId, dto);
+    @PostMapping("/reports/{orderId}")
+    public ResponseEntity<String> submitReport(@PathVariable Long orderId, @RequestBody @Valid CreateDriverReportDTO dto) {
+        deliveryDriverService.submitReport(orderId, dto);
         return ResponseEntity.ok("Signalement enregistré");
     }
 }
