@@ -1,0 +1,21 @@
+package com.example.coopachat.dtos.auth;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+/**
+ * DTO pour la demande de réinitialisation de mot de passe
+ * Utilisé quand l'utilisateur clique sur "Mot de passe oublié"
+ */
+@Data
+public class ForgotPasswordRequestDTO {
+
+    /**
+     * Email professionnel de l'utilisateur
+     * Un lien de réinitialisation sera envoyé à cette adresse
+     */
+    @NotBlank(message = "L'email est obligatoire")
+    @Email(message = "Format d'email invalide")
+    private String email;
+}

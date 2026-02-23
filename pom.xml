@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.0</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<version>3.5.5</version>
+		<relativePath/>
 	</parent>
-	<groupId>com.example</groupId>
-	<artifactId>coopachat</artifactId>
+	<groupId>com.example.rml</groupId>
+	<artifactId>back-office-rml</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>coopachat</name>
-	<description>Projet E-commerce Coopérative</description>
+	<name>back-office-coopachat</name>
+	<description>Demo project for Spring Boot</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -41,7 +41,7 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- Spring Boot Starter Web -->
+		<!-- Spring Boot Starter Web ( ajoute les fonctionnalités web à Spring Boot pour créer des API REST, gérer les requêtes HTTP et le serveur intégré (tomcat)) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
@@ -88,8 +88,18 @@
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>2.6.0</version>
+			<version>2.8.15</version>
 		</dependency>
+
+		<!-- Pdf -->
+		<dependency>
+			<groupId>com.itextpdf</groupId>
+			<artifactId>itext7-core</artifactId>
+			<version>7.2.5</version>
+			<type>pom</type>
+		</dependency>
+
+
 
 		<!-- MySQL Connector -->
 		<dependency>
@@ -98,7 +108,7 @@
 			<version>8.0.32</version>
 		</dependency>
 
-		<!-- Lombok  -->
+		<!-- Lombok (ça nous permet d'ajouter les annotations pour get set et constructeur) -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -124,13 +134,41 @@
 			<version>0.1.55</version>
 		</dependency>
 
+		<!-- Apache POI pour générer des fichiers Excel (.xlsx) -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi</artifactId>
+			<version>5.2.5</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.2.5</version>
+		</dependency>
+
+		<!-- Service Google -->
+		<dependency>
+			<groupId>com.google.api-client</groupId>
+			<artifactId>google-api-client</artifactId>
+			<version>2.2.0</version>
+		</dependency>
+
 	</dependencies>
+
 
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

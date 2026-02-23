@@ -1,12 +1,12 @@
 package com.example.coopachat.entities;
 
-
 import com.example.coopachat.enums.CompanySector;
 import com.example.coopachat.enums.CompanyStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,13 +22,13 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class Company {
+public class  Company {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = true)
     private String companyCode; // Code unique de l'entreprise
 
     @Column(nullable = false)
@@ -47,11 +47,13 @@ public class Company {
     private String contactName; // Nom du contact
 
     @Email(message = "L'email du contact doit être valide")
-    @Column(unique = true, nullable = false)
+    @Column(nullable = true)
     private String contactEmail; // Email du contact
 
     @Column(nullable = false)
     @NotBlank(message = "Le téléphone du contact est obligatoire")
+    @Pattern(regexp = "^[+]?[0-9\\s\\-\\(\\)]{8,25}$",
+            message = "Le numéro de téléphone doit contenir entre 8 et 15 chiffres")
     private String contactPhone; // Téléphone du contact
 
     @Enumerated(EnumType.STRING)
@@ -75,8 +77,8 @@ public class Company {
     // Relations
     @ManyToOne
     @JoinColumn(name = "commercial_id", nullable = false)
-    private User commercial; // Commercial qui gère l'entreprise
+    private Users commercial; // Commercial qui gère l'entreprise
 
-   @OneToMany (mappedBy = "company", cascade = CascadeType.ALL)
+   @OneToMany (mappedBy = "company")
    private List<Employee> employees; // Liste des salariés de l'entreprise
 }
