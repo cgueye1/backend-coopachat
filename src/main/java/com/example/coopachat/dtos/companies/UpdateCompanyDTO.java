@@ -3,44 +3,38 @@ package com.example.coopachat.dtos.companies;
 import com.example.coopachat.enums.CompanySector;
 import com.example.coopachat.enums.CompanyStatus;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * DTO pour la modification d'une entreprise
+ * DTO pour la modification partielle d'une entreprise.
+ * Tous les champs sont optionnels : seuls ceux envoyés sont mis à jour.
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateCompanyDTO {
 
-    @NotBlank(message = "Le nom de l'entreprise est obligatoire")
-    private String name; // Nom de l'entreprise
+    private String name;
 
-    private CompanySector sector; // Secteur d'activité (optionnel)
+    private CompanySector sector;
 
-    @NotBlank(message = "La localisation est obligatoire")
-    private String location; // Localisation (adresse ou région)
+    private String location;
 
-    @NotBlank(message = "Le nom du contact est obligatoire")
-    private String contactName; // Nom du contact
+    private String contactName;
 
     @Email(message = "L'email du contact doit être valide")
-    private String contactEmail; // Email du contact (optionnel)
+    private String contactEmail;
 
-    @NotBlank(message = "Le téléphone du contact est obligatoire")
     @Pattern(regexp = "^[0-9]{8,15}$",
             message = "Le numéro de téléphone doit contenir entre 8 et 15 chiffres uniquement")
-    private String contactPhone; // Téléphone du contact
+    private String contactPhone;
 
-    @NotNull(message = "Le statut de prospection est obligatoire")
-    private CompanyStatus status; // Statut de prospection
+    private CompanyStatus status; // ex. PARTNER_SIGNED pour « Partenaire signé »
 
-    private String note; // Commentaire ou note (optionnel)
+    private String note;
 }
 
 

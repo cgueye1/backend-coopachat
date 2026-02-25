@@ -1,5 +1,6 @@
 package com.example.coopachat.services.admin;
 
+import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
 import com.example.coopachat.dtos.fee.CreateFeeDTO;
 import com.example.coopachat.dtos.fee.FeeDTO;
@@ -20,6 +21,7 @@ import com.example.coopachat.dtos.user.UserStatsByStatusItemDTO;
 import com.example.coopachat.dtos.user.UserStatsDTO;
 import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
 import com.example.coopachat.enums.UserRole;
 import org.springframework.core.io.ByteArrayResource;
 
@@ -200,4 +202,20 @@ public interface AdminService {
      * Modifier les infos de base d'un utilisateur (prénom, nom, email, téléphone, rôle, companyCommercial).
      */
     void updateUser(Long id, SaveUserDTO dto);
+
+    // ============================================================================
+    // 📊 DASHBOARD ADMIN
+    // ============================================================================
+
+    /**
+     * Statistiques du tableau de bord admin (KPIs + paiements par statut).
+     * La période détermine sur quelles dates on calcule les chiffres.
+     *
+     * @param periode "TODAY" = uniquement aujourd'hui ; "THIS_MONTH" = du 1er du mois à aujourd'hui
+     * @return DTO avec : commandes en attente, paiements échoués, réclamations ouvertes, liste paiements par statut (pour graphique)
+     */
+    AdminDashboardStatsDTO getDashboardStats(String periode);
+
+
+
 }

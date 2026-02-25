@@ -341,8 +341,8 @@ public class CommercialServiceImpl implements CommercialService {
         Company company = companyRepository.findById(employee.getCompanyId())
                 .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
 
-        if (company.getStatus() != CompanyStatus.PARTNER_SIGNED){
-            throw new RuntimeException ();
+        if (company.getStatus() != CompanyStatus.PARTNER_SIGNED) {
+            throw new RuntimeException("L'entreprise doit avoir le statut « Partenaire signé » pour pouvoir inscrire des salariés.");
         }
 
 

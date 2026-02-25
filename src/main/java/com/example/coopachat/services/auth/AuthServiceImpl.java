@@ -384,6 +384,32 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Veuillez attendre " + remainingSeconds + " secondes avant de renvoyer le code");
         }
         // Cooldown terminé, générer et envoyer un nouveau code
+        if (user.getRole() == UserRole.EMPLOYEE) {
+            Employee employee = employeeRepository.findByUserEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Employé introuvable pour cet email"));
+
+            String code = activationCodeService.generateAndStoreCodeMobile(email);
+            String commercialFullName = employee.getCreatedBy().getFirstName() + " " + employee.getCreatedBy().getLastName();
+
+            emailService.sendEmployeeInvitation(
+                    email,
+                    code,
+                    user.getFirstName(),
+                    commercialFullName,
+                    employee.getCompany().getName()
+            );
+
+            log.info("Code mobile envoyé au salarié {} ({})", user.getFirstName(), email);
+            return;
+        }
+        //Cas livreur
+        if (user.getRole() == UserRole.DELIVERY_DRIVER) {
+            String code = activationCodeService.generateAndStoreCodeMobile(email);
+            emailService.sendDriverActivationCode(email, code, user.getFirstName());
+            log.info("Code mobile envoyé au livreur {} ({})", user.getFirstName(), email);
+            return;
+        }
+
         String code = activationCodeService.generateAndStoreCode(email);
         emailService.sendActivationCode(email, code, user.getFirstName());
     }

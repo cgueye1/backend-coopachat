@@ -22,7 +22,12 @@ import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
 import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
+import com.example.coopachat.dtos.dashboard.admin.PaymentStatusItemDTO;
 import com.example.coopachat.entities.*;
+import com.example.coopachat.enums.ClaimStatus;
+import com.example.coopachat.enums.OrderStatus;
+import com.example.coopachat.enums.PaymentStatus;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.auth.ActivationCodeService;
@@ -42,6 +47,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -70,6 +76,9 @@ public class AdminServiceImpl implements AdminService {
     private final ActivationCodeService activationCodeService;
     private final EmailService emailService;
     private final DeliveryDriverRepository deliveryDriverRepository;
+    private final OrderRepository orderRepository;
+    private final PaymentRepository paymentRepository;
+    private final ClaimRepository claimRepository;
 
     // ============================================================================
     // 📁 GESTION DES CATÉGORIES
@@ -882,6 +891,64 @@ public class AdminServiceImpl implements AdminService {
         log.info("Utilisateur {} mis à jour par l'admin", u.getEmail());
     }
 
+    // ============================================================================
+    // 📊 DASHBOARD ADMIN
+    // ============================================================================
+
+    /**
+     * Construit les statistiques du tableau de bord admin pour une période donnée.
+     * Utilisé par l'API GET /api/admin/dashboard/stats?periode=TODAY ou THIS_MONTH.
+     */
+    @Override
+    public AdminDashboardStatsDTO getDashboardStats(String periode) {
+        // ---- 1) Définir la plage de dates (début et fin) selon la période demandée ----
+        LocalDateTime start;
+        LocalDateTime end;
+        LocalDate today = LocalDate.now();
+
+        if ("TODAY".equalsIgnoreCase(periode)) {
+            // Aujourd'hui : de 00h00 à 23h59
+            start = today.atStartOfDay();
+            end = today.atTime(23, 59, 59, 999_999_999);
+        } else if ("THIS_MONTH".equalsIgnoreCase(periode)) {
+            // Mois en cours : du 1er du mois à aujourd'hui 23h59
+            start = today.withDayOfMonth(1).atStartOfDay();  // 01/02/2026 00:00:00
+            end = today.atTime(23, 59, 59, 999_999_999);
+        } else {
+            // Si une autre valeur est passée, on prend le mois en cours par défaut
+            start = today.withDayOfMonth(1).atStartOfDay();
+            end = today.atTime(23, 59, 59, 999_999_999);
+        }
+
+        //a. En attente
+        long commandesEnAttente =  orderRepository.countByStatusAndCreatedAtBetween(OrderStatus.EN_ATTENTE, start, end);
+
+        // ----b) KPI : nombre de paiements échoués dans la période ----
+        long paiementsEchoues = paymentRepository.countByStatusAndCreatedAtBetween(PaymentStatus.FAILED, start, end);
+
+        // ---- c) KPI : réclamations encore ouvertes (en attente de traitement) ----
+        // Ici on ne filtre pas par période : on compte toutes les réclamations "En attente" actuellement.
+        long reclamationsOuvertes = claimRepository.countByStatus(ClaimStatus.EN_ATTENTE);
+
+        // ---- d) Liste "paiements par statut" pour le graphique (3 statuts uniquement) ----
+        List<PaymentStatusItemDTO> paiementsParStatut = new ArrayList<>();
+
+        long payes = paymentRepository.countByStatusAndCreatedAtBetween(PaymentStatus.PAID, start, end);
+        paiementsParStatut.add(new PaymentStatusItemDTO(PaymentStatus.PAID.getLabel(), payes));
+        long enAttente = paymentRepository.countByStatusAndCreatedAtBetween(PaymentStatus.UNPAID, start, end);
+        paiementsParStatut.add(new PaymentStatusItemDTO(PaymentStatus.PENDING.getLabel(), enAttente));
+        long echoues = paymentRepository.countByStatusAndCreatedAtBetween(PaymentStatus.FAILED, start, end);
+        paiementsParStatut.add(new PaymentStatusItemDTO(PaymentStatus.FAILED.getLabel(), echoues));
+
+        // ---- 2) On renvoie le DTO ----
+        return new AdminDashboardStatsDTO(
+                commandesEnAttente,
+                paiementsEchoues,
+                reclamationsOuvertes,
+                paiementsParStatut
+        );
+    }
+
     // ----------------------------------------------------------------------------
     // 🔧 MÉTHODES UTILITAIRES
     // ----------------------------------------------------------------------------
@@ -976,6 +1043,7 @@ public class AdminServiceImpl implements AdminService {
         }
         return "Rupture de stock";
     }
+
 
     /**
      * Récupère l'utilisateur actuellement connecté.

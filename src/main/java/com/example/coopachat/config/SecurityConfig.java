@@ -113,13 +113,13 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Autorise tous les sites à appeler l'API
+        // Autorise tous les sites à appeler l'API (pattern * autorise toute origine)
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
 
         // Autorise ces méthodes HTTP
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
-        // Autorise tous les headers
+        // Autorise tous les headers (dont Authorization pour le Bearer token)
         configuration.setAllowedHeaders(Arrays.asList("*"));
 
         // Autorise l'envoi de cookies/tokens
