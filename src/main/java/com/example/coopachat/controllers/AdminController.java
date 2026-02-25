@@ -20,6 +20,7 @@ import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
 import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.services.admin.AdminService;
 import com.example.coopachat.util.FileTransferUtil;
@@ -489,6 +490,22 @@ public class AdminController {
             @RequestBody @Valid SaveUserDTO dto) {
         adminService.updateUser(id, dto);
         return ResponseEntity.ok("Utilisateur mis à jour avec succès");
+    }
+
+    // ============================================================================
+    // 📊 DASHBOARD ADMIN
+    // ============================================================================
+
+    @Operation(
+            summary = "Statistiques du tableau de bord admin",
+            description = "Retourne les KPIs (commandes en attente, paiements échoués, réclamations ouvertes) et la répartition des paiements par statut (Payé, En attente, Échoué) pour la période demandée."
+    )
+    @GetMapping("/dashboard/stats")
+    public ResponseEntity<AdminDashboardStatsDTO> getDashboardStats(
+            @Parameter(description = "Période : TODAY (aujourd'hui) ou THIS_MONTH (mois en cours). Par défaut : THIS_MONTH.")
+            @RequestParam(defaultValue = "THIS_MONTH") String periode) {
+        AdminDashboardStatsDTO stats = adminService.getDashboardStats(periode);
+        return ResponseEntity.ok(stats);
     }
 
 }

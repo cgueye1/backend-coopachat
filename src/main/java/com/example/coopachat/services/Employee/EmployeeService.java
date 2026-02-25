@@ -4,6 +4,7 @@ import com.example.coopachat.dtos.employees.DeliveryPreferenceDTO;
 import com.example.coopachat.dtos.cart.CartResponseDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
+import com.example.coopachat.dtos.employees.EmployeePersonalInfo;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.claim.ClaimDetailDTO;
@@ -25,7 +26,7 @@ public interface EmployeeService {
     // ============================================================================
 
     /**
-     * Récupère les données d'accueil du salarié.
+     * Récupère les données d'accueil du salarié (4 derniers produits, 4 catégories, promo active).
      */
     HomeResponseDTO getHomeData();
 
@@ -129,6 +130,12 @@ public interface EmployeeService {
      * @return DTO contenant les informations personnelles
      */
     EmployeePersonalInfoDTO getPersonalInfo();
+
+    /**
+     * Récupère prénom, nom, téléphone du user par email pour l'écran « Complétez votre profil » (l'email est déjà connu côté front).
+     * Ne nécessite pas qu'un employé soit déjà créé.
+     */
+    EmployeePersonalInfo getPersonalInfoByEmail(String email);
 
     /**
      *  Met à jour les informations personnelles

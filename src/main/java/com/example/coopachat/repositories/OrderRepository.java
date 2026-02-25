@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 
+import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -124,4 +125,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     long countByDeliveryTourDriverIdAndStatus(
             @Param("driverId") Long driverId,
             @Param("status") OrderStatus status);
+
+
+    /**
+     * Nombre de commandes avec le statut donné, créées dans la période [start, end].
+     */
+    long countByStatusAndCreatedAtBetween(OrderStatus status, LocalDateTime start, LocalDateTime end);
 }

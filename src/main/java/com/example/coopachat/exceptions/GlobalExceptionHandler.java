@@ -102,9 +102,10 @@ public class GlobalExceptionHandler {
             return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
         }
 
-        // Pour les autres RuntimeException, retourner 500
+        // Pour les autres RuntimeException, retourner 500 (éviter d'afficher "null" si pas de message)
+        String msg = ex.getMessage() != null ? ex.getMessage() : "Erreur inconnue";
         ErrorResponseDTO error = new ErrorResponseDTO(
-                "Une erreur inattendue s'est produite: " + ex.getMessage(),
+                "Une erreur inattendue s'est produite: " + msg,
                 null,
                 LocalDateTime.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
@@ -115,8 +116,9 @@ public class GlobalExceptionHandler {
     // Gérer toutes les autres exceptions (fallback)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDTO> handleGenericException(Exception ex) {
+        String msg = ex.getMessage() != null ? ex.getMessage() : "Erreur inconnue";
         ErrorResponseDTO error = new ErrorResponseDTO(
-                "Une erreur inattendue s'est produite: " + ex.getMessage(),
+                "Une erreur inattendue s'est produite: " + msg,
                 null,
                 LocalDateTime.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value()

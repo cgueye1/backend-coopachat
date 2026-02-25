@@ -7,6 +7,7 @@ import com.example.coopachat.dtos.categories.CategoryHomeItemDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.coupons.CouponPromoDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
+import com.example.coopachat.dtos.employees.EmployeePersonalInfo;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.geocoding.PlaceDetailsResult;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
@@ -84,34 +85,27 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional(readOnly = true)
     public HomeResponseDTO getHomeData() {
-        // Authentification du salarié
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {
             throw new RuntimeException("Utilisateur non authentifié");
         }
-
         String userEmail = authentication.getName();
         if (userEmail == null) {
             throw new RuntimeException("Email utilisateur introuvable");
         }
-
         Users user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
-
-        // Chargement des 4 derniers produits et catégories
-        List<Product> latestProducts = productRepository.findTop4ByStatusTrueOrderByCreatedAtDesc();
-        List<Category> latestCategories = categoryRepository.findTop4ByOrderByIdDesc();
-
-        List<ProductPromoItemDTO> productItems = latestProducts.stream()
+        List<Product> products = productRepository.findTop4ByStatusTrueOrderByCreatedAtDesc();
+        List<ProductPromoItemDTO> productItems = products.stream()
                 .map(this::mapToProductPromoItemDTO)
                 .collect(Collectors.toList());
 
+        List<Category> latestCategories = categoryRepository.findTop4ByOrderByIdDesc();
         List<CategoryHomeItemDTO> categoryItems = latestCategories.stream()
                 .map(this::mapToCategoryHomeItemDTO)
                 .collect(Collectors.toList());
 
-        // Promo active si disponible
         CouponPromoDTO promoDTO = couponRepository.findLatestActiveCoupon(LocalDateTime.now())
                 .map(this::mapToCouponPromoDTO)
                 .orElse(null);
@@ -121,8 +115,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         response.setProducts(productItems);
         response.setCategories(categoryItems);
         response.setActiveCoupon(promoDTO);
-
-        log.info("Accueil salarié chargé pour {}", userEmail);
         return response;
     }
 
@@ -487,6 +479,17 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    public EmployeePersonalInfo getPersonalInfoByEmail(String email) {
+        Users user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+        return new EmployeePersonalInfo(
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhone()
+        );
+    }
+
+    @Override
     @Transactional
     public void updatePersonalInfo(EmployeePersonalInfoDTO updateRequest) {
 
@@ -770,7 +773,15 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
         // 7. Sauvegarder la commande et vider le panier
         Order savedOrder = orderRepository.save(order);
-        cartItemRepository.deleteAll(cartItems);
+
+        // Créer le paiement avec statut Impayé (paymentMethod et paymentTiming seront remplis au moment du paiement)
+        Payment payment = new Payment();
+        payment.setOrder(savedOrder);
+        payment.setStatus(PaymentStatus.UNPAID);
+        Payment savedPayment = paymentRepository.save(payment);
+        savedOrder.setPayment(savedPayment);
+
+        cartItemRepository.deleteAll(cartItems);//on vide le panier
 
         // 8. Préparer la réponse
 
@@ -921,8 +932,12 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new RuntimeException("Le paiement en espèces est géré par le livreur à la livraison. Choisissez Mobile Money ou Carte bancaire.");
         }
 
-        Payment payment = new Payment();
-        payment.setOrder(order);
+        // Utiliser le paiement existant (créé à la commande) ou en créer un pour les anciennes commandes
+        Payment payment = order.getPayment();
+        if (payment == null) {
+            payment = new Payment();
+            payment.setOrder(order);
+        }
         payment.setPaymentMethod(request.getPaymentMethod());
         payment.setPaymentTiming(request.getPaymentTiming());
 
@@ -1157,7 +1172,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                     .setBold());
 
             document.add(new Paragraph("Mode : " +
-                    payment.getPaymentMethod().getLabel()));
+                    (payment.getPaymentMethod() != null ? payment.getPaymentMethod().getLabel() : "Non défini")));
 
             if (payment.getMobileOperator() != null) {
                 document.add(new Paragraph("Opérateur : " +
@@ -1518,7 +1533,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             dto.setDriver(null);
         }
         //Les infos du paiement
-        dto.setPaymentTimingType(order.getPayment().getPaymentTiming().getLabel());
+        dto.setPaymentTimingType(order.getPayment().getPaymentTiming() != null ? order.getPayment().getPaymentTiming().getLabel() : null);
         dto.setPaymentStatusLabel(order.getPayment().getStatus().getLabel());
         return dto;
     }

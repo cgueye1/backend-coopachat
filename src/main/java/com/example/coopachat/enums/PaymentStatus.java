@@ -4,7 +4,7 @@ public enum PaymentStatus {
     UNPAID("Impayé"),
     PENDING("En attente de confirmation"),
     PAID("Payé"),
-    FAILED("Échec du paiement"),
+    FAILED("Échoué"),
     REFUNDED("Remboursé");
 
     private final String label;
