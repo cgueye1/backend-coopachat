@@ -22,6 +22,7 @@ import com.example.coopachat.dtos.user.UserStatsDTO;
 import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
+import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.enums.UserRole;
 import org.springframework.core.io.ByteArrayResource;
 
@@ -216,6 +217,16 @@ public interface AdminService {
      */
     AdminDashboardStatsDTO getDashboardStats(String periode);
 
+    /**
+     * Liste des 7 derniers jours avec pour chaque jour : date (dd/MM), nombre de commandes en attente (EN_ATTENTE), nombre de livraisons (LIVREE).
+     * Utilisé par le graphique "Commandes vs Livraisons".
+     *
+     * @return Liste de 7 éléments, du plus ancien au plus récent
+     */
+    List<CommandesVsLivraisonsDayDTO> getCommandesVsLivraisons();
 
-
+    /**
+     * Effectifs pour le donut "Stocks - État global" : Normal, Sous seuil, Critique (rupture).
+     */
+    StockEtatGlobalDTO getStockEtatGlobal();
 }

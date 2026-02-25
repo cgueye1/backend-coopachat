@@ -7,7 +7,6 @@ import com.example.coopachat.dtos.categories.CategoryHomeItemDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.coupons.CouponPromoDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
-import com.example.coopachat.dtos.employees.EmployeePersonalInfo;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.geocoding.PlaceDetailsResult;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
@@ -475,17 +474,6 @@ public class EmployeeServiceImpl implements EmployeeService {
                 userEmployee.getPhone(),
                 userEmployee.getEmail(),
                 employee.getCompany() != null ? employee.getCompany().getName() : null
-        );
-    }
-
-    @Override
-    public EmployeePersonalInfo getPersonalInfoByEmail(String email) {
-        Users user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
-        return new EmployeePersonalInfo(
-                user.getFirstName(),
-                user.getLastName(),
-                user.getPhone()
         );
     }
 
