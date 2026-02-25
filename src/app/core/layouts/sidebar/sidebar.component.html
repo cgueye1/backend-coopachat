@@ -192,8 +192,8 @@
       </div>
 
       <div class="flex-1 min-w-0">
-        <div class="text-xs sm:text-sm font-medium tracking-tight leading-snug truncate">Mohamed Ndiaye</div>
-        <div class="text-[10px] sm:text-xs text-white/70 tracking-tight leading-tight truncate">{{ roleLabel }}</div>
+        <div class="text-xs sm:text-sm font-medium tracking-tight leading-snug truncate">{{ displayName }}</div>
+        <div class="text-[10px] sm:text-xs text-white/70 tracking-tight leading-tight truncate">{{ displayRoleLabel }}</div>
       </div>
 
       <button class="p-1 sm:p-1.5 hover:bg-white/10 rounded-lg transition-colors" (click)="toggleUserMenu()"
@@ -216,7 +216,7 @@
       </button>
       <button (click)="logout()"
         class="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-left text-xs sm:text-sm text-red-600 hover:bg-red-50 transition-colors">
-        Dconnexion
+        Déconnexion
       </button>
     </div>
   </div>

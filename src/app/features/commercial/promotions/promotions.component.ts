@@ -5,6 +5,7 @@ import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layo
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
 import { CouponModalComponent, CouponFormData } from '../../../shared/components/coupon-modal/coupon-modal.component';
 import { ProductService, Product } from '../../../shared/services/product.service';
+import { environment } from '../../../../environments/environment';
 import Swal from 'sweetalert2';
 
 interface StatCard {
@@ -134,7 +135,7 @@ export class PromotionsManagementComponent {
   filteredPromotions: Promotion[] = [...this.promotions];
 
   constructor(private productService: ProductService) {
-    this.allProducts = this.productService.getProducts();
+    this.loadAllProducts();
     this.filterPromotions();
     this.updateStatsCards();
   }
@@ -498,5 +499,57 @@ export class PromotionsManagementComponent {
     if (this.showStatusDropdown) {
       this.showStatusDropdown = false;
     }
+  }
+
+  private loadAllProducts(): void {
+    this.productService.getProducts(0, 1000).subscribe({
+      next: (response) => {
+        const products = response?.content ?? [];
+        this.allProducts = products.map((item: any) => this.mapApiProductToFrontend(item));
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des produits:', error);
+      }
+    });
+  }
+
+  private mapApiProductToFrontend(item: any): Product {
+    return {
+      id: item.id?.toString() ?? '',
+      name: item.name ?? '',
+      reference: item.productCode ?? '',
+      category: item.categoryName ?? '',
+      price: this.formatPrice(item.price),
+      stock: item.currentStock ?? 0,
+      updatedAt: this.formatDate(item.updatedAt),
+      status: this.normalizeStatus(item.status),
+      icon: this.buildImageUrl(item.image),
+      description: item.description
+    };
+  }
+
+  private normalizeStatus(status: string | boolean | undefined): 'Actif' | 'Inactif' {
+    if (status === true || status === 'ACTIF' || status === 'ACTIVE' || status === 'Actif') return 'Actif';
+    if (status === false || status === 'INACTIF' || status === 'INACTIVE' || status === 'Inactif') return 'Inactif';
+    return 'Inactif';
+  }
+
+  private formatPrice(price: any): string {
+    if (price === null || price === undefined || price === '') return '';
+    const value = typeof price === 'number' ? price : Number(price);
+    if (Number.isNaN(value)) return `${price}`;
+    return `${value.toLocaleString('fr-FR')} F`;
+  }
+
+  private formatDate(updatedAt: string | undefined): string {
+    if (!updatedAt) return '';
+    const datePart = updatedAt.split(' ')[0];
+    return datePart ? datePart.replace(/-/g, '/') : updatedAt;
+  }
+
+  private buildImageUrl(image: string | undefined): string {
+    if (!image) return '/icones/default-product.svg';
+    if (image.startsWith('http') || image.startsWith('/')) return image;
+    return `${environment.apiUrl}/files/${image}`;
   }
 }

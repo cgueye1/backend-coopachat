@@ -1,5 +1,6 @@
 <app-auth-layout>
-    <!-- Title -->
+
+    <!-- Titre principal et description de la plateforme -->
     <div class="mb-5 sm:mb-6">
         <h1 class="text-2xl sm:text-3xl lg:text-4xl font-semibold text-gray-800 font-Inter mb-3 sm:mb-4">
             Plateforme d'achat coopératif pour salariés
@@ -9,62 +10,95 @@
         </p>
     </div>
 
-    <!-- TODO: Afficher les messages d'erreur de l'API -->
-    <!-- <div *ngIf="errorMessage" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-      <p class="text-red-600 text-sm">{{ errorMessage }}</p>
-    </div> -->
+    <!-- Message d’erreur retourné par l’API de login -->
+    <!-- Affiché uniquement si errorMessage contient une valeur -->
+    <div *ngIf="errorMessage" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-red-600 text-sm">{{ errorMessage }}</p>
+    </div>
 
-    <!-- TODO: Afficher un loader pendant la requête API -->
-    <!-- <div *ngIf="isLoading" class="mb-4 text-center">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-    </div> -->
+    <!-- Loader affiché pendant l’appel API de connexion -->
+    <!-- Visible uniquement lorsque isLoading = true -->
+    <div *ngIf="isLoading" class="mb-4 text-center">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+    </div>
 
-    <!-- Form -->
+    <!-- Formulaire de connexion lié au FormGroup loginForm -->
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-5 sm:space-y-6">
+
+        <!-- Champ email -->
         <div>
-            <label class="block text-sm font-medium mb-2">Nom d'utilisateur</label>
-            <input type="text" formControlName="username" placeholder="Email ou téléphone"
+            <label class="block text-sm font-medium mb-2">Email</label>
+            <input
+                type="email"
+                formControlName="email"
+                placeholder="Email"
                 class="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all duration-200 text-[#9C9AA5] bg-transparent">
         </div>
+
+        <!-- Champ mot de passe avec affichage/masquage -->
         <div>
             <label class="block text-sm font-medium mb-2">Mot de passe</label>
             <div class="flex items-center justify-between relative">
-                <input [type]="showPassword ? 'text' : 'password'" formControlName="password" placeholder="*******"
+
+                <!-- Le type change selon showPassword (text ou password) -->
+                <input
+                    [type]="showPassword ? 'text' : 'password'"
+                    formControlName="password"
+                    placeholder="*******"
                     class="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all duration-200 text-[#9C9AA5] bg-transparent">
-                <button type="button" (click)="togglePassword()"
+
+                <!-- Bouton pour afficher ou masquer le mot de passe -->
+                <button
+                    type="button"
+                    (click)="togglePassword()"
                     class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    <!-- ...svg... -->
+                    <!-- Icône œil -->
                 </button>
             </div>
         </div>
 
+        <!-- Option "Se souvenir de moi" + lien mot de passe oublié -->
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+
+            <!-- Checkbox liée au champ rememberMe -->
             <label class="flex items-center">
-                <input type="checkbox" formControlName="rememberMe"
+                <input
+                    type="checkbox"
+                    formControlName="rememberMe"
                     class="w-4 h-4 text-orange-600 bg-transparent border-gray-300 rounded-sm focus:ring-orange-500 focus:ring-2">
                 <span class="ml-2 text-sm text-gray-700">Se souvenir de moi</span>
             </label>
+
+            <!-- Lien vers la récupération du mot de passe -->
             <a href=""
-                class="text-sm text-transparent bg-clip-text bg-gradient-to-r from-[#FF6B00] to-[#FF914D] hover:text-orange-500 font-medium">
+               class="text-sm text-transparent bg-clip-text bg-gradient-to-r from-[#FF6B00] to-[#FF914D] hover:text-orange-500 font-medium">
                 Mot de passe oublié ?
             </a>
         </div>
 
+        <!-- Bouton de soumission du formulaire -->
         <div>
-            <button type="submit"
+            <button
+                type="submit"
                 class="w-full bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white p-3 sm:p-4 rounded-lg hover:from-orange-600 hover:to-orange-700 focus:ring-4 focus:ring-orange-200 font-medium text-base sm:text-lg transition-all duration-200 transform hover:scale-[1.02]">
                 Se connecter
             </button>
         </div>
 
+        <!-- Séparateur visuel "Ou" -->
         <div class="text-center">
-            <span
-                class="flex items-center text-xs sm:text-sm text-gray-500 before:flex-1 before:border-t before:border-[#EFF0F6] before:me-4 sm:before:me-6 after:flex-1 after:border-t after:border-[#EFF0F6] after:ms-4 sm:after:ms-6">Ou</span>
+            <span class="flex items-center text-xs sm:text-sm text-gray-500
+                         before:flex-1 before:border-t before:border-[#EFF0F6] before:me-4 sm:before:me-6
+                         after:flex-1 after:border-t after:border-[#EFF0F6] after:ms-4 sm:after:ms-6">
+                Ou
+            </span>
         </div>
 
-        <!-- Social Login -->
+        <!-- Boutons de connexion via réseaux sociaux (OAuth) -->
         <div class="flex flex-col gap-3 sm:flex-row sm:gap-4">
-            <button type="button"
+
+            <!-- Connexion Google -->
+            <button type="button" (click)="loginWithGoogle()"
                 class="w-full flex items-center justify-center px-4 py-3 border border-[#EFF0F6] rounded-lg bg-white transition-colors duration-200">
                 <svg class="w-5 h-5 mr-3" viewBox="0 0 24 24">
                     <path fill="#4285F4"
@@ -79,6 +113,7 @@
                 <span class="text-gray-700 font-medium">Google</span>
             </button>
 
+            <!-- Connexion Apple -->
             <button type="button"
                 class="w-full flex items-center justify-center px-4 py-3 border border-[#EFF0F6] rounded-lg bg-white transition-colors duration-200 gap-4">
                 <svg width="19" height="18" viewBox="0 0 19 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -93,10 +128,17 @@
             </button>
         </div>
 
+        <!-- Lien vers la page d’inscription -->
         <div class="text-center mt-4">
-            <span class="text-[#6C7278] text-xs sm:text-sm">Vous n'avez pas de compte? </span>
-            <a href="/register"
-                class="text-[#2C2D5B] hover:text-orange-500 font-medium text-xs sm:text-sm">S'inscrire</a>
+            <span class="text-[#6C7278] text-xs sm:text-sm">
+                Vous n'avez pas de compte ?
+            </span>
+            <a
+                href="/register"
+                class="text-[#2C2D5B] hover:text-orange-500 font-medium text-xs sm:text-sm">
+                S'inscrire
+            </a>
         </div>
+
     </form>
 </app-auth-layout>

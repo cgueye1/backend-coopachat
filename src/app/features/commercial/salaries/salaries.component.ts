@@ -1,21 +1,33 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
 import { EmployeeModalComponent, EmployeeFormData, Company } from '../../../shared/components/employee-modal/employee-modal.component';
+import { CommercialService } from '../../../shared/services/commercial.service';
 import Swal from 'sweetalert2';
 
+// ==================================================
+// INTERFACES D'AFFICHAGE
+// ==================================================
 interface Employee {
-  id: number;
+  id: string;
   nom: string;
   email: string;
   telephone: string;
+  adresse: string;
   entreprise: string;
+  companyId?: string;
   statut: 'Actif' | 'Inactif';
   dateInscription: string;
   initials: string;
   code: string;
+}
+
+interface MetricCard {
+  title: string;
+  value: string;
+  icon: string;
 }
 
 @Component({
@@ -30,148 +42,402 @@ interface Employee {
   ],
   templateUrl: './salaries.component.html'
 })
-export class EmployeeManagementComponent {
-  searchTerm: string = '';
-  selectedCompanyFilter: string = '';
-  selectedStatusFilter: string = '';
-  currentPage: number = 1;
-  itemsPerPage: number = 5;
-  isModalOpen: boolean = false;
-  Math = Math;
+export class EmployeeManagementComponent implements OnInit {
+  // ==================================================
+  // VARIABLES D'ETAT
+  // ==================================================
+  searchTerm = '';
+  selectedCompanyFilter = '';
+  selectedCompanyId = '';
+  selectedStatusFilter = '';
+  currentPage = 1;
+  itemsPerPage = 6;
+  isModalOpen = false;
+  isSubmitting = false;
   showCompanyDropdown = false;
   showStatusDropdown = false;
-  uniqueStatuses = ['Tous les statuts', 'Actif', 'Inactif'];
   showEmployeeModal = false;
   selectedEmployee: Employee | null = null;
 
-  metricsData = [
-    {
-      title: 'Total des salariés',
-      value: '5',
-      icon: '/icones/utilisateurs.svg'
-    },
-    {
-      title: 'Salariés actifs',
-      value: '3',
-      icon: '/icones/GreenUser.svg'
-    },
-    {
-      title: "En attente d'activation",
-      value: '1',
-      icon: '/icones/exclamUser.svg'
-    }
-  ];
+  uniqueStatuses = ['Tous les statuts', 'Actif', 'Inactif'];
 
-  employees: Employee[] = [
-    {
-      id: 1,
-      nom: 'Jean Dupont',
-      email: 'jean.dupont@abc.com',
-      telephone: '01 23 45 67 89',
-      entreprise: 'Entreprise ABC',
-      statut: 'Actif',
-      dateInscription: '15/06/2023',
-      initials: 'JD',
-      code: 'US-2025-01'
-    },
-    {
-      id: 2,
-      nom: 'Marie Martin',
-      email: 'marie.martin@xyz.com',
-      telephone: '01 98 76 54 32',
-      entreprise: 'Société XYZ',
-      statut: 'Actif',
-      dateInscription: '22/06/2023',
-      initials: 'MM',
-      code: 'US-2025-02'
-    },
-    {
-      id: 3,
-      nom: 'Pierre Durand',
-      email: 'pierre.durand@123.com',
-      telephone: '04 56 78 90 12',
-      entreprise: 'Groupe 123',
-      statut: 'Actif',
-      dateInscription: '05/07/2023',
-      initials: 'PD',
-      code: 'US-2025-03'
-    },
-    {
-      id: 4,
-      nom: 'Sophie Lefebvre',
-      email: 'sophie.lefebvre@tech.com',
-      telephone: '05 43 21 98 76',
-      entreprise: 'Tech Solutions',
-      statut: 'Inactif',
-      dateInscription: '10/07/2023',
-      initials: 'SL',
-      code: 'US-2025-04'
-    },
-    {
-      id: 5,
-      nom: 'Thomas Moreau',
-      email: 'thomas.moreau@abc.com',
-      telephone: '01 67 89 01 23',
-      entreprise: 'Entreprise ABC',
-      statut: 'Actif',
-      dateInscription: '18/07/2023',
-      initials: 'TM',
-      code: 'US-2025-05'
-    }
-  ];
+  metricsData: MetricCard[] = [];
+  employees: Employee[] = [];
+  filteredEmployees: Employee[] = [];
+  totalElements = 0;
 
-  filteredEmployees: Employee[] = [...this.employees];
+  companies: Company[] = [];
   uniqueCompanies: string[] = [];
-  companies: Company[] = []; // Liste des entreprises pour le modal
 
-  constructor() {
-    this.uniqueCompanies = [...new Set(this.employees.map(emp => emp.entreprise))];
-    // Transformez uniqueCompanies en format Company pour le modal
-    this.companies = this.uniqueCompanies.map((name, index) => ({
-      id: `company-${index + 1}`,
-      name
-    }));
-    this.filterEmployees();
+  editingEmployeeId: string | null = null;
+  editingEmployeeData: EmployeeFormData | null = null;
+
+  // Service API
+  constructor(private commercialService: CommercialService) {}
+
+  // ==================================================
+  // INITIALISATION
+  // ==================================================
+  ngOnInit(): void {
+    this.loadCompaniesForEmployees();
+    this.loadEmployees();
+    this.loadEmployeeStats();
   }
 
-  // Ouvre le modal
-  openModal() {
+  // ==================================================
+  // MODAL CREATE / EDIT
+  // ==================================================
+  openModal(): void {
+    this.editingEmployeeId = null;
+    this.editingEmployeeData = null;
     this.isModalOpen = true;
   }
 
-  // Ferme le modal
-  closeModal() {
+  closeModal(): void {
     this.isModalOpen = false;
+    this.editingEmployeeId = null;
+    this.editingEmployeeData = null;
   }
 
-  // Gère la soumission du formulaire du modal
-  handleSubmit(formData: EmployeeFormData) {
-    const prenom = formData.prenom;
-    const nom = formData.nom;
-    const initials = `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase();
-    const nextId = this.employees.length + 1;
-    const code = `US-2025-${nextId.toString().padStart(2, '0')}`;
+  handleSubmit(formData: EmployeeFormData): void {
+    if (this.isSubmitting) {
+      return;
+    }
 
-    const newEmployee: Employee = {
-      id: nextId,
-      nom: `${prenom} ${nom}`,
-      email: formData.email,
-      telephone: formData.telephone,
-      entreprise: this.companies.find(c => c.id === formData.entreprise)?.name || '',
-      statut: 'Actif',
-      dateInscription: new Date().toLocaleDateString('fr-FR'),
-      initials: initials,
-      code: code
+    this.isSubmitting = true;
+
+    const isEdit = !!this.editingEmployeeId;
+    const payload = this.mapFormDataToPayload(formData);
+
+    const request$ = isEdit
+      ? this.commercialService.updateEmployee(this.editingEmployeeId as string, payload)
+      : this.commercialService.createEmployee(payload);
+
+    request$.subscribe({
+      next: () => {
+        this.isSubmitting = false;
+        this.isModalOpen = false;
+        this.editingEmployeeId = null;
+        this.editingEmployeeData = null;
+        this.loadEmployees();
+        this.loadEmployeeStats();
+        Swal.close();
+        this.showEmployeeSuccessMessage(isEdit);
+      },
+      error: (error) => {
+        this.isSubmitting = false;
+        const message = error?.error?.message || "Erreur lors de l'enregistrement";
+
+        Swal.fire({
+          icon: 'error',
+          title: isEdit ? 'Modification échouée' : 'Création échouée',
+          text: message,
+          confirmButtonText: 'OK'
+        });
+      }
+    });
+  }
+
+  // ==================================================
+  // LISTE & STATS
+  // ==================================================
+  loadEmployees(): void {
+    this.commercialService
+      .getEmployees(
+        this.currentPage - 1,
+        this.itemsPerPage,
+        this.searchTerm,
+        this.selectedCompanyId || undefined,
+        this.getIsActiveFilter()
+      )
+      .subscribe({
+        next: (response) => {
+          const items = response?.content ?? [];
+          this.employees = items.map((item: any) => this.mapEmployeeListItemToEmployee(item));
+          this.filteredEmployees = [...this.employees];
+          this.totalElements = response?.totalElements ?? this.employees.length;
+        },
+        error: (error) => {
+          console.error('Erreur lors du chargement des salariés:', error);
+        }
+      });
+  }
+
+  loadEmployeeStats(): void {
+    this.commercialService.getEmployeeStats().subscribe({
+      next: (stats) => {
+        this.metricsData = [
+          {
+            title: 'Total des salariés',
+            value: String(stats?.totalEmployees ?? 0),
+            icon: '/icones/utilisateurs.svg'
+          },
+          {
+            title: 'Salariés actifs',
+            value: String(stats?.activeEmployees ?? 0),
+            icon: '/icones/GreenUser.svg'
+          },
+          {
+            title: "En attente d'activation",
+            value: String(stats?.pendingEmployees ?? 0),
+            icon: '/icones/exclamUser.svg'
+          }
+        ];
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des statistiques salariés:', error);
+        this.metricsData = [];
+      }
+    });
+  }
+
+  loadCompaniesForEmployees(): void {
+    this.commercialService.getCompanies(0, 1000).subscribe({
+      next: (response) => {
+        const list = response?.content ?? [];
+        this.companies = list.map((company: any) => ({
+          id: String(company?.id ?? ''),
+          name: company?.name ?? ''
+        }));
+        this.uniqueCompanies = ['Toutes les entreprises', ...this.companies.map(c => c.name)];
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des entreprises:', error);
+        this.uniqueCompanies = ['Toutes les entreprises'];
+        this.companies = [];
+      }
+    });
+  }
+
+  // ==================================================
+  // DETAILS / EDITION
+  // ==================================================
+  viewDetails(employee: Employee): void {
+    this.commercialService.getEmployeeDetails(employee.id).subscribe({
+      next: (details) => {
+        this.selectedEmployee = this.mapEmployeeDetailsToEmployee(details);
+        this.showEmployeeModal = true;
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des détails salarié:', error);
+        this.selectedEmployee = employee;
+        this.showEmployeeModal = true;
+      }
+    });
+  }
+
+  closeEmployeeModal(): void {
+    this.showEmployeeModal = false;
+    this.selectedEmployee = null;
+  }
+
+  editEmployee(id: string): void {
+    this.commercialService.getEmployeeDetails(id).subscribe({
+      next: (details) => {
+        this.editingEmployeeId = id;
+        this.editingEmployeeData = this.mapEmployeeDetailsToFormData(details);
+        this.isModalOpen = true;
+      },
+      error: (error) => {
+        console.error("Erreur lors du chargement pour modification:", error);
+      }
+    });
+  }
+
+  modifierEmployee(): void {
+    if (!this.selectedEmployee) return;
+    this.closeEmployeeModal();
+    this.editEmployee(this.selectedEmployee.id);
+  }
+
+  annulerEmployee(): void {
+    this.closeEmployeeModal();
+  }
+
+  toggleEmployeeStatus(employee: Employee): void {
+    const nextIsActive = employee.statut !== 'Actif';
+    this.commercialService.updateEmployeeStatus(employee.id, nextIsActive).subscribe({
+      next: () => {
+        employee.statut = nextIsActive ? 'Actif' : 'Inactif';
+        this.loadEmployees();
+        this.loadEmployeeStats();
+      },
+      error: (error) => {
+        console.error("Erreur lors de la mise à jour du statut salarié:", error);
+      }
+    });
+  }
+
+  // ==================================================
+  // FILTRES & RECHERCHE
+  // ==================================================
+  toggleCompanyDropdown(): void {
+    this.showCompanyDropdown = !this.showCompanyDropdown;
+    this.showStatusDropdown = false;
+  }
+
+  toggleStatusDropdown(): void {
+    this.showStatusDropdown = !this.showStatusDropdown;
+    this.showCompanyDropdown = false;
+  }
+
+  selectCompany(company: string): void {
+    if (company === 'Toutes les entreprises') {
+      this.selectedCompanyFilter = '';
+      this.selectedCompanyId = '';
+    } else {
+      this.selectedCompanyFilter = company;
+      const match = this.companies.find(c => c.name === company);
+      this.selectedCompanyId = match?.id ?? '';
+    }
+    this.showCompanyDropdown = false;
+    this.currentPage = 1;
+    this.loadEmployees();
+  }
+
+  selectStatus(status: string): void {
+    this.selectedStatusFilter = status === 'Tous les statuts' ? '' : status;
+    this.showStatusDropdown = false;
+    this.currentPage = 1;
+    this.loadEmployees();
+  }
+
+  onSearch(): void {
+    this.currentPage = 1;
+    this.loadEmployees();
+  }
+
+  // ==================================================
+  // PAGINATION
+  // ==================================================
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.loadEmployees();
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.loadEmployees();
+    }
+  }
+
+  getCurrentPageEmployees(): Employee[] {
+    // Les donnees sont deja paginees par le backend
+    return this.filteredEmployees;
+  }
+
+  get totalResults(): number {
+    return this.totalElements > 0 ? this.totalElements : this.filteredEmployees.length;
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.totalResults / this.itemsPerPage));
+  }
+
+  // ==================================================
+  // HELPERS D'AFFICHAGE
+  // ==================================================
+  getStatusClass(status: string): string {
+    return status === 'Actif'
+      ? 'bg-[#0A97480F] text-[#0A9748]'
+      : 'bg-red-50 text-[#FF0909]';
+  }
+
+  getStatusDotClass(status: string): string {
+    return status === 'Actif' ? 'bg-[#0A9748]' : 'bg-[#FF0909]';
+  }
+
+  private mapEmployeeListItemToEmployee(item: any): Employee {
+    const firstName = item?.firstName ?? '';
+    const lastName = item?.lastName ?? '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    const initials = `${firstName.charAt(0) || ''}${lastName.charAt(0) || ''}`.toUpperCase();
+
+    return {
+      id: String(item?.id ?? ''),
+      nom: fullName,
+      email: item?.email ?? '',
+      telephone: '',
+      adresse: '',
+      entreprise: item?.companyName ?? '',
+      companyId: undefined,
+      statut: this.normalizeStatus(item?.status),
+      dateInscription: this.formatCreatedAt(item?.createdAt),
+      initials,
+      code: item?.employeeCode ?? ''
     };
-    this.employees.push(newEmployee);
-    this.filterEmployees();
-    this.closeModal();
-    this.showCreateSuccessMessage();
   }
 
-  showCreateSuccessMessage(): void {
+  private mapEmployeeDetailsToEmployee(details: any): Employee {
+    const firstName = details?.firstName ?? '';
+    const lastName = details?.lastName ?? '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    const initials = `${firstName.charAt(0) || ''}${lastName.charAt(0) || ''}`.toUpperCase();
+
+    return {
+      id: String(details?.id ?? ''),
+      nom: fullName,
+      email: details?.email ?? '',
+      telephone: details?.phone ?? '',
+      adresse: details?.address ?? '',
+      entreprise: details?.companyName ?? '',
+      companyId: details?.companyId ? String(details.companyId) : undefined,
+      statut: this.normalizeStatus(details?.status),
+      dateInscription: this.formatCreatedAt(details?.createdAt),
+      initials,
+      code: details?.employeeCode ?? ''
+    };
+  }
+
+  private mapEmployeeDetailsToFormData(details: any): EmployeeFormData {
+    return {
+      prenom: details?.firstName ?? '',
+      nom: details?.lastName ?? '',
+      email: details?.email ?? '',
+      telephone: details?.phone ?? '',
+      adresse: details?.address ?? '',
+      entreprise: details?.companyId ? String(details.companyId) : ''
+    };
+  }
+
+  private mapFormDataToPayload(data: EmployeeFormData) {
+    return {
+      firstName: data.prenom?.trim(),
+      lastName: data.nom?.trim(),
+      email: data.email?.trim(),
+      phone: data.telephone?.trim(),
+      address: data.adresse?.trim(),
+      companyId: data.entreprise
+    };
+  }
+
+  private normalizeStatus(status: string | undefined): 'Actif' | 'Inactif' {
+    if (!status) return 'Actif';
+    const normalized = status.toLowerCase();
+    if (normalized.includes('inactif') || normalized === 'inactive' || normalized === 'false') {
+      return 'Inactif';
+    }
+    return 'Actif';
+  }
+
+  private formatCreatedAt(createdAt: string | undefined): string {
+    if (!createdAt) return '';
+    const parts = createdAt.split(' ');
+    return parts[0] ?? createdAt;
+  }
+
+  private getIsActiveFilter(): boolean | undefined {
+    if (this.selectedStatusFilter === 'Actif') return true;
+    if (this.selectedStatusFilter === 'Inactif') return false;
+    return undefined;
+  }
+
+  private showEmployeeSuccessMessage(isEdit: boolean): void {
     Swal.fire({
-      title: 'Salarié créé avec succès',
+      title: isEdit ? 'Salarié modifié avec succès' : 'Salarié créé avec succès',
       iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
       showConfirmButton: false,
       timer: 1500,
@@ -190,144 +456,5 @@ export class EmployeeManagementComponent {
         popup: 'animate__animated animate__fadeOut animate__faster'
       }
     });
-  }
-
-  getTotalEmployees(): number {
-    return this.employees.length;
-  }
-
-  getActiveEmployees(): number {
-    return this.employees.filter(emp => emp.statut === 'Actif').length;
-  }
-
-  getPendingEmployees(): number {
-    return 0; // Plus de statut "En attente"
-  }
-
-  getUniqueCompanies(): number {
-    return this.uniqueCompanies.length;
-  }
-
-  filterEmployees(): void {
-    this.filteredEmployees = this.employees.filter(employee => {
-      const matchesSearch =
-        employee.nom.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        employee.email.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        employee.entreprise.toLowerCase().includes(this.searchTerm.toLowerCase());
-
-      const matchesCompany = !this.selectedCompanyFilter || employee.entreprise === this.selectedCompanyFilter;
-      const matchesStatus = !this.selectedStatusFilter || employee.statut === this.selectedStatusFilter;
-
-      return matchesSearch && matchesCompany && matchesStatus;
-    });
-
-    this.currentPage = 1;
-  }
-
-  getTotalPages(): number {
-    return Math.ceil(this.filteredEmployees.length / this.itemsPerPage);
-  }
-
-  previousPage(): void {
-    if (this.currentPage > 1) {
-      this.currentPage--;
-    }
-  }
-
-  nextPage(): void {
-    if (this.currentPage < this.getTotalPages()) {
-      this.currentPage++;
-    }
-  }
-
-  deleteEmployee(id: number): void {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce salarié ?')) {
-      this.employees = this.employees.filter(emp => emp.id !== id);
-      this.filterEmployees();
-    }
-  }
-
-  viewDetails(employee: Employee): void {
-    this.selectedEmployee = employee;
-    this.showEmployeeModal = true;
-  }
-
-  closeEmployeeModal(): void {
-    this.showEmployeeModal = false;
-    this.selectedEmployee = null;
-  }
-
-  modifierEmployee(): void {
-    console.log('Modifier salarié:', this.selectedEmployee);
-    // Implémentation à venir - ouverture du modal d'édition
-    this.closeEmployeeModal();
-  }
-
-  annulerEmployee(): void {
-    this.closeEmployeeModal();
-  }
-
-  editEmployee(id: number): void {
-    console.log('Éditer salarié:', id);
-    // Implémentation à venir - ouverture du modal d'édition
-  }
-
-  toggleEmployeeStatus(employee: Employee): void {
-    employee.statut = employee.statut === 'Actif' ? 'Inactif' : 'Actif';
-  }
-
-  toggleCompanyDropdown(): void {
-    this.showCompanyDropdown = !this.showCompanyDropdown;
-    this.showStatusDropdown = false;
-  }
-
-  toggleStatusDropdown(): void {
-    this.showStatusDropdown = !this.showStatusDropdown;
-    this.showCompanyDropdown = false;
-  }
-
-  selectCompany(company: string): void {
-    this.selectedCompanyFilter = company === 'Toutes les entreprises' ? '' : company;
-    this.showCompanyDropdown = false;
-    this.filterEmployees();
-  }
-
-  selectStatus(status: string): void {
-    this.selectedStatusFilter = status === 'Tous les statuts' ? '' : status;
-    this.showStatusDropdown = false;
-    this.filterEmployees();
-  }
-
-  getStatusClass(status: string): string {
-    return status === 'Actif'
-      ? 'bg-[#0A97480F] text-[#0A9748]'
-      : 'bg-red-50 text-[#FF0909]';
-  }
-
-  getStatusDotClass(status: string): string {
-    return status === 'Actif' ? 'bg-[#0A9748]' : 'bg-[#FF0909]';
-  }
-
-  getCurrentPageEmployees(): Employee[] {
-    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    const endIndex = startIndex + this.itemsPerPage;
-    return this.filteredEmployees.slice(startIndex, endIndex);
-  }
-
-  get totalResults(): number {
-    return this.filteredEmployees.length;
-  }
-
-  get totalPages(): number {
-    return Math.max(1, Math.ceil(this.totalResults / this.itemsPerPage));
-  }
-
-  getDisplayStart(): number {
-    if (this.totalResults === 0) return 0;
-    return (this.currentPage - 1) * this.itemsPerPage + 1;
-  }
-
-  getDisplayEnd(): number {
-    return Math.min(this.currentPage * this.itemsPerPage, this.totalResults);
   }
 }

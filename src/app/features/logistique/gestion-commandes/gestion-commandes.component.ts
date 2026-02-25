@@ -5,6 +5,8 @@ import { Router } from '@angular/router';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { ProductService, Product } from '../../../shared/services/product.service';
+import { LogisticsService } from '../../../shared/services/logistics.service';
+import { environment } from '../../../../environments/environment';
 
 Chart.register(...registerables);
 
@@ -72,68 +74,19 @@ export class GestionCommandesComponent implements AfterViewInit {
   showStatutDropdown = false;
   currentPage = 1;
   itemsPerPage = 10;
+  totalPages = 1;
+  totalElements = 0;
+  loadingList = false;
 
-  commandes: Commande[] = [
-    {
-      numero: 'CMD-0012',
-      salarie: 'Moussa Fall',
-      dateValidation: '03/10/2025',
-      produits: 'Riz parfumé 25kg    Lait 1L',
-      frequence: 'Quotidienne',
-      statut: 'En cours',
-      reference: 'CMD-0012',
-      note: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-      produitsDetails: [
-        { productId: '1', quantity: 25 },
-        { productId: '4', quantity: 30 }
-      ]
-    },
-    {
-      numero: 'CMD-0011',
-      salarie: 'Aicha Diaw',
-      dateValidation: '03/10/2025',
-      produits: 'Sucre    Huile    +3',
-      frequence: 'Mensuelle',
-      statut: 'Livrée',
-      reference: 'CMD-0011',
-      note: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-      produitsDetails: [
-        { productId: '2', quantity: 15 },
-        { productId: '3', quantity: 20 }
-      ]
-    },
-    {
-      numero: 'CMD-0010',
-      salarie: 'Fama Yade',
-      dateValidation: '03/10/2025',
-      produits: 'Lait    Riz',
-      frequence: 'Hebdomadaire',
-      statut: 'En attente',
-      reference: 'CMD-0010',
-      note: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-      produitsDetails: [
-        { productId: '4', quantity: 10 },
-        { productId: '1', quantity: 12 }
-      ]
-    },
-    {
-      numero: 'CMD-0009',
-      salarie: 'Mame Ndiaye',
-      dateValidation: '03/10/2025',
-      produits: 'Sucre    Huile    +4',
-      frequence: 'Quotidienne',
-      statut: 'Annulée',
-      reference: 'CMD-0009',
-      note: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-      produitsDetails: [
-        { productId: '2', quantity: 8 },
-        { productId: '3', quantity: 15 }
-      ]
-    }
-  ];
+  commandes: Commande[] = [];
 
-  constructor(private router: Router, private productService: ProductService) {
-    this.allProducts = this.productService.getProducts();
+  constructor(
+    private router: Router,
+    private productService: ProductService,
+    private logisticsService: LogisticsService
+  ) {
+    this.loadAllProducts();
+    this.loadCommandes();
   }
 
   ngAfterViewInit(): void {
@@ -303,32 +256,19 @@ export class GestionCommandesComponent implements AfterViewInit {
   }
 
   get uniqueStatuts(): string[] {
-    const statuts = new Set(this.commandes.map(c => c.statut));
-    return ['Tous les statuts', ...Array.from(statuts)];
+    return ['Tous les statuts', 'En attente', 'Validée', 'En cours', 'Livrée', 'Annulée'];
   }
 
   get filteredCommandes(): Commande[] {
-    return this.commandes.filter(commande => {
-      const matchesSearch =
-        commande.numero.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        commande.salarie.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        commande.produits.toLowerCase().includes(this.searchTerm.toLowerCase());
-
-      const matchesStatut = this.selectedStatutFilter === 'Tous les statuts' ||
-        commande.statut === this.selectedStatutFilter;
-
-      return matchesSearch && matchesStatut;
-    });
+    return this.commandes;
   }
 
   get paginatedCommandes(): Commande[] {
-    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    const endIndex = startIndex + this.itemsPerPage;
-    return this.filteredCommandes.slice(startIndex, endIndex);
+    return this.commandes;
   }
 
-  get totalPages(): number {
-    return Math.ceil(this.filteredCommandes.length / this.itemsPerPage);
+  get totalPagesCount(): number {
+    return this.totalPages;
   }
 
   toggleStatutDropdown(): void {
@@ -339,18 +279,83 @@ export class GestionCommandesComponent implements AfterViewInit {
     this.selectedStatutFilter = statut;
     this.showStatutDropdown = false;
     this.currentPage = 1;
+    this.loadCommandes();
   }
 
   previousPage(): void {
     if (this.currentPage > 1) {
       this.currentPage--;
+      this.loadCommandes();
     }
   }
 
   nextPage(): void {
-    if (this.currentPage < this.totalPages) {
+    if (this.currentPage < this.totalPagesCount) {
       this.currentPage++;
+      this.loadCommandes();
     }
+  }
+
+  loadCommandes(): void {
+    this.loadingList = true;
+    const statusParam = this.mapStatutToApi(this.selectedStatutFilter);
+    this.logisticsService
+      .getEmployeeOrders(
+        this.currentPage - 1,
+        this.itemsPerPage,
+        this.searchTerm?.trim() || undefined,
+        statusParam
+      )
+      .subscribe({
+        next: (res) => {
+          this.commandes = (res.content || []).map((item) => this.mapApiOrderToCommande(item));
+          this.totalElements = res.totalElements ?? 0;
+          this.totalPages = res.totalPages ?? 1;
+          this.loadingList = false;
+        },
+        error: () => {
+          this.commandes = [];
+          this.loadingList = false;
+        }
+      });
+  }
+
+  private mapStatutToApi(statut: string): string | undefined {
+    if (!statut || statut === 'Tous les statuts') return undefined;
+    const map: Record<string, string> = {
+      'En attente': 'EN_ATTENTE',
+      'Validée': 'VALIDEE',
+      'En cours': 'EN_COURS_DE_LIVRAISON',
+      'Livrée': 'LIVREE',
+      'Annulée': 'ANNULEE'
+    };
+    return map[statut];
+  }
+
+  private mapApiOrderToCommande(item: {
+    id: number;
+    orderNumber: string;
+    employeeName: string;
+    validationDate: string;
+    products: string[];
+    deliveryFrequency: string | null;
+    status: string;
+  }): Commande {
+    const produitsStr = (item.products || []).join('    ');
+    let statut: Commande['statut'] = 'En attente';
+    if (item.status === 'Livrée') statut = 'Livrée';
+    else if (item.status === 'Annulée') statut = 'Annulée';
+    else if (item.status === 'En cours de livraison' || item.status === 'En cours') statut = 'En cours';
+    else if (item.status === 'En attente' || item.status === 'Validée') statut = 'En attente';
+    return {
+      numero: item.orderNumber,
+      salarie: item.employeeName ?? '',
+      dateValidation: item.validationDate ?? '',
+      produits: produitsStr,
+      frequence: item.deliveryFrequency ?? '—',
+      statut,
+      reference: item.orderNumber
+    };
   }
 
   viewCommande(numero: string): void {
@@ -413,10 +418,73 @@ export class GestionCommandesComponent implements AfterViewInit {
     }
   }
 
+  private searchDebounce: ReturnType<typeof setTimeout> | null = null;
+
+  onSearchChange(): void {
+    if (this.searchDebounce) clearTimeout(this.searchDebounce);
+    this.searchDebounce = setTimeout(() => {
+      this.currentPage = 1;
+      this.loadCommandes();
+      this.searchDebounce = null;
+    }, 400);
+  }
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     if (this.showStatutDropdown) {
       this.showStatutDropdown = false;
     }
+  }
+
+  private loadAllProducts(): void {
+    this.productService.getProducts(0, 1000).subscribe({
+      next: (response) => {
+        const products = response?.content ?? [];
+        this.allProducts = products.map((item: any) => this.mapApiProductToFrontend(item));
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des produits:', error);
+      }
+    });
+  }
+
+  private mapApiProductToFrontend(item: any): Product {
+    return {
+      id: item.id?.toString() ?? '',
+      name: item.name ?? '',
+      reference: item.productCode ?? '',
+      category: item.categoryName ?? '',
+      price: this.formatPrice(item.price),
+      stock: item.currentStock ?? 0,
+      updatedAt: this.formatDate(item.updatedAt),
+      status: this.normalizeStatus(item.status),
+      icon: this.buildImageUrl(item.image),
+      description: item.description
+    };
+  }
+
+  private normalizeStatus(status: string | boolean | undefined): 'Actif' | 'Inactif' {
+    if (status === true || status === 'ACTIF' || status === 'ACTIVE' || status === 'Actif') return 'Actif';
+    if (status === false || status === 'INACTIF' || status === 'INACTIVE' || status === 'Inactif') return 'Inactif';
+    return 'Inactif';
+  }
+
+  private formatPrice(price: any): string {
+    if (price === null || price === undefined || price === '') return '';
+    const value = typeof price === 'number' ? price : Number(price);
+    if (Number.isNaN(value)) return `${price}`;
+    return `${value.toLocaleString('fr-FR')} F`;
+  }
+
+  private formatDate(updatedAt: string | undefined): string {
+    if (!updatedAt) return '';
+    const datePart = updatedAt.split(' ')[0];
+    return datePart ? datePart.replace(/-/g, '/') : updatedAt;
+  }
+
+  private buildImageUrl(image: string | undefined): string {
+    if (!image) return '/icones/default-product.svg';
+    if (image.startsWith('http') || image.startsWith('/')) return image;
+    return `${environment.apiUrl}/files/${image}`;
   }
 }

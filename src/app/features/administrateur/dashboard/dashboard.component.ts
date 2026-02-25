@@ -2,27 +2,29 @@ import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angula
 import { CommonModule } from '@angular/common';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
+import { AdminService } from '../../../shared/services/admin.service';
 
+
+ 
+/** Une carte KPI du dashboard (titre, valeur, icône). */
 interface MetricCard {
   title: string;
   value: string;
-  delta: string;
-  trend: 'up' | 'down';
   icon: string;
-  iconBg: string;
 }
+/** Interface pour les données du graphique "Paiements par statut" */
+interface PaymentStatusSlice {
+  status: string;
+  value: number;
+  color: string;
+}
+
 
 interface CommandRevenuePoint {
   date: string;
   commandes: number;
   livraisons: number;
   montantEncaisse: number;
-}
-
-interface PaymentStatusSlice {
-  status: string;
-  value: number;
-  color: string;
 }
 
 interface LivraisonStackPoint {
@@ -58,35 +60,44 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
 
   role: 'admin' = 'admin';
 
-  // --- Cartes KPI supérieures ---
+  /** Période envoyée à l'API dashboard (TODAY = aujourd'hui, THIS_MONTH = mois en cours). */
+  periode: 'TODAY' | 'THIS_MONTH' = 'THIS_MONTH';
+
+  /**
+   * Données des 3 cartes KPI en haut de page.
+   * Rempli au chargement par l'API GET /admin/dashboard/stats (loadDashboardStats).
+   * Le HTML fait *ngFor="let metric of metricsData" et affiche title, value, icon.
+   */
   metricsData: MetricCard[] = [
     {
-      title: 'Commandes',
-      value: '1 961',
-      delta: '↗ 4 %',
-      trend: 'up',
-      icon: '/icones/commandefour.svg',
-      iconBg: 'bg-[#EEF2FF]'
+      title: 'Commandes en attente',
+      value: '—',//valeur par défaut
+      icon: '/icones/commandefour.svg'
     },
     {
-      title: 'Utilisateurs',
-      value: '1 041',
-      delta: '↘ 3 %',
-      trend: 'down',
-      icon: '/icones/users.svg',
-      iconBg: 'bg-[#FFF7ED]'
+      title: 'Paiements échoués',
+      value: '—',//valeur par défaut
+      icon: '/icones/temps.svg'
     },
     {
-      title: 'Montant encaissé',
-      value: '1,25 Md FCFA',
-      delta: '↗ 12 %',
-      trend: 'up',
-      icon: '/icones/temps.svg',
-      iconBg: 'bg-[#ECFDF5]'
+      title: 'Réclamations ouvertes',
+      value: '—',//valeur par défaut
+      icon: '/icones/users.svg'
     }
   ];
 
-  // --- Jeu de données principal pour commandes vs chiffre d'affaires ---
+   /**
+   * Données du donut "Paiements par statut". Rempli par l’API (loadDashboardStats).
+   * initPaiementsChart() et loadDashboardStats() mettent à jour le graphique à partir de ce tableau.
+   */
+  paymentStatusData: PaymentStatusSlice[] = [
+    { status: 'Payé', value: 0, color: '#22C55F' },
+    { status: 'En attente de confirmation', value: 0, color: '#EAB308' },
+    { status: 'Échoué', value: 0, color: '#FFD3D3' }
+  ];
+
+
+  /** Données du graphique "Commandes vs Livraisons" (données statiques pour l’instant). */
   commandesChiffreData: CommandRevenuePoint[] = [
     { date: '06/09', commandes: 7, livraisons: 7, montantEncaisse: 8800000 },
     { date: '07/09', commandes: 7, livraisons: 7, montantEncaisse: 9600000 },
@@ -97,14 +108,8 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
     { date: '12/09', commandes: 7, livraisons: 6, montantEncaisse: 8000000 }
   ];
 
-  // --- Répartition des statuts de paiement ---
-  paymentStatusData: PaymentStatusSlice[] = [
-    { status: 'Payé', value: 72, color: '#22C55F' },
-    { status: 'En attente', value: 18, color: '#FFE7C2' },
-    { status: 'Échoué', value: 10, color: '#FFD3D3' }
-  ];
-
-  // --- Histogramme empilé livraisons ---
+ 
+  /** Données du graphique empilé "Livraisons" (statiques). */
   livraisonsData: LivraisonStackPoint[] = [
     { date: '06/09', livres: 82, planifies: 15, retard: 3 },
     { date: '07/09', livres: 78, planifies: 18, retard: 4 },
@@ -113,7 +118,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
     { date: '10/09', livres: 85, planifies: 12, retard: 3 }
   ];
 
-  // --- Répartition des utilisateurs par rôle ---
+  /** Données du graphique "Utilisateurs par rôle" (statiques). */
   rolesData: RoleStat[] = [
     { role: 'Salariés', total: 40 },
     { role: 'Commerciaux', total: 16 },
@@ -121,14 +126,14 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
     { role: 'Responsable logistique', total: 13 }
   ];
 
-  // --- Donut stocks global (identique au dashboard logistique) ---
+  /** Données du donut "Stocks - État global" (statiques). */
   stockCategoryData = [
     { category: 'Ok', value: 75 },
     { category: 'Sous seuil', value: 15 },
     { category: 'Critique', value: 10 }
   ];
 
-  // --- Série pour la tendance des coupons utilisés ---
+  /** Données du graphique "Tendance des coupons utilisés" (statiques). */
   couponsTrendData: CouponTrendPoint[] = [
     { date: '06/09', value: 14 },
     { date: '07/09', value: 8 },
@@ -137,10 +142,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
     { date: '10/09', value: 15 }
   ];
 
-  periodOptions: string[] = ['Cette année', 'Ce trimestre', 'Ce mois'];
-  sectorOptions: string[] = ['Tous', 'Distribution', 'Corporate'];
-
-  // --- Références Chart.js (nettoyage facilité si besoin) ---
+  /** Références aux instances Chart.js (pour mise à jour du graphique paiements après l’API). */
   private commandesChart?: any;
   private paiementsChart?: any;
   private livraisonsChart?: any;
@@ -148,7 +150,53 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
   private stocksEtatChart?: any;
   private couponsChart?: any;
 
-  ngOnInit(): void { }
+  //Constructeur
+  constructor(private adminService: AdminService) {}
+
+  //Au démarrage du composant 
+  ngOnInit(): void {
+    this.loadDashboardStats();//On charge les données du dashboard
+  }
+
+  /**
+   * Appelle l'API GET /admin/dashboard/stats et met à jour les 3 KPIs + le graphique "Paiements par statut".
+   */
+  loadDashboardStats(): void {
+    //on appelle le service et on le passe la période 
+    this.adminService.getDashboardStats(this.periode).subscribe({
+      next: (data) => {
+        // 1) Mettre à jour les 3 cartes KPI
+        this.metricsData[0].value = String(data.commandesEnAttente);
+        this.metricsData[1].value = String(data.paiementsEchoues);
+        this.metricsData[2].value = String(data.reclamationsOuvertes);
+
+        // 2) Mapper la réponse "paiements par statut" vers le format du graphique (status, value, color)
+        const colors: Record<string, string> = {
+          'Payé': '#22C55F',//couleur du statut Payé
+          'En attente de confirmation': '#FFE7C2',//couleur du statut En attente de confirmation
+          'Échoué': '#FFD3D3',//couleur du statut Échoué
+        };
+        //on mappe la réponse "paiements par statut" vers le format du graphique (status, value, color)
+        this.paymentStatusData = data.paiementsParStatut.map(item => ({
+          status: item.statusLabel,//statut du paiement
+          value: item.count,//nombre de paiements pour ce statut
+          color: colors[item.statusLabel] ?? '#E5E7EB'//couleur du statut si le statut n'est pas trouvé on prend la couleur par défaut #E5E7EB
+        }));
+
+        // 3) Si le graphique paiements est déjà créé, le mettre à jour
+        if(this.paiementsChart) {
+          this.paiementsChart.data.labels = this.paymentStatusData.map(s => s.status);//on met à jour les labels du graphique pour chaque paiement on prend le statut
+          this.paiementsChart.data.datasets[0].data = this.paymentStatusData.map(s => s.value);//on met à jour les données du graphique pour chaque paiement on prend le nombre de paiements pour ce statut
+          this.paiementsChart.data.datasets[0].backgroundColor = this.paymentStatusData.map(s => s.color);//on met à jour les couleurs du graphique pour chaque paiement on prend la couleur pour ce statut
+          this.paiementsChart.update();//on met à jour le graphique
+        }
+      },
+      //si erreur on affiche l'erreur dans la console
+      error: (err) => {
+        console.error('Erreur chargement stats dashboard:', err);
+      }
+    });
+  }
 
   ngAfterViewInit(): void {
     // Le léger délai garantit que les templates sont rendus avant d’initialiser Chart.js
@@ -541,8 +589,5 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
         }
       }
     });
-  }
-  getTrendClass(trend: 'up' | 'down'): string {
-    return trend === 'up' ? 'text-green-500' : 'text-red-500';
   }
 }

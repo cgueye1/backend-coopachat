@@ -33,6 +33,7 @@
                             fill="#777777" />
                     </svg>
                     <input type="text" placeholder="Rechercher par référence ou produit..." [(ngModel)]="searchText"
+                        (input)="onSearch()"
                         class="w-full pl-10 pr-3 py-2.5 border border-[#EEEEEE] rounded-lg focus:outline-none focus:border-[#777777] focus:ring-1 focus:ring-[#777777] text-xs sm:pl-12 sm:pr-4 sm:py-3 sm:text-sm bg-white placeholder-[#777777]">
                 </div>
 
@@ -54,7 +55,7 @@
                             <div *ngFor="let category of uniqueCategories"
                                 class="px-3 py-2 hover:bg-gray-50 cursor-pointer text-xs sm:text-sm text-gray-700"
                                 (click)="selectCategory(category)">
-                                {{ category }}
+                                {{ category.name }}
                             </div>
                         </div>
                     </div>

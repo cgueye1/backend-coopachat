@@ -400,99 +400,93 @@
                         <label class="text-sm sm:text-[15px] font-medium text-gray-700">Date de livraison <span
                                 class="text-red-500">*</span></label>
                         <div class="relative">
-                            <input type="date" [(ngModel)]="newTournee.date" [min]="minDate" #dateInput
-                                [class.border-red-500]="errors.date"
+                            <input type="date" [(ngModel)]="newTournee.deliveryDate" [min]="minDate" #dateInput
+                                (ngModelChange)="loadGroupedLots()"
+                                [class.border-red-500]="errors.deliveryDate"
                                 class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg text-gray-600 placeholder:text-[#6B7280] font-light appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0">
                             <img src="/icones/date.svg" alt="calendar"
                                 class="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 cursor-pointer w-4 h-4 sm:w-5 sm:h-5"
                                 (click)="dateInput.showPicker()">
                         </div>
-                        <p *ngIf="errors.date" class="text-red-500 text-xs mt-1">{{ errors.date }}</p>
+                        <p *ngIf="errors.deliveryDate" class="text-red-500 text-xs mt-1">{{ errors.deliveryDate }}</p>
                     </div>
 
-                    <!-- Créneau -->
+                    <!-- Taille des lots (nombre de commandes par lot pour "plus proches") -->
                     <div class="space-y-2 px-1 sm:px-2">
-                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Créneau</label>
-                        <div class="relative">
-                            <select [(ngModel)]="newTournee.creneau"
-                                class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg text-gray-600 appearance-none bg-white">
-                                <option *ngFor="let c of creneaux" [value]="c">{{ c }}</option>
-                            </select>
-                            <div class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5"
-                                        stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                            </div>
+                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Taille des lots</label>
+                        <div class="flex gap-2">
+                            <input type="number" [(ngModel)]="newTournee.lotSize" min="1" max="50"
+                                (ngModelChange)="loadGroupedLots()"
+                                class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base sm:text-lg text-gray-600">
+                            <button type="button" (click)="loadGroupedLots()" [disabled]="!newTournee.deliveryDate || loadingLots"
+                                class="px-4 py-2.5 rounded-lg bg-[#2C2D5B] text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                                {{ loadingLots ? 'Chargement...' : 'Afficher les lots' }}
+                            </button>
                         </div>
-                    </div>
-
-                    <!-- Zone -->
-                    <div class="space-y-2 px-1 sm:px-2">
-                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Zone</label>
-                        <div class="relative">
-                            <select [(ngModel)]="newTournee.zone"
-                                class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg text-gray-600 appearance-none bg-white">
-                                <option *ngFor="let z of zones" [value]="z">{{ z }}</option>
-                            </select>
-                            <div class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5"
-                                        stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Transporteur -->
-                    <div class="space-y-2 px-1 sm:px-2">
-                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Transporteur</label>
-                        <div class="relative">
-                            <select [(ngModel)]="newTournee.transporteur"
-                                class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg text-gray-600 appearance-none bg-white">
-                                <option *ngFor="let t of transporteursList" [value]="t">{{ t }}</option>
-                            </select>
-                            <div class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5"
-                                        stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                            </div>
-                        </div>
+                        <p class="text-xs text-gray-500">Nombre de commandes par groupe de proximité. Cliquez sur "Afficher les lots" pour voir les commandes proches.</p>
                     </div>
 
                     <!-- Chauffeur -->
                     <div class="space-y-2 px-1 sm:px-2">
                         <label class="text-sm sm:text-[15px] font-medium text-gray-700">Chauffeur <span
                                 class="text-red-500">*</span></label>
-                        <input type="text" [(ngModel)]="newTournee.chauffeur" placeholder="Saisir"
-                            [class.border-red-500]="errors.chauffeur"
-                            class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg placeholder:text-[#6B7280] font-light">
-                        <p *ngIf="errors.chauffeur" class="text-red-500 text-xs mt-1">{{ errors.chauffeur }}</p>
+                        <div class="relative">
+                            <select [(ngModel)]="newTournee.driverId"
+                                [class.border-red-500]="errors.driverId"
+                                class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base sm:text-lg text-gray-600 appearance-none bg-white">
+                                <option [ngValue]="null">Sélectionner un chauffeur</option>
+                                <option *ngFor="let d of availableDrivers" [ngValue]="d.driverId">{{ d.fullName }}</option>
+                            </select>
+                            <div class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                        </div>
+                        <p *ngIf="errors.driverId" class="text-red-500 text-xs mt-1">{{ errors.driverId }}</p>
                     </div>
 
-                    <!-- Véhicule -->
+                    <!-- Plaque véhicule -->
                     <div class="space-y-2 px-1 sm:px-2">
-                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Véhicule <span
+                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Plaque véhicule <span
                                 class="text-red-500">*</span></label>
-                        <input type="text" [(ngModel)]="newTournee.vehicule" placeholder="Ex: AA-12345-AB"
-                            [class.border-red-500]="errors.vehicule"
-                            class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg placeholder:text-[#6B7280] font-light">
-                        <p *ngIf="errors.vehicule" class="text-red-500 text-xs mt-1">{{ errors.vehicule }}</p>
+                        <input type="text" [(ngModel)]="newTournee.vehiclePlate" placeholder="Ex: AA-12345-AB"
+                            [class.border-red-500]="errors.vehiclePlate"
+                            class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base sm:text-lg placeholder:text-[#6B7280] font-light">
+                        <p *ngIf="errors.vehiclePlate" class="text-red-500 text-xs mt-1">{{ errors.vehiclePlate }}</p>
+                    </div>
+
+                    <!-- Type véhicule -->
+                    <div class="space-y-2 px-1 sm:px-2 md:col-span-2">
+                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Type de véhicule <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" [(ngModel)]="newTournee.vehicleType" placeholder="Ex: Fourgon, Camion..."
+                            [class.border-red-500]="errors.vehicleType"
+                            class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base sm:text-lg placeholder:text-[#6B7280] font-light">
+                        <p *ngIf="errors.vehicleType" class="text-red-500 text-xs mt-1">{{ errors.vehicleType }}</p>
+                    </div>
+                </div>
+
+                <!-- Lots par proximité (aperçu) -->
+                <div *ngIf="groupedLots.length > 0" class="space-y-2 px-1 sm:px-2">
+                    <p class="text-sm font-medium text-gray-700">Lots par proximité ({{ groupedLots.length }} lot(s))</p>
+                    <div class="rounded-lg border border-[#CBD5E1] p-2 max-h-32 overflow-y-auto space-y-1">
+                        <div *ngFor="let lot of groupedLots" class="text-xs text-gray-600">
+                            {{ lot.zoneName || ('Lot ' + (lot.lotIndex + 1)) }} — {{ lot.orderCount }} commande(s) : {{ getLotOrderNumbers(lot) }}
+                        </div>
                     </div>
                 </div>
 
                 <!-- Commandes à inclure -->
                 <div class="space-y-2 px-1 sm:px-2">
-                    <label class="text-sm sm:text-[15px] font-medium text-gray-700">Commandes à inclure</label>
+                    <label class="text-sm sm:text-[15px] font-medium text-gray-700">Commandes à inclure <span
+                            class="text-red-500">*</span></label>
                     <div class="relative">
-                        <button (click)="toggleCommandesDropdown()"
-                            class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg text-[#6B7280] font-light bg-white text-left flex items-center justify-between">
-                            <span [class.text-[#6B7280]]="newTournee.commandes.length === 0"
-                                [class.font-light]="newTournee.commandes.length === 0">
+                        <button type="button" (click)="toggleCommandesDropdown()"
+                            [class.border-red-500]="errors.orderIds"
+                            class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base sm:text-lg text-[#6B7280] font-light bg-white text-left flex items-center justify-between">
+                            <span [class.text-[#6B7280]]="newTournee.orderIds.length === 0"
+                                [class.font-light]="newTournee.orderIds.length === 0">
                                 {{ getSelectedCommandesLabel() }}
                             </span>
                             <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
@@ -501,17 +495,21 @@
                                     stroke-linejoin="round" />
                             </svg>
                         </button>
+                        <p *ngIf="errors.orderIds" class="text-red-500 text-xs mt-1">{{ errors.orderIds }}</p>
 
-                        <!-- Dropdown Menu -->
                         <div *ngIf="showCommandesDropdown"
                             class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 max-h-60 overflow-y-auto z-20 p-2">
-                            <div *ngFor="let cmd of commandesDisponibles" (click)="toggleCommandeSelection(cmd)"
-                                class="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
-                                <div class="relative flex items-center">
-                                    <input type="checkbox" [checked]="isCommandeSelected(cmd)"
-                                        class="w-5 h-5 border-2 border-gray-300 rounded text-[#2B3674] focus:ring-[#2B3674] transition-colors cursor-pointer">
+                            <ng-container *ngIf="allEligibleOrders.length === 0">
+                                <p class="text-sm text-gray-500 px-3 py-2">Choisissez une date et cliquez sur "Afficher les lots".</p>
+                            </ng-container>
+                            <div *ngFor="let order of allEligibleOrders" (click)="toggleOrderSelection(order)"
+                                class="flex items-start gap-3 px-3 py-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
+                                <input type="checkbox" [checked]="isOrderSelected(order)"
+                                    class="w-5 h-5 mt-0.5 border-2 border-gray-300 rounded text-[#2B3674] focus:ring-[#2B3674] cursor-pointer flex-shrink-0">
+                                <div class="flex flex-col min-w-0">
+                                    <span class="text-sm font-medium text-[#374151]">{{ order.orderNumber }} — {{ order.customerName }}</span>
+                                    <span *ngIf="order.formattedAddress" class="text-xs text-[#6B7280] mt-0.5">{{ order.formattedAddress }}</span>
                                 </div>
-                                <span class="text-sm text-[#6B7280]">{{ cmd }}</span>
                             </div>
                         </div>
                     </div>
@@ -520,8 +518,8 @@
                 <!-- Note -->
                 <div class="space-y-2 px-1 sm:px-2">
                     <label class="text-sm sm:text-[15px] font-medium text-gray-700">Note (optionnel)</label>
-                    <textarea [(ngModel)]="newTournee.note" placeholder="Saisir" rows="2"
-                        class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg placeholder:text-[#6B7280] font-light resize-none"></textarea>
+                    <textarea [(ngModel)]="newTournee.notes" placeholder="Saisir" rows="2"
+                        class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base sm:text-lg placeholder:text-[#6B7280] font-light resize-none"></textarea>
                 </div>
             </div>
 

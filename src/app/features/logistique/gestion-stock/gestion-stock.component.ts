@@ -1,8 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import Swal from 'sweetalert2';
+import { LogisticsService } from '../../../shared/services/logistics.service';
+import { ProductService } from '../../../shared/services/product.service';
+import { environment } from '../../../../environments/environment';
 
 interface MetricCard {
   title: string;
@@ -42,7 +45,20 @@ interface SupplierOrder {
   templateUrl: './gestion-stock.component.html',
   styles: ``
 })
-export class GestionStockComponent {
+export class GestionStockComponent implements OnInit {
+  constructor(
+    private logisticsService: LogisticsService,
+    private productService: ProductService
+  ) { }
+
+  ngOnInit(): void {
+    this.loadCategories();
+    this.loadStockStats();
+    this.loadStockList();
+    this.loadStockAlerts();
+    this.loadSuppliers();
+    this.loadAllProducts();
+  }
   activeTab = 'suivi';
   searchText = '';
   selectedCategory = 'Toutes les catégories';
@@ -55,8 +71,13 @@ export class GestionStockComponent {
   showSupplierDropdown = false;
   showOrderStatusDropdown = false;
 
+  categories: { id: number; name: string }[] = [];
+
   get uniqueCategories(): string[] {
-    const categories = new Set(this.stockItems.map(item => item.category));
+    const categories = new Set([
+      ...this.stockItems.map(item => item.category),
+      ...this.alertItems.map(item => item.category)
+    ]);
     return ['Toutes les catégories', ...Array.from(categories)];
   }
 
@@ -71,7 +92,7 @@ export class GestionStockComponent {
   }
 
   get filteredAlertItems(): StockItem[] {
-    return this.stockItems.filter(item => {
+    return this.alertItems.filter(item => {
       const isAlert = item.status === 'Sous seuil' || item.status === 'Rupture';
       const matchesSearch =
         item.name.toLowerCase().includes(this.searchText.toLowerCase()) ||
@@ -122,8 +143,7 @@ export class GestionStockComponent {
   }
 
   get uniqueStatuses(): string[] {
-    const statuses = new Set(this.stockItems.map(item => item.status));
-    return ['Tous les statuts', ...Array.from(statuses)];
+    return ['Tous les statuts', 'Suffisant', 'Sous seuil', 'Rupture'];
   }
 
   get filteredStockItems(): StockItem[] {
@@ -155,6 +175,8 @@ export class GestionStockComponent {
   selectCategory(category: string) {
     this.selectedCategory = category;
     this.showCategoryDropdown = false;
+    this.loadStockList();
+    this.loadStockAlerts();
   }
 
   selectStatus(status: string) {
@@ -177,8 +199,12 @@ export class GestionStockComponent {
     note: ''
   };
 
+  suppliers: { id: number; name: string }[] = [];
+  allProducts: { id: number; name: string }[] = [];
+
   errors: any = {
     fournisseur: '',
+    produit: '',
     quantite: '',
     eta: ''
   };
@@ -198,6 +224,7 @@ export class GestionStockComponent {
     };
     this.errors = {
       fournisseur: '',
+      produit: '',
       quantite: '',
       eta: ''
     };
@@ -211,6 +238,7 @@ export class GestionStockComponent {
     // Reset errors
     this.errors = {
       fournisseur: '',
+      produit: '',
       quantite: '',
       eta: ''
     };
@@ -218,8 +246,14 @@ export class GestionStockComponent {
     let isValid = true;
 
     // Validation Fournisseur
-    if (!this.newOrder.fournisseur || this.newOrder.fournisseur.trim() === '') {
+    if (!this.newOrder.fournisseur) {
       this.errors.fournisseur = 'Le fournisseur est obligatoire';
+      isValid = false;
+    }
+
+    // Validation Produit
+    if (!this.newOrder.produit) {
+      this.errors.produit = 'Le produit est obligatoire';
       isValid = false;
     }
 
@@ -248,19 +282,61 @@ export class GestionStockComponent {
       return;
     }
 
-    const newCmd: SupplierOrder = {
-      id: `CMD-${Math.floor(Math.random() * 10000)}`,
-      productName: this.newOrder.produit,
-      productReference: 'REF-' + Math.floor(Math.random() * 1000),
-      supplier: this.newOrder.fournisseur,
-      quantity: parseInt(this.newOrder.quantite) || 0,
-      eta: this.newOrder.eta ? new Date(this.newOrder.eta).toLocaleDateString('fr-FR') : '',
-      status: 'Ouverte',
-      productId: 'PROD-' + Math.floor(Math.random() * 1000)
+    const payload = {
+      supplierId: Number(this.newOrder.fournisseur),
+      items: [
+        {
+          productId: Number(this.newOrder.produit),
+          quantite: Number(this.newOrder.quantite)
+        }
+      ],
+      expectedDate: this.formatDateForApi(this.newOrder.eta),
+      notes: this.newOrder.note?.trim() || undefined
     };
 
-    this.supplierOrders.unshift(newCmd);
-    this.closeNewOrderModal();
+    this.logisticsService.createSupplierOrder(payload).subscribe({
+      next: () => {
+        this.closeNewOrderModal();
+        Swal.fire({
+          iconHtml: '<img src="/icones/message success.svg" style="width: 95px; height: 95px; margin: 0 auto;" />',
+          title: 'Commande fournisseur créée avec succès',
+          showConfirmButton: false,
+          timer: 1500,
+          buttonsStyling: false,
+          customClass: {
+            popup: 'rounded-3xl p-6',
+            title: 'text-xl font-medium text-gray-900',
+            icon: 'border-none'
+          },
+          backdrop: `rgba(0,0,0,0.2)`,
+          width: '580px'
+        });
+        this.loadStockStats();
+        this.loadStockList();
+        this.loadStockAlerts();
+      },
+      error: (error) => {
+        console.error('Erreur lors de la création de commande:', error);
+        Swal.fire({
+          iconHtml: `<svg width="95" height="95" viewBox="0 0 95 95" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M47.5 0C21.266 0 0 21.266 0 47.5C0 73.734 21.266 95 47.5 95C73.734 95 95 73.734 95 47.5C95 21.266 73.734 0 47.5 0ZM47.5 86.25C26.095 86.25 8.75 68.905 8.75 47.5C8.75 26.095 26.095 8.75 47.5 8.75C68.905 8.75 86.25 26.095 86.25 47.5C86.25 68.905 68.905 86.25 47.5 86.25ZM43.125 24.375V52.5H51.875V24.375H43.125ZM43.125 60.625V69.375H51.875V60.625H43.125Z" fill="#F87171"/>
+          </svg>`,
+          title: 'Création échouée',
+          text: error?.error?.message || 'Une erreur est survenue lors de la création de la commande.',
+          showConfirmButton: true,
+          confirmButtonText: 'OK',
+          buttonsStyling: false,
+          customClass: {
+            popup: 'rounded-3xl p-6',
+            title: 'text-xl font-medium text-gray-900',
+            htmlContainer: 'text-base text-gray-600',
+            confirmButton: 'bg-[#2C2D5B] hover:bg-[#232b5c] text-white px-8 py-3 rounded-lg font-medium text-base shadow-none border-none'
+          },
+          backdrop: `rgba(0,0,0,0.2)`,
+          width: '580px'
+        });
+      }
+    });
   }
 
   openApprovisionnementModal(item: StockItem) {
@@ -269,13 +345,14 @@ export class GestionStockComponent {
     this.showNewOrderModal = true;
     this.newOrder = {
       fournisseur: '',
-      produit: item.name,
+      produit: item.id,
       quantite: '',
       eta: today,
       note: ''
     };
     this.errors = {
       fournisseur: '',
+      produit: '',
       quantite: '',
       eta: ''
     };
@@ -295,12 +372,17 @@ export class GestionStockComponent {
 
   saveStockEntry() {
     if (this.selectedStockItem && this.stockEntryQuantity > 0) {
-      // In a real app, this would call a service. 
-      // For now, we just update the local state to reflect the change visually if needed, 
-      // or just close the modal as requested "Mettre à jour la quantié lorsqu'on clique sur le bouton Enregistrer"
-      // The user probably wants to see the stock increase.
-      this.selectedStockItem.stock += this.stockEntryQuantity;
-      this.closeStockEntryModal();
+      this.logisticsService.increaseStock(this.selectedStockItem.id, this.stockEntryQuantity).subscribe({
+        next: () => {
+          this.closeStockEntryModal();
+          this.loadStockStats();
+          this.loadStockList();
+          this.loadStockAlerts();
+        },
+        error: (error) => {
+          console.error('Erreur lors de l\'entrée de stock:', error);
+        }
+      });
     }
   }
 
@@ -322,8 +404,17 @@ export class GestionStockComponent {
 
   saveStockExit() {
     if (this.selectedStockItem && this.stockExitQuantity > 0) {
-      this.selectedStockItem.stock -= this.stockExitQuantity;
-      this.closeStockExitModal();
+      this.logisticsService.decreaseStock(this.selectedStockItem.id, this.stockExitQuantity).subscribe({
+        next: () => {
+          this.closeStockExitModal();
+          this.loadStockStats();
+          this.loadStockList();
+          this.loadStockAlerts();
+        },
+        error: (error) => {
+          console.error('Erreur lors de la sortie de stock:', error);
+        }
+      });
     }
   }
 
@@ -345,14 +436,17 @@ export class GestionStockComponent {
 
   saveThreshold() {
     if (this.selectedStockItem && this.thresholdValue >= 0) {
-      this.selectedStockItem.minThreshold = this.thresholdValue;
-      // Update status based on new threshold if needed
-      if (this.selectedStockItem.stock <= this.thresholdValue) {
-        this.selectedStockItem.status = this.selectedStockItem.stock === 0 ? 'Rupture' : 'Sous seuil';
-      } else {
-        this.selectedStockItem.status = 'Suffisant';
-      }
-      this.closeThresholdModal();
+      this.logisticsService.updateMinThreshold(this.selectedStockItem.id, this.thresholdValue).subscribe({
+        next: () => {
+          this.closeThresholdModal();
+          this.loadStockStats();
+          this.loadStockList();
+          this.loadStockAlerts();
+        },
+        error: (error) => {
+          console.error('Erreur lors de la mise à jour du seuil:', error);
+        }
+      });
     }
   }
 
@@ -429,23 +523,31 @@ export class GestionStockComponent {
   }
 
   increaseThreshold(item: StockItem) {
-    item.minThreshold = Math.ceil(item.minThreshold * 1.10);
-
-    Swal.fire({
-      title: 'Seuil augmenté de 10%',
-      iconHtml: `<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="40" cy="40" r="37.5" stroke="#388E3C" stroke-width="5"/>
-        <path d="M22.5 40L35 52.5L57.5 30" stroke="#388E3C" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>`,
-      showConfirmButton: false,
-      timer: 2000,
-      customClass: {
-        popup: 'rounded-3xl p-4',
-        title: 'text-xl font-medium text-gray-900',
-        icon: 'border-none'
+    this.logisticsService.updateMinThresholdByPercent(item.id, 10).subscribe({
+      next: () => {
+        Swal.fire({
+          title: 'Seuil augmenté de 10%',
+          iconHtml: `<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="40" cy="40" r="37.5" stroke="#388E3C" stroke-width="5"/>
+            <path d="M22.5 40L35 52.5L57.5 30" stroke="#388E3C" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>`,
+          showConfirmButton: false,
+          timer: 2000,
+          customClass: {
+            popup: 'rounded-3xl p-4',
+            title: 'text-xl font-medium text-gray-900',
+            icon: 'border-none'
+          },
+          backdrop: `rgba(0,0,0,0.2)`,
+          width: '500px'
+        });
+        this.loadStockStats();
+        this.loadStockList();
+        this.loadStockAlerts();
       },
-      backdrop: `rgba(0,0,0,0.2)`,
-      width: '500px'
+      error: (error) => {
+        console.error('Erreur lors de la mise à jour du seuil:', error);
+      }
     });
   }
 
@@ -489,83 +591,163 @@ export class GestionStockComponent {
     });
   }
 
-  get alertItems(): StockItem[] {
-    return this.stockItems.filter(item => item.status === 'Sous seuil' || item.status === 'Rupture');
+  onSearch(): void {
+    this.loadStockList();
+    this.loadStockAlerts();
   }
 
-  metricsData: MetricCard[] = [
-    {
-      title: 'Total',
-      value: '07',
-      subtitle: 'Catalogue suivi',
-      icon: 'box-blue'
-    },
-    {
-      title: 'Stocks sous seuil',
-      value: '02',
-      subtitle: 'À réapprovisionner',
-      icon: 'warning-yellow'
-    },
-    {
-      title: 'Ruptures',
-      value: '0',
-      subtitle: 'Stock = 0',
-      icon: 'box-red'
-    },
-  ];
-
-  stockItems: StockItem[] = [
-    {
-      id: '1',
-      name: 'Riz parfumé 25kg',
-      reference: 'CP-2025-05',
-      category: 'Épicerie',
-      stock: 42,
-      minThreshold: 30,
-      status: 'Suffisant',
-      image: '/icones/riz.svg'
-    },
-    {
-      id: '2',
-      name: 'Huile 5L',
-      reference: 'CP-2025-04',
-      category: 'Épicerie',
-      stock: 30,
-      minThreshold: 25,
-      status: 'Sous seuil',
-      image: '/icones/huile.svg'
-    },
-    {
-      id: '3',
-      name: 'Eau 1.5L (x6)',
-      reference: 'CP-2025-03',
-      category: 'Boissons',
-      stock: 90,
-      minThreshold: 40,
-      status: 'Suffisant',
-      image: '/icones/eau.svg'
-    },
-    {
-      id: '4',
-      name: 'Lait 1L',
-      reference: 'CP-2025-02',
-      category: 'Frais',
-      stock: 0,
-      minThreshold: 30,
-      status: 'Rupture',
-      image: '/icones/lait.svg'
-    },
-    {
-      id: '5',
-      name: 'Savon 250g',
-      reference: 'CP-2025-01',
-      category: 'Hygiène',
-      stock: 9,
-      minThreshold: 15,
-      status: 'Sous seuil',
-      image: '/icones/savon.svg'
+  exportData(): void {
+    const categoryId = this.findCategoryIdByName(this.selectedCategory);
+    if (this.activeTab === 'alertes') {
+      this.logisticsService.exportStockAlerts(this.searchText, categoryId ?? undefined).subscribe({
+        next: (blob) => this.downloadFile(blob, 'alertes_stock'),
+        error: (error) => console.error('Erreur export alertes:', error)
+      });
+      return;
     }
-  ];
+    this.logisticsService.exportStockList(this.searchText, categoryId ?? undefined).subscribe({
+      next: (blob) => this.downloadFile(blob, 'suivi_stocks'),
+      error: (error) => console.error('Erreur export stocks:', error)
+    });
+  }
+
+  private loadCategories(): void {
+    this.productService.getCategories().subscribe({
+      next: (categories) => {
+        this.categories = Array.isArray(categories) ? categories : [];
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des catégories:', error);
+      }
+    });
+  }
+
+  private loadStockStats(): void {
+    this.logisticsService.getStockStats().subscribe({
+      next: (stats) => {
+        this.metricsData = [
+          { title: 'Total', value: String(stats.total), subtitle: 'Catalogue suivi', icon: 'box-blue' },
+          { title: 'Stocks sous seuil', value: String(stats.lowStock), subtitle: 'À réapprovisionner', icon: 'warning-yellow' },
+          { title: 'Ruptures', value: String(stats.outOfStock), subtitle: 'Stock = 0', icon: 'box-red' }
+        ];
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des stats:', error);
+      }
+    });
+  }
+
+  private loadStockList(): void {
+    const categoryId = this.findCategoryIdByName(this.selectedCategory);
+    this.logisticsService.getStockList(0, 1000, this.searchText, categoryId ?? undefined).subscribe({
+      next: (response) => {
+        const items = response?.content ?? [];
+        this.stockItems = items.map((item: any) => this.mapApiStockItem(item));
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des stocks:', error);
+      }
+    });
+  }
+
+  private loadStockAlerts(): void {
+    const categoryId = this.findCategoryIdByName(this.selectedCategory);
+    this.logisticsService.getStockAlerts(0, 1000, this.searchText, categoryId ?? undefined).subscribe({
+      next: (response) => {
+        const items = response?.content ?? [];
+        this.alertItems = items.map((item: any) => this.mapApiStockItem(item));
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des alertes:', error);
+      }
+    });
+  }
+
+  private loadSuppliers(): void {
+    this.logisticsService.getSuppliers().subscribe({
+      next: (suppliers) => {
+        this.suppliers = Array.isArray(suppliers) ? suppliers : [];
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des fournisseurs:', error);
+      }
+    });
+  }
+
+  private loadAllProducts(): void {
+    this.logisticsService.getStockList(0, 1000).subscribe({
+      next: (response) => {
+        const items = response?.content ?? [];
+        this.allProducts = items.map((item: any) => ({
+          id: Number(item?.id),
+          name: item?.name ?? ''
+        }));
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des produits:', error);
+      }
+    });
+  }
+
+  private mapApiStockItem(item: any): StockItem {
+    return {
+      id: item?.id?.toString() ?? '',
+      name: item?.name ?? '',
+      reference: item?.productCode ?? '',
+      category: item?.categoryName ?? '',
+      stock: item?.currentStock ?? 0,
+      minThreshold: item?.minThreshold ?? 0,
+      status: this.normalizeStockStatus(item?.stockStatus),
+      image: this.buildImageUrl(item?.image)
+    };
+  }
+
+  getProductNameById(productId: string): string {
+    const id = Number(productId);
+    const match = this.allProducts.find(p => p.id === id);
+    return match ? match.name : '';
+  }
+
+  private normalizeStockStatus(status: string | undefined): StockItem['status'] {
+    if (!status) return 'Suffisant';
+    if (status === 'SUFFISANT' || status === 'Suffisant') return 'Suffisant';
+    if (status === 'SOUS_SEUIL' || status === 'Sous seuil') return 'Sous seuil';
+    if (status === 'RUPTURE' || status === 'Rupture') return 'Rupture';
+    return 'Suffisant';
+  }
+
+  private buildImageUrl(image: string | undefined): string {
+    if (!image) return '/icones/default-product.svg';
+    if (image.startsWith('http') || image.startsWith('/')) return image;
+    return `${environment.apiUrl}/files/${image}`;
+  }
+
+  private findCategoryIdByName(name: string): number | null {
+    if (!name || name === 'Toutes les catégories') return null;
+    const match = this.categories.find(c => c.name === name);
+    return match ? match.id : null;
+  }
+
+  private formatDateForApi(value?: string): string | undefined {
+    if (!value) return undefined;
+    const [year, month, day] = value.split('-');
+    if (!year || !month || !day) return undefined;
+    return `${day}-${month}-${year} 00:00:00`;
+  }
+
+  private downloadFile(blob: Blob, baseName: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${baseName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  metricsData: MetricCard[] = [];
+
+  stockItems: StockItem[] = [];
+  alertItems: StockItem[] = [];
 
   getStatusClass(status: string): string {
     switch (status) {

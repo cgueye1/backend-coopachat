@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface Product {
     id: string;
@@ -18,105 +20,97 @@ export interface Product {
     providedIn: 'root'
 })
 export class ProductService {
-    private productsSubject = new BehaviorSubject<Product[]>([
-        {
-            id: '1',
-            name: 'Riz parfumé 25kg',
-            reference: 'CP-2025-05',
-            category: 'Épicerie',
-            price: '16 500 F',
-            stock: 42,
-            updatedAt: '05/10/2025',
-            status: 'Actif',
-            icon: '/icones/riz.svg',
-            description: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s,'
-        },
-        {
-            id: '2',
-            name: 'Huile 5L',
-            reference: 'CP-2025-04',
-            category: 'Épicerie',
-            price: '8 500 F',
-            stock: 30,
-            updatedAt: '05/10/2025',
-            status: 'Actif',
-            icon: '/icones/huile.svg'
-        },
-        {
-            id: '3',
-            name: 'Eau 1.5L (x6)',
-            reference: 'CP-2025-03',
-            category: 'Boissons',
-            price: '2 100 F',
-            stock: 80,
-            updatedAt: '05/10/2025',
-            status: 'Actif',
-            icon: '/icones/eau.svg'
-        },
-        {
-            id: '4',
-            name: 'Lait 1L',
-            reference: 'CP-2025-02',
-            category: 'Frais',
-            price: '900 F',
-            stock: 55,
-            updatedAt: '05/10/2025',
-            status: 'Actif',
-            icon: '/icones/lait.svg'
-        },
-        {
-            id: '5',
-            name: 'Savon 250g',
-            reference: 'CP-2025-01',
-            category: 'Hygiène',
-            price: '350 F',
-            stock: 120,
-            updatedAt: '05/10/2025',
-            status: 'Inactif',
-            icon: '/icones/savon.svg'
+    private apiUrl = environment.apiUrl;
+
+    constructor(private http: HttpClient) { }
+
+    // Lister les produits (paginé + filtres)
+    getProducts(
+        page: number,
+        size: number,
+        search?: string,
+        categoryId?: number,
+        status?: boolean
+    ): Observable<any> {
+        let params = new HttpParams()
+            .set('page', page.toString())
+            .set('size', size.toString());
+
+        if (search && search.trim()) {
+            params = params.set('search', search.trim());
         }
-    ]);
+        if (categoryId) {
+            params = params.set('categoryId', categoryId.toString());
+        }
+        if (status !== undefined && status !== null) {
+            params = params.set('status', String(status));
+        }
 
-    products$ = this.productsSubject.asObservable();
-
-    getProducts(): Product[] {
-        return this.productsSubject.value;
+        return this.http.get(`${this.apiUrl}/admin/products`, { params });
     }
 
-    addProduct(productData: { name: string; category: string; price: number; stock: number; description: string; icon: string }) {
-        const products = this.productsSubject.value;
-        const newId = String(products.length + 1);
-        const newReference = `CP-2025-${String(products.length + 1).padStart(2, '0')}`;
-        const today = new Date();
-        const updatedAt = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
-
-        const newProduct: Product = {
-            id: newId,
-            name: productData.name,
-            reference: newReference,
-            category: productData.category,
-            price: `${productData.price.toLocaleString('fr-FR')} F`,
-            stock: productData.stock,
-            updatedAt: updatedAt,
-            status: 'Actif',
-            icon: productData.icon,
-            description: productData.description
-        };
-
-        this.productsSubject.next([newProduct, ...products]);
+    // Statistiques catalogue
+    getProductStats(): Observable<any> {
+        return this.http.get(`${this.apiUrl}/admin/products/stats`);
     }
 
-    updateProduct(productId: string, updates: Partial<Product>) {
-        const products = this.productsSubject.value;
-        const updatedProducts = products.map(product =>
-            product.id === productId ? { ...product, ...updates } : product
+    // Lister les catégories
+    getCategories(): Observable<any> {
+        return this.http.get(`${this.apiUrl}/admin/categories`);
+    }
+
+    // Détails d'un produit
+    getProductDetails(productId: string): Observable<any> {
+        return this.http.get(`${this.apiUrl}/admin/products/${productId}`);
+    }
+
+    // Créer un produit (multipart/form-data)
+    createProduct(formData: FormData): Observable<any> {
+        return this.http.post(
+            `${this.apiUrl}/admin/products`,
+            formData,
+            { responseType: 'text' as 'json' }
         );
-        this.productsSubject.next(updatedProducts);
     }
 
-    deleteProduct(productId: string) {
-        const products = this.productsSubject.value;
-        const filteredProducts = products.filter(product => product.id !== productId);
-        this.productsSubject.next(filteredProducts);
+    // Modifier un produit (multipart/form-data)
+    updateProduct(productId: string, formData: FormData): Observable<any> {
+        return this.http.put(
+            `${this.apiUrl}/admin/products/${productId}`,
+            formData,
+            { responseType: 'text' as 'json' }
+        );
+    }
+
+    // Activer / désactiver un produit
+    updateProductStatus(productId: string, status: boolean): Observable<any> {
+        return this.http.patch(
+            `${this.apiUrl}/admin/products/${productId}/status`,
+            { status },
+            { responseType: 'text' as 'json' }
+        );
+    }
+
+    // Exporter la liste des produits
+    exportProducts(
+        search?: string,
+        categoryId?: number,
+        status?: boolean
+    ): Observable<Blob> {
+        let params = new HttpParams();
+        if (search && search.trim()) {
+            params = params.set('search', search.trim());
+        }
+        if (categoryId) {
+            params = params.set('categoryId', categoryId.toString());
+        }
+        if (status !== undefined && status !== null) {
+            params = params.set('status', String(status));
+        }
+
+        return this.http.get(`${this.apiUrl}/admin/products/export`, {
+            params,
+            responseType: 'blob'
+        });
     }
 }

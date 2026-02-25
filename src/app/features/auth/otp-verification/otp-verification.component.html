@@ -1,65 +1,184 @@
+<!--
+  Layout d’authentification -->
 <app-auth-layout>
-    <!-- Title -->
+
+    <!-- ===================== -->
+    <!--  TITRE & CONTEXTE -->
+    <!-- ===================== -->
     <div class="mb-6 sm:mb-8 flex flex-col gap-2 sm:gap-3">
+
+        <!-- Titre principal de la page -->
         <h1 class="text-2xl sm:text-3xl lg:text-[40px] font-semibold">
             Entrez le code de vérification
         </h1>
-        <p class="text-[#49475A] text-sm sm:text-base font-light">Veuillez entrer le code à 6 chiffres envoyé par Email
-            à</p>
-        <span class="break-all text-sm sm:text-base">{{ maskedEmail }}</span>
+
+        <!-- Texte explicatif -->
+        <p class="text-[#49475A] text-sm sm:text-base font-light">
+            Veuillez entrer le code à 6 chiffres envoyé par Email à
+        </p>
+
+        <!--
+          Affichage de l’email masqué
+          Exemple : j***e@gmail.com
+          La valeur vient du composant TS (maskedEmail)
+        -->
+        <span class="break-all text-sm sm:text-base">
+            {{ maskedEmail }}
+        </span>
     </div>
-    <!-- OTP Form -->
+
+    <!-- ===================== -->
+    <!--  FORMULAIRE OTP -->
+    <!-- ===================== -->
+
+    <!--
+      ngSubmit appelle la méthode onSubmit() du composant TS
+      (ici, le bouton appelle aussi onSubmit() manuellement)
+    -->
     <form (ngSubmit)="onSubmit()" class="space-y-4 sm:space-y-5">
-        <!-- OTP Input Fields -->
+
+        <!-- ===================== -->
+        <!-- 🔢 SAISIE DU CODE OTP -->
+        <!-- ===================== -->
         <div>
             <div class="flex justify-center sm:justify-start mb-3 sm:mb-4">
-                <ng-otp-input [config]="otpConfig" (onInputChange)="onOtpChange($event)" #ngOtpInput>
+
+                <!--
+                  Composant OTP (6 champs)
+                  - config : configuration définie dans le TS (otpConfig)
+                  - onInputChange : appelé à chaque saisie d’un chiffre
+                  - #ngOtpInput : référence utilisée dans le TS pour vider le champ OTP quand le code est faux
+                -->
+                <ng-otp-input
+                    [config]="otpConfig"
+                    (onInputChange)="onOtpChange($event)"
+                    #ngOtpInput>
                 </ng-otp-input>
+
             </div>
         </div>
-        <!-- Error Message -->
+
+        <!-- ===================== -->
+        <!-- ❌ MESSAGE D’ERREUR -->
+        <!-- ===================== -->
+
+        <!--
+          Ce bloc s’affiche uniquement si errorMessage n’est pas vide
+        -->
         <div *ngIf="errorMessage" class="text-red-500 text-sm text-center">
             {{ errorMessage }}
         </div>
-        <!-- Resend Code -->
+
+        <!-- ===================== -->
+        <!-- 🔄 RENVOI DU CODE -->
+        <!-- ===================== -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:gap-2 text-start">
-            <span class="text-gray-600 text-xs sm:text-sm">Vous n'avez pas reçu de code ? </span>
-            <button type="button" (click)="resendCode()" [disabled]="isResendDisabled"
-                class="text-xs sm:text-sm text-orange-600 hover:text-orange-500 disabled:font-medium transition-colors disabled:opacity-30 disabled:text-[#2C2D5B] disabled:cursor-not-allowed mt-1 sm:mt-0">
-                <span *ngIf="!isResendDisabled">Renvoyer</span>
-                <span *ngIf="isResendDisabled">Renvoyer dans ({{ resendCountdown }}s)</span>
+
+            <span class="text-gray-600 text-xs sm:text-sm">
+                Vous n'avez pas reçu de code ?
+            </span>
+
+            <!--
+              Bouton pour renvoyer le code OTP
+              - click → appelle resendCode()
+              - disabled → bloqué pendant le cooldown
+            -->
+            <button
+                type="button"
+                (click)="resendCode()"
+                [disabled]="isResendDisabled"
+                class="text-xs sm:text-sm text-orange-600 hover:text-orange-500
+                       disabled:font-medium disabled:opacity-30
+                       disabled:text-[#2C2D5B] disabled:cursor-not-allowed
+                       transition-colors mt-1 sm:mt-0">
+
+                <!-- Affiché si le renvoi est autorisé -->
+                <span *ngIf="!isResendDisabled">
+                    Renvoyer
+                </span>
+
+                <!-- Affiché pendant le cooldown -->
+                <span *ngIf="isResendDisabled">
+                    Renvoyer dans ({{ resendCountdown }}s)
+                </span>
+
             </button>
         </div>
-        <!-- Verify Button -->
-        <button type="button" (click)="onSubmit()" [disabled]="!isCodeComplete || isLoading"
-            class="!mt-8 sm:!mt-12 w-full bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white p-3 sm:p-4 rounded-lg hover:from-[#FF914D] hover:to-[#FF7000] focus:ring-4 focus:ring-orange-200 font-medium text-base sm:text-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
-            <span *ngIf="!isLoading">Vérifier le code</span>
+
+        <!-- ===================== -->
+        <!-- ✅ BOUTON DE VALIDATION -->
+        <!-- ===================== -->
+
+        <!--
+          Bouton "Vérifier le code"
+          - disabled si :
+            • le code n’est pas complet (6 chiffres)
+            • OU si une requête est en cours (isLoading)
+        -->
+        <button
+            type="button"
+            (click)="onSubmit()"
+            [disabled]="!isCodeComplete || isLoading"
+            class="!mt-8 sm:!mt-12 w-full bg-gradient-to-r
+                   from-[#FF6B00] to-[#FF914D] text-white
+                   p-3 sm:p-4 rounded-lg font-medium
+                   text-base sm:text-lg transition-all
+                   hover:scale-[1.02]
+                   disabled:opacity-50 disabled:cursor-not-allowed
+                   disabled:hover:scale-100">
+
+            <!-- Texte normal -->
+            <span *ngIf="!isLoading">
+                Vérifier le code
+            </span>
+
+            <!-- Spinner + texte pendant l’appel API -->
             <span *ngIf="isLoading" class="flex items-center justify-center">
-                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
-                    viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+
+                <!-- Icône de chargement -->
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                     xmlns="http://www.w3.org/2000/svg"
+                     fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10"
+                            stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                          d="M4 12a8 8 0 018-8V0
+                             C5.373 0 0 5.373 0 12h4z">
                     </path>
                 </svg>
+
                 Vérification...
             </span>
         </button>
 
-        <!-- Back to Login -->
+        <!-- ===================== -->
+        <!-- 🔙 RETOUR À LA CONNEXION -->
+        <!-- ===================== -->
         <div class="text-center pt-3 sm:pt-4">
-            <button type="button" (click)="navigateToLogin()"
-                class="font-medium text-[#2C2D5B] transition-colors inline-flex items-center gap-2 text-xs sm:text-sm">
-                <svg width="22" height="12" viewBox="0 0 22 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                        d="M16.6657 6.66671H4.66569C4.29236 6.66671 3.99902 6.37337 3.99902 6.00004C3.99902 5.62671 4.29236 5.33337 4.66569 5.33337H16.6657C17.039 5.33337 17.3324 5.62671 17.3324 6.00004C17.3324 6.37337 17.039 6.66671 16.6657 6.66671Z"
-                        fill="#2C2D5B" />
-                    <path
-                        d="M7.99935 11.3333C7.91191 11.3344 7.82522 11.3171 7.74485 11.2827C7.66448 11.2482 7.59221 11.1973 7.53268 11.1333L2.86602 6.46663C2.59935 6.19996 2.59935 5.78663 2.86602 5.51996L7.53268 0.866626C7.79935 0.599959 8.21268 0.599959 8.47935 0.866626C8.74602 1.13329 8.74602 1.54663 8.47935 1.81329L4.27935 6.01329L8.47935 10.2133C8.74602 10.48 8.74602 10.8933 8.47935 11.16C8.34602 11.2933 8.17268 11.36 8.01268 11.36L7.99935 11.3333Z"
-                        fill="#2C2D5B" />
+
+            <!--
+              Redirection vers la page login
+              (navigateToLogin() dans le TS)
+            -->
+            <button
+                type="button"
+                (click)="navigateToLogin()"
+                class="font-medium text-[#2C2D5B]
+                       transition-colors inline-flex
+                       items-center gap-2 text-xs sm:text-sm">
+
+                <!-- Icône flèche -->
+                <svg width="22" height="12" viewBox="0 0 22 12" fill="none"
+                     xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16.6657 6.66671H4.66569C4.29236 6.66671 3.99902 6.37337 3.99902 6.00004C3.99902 5.62671 4.29236 5.33337 4.66569 5.33337H16.6657C17.039 5.33337 17.3324 5.62671 17.3324 6.00004C17.3324 6.37337 17.039 6.66671 16.6657 6.66671Z"
+                          fill="#2C2D5B" />
+                    <path d="M7.99935 11.3333C7.91191 11.3344 7.82522 11.3171 7.74485 11.2827C7.66448 11.2482 7.59221 11.1973 7.53268 11.1333L2.86602 6.46663C2.59935 6.19996 2.59935 5.78663 2.86602 5.51996L7.53268 0.866626C7.79935 0.599959 8.21268 0.599959 8.47935 0.866626C8.74602 1.13329 8.74602 1.54663 8.47935 1.81329L4.27935 6.01329L8.47935 10.2133C8.74602 10.48 8.74602 10.8933 8.47935 11.16C8.34602 11.2933 8.17268 11.36 8.01268 11.36L7.99935 11.3333Z"
+                          fill="#2C2D5B" />
                 </svg>
+
                 Retour à la connexion
             </button>
         </div>
+
     </form>
 </app-auth-layout>

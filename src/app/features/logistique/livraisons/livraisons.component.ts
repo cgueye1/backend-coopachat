@@ -2,6 +2,7 @@ import { Component, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
+import { LogisticsService, EligibleOrder, EligibleOrderLot, AvailableDriver } from '../../../shared/services/logistics.service';
 import Swal from 'sweetalert2';
 
 interface Metric {
@@ -39,6 +40,7 @@ interface Livraison {
   styles: []
 })
 export class LivraisonsComponent {
+  constructor(private logistics: LogisticsService) {}
   searchText: string = '';
   currentPage: number = 1;
   totalPages: number = 6;
@@ -218,35 +220,45 @@ export class LivraisonsComponent {
     transporteur: '',
     chauffeur: '',
     vehicule: '',
-    commandes: [],
+    commandes: [] as string[],
     note: ''
   };
-  newTournee: any = {
-    date: '',
-    creneau: '',
-    zone: '',
-    transporteur: '',
-    chauffeur: '',
-    vehicule: '',
-    commandes: [],
-    note: ''
+  newTournee: {
+    deliveryDate: string;
+    driverId: number | null;
+    vehiclePlate: string;
+    vehicleType: string;
+    orderIds: number[];
+    notes: string;
+    lotSize: number;
+  } = {
+    deliveryDate: '',
+    driverId: null,
+    vehiclePlate: '',
+    vehicleType: '',
+    orderIds: [],
+    notes: '',
+    lotSize: 5
   };
 
   errors: any = {
-    date: '',
-    chauffeur: '',
-    vehicule: ''
+    deliveryDate: '',
+    driverId: '',
+    vehiclePlate: '',
+    vehicleType: '',
+    orderIds: ''
   };
 
-  // Mock Data for Dropdowns
+  // Données chargées depuis l'API (modal Planifier)
+  availableDrivers: AvailableDriver[] = [];
+  groupedLots: EligibleOrderLot[] = [];
+  loadingDrivers = false;
+  loadingLots = false;
+
+  // Pour le modal Modifier (données mock)
   creneaux = ['Matin (08h-12h)', 'Après-midi (14h-18h)', 'Soir (18h-20h)'];
   zones = ['Dakar', 'Thiès', 'Saint-Louis', 'Touba'];
   transporteursList = ['DHL', 'Chrono SN', 'Colis SN', 'Maersk'];
-  // chauffeurs and vehicules are now just suggestions or not used as strict lists if input is text, 
-  // but I'll keep them if I want to implement autocomplete later. 
-  // For now, the user asked for text inputs, so I won't use them in the template for dropdowns.
-  chauffeurs = ['I. Diallo', 'A. Faye', 'S. Sow', 'M. Ndiaye'];
-  vehicules = ['Sprinter-1', 'Kia-Box', 'Sprinter-0', 'Dacia D', 'AA-12345-AB'];
   commandesDisponibles = ['CMD-001', 'CMD-002', 'CMD-003', 'CMD-004'];
 
   get minDate(): string {
@@ -257,20 +269,78 @@ export class LivraisonsComponent {
     this.showModal = true;
     this.showCommandesDropdown = false;
     this.newTournee = {
-      date: '',
-      creneau: 'Matin (08h-12h)',
-      zone: 'Dakar',
-      transporteur: 'DHL',
-      chauffeur: '',
-      vehicule: '',
-      commandes: [],
-      note: ''
+      deliveryDate: '',
+      driverId: null,
+      vehiclePlate: '',
+      vehicleType: '',
+      orderIds: [],
+      notes: '',
+      lotSize: 5
     };
+    this.groupedLots = [];
     this.errors = {
-      date: '',
-      chauffeur: '',
-      vehicule: ''
+      deliveryDate: '',
+      driverId: '',
+      vehiclePlate: '',
+      vehicleType: '',
+      orderIds: ''
     };
+    this.loadAvailableDrivers();
+  }
+
+  loadAvailableDrivers() {
+    this.loadingDrivers = true;
+    this.logistics.getAvailableDrivers().subscribe({
+      next: (list) => {
+        this.availableDrivers = list || [];
+        this.loadingDrivers = false;
+      },
+      error: () => {
+        this.loadingDrivers = false;
+        this.availableDrivers = [];
+      }
+    });
+  }
+
+  /** Date au format dd-MM-yyyy pour l'API */
+  toApiDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
+
+  loadGroupedLots() {
+    const dateStr = this.newTournee.deliveryDate;
+    const lotSize = this.newTournee.lotSize;
+    if (!dateStr || lotSize < 1) {
+      this.groupedLots = [];
+      return;
+    }
+    this.loadingLots = true;
+    this.logistics.getGroupedEligibleOrders(this.toApiDate(dateStr), lotSize).subscribe({
+      next: (lots) => {
+        this.groupedLots = lots || [];
+        this.loadingLots = false;
+      },
+      error: () => {
+        this.groupedLots = [];
+        this.loadingLots = false;
+      }
+    });
+  }
+
+  /** Toutes les commandes éligibles (tous lots) pour la sélection */
+  get allEligibleOrders(): EligibleOrder[] {
+    return this.groupedLots.flatMap(lot => lot.orders || []);
+  }
+
+  /** Numéros des commandes d'un lot (pour affichage dans le template). */
+  getLotOrderNumbers(lot: EligibleOrderLot): string {
+    const orders = lot.orders || [];
+    return orders.map(or => or.orderNumber).join(', ');
   }
 
   closeModal() {
@@ -278,74 +348,116 @@ export class LivraisonsComponent {
     this.showCommandesDropdown = false;
   }
 
-  // Custom Dropdown Logic for Commandes
   toggleCommandesDropdown() {
     this.showCommandesDropdown = !this.showCommandesDropdown;
   }
 
-  toggleCommandeSelection(cmd: string) {
-    const index = this.newTournee.commandes.indexOf(cmd);
-    if (index > -1) {
-      this.newTournee.commandes.splice(index, 1);
+  toggleOrderSelection(order: EligibleOrder) {
+    const id = order.orderId;
+    const idx = this.newTournee.orderIds.indexOf(id);
+    if (idx > -1) {
+      this.newTournee.orderIds.splice(idx, 1);
     } else {
-      this.newTournee.commandes.push(cmd);
+      this.newTournee.orderIds.push(id);
     }
   }
 
+  isOrderSelected(order: EligibleOrder): boolean {
+    return this.newTournee.orderIds.includes(order.orderId);
+  }
+
+  /** Modal Modifier : bascule sélection d'une commande (mock, par libellé). */
+  toggleCommandeSelection(cmd: string) {
+    const idx = this.editTournee.commandes.indexOf(cmd);
+    if (idx > -1) {
+      this.editTournee.commandes.splice(idx, 1);
+    } else {
+      this.editTournee.commandes.push(cmd);
+    }
+  }
+
+  /** Modal Modifier : une commande est-elle sélectionnée (mock). */
   isCommandeSelected(cmd: string): boolean {
-    return this.newTournee.commandes.includes(cmd);
+    return this.editTournee.commandes.includes(cmd);
   }
 
   getSelectedCommandesLabel(): string {
-    if (this.newTournee.commandes.length === 0) {
-      return 'Sélectionner (multiple)';
+    if (this.newTournee.orderIds.length === 0) {
+      return 'Sélectionner les commandes (multiple)';
     }
-    return `${this.newTournee.commandes.length} commande(s) sélectionnée(s)`;
+    return `${this.newTournee.orderIds.length} commande(s) sélectionnée(s)`;
+  }
+
+  /** deliveryDate (input date) -> yyyy-MM-dd pour l'API */
+  toIsoDate(dateStr: string): string {
+    if (!dateStr) return '';
+    return dateStr; // input type="date" donne déjà yyyy-MM-dd
   }
 
   saveTournee() {
-    // Reset errors
     this.errors = {
-      date: '',
-      chauffeur: '',
-      vehicule: ''
+      deliveryDate: '',
+      driverId: '',
+      vehiclePlate: '',
+      vehicleType: '',
+      orderIds: ''
     };
-
     let isValid = true;
 
-    // Validation Date
-    if (!this.newTournee.date) {
-      this.errors.date = 'La date est obligatoire';
+    if (!this.newTournee.deliveryDate) {
+      this.errors.deliveryDate = 'La date est obligatoire';
       isValid = false;
     } else {
-      const selectedDate = new Date(this.newTournee.date);
+      const selectedDate = new Date(this.newTournee.deliveryDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (selectedDate < today) {
-        this.errors.date = 'La date ne peut pas être dans le passé';
+        this.errors.deliveryDate = 'La date ne peut pas être dans le passé';
         isValid = false;
       }
     }
-
-    // Validation Chauffeur
-    if (!this.newTournee.chauffeur) {
-      this.errors.chauffeur = 'Le chauffeur est obligatoire';
+    if (this.newTournee.driverId == null || this.newTournee.driverId === undefined) {
+      this.errors.driverId = 'Le chauffeur est obligatoire';
       isValid = false;
     }
-
-    // Validation Véhicule
-    if (!this.newTournee.vehicule) {
-      this.errors.vehicule = 'Le véhicule est obligatoire';
+    if (!this.newTournee.vehiclePlate?.trim()) {
+      this.errors.vehiclePlate = 'La plaque est obligatoire';
       isValid = false;
     }
-
-    if (!isValid) {
-      return;
+    if (!this.newTournee.vehicleType?.trim()) {
+      this.errors.vehicleType = 'Le type de véhicule est obligatoire';
+      isValid = false;
     }
+    if (!this.newTournee.orderIds?.length) {
+      this.errors.orderIds = 'Sélectionnez au moins une commande';
+      isValid = false;
+    }
+    if (!isValid) return;
 
-    console.log('Tournée planifiée:', this.newTournee);
-    // Add logic to save tournee if needed, for now just close
-    this.closeModal();
+    const payload = {
+      deliveryDate: this.toIsoDate(this.newTournee.deliveryDate),
+      driverId: this.newTournee.driverId!,
+      vehiclePlate: this.newTournee.vehiclePlate.trim(),
+      vehicleType: this.newTournee.vehicleType.trim(),
+      orderIds: this.newTournee.orderIds,
+      notes: this.newTournee.notes?.trim() || undefined
+    };
+
+    this.logistics.createDeliveryTour(payload).subscribe({
+      next: () => {
+        Swal.fire({ title: 'Succès', text: 'Tournée créée avec succès', icon: 'success', confirmButtonText: 'OK' });
+        this.closeModal();
+        // TODO: rafraîchir la liste des livraisons si elle vient de l'API
+      },
+      error: (err) => {
+        const msg = err?.error?.message || err?.message || 'Erreur lors de la création de la tournée';
+        const isNetworkError = err?.status === 0 || (typeof msg === 'string' && msg.toLowerCase().includes('fetch'));
+        const displayMsg = isNetworkError
+          ? 'Impossible de joindre le serveur. Vérifiez que le back-office est démarré (port 8082) et que la base de données est à jour (enum status, updated_by_id).'
+          : msg;
+        Swal.fire({ title: 'Erreur', text: displayMsg, icon: 'error', confirmButtonText: 'OK' });
+      }
+    });
   }
 
   // Action Menu Logic

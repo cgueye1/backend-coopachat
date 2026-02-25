@@ -43,6 +43,7 @@
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                     <input type="text" placeholder="Rechercher par référence ou produit..." [(ngModel)]="searchTerm"
+                        (ngModelChange)="onSearchChange()"
                         class="w-full pl-12 pr-4 py-2 sm:py-3 border border-[#CBD5E1] rounded-xl focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm bg-white placeholder-gray-400">
                 </div>
                 <div class="flex flex-col gap-2 sm:flex-row sm:gap-3 md:flex-row md:gap-3">
@@ -86,8 +87,9 @@
             <div class="overflow-x-auto">
                 <!-- Table Responsive -->
                 <div class="space-y-2 md:space-y-0 md:overflow-x-auto">
+                    <div *ngIf="loadingList" class="p-8 text-center text-gray-500 text-sm">Chargement des commandes...</div>
                     <!-- Mobile: Cards, Desktop: Table -->
-                    <ng-container *ngIf="paginatedCommandes.length > 0">
+                    <ng-container *ngIf="!loadingList && paginatedCommandes.length > 0">
                         <!-- Mobile layout -->
                         <div class="flex flex-col gap-2 md:hidden">
                             <div *ngFor="let commande of paginatedCommandes"
@@ -194,7 +196,7 @@
                             </tbody>
                         </table>
                     </ng-container>
-                    <div *ngIf="filteredCommandes.length === 0" class="py-8 text-center text-sm text-gray-500">Aucune
+                    <div *ngIf="!loadingList && paginatedCommandes.length === 0" class="py-8 text-center text-sm text-gray-500">Aucune
                         commande trouvée</div>
                 </div>
             </div>
@@ -202,14 +204,14 @@
             <!-- Pagination -->
             <div
                 class="bg-white rounded-xl shadow flex flex-col sm:flex-row justify-between items-center p-4 gap-4 border-t border-gray-100">
-                <p class="text-gray-500 text-sm mb-2 sm:mb-0">Page {{ currentPage }} sur {{ totalPages }}</p>
+                <p class="text-gray-500 text-sm mb-2 sm:mb-0">Page {{ currentPage }} sur {{ totalPagesCount }}</p>
                 <div class="flex gap-2 w-full sm:w-auto">
                     <button
                         class="w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#2d3561] hover:text-[#2d3561]"
                         [disabled]="currentPage === 1" (click)="previousPage()">Précédent</button>
                     <button
                         class="w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#2d3561] hover:text-[#2d3561]"
-                        [disabled]="currentPage === totalPages" (click)="nextPage()">Suivant</button>
+                        [disabled]="currentPage === totalPagesCount" (click)="nextPage()">Suivant</button>
                 </div>
             </div>
         </div>

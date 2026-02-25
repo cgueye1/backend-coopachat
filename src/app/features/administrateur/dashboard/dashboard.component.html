@@ -4,14 +4,14 @@
     <app-header [title]="'Tableau de bord'" [breadcrumb]="'Pages / Tableau de bord'" [type]="'filter'">
     </app-header>
 
-    <!-- Metrics -->
+    <!-- Metrics: Les 3 cartes KPI en haut de page -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
+      <!-- on parcourt la liste metricsData pour afficher les 3 cartes KPI -->
       <div *ngFor="let metric of metricsData" class="bg-white rounded-lg p-4 hover:shadow-sm transition-shadow">
         <div class="flex items-start justify-between">
           <div class="flex-1">
             <p class="text-xs text-[#6B7280] mb-1">{{ metric.title }}</p>
             <p class="text-xl font-medium text-[#2B3674] mb-2 sm:text-2xl lg:text-3xl">{{ metric.value }}</p>
-            <p class="text-xs" [ngClass]="getTrendClass(metric.trend)">{{ metric.delta }}</p>
           </div>
           <div class="flex items-center justify-center">
             <img [src]="metric.icon" alt="icone {{ metric.title }}" class="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8">
@@ -36,7 +36,7 @@
           <canvas #commandesChart></canvas>
         </div>
       </div>
-
+      <!-- Paiements par statut -->
       <div class="bg-white rounded-lg p-6 hover:shadow-sm">
         <div class="flex items-center justify-between mb-4">
           <div>

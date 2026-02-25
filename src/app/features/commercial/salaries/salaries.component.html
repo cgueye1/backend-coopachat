@@ -1,10 +1,10 @@
 <app-main-layout role="com">
-    <!-- Header Section -->
+    <!-- ===================== HEADER ===================== -->
     <app-header [title]="'Gestion des Salariés'" [breadcrumb]="'Pages / Gestion des Salariés'" [type]="'simple'"
         [buttonLabel]="'Inscrire un salarié'" (actionClick)="openModal()">
     </app-header>
 
-    <!-- Stats Cards -->
+    <!-- ===================== CARTES STATISTIQUES ===================== -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 2xl:gap-6 mb-4 sm:mb-5 2xl:mb-6">
         <div *ngFor="let metric of metricsData"
             class="bg-white rounded-lg p-4 sm:p-5 2xl:p-6 hover:shadow-sm transition-all duration-200">
@@ -20,9 +20,9 @@
         </div>
     </div>
 
-    <!-- Employees Table -->
+    <!-- ===================== TABLE DES SALARIES ===================== -->
     <div class="bg-white rounded-lg sm:rounded-2xl hover:shadow-sm">
-        <!-- Filters -->
+        <!-- Filtres (recherche + dropdowns) -->
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4">
             <div class="relative flex-1 max-w-full lg:max-w-md">
                 <!-- Search icon -->
@@ -33,12 +33,12 @@
                         fill="#777777" />
                 </svg>
                 <input type="text" placeholder="Rechercher un salarié..." [(ngModel)]="searchTerm"
-                    (input)="filterEmployees()"
+                    (input)="onSearch()"
                     class="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 border border-[#EEEEEE] rounded-lg focus:outline-none focus:border-[#2B3674] focus:ring-2 focus:ring-[#2B3674]/20 text-xs sm:text-sm bg-white placeholder-[#777777] transition-all">
             </div>
 
             <div class="flex flex-wrap gap-2 sm:gap-3">
-                <!-- Company Filter -->
+                <!-- Filtre entreprise -->
                 <div class="relative">
                     <button (click)="toggleCompanyDropdown()"
                         class="px-3 py-2 border border-[#EEEEEE] rounded-lg text-xs 2xl:text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 flex items-center gap-2 bg-white transition-all">
@@ -60,7 +60,7 @@
                     </div>
                 </div>
 
-                <!-- Status Filter -->
+                <!-- Filtre statut -->
                 <div class="relative">
                     <button (click)="toggleStatusDropdown()"
                         class="px-3 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
@@ -83,7 +83,7 @@
             </div>
         </div>
 
-        <!-- Table -->
+        <!-- Tableau -->
         <div class="overflow-x-auto -mx-3 sm:mx-0">
             <table class="w-full">
                 <thead class="bg-[#F4F7FE]">
@@ -191,11 +191,17 @@
         </div>
     </div>
 
-    <!-- Intégration du modal -->
-    <app-employee-modal [isOpen]="isModalOpen" [companies]="companies" (close)="closeModal()"
+    <!-- ===================== MODAL CREATION / MODIF ===================== -->
+    <app-employee-modal
+        [isOpen]="isModalOpen"
+        [isSubmitting]="isSubmitting"
+        [title]="editingEmployeeId ? 'Modifier un salarié' : 'Inscrire un salarié'"
+        [initialData]="editingEmployeeData"
+        [companies]="companies"
+        (close)="closeModal()"
         (submit)="handleSubmit($event)"></app-employee-modal>
 
-    <!-- Employee Detail Modal -->
+    <!-- ===================== MODAL DETAILS (VOIR) ===================== -->
     <div *ngIf="showEmployeeModal && selectedEmployee"
         class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/30 transition-opacity duration-300">
         <div
@@ -258,7 +264,7 @@
                         </div>
                         <p class="text-sm text-[#333333]">{{ selectedEmployee.telephone }}</p>
                     </div>
-                    <!-- Localisation à revoir -->
+                    <!-- Adresse -->
                     <div class="flex items-center gap-3">
                         <div class="flex-shrink-0">
                             <!-- Phone icon SVG -->
@@ -272,7 +278,7 @@
                                     fill="#64748B" />
                             </svg>
                         </div>
-                        <p class="text-sm text-[#333333]">Dakar, Médina</p>
+                        <p class="text-sm text-[#333333]">{{ selectedEmployee.adresse }}</p>
                     </div>
                     <!-- Entreprise -->
                     <div class="flex items-center gap-3">

@@ -3,7 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
-import { ProductService, Product } from '../../../shared/services/product.service';
+import { Product } from '../../../shared/services/product.service';
+import { environment } from '../../../../environments/environment';
+import { LogisticsService } from '../../../shared/services/logistics.service';
+import Swal from 'sweetalert2';
 
 interface MetricCard {
   title: string;
@@ -12,6 +15,7 @@ interface MetricCard {
 }
 
 interface Commande {
+  id: string;
   reference: string;
   fournisseur: string;
   date: string;
@@ -30,48 +34,37 @@ interface Commande {
   styles: []
 })
 export class FournisseurComponent {
-  constructor(private productService: ProductService) {
-    this.allProducts = this.productService.getProducts();
+  constructor(private logisticsService: LogisticsService) {
+    this.loadAllProducts();
+    this.loadSuppliers();
+    this.loadOrders();
+    this.loadOrderStats();
   }
 
-  metricsData: MetricCard[] = [
-    {
-      title: 'Total commandes',
-      value: '12',
-      icon: '/icones/utilisateurs.svg',
-    },
-    {
-      title: 'En attente',
-      value: '3',
-      icon: '/icones/GreenUser.svg',
-    },
-    {
-      title: 'Livrées',
-      value: '7',
-      icon: '/icones/GreenUser.svg',
-    },
-    {
-      title: 'Annulées',
-      value: '2',
-      icon: '/icones/OrangeUser.svg',
-    }
-  ];
+  metricsData: MetricCard[] = [];
 
   searchText = '';
   selectedFournisseur = 'Tous les fournisseurs';
+  selectedSupplierId: number | null = null;
   selectedStatut = 'Tous les statuts';
   showFournisseurDropdown = false;
   showStatutDropdown = false;
   showModal = false;
   showDetailModal = false;
+  isEditMode = false;
+  editingOrderId: string | null = null;
+  pendingSupplierName: string | null = null;
   selectedCommande: Commande | null = null;
   allProducts: Product[] = [];
+  suppliers: { id: number; name: string }[] = [];
+  selectedCommandeItems: { id: string; name: string; category: string; icon: string; quantity: number }[] = [];
   newCommande: any = {
-    fournisseur: '',
+    fournisseur: null,
     produit: '',
     quantite: '',
     eta: '',
-    note: ''
+    note: '',
+    statut: 'En attente'
   };
 
   errors: any = {
@@ -80,14 +73,12 @@ export class FournisseurComponent {
     eta: ''
   };
 
-  get uniqueFournisseurs(): string[] {
-    const fournisseurs = new Set(this.commandes.map(c => c.fournisseur));
-    return ['Tous les fournisseurs', ...Array.from(fournisseurs)];
+  get uniqueFournisseurs(): { id: number | null; name: string }[] {
+    return [{ id: null, name: 'Tous les fournisseurs' }, ...this.suppliers];
   }
 
   get uniqueStatuts(): string[] {
-    const statuts = new Set(this.commandes.map(c => c.statut));
-    return ['Tous les statuts', ...Array.from(statuts)];
+    return ['Tous les statuts', 'En attente', 'En cours', 'Livrée', 'Annulée'];
   }
 
   get minDate(): string {
@@ -95,20 +86,8 @@ export class FournisseurComponent {
   }
 
   get filteredCommandes(): Commande[] {
-    return this.commandes.filter(commande => {
-      const matchesSearch =
-        commande.reference.toLowerCase().includes(this.searchText.toLowerCase()) ||
-        commande.produits.toLowerCase().includes(this.searchText.toLowerCase()) ||
-        commande.fournisseur.toLowerCase().includes(this.searchText.toLowerCase());
-
-      const matchesFournisseur = this.selectedFournisseur === 'Tous les fournisseurs' ||
-        commande.fournisseur === this.selectedFournisseur;
-
-      const matchesStatut = this.selectedStatut === 'Tous les statuts' ||
-        commande.statut === this.selectedStatut;
-
-      return matchesSearch && matchesFournisseur && matchesStatut;
-    });
+    // La liste est déjà filtrée par l'API
+    return this.commandes;
   }
 
   toggleFournisseurDropdown() {
@@ -121,14 +100,19 @@ export class FournisseurComponent {
     this.showFournisseurDropdown = false;
   }
 
-  selectFournisseur(fournisseur: string) {
-    this.selectedFournisseur = fournisseur;
+  selectFournisseur(fournisseur: { id: number | null; name: string }) {
+    this.selectedFournisseur = fournisseur.name;
+    this.selectedSupplierId = fournisseur.id;
     this.showFournisseurDropdown = false;
+    this.currentPage = 1;
+    this.loadOrders();
   }
 
   selectStatut(statut: string) {
     this.selectedStatut = statut;
     this.showStatutDropdown = false;
+    this.currentPage = 1;
+    this.loadOrders();
   }
 
   getMetricSubtitleClass(subtitle: string): string {
@@ -140,63 +124,11 @@ export class FournisseurComponent {
     return 'text-gray-600';
   }
 
-  commandes: Commande[] = [
-    {
-      reference: 'CMD-0012',
-      fournisseur: 'Fourniture Express',
-      date: '03/10/2025',
-      produits: 'Riz (100), Huile (50)',
-      statut: 'En cours',
-      datePrevue: '03/10/2025',
-      note: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-      produitsDetails: [
-        { productId: '1', quantity: 25 },
-        { productId: '4', quantity: 30 }
-      ]
-    },
-    {
-      reference: 'CMD-0011',
-      fournisseur: 'Stock Pro',
-      date: '03/10/2025',
-      produits: 'Sucre (80), Sel (40)',
-      statut: 'Livrée',
-      datePrevue: '03/10/2025',
-      note: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-      produitsDetails: [
-        { productId: '2', quantity: 15 },
-        { productId: '3', quantity: 20 }
-      ]
-    },
-    {
-      reference: 'CMD-0010',
-      fournisseur: 'Stock Pro',
-      date: '03/10/2025',
-      produits: 'Sucre (80), Sel (40)',
-      statut: 'En attente',
-      datePrevue: '03/10/2025',
-      note: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-      produitsDetails: [
-        { productId: '1', quantity: 10 },
-        { productId: '2', quantity: 12 }
-      ]
-    },
-    {
-      reference: 'CMD-0009',
-      fournisseur: 'Stock Pro',
-      date: '03/10/2025',
-      produits: 'Sucre (80), Sel (40)',
-      statut: 'Annulée',
-      datePrevue: '03/10/2025',
-      note: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-      produitsDetails: [
-        { productId: '3', quantity: 8 },
-        { productId: '4', quantity: 15 }
-      ]
-    }
-  ];
+  commandes: Commande[] = [];
 
   currentPage = 1;
-  totalPages = 12;
+  totalPages = 1;
+  itemsPerPage = 6;
 
   getStatusClass(status: string): string {
     switch (status) {
@@ -218,12 +150,23 @@ export class FournisseurComponent {
     }
   }
 
-  viewCommande(reference: string): void {
-    const commande = this.commandes.find(c => c.reference === reference);
-    if (commande) {
-      this.selectedCommande = commande;
-      this.showDetailModal = true;
-    }
+  viewCommande(orderId: string): void {
+    this.logisticsService.getSupplierOrderDetails(orderId).subscribe({
+      next: (details) => {
+        this.selectedCommande = this.mapOrderDetailsToCommande(details);
+        this.selectedCommandeItems = (details?.items ?? []).map((item: any) => ({
+          id: item?.productId?.toString() ?? '',
+          name: item?.productName ?? '',
+          category: item?.productCategory ?? '',
+          icon: this.buildImageUrl(item?.productImage),
+          quantity: item?.quantite ?? 0
+        }));
+        this.showDetailModal = true;
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des détails:', error);
+      }
+    });
   }
 
   closeDetailModal(): void {
@@ -231,17 +174,8 @@ export class FournisseurComponent {
     this.selectedCommande = null;
   }
 
-  getCommandeProducts(): Product[] {
-    if (!this.selectedCommande?.produitsDetails) return [];
-    return this.allProducts.filter(p =>
-      this.selectedCommande!.produitsDetails!.some(pd => pd.productId === p.id)
-    );
-  }
-
-  getProductQuantity(productId: string): number {
-    if (!this.selectedCommande?.produitsDetails) return 0;
-    const detail = this.selectedCommande.produitsDetails.find(pd => pd.productId === productId);
-    return detail?.quantity || 0;
+  getCommandeProducts(): { id: string; name: string; category: string; icon: string; quantity: number }[] {
+    return this.selectedCommandeItems;
   }
 
   modifierCommande(): void {
@@ -254,11 +188,34 @@ export class FournisseurComponent {
     this.closeDetailModal();
   }
 
-  editCommande(reference: string): void {
-    console.log('Modifier commande:', reference);
+  editCommande(orderId: string): void {
+    this.isEditMode = true;
+    this.editingOrderId = orderId;
+    this.logisticsService.getSupplierOrderDetails(orderId).subscribe({
+      next: (details) => {
+        this.pendingSupplierName = details?.supplierName ?? null;
+        this.setSupplierFromName();
+        const firstItem = (details?.items ?? [])[0];
+        const statusLabel = this.normalizeOrderStatus(details?.status);
+        this.newCommande = {
+          fournisseur: this.newCommande.fournisseur,
+          produit: firstItem?.productId?.toString() ?? '',
+          quantite: firstItem?.quantite ?? '',
+          eta: this.formatDateForInput(details?.expectedDate),
+          note: details?.notes ?? '',
+          statut: statusLabel
+        };
+        this.showModal = true;
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement pour modification:', error);
+      }
+    });
   }
 
   nouvelleCommande(): void {
+    this.isEditMode = false;
+    this.editingOrderId = null;
     this.showModal = true;
   }
 
@@ -277,7 +234,7 @@ export class FournisseurComponent {
     let isValid = true;
 
     // Validation Fournisseur
-    if (!this.newCommande.fournisseur || this.newCommande.fournisseur.trim() === '') {
+    if (!this.newCommande.fournisseur) {
       this.errors.fournisseur = 'Le fournisseur est obligatoire';
       isValid = false;
     }
@@ -307,36 +264,308 @@ export class FournisseurComponent {
       return;
     }
 
-    const newCmd: Commande = {
-      reference: `CMD-${Math.floor(Math.random() * 10000)}`, // Génération d'une référence aléatoire
-      fournisseur: this.newCommande.fournisseur,
-      date: new Date().toLocaleDateString('fr-FR'),
-      produits: `${this.newCommande.produit} (${this.newCommande.quantite})`,
-      statut: 'En attente'
-    };
+    const expectedDate = this.formatDateForApi(this.newCommande.eta);
+    const items = [
+      {
+        productId: Number(this.newCommande.produit),
+        quantite: Number(this.newCommande.quantite)
+      }
+    ];
 
-    this.commandes.unshift(newCmd);
-    this.closeModal();
+    if (this.isEditMode && this.editingOrderId) {
+      const orderId = this.editingOrderId;
+      const desiredStatus = this.newCommande.statut;
+      const apiStatus = this.mapStatusToApi(desiredStatus);
+      const updatePayload = {
+        expectedDate: expectedDate || undefined,
+        notes: this.newCommande.note || undefined,
+        items
+      };
+      this.logisticsService.updateSupplierOrder(orderId, updatePayload).subscribe({
+        next: () => {
+          if (apiStatus) {
+            this.logisticsService.updateSupplierOrderStatus(orderId, apiStatus).subscribe({
+              next: () => {
+                this.closeModal();
+                this.loadOrders();
+                this.loadOrderStats();
+                this.showSuccessPopup('Commande modifiée avec succès');
+              },
+              error: (error) => {
+                console.error('Erreur lors de la mise à jour du statut:', error);
+              }
+            });
+          } else {
+            this.closeModal();
+            this.loadOrders();
+            this.loadOrderStats();
+            this.showSuccessPopup('Commande modifiée avec succès');
+          }
+        },
+        error: (error) => {
+          console.error('Erreur lors de la modification:', error);
+        }
+      });
+    } else {
+      const createPayload = {
+        supplierId: Number(this.newCommande.fournisseur),
+        items,
+        expectedDate: expectedDate || undefined,
+        notes: this.newCommande.note || undefined
+      };
+      this.logisticsService.createSupplierOrder(createPayload).subscribe({
+        next: () => {
+          this.closeModal();
+          this.loadOrders();
+          this.loadOrderStats();
+          this.showSuccessPopup('Commande ajoutée avec succès');
+        },
+        error: (error) => {
+          console.error('Erreur lors de la création de la commande:', error);
+        }
+      });
+    }
 
     // Reset form
     this.newCommande = {
-      fournisseur: '',
+      fournisseur: null,
       produit: '',
       quantite: '',
       eta: '',
-      note: ''
+      note: '',
+      statut: 'En attente'
     };
   }
 
   previousPage(): void {
     if (this.currentPage > 1) {
       this.currentPage--;
+      this.loadOrders();
     }
   }
 
   nextPage(): void {
     if (this.currentPage < this.totalPages) {
       this.currentPage++;
+      this.loadOrders();
     }
+  }
+
+  onSearch(): void {
+    this.currentPage = 1;
+    this.loadOrders();
+  }
+
+  exportData(): void {
+    const statusFilter = this.getStatusFilter();
+    this.logisticsService
+      .exportSupplierOrders(this.searchText, this.selectedSupplierId ?? undefined, statusFilter)
+      .subscribe({
+        next: (blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `commandes_fournisseurs_${new Date().toISOString().slice(0, 10)}.xlsx`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        },
+        error: (error) => {
+          console.error('Erreur export:', error);
+        }
+      });
+  }
+
+  private loadOrders(): void {
+    const statusFilter = this.getStatusFilter();
+    this.logisticsService
+      .getSupplierOrders(
+        this.currentPage - 1,
+        this.itemsPerPage,
+        this.searchText,
+        this.selectedSupplierId ?? undefined,
+        statusFilter
+      )
+      .subscribe({
+        next: (response) => {
+          const orders = response?.content ?? [];
+          this.commandes = orders.map((order: any) => this.mapOrderListItemToCommande(order));
+          this.totalPages = Math.max(1, response?.totalPages ?? 1);
+        },
+        error: (error) => {
+          console.error('Erreur lors du chargement des commandes:', error);
+        }
+      });
+  }
+
+  private loadOrderStats(): void {
+    this.logisticsService.getSupplierOrderStats().subscribe({
+      next: (stats) => {
+        this.metricsData = [
+          { title: 'Total commandes', value: String(stats.total), icon: '/icones/commandes.svg' },
+          { title: 'En attente', value: String(stats.pending), icon: '/icones/attente.svg' },
+          { title: 'Livrées', value: String(stats.delivered), icon: '/icones/green-box.svg' },
+          { title: 'Annulées', value: String(stats.cancelled), icon: '/icones/red-box.svg' }
+        ];
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des stats:', error);
+      }
+    });
+  }
+
+  private loadSuppliers(): void {
+    this.logisticsService.getSuppliers().subscribe({
+      next: (suppliers) => {
+        this.suppliers = Array.isArray(suppliers) ? suppliers : [];
+        this.setSupplierFromName();
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des fournisseurs:', error);
+      }
+    });
+  }
+
+  private mapOrderListItemToCommande(order: any): Commande {
+    return {
+      id: order?.id?.toString() ?? '',
+      reference: order?.orderNumber ?? '',
+      fournisseur: order?.supplierName ?? '',
+      date: this.formatDate(order?.expectedDate),
+      produits: order?.productsSummary ?? '',
+      statut: this.normalizeOrderStatus(order?.status),
+      datePrevue: this.formatDate(order?.expectedDate)
+    };
+  }
+
+  private mapOrderDetailsToCommande(details: any): Commande {
+    return {
+      id: details?.id?.toString() ?? '',
+      reference: details?.orderNumber ?? '',
+      fournisseur: details?.supplierName ?? '',
+      date: this.formatDate(details?.expectedDate),
+      produits: '',
+      statut: this.normalizeOrderStatus(details?.status),
+      datePrevue: this.formatDate(details?.expectedDate),
+      note: details?.notes ?? ''
+    };
+  }
+
+  private setSupplierFromName(): void {
+    if (!this.pendingSupplierName || this.suppliers.length === 0) return;
+    const match = this.suppliers.find(s => s.name === this.pendingSupplierName);
+    if (match) {
+      this.newCommande.fournisseur = match.id;
+      this.pendingSupplierName = null;
+    }
+  }
+
+  private normalizeOrderStatus(status: string | undefined): Commande['statut'] {
+    if (!status) return 'En attente';
+    if (status.toLowerCase().includes('cours')) return 'En cours';
+    if (status.toLowerCase().includes('livr')) return 'Livrée';
+    if (status.toLowerCase().includes('annul')) return 'Annulée';
+    return 'En attente';
+  }
+
+  private getStatusFilter(): string | undefined {
+    if (this.selectedStatut === 'En attente') return 'EN_ATTENTE';
+    if (this.selectedStatut === 'En cours') return 'EN_COURS';
+    if (this.selectedStatut === 'Livrée') return 'LIVREE';
+    if (this.selectedStatut === 'Annulée') return 'ANNULEE';
+    return undefined;
+  }
+
+  private mapStatusToApi(status: string): string | undefined {
+    if (status === 'En attente') return 'En attente';
+    if (status === 'En cours') return 'En cours de livraison';
+    if (status === 'Livrée') return 'Livrée';
+    if (status === 'Annulée') return 'Annulée';
+    return undefined;
+  }
+
+  private showSuccessPopup(message: string): void {
+    Swal.fire({
+      iconHtml: '<img src="/icones/message success.svg" style="width: 95px; height: 95px; margin: 0 auto;" />',
+      title: message,
+      showConfirmButton: false,
+      timer: 1500,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-xl font-medium text-gray-900',
+        icon: 'border-none'
+      },
+      backdrop: `rgba(0,0,0,0.2)`,
+      width: '580px'
+    });
+  }
+
+
+  private formatDateForApi(dateValue: string | undefined): string | undefined {
+    if (!dateValue) return undefined;
+    const [year, month, day] = dateValue.split('-');
+    if (!day || !month || !year) return undefined;
+    return `${day}-${month}-${year} 00:00:00`;
+  }
+
+  private formatDateForInput(dateValue: string | undefined): string {
+    if (!dateValue) return '';
+    const datePart = dateValue.split(' ')[0];
+    const [day, month, year] = datePart.split('-');
+    if (!day || !month || !year) return '';
+    return `${year}-${month}-${day}`;
+  }
+
+  private loadAllProducts(): void {
+    // Utilise l'API logistique pour récupérer les produits disponibles
+    this.logisticsService.getStockList(0, 1000).subscribe({
+      next: (response) => {
+        const products = response?.content ?? [];
+        this.allProducts = products.map((item: any) => this.mapApiProductToFrontend(item));
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des produits:', error);
+      }
+    });
+  }
+
+  private mapApiProductToFrontend(item: any): Product {
+    return {
+      id: item.id?.toString() ?? '',
+      name: item.name ?? '',
+      reference: item.productCode ?? '',
+      category: item.categoryName ?? '',
+      price: this.formatPrice(item.price),
+      stock: item.currentStock ?? 0,
+      updatedAt: this.formatDate(item.updatedAt),
+      status: this.normalizeStatus(item.status),
+      icon: this.buildImageUrl(item.image),
+      description: item.description
+    };
+  }
+
+  private normalizeStatus(status: string | boolean | undefined): 'Actif' | 'Inactif' {
+    if (status === true || status === 'ACTIF' || status === 'ACTIVE' || status === 'Actif') return 'Actif';
+    if (status === false || status === 'INACTIF' || status === 'INACTIVE' || status === 'Inactif') return 'Inactif';
+    return 'Inactif';
+  }
+
+  private formatPrice(price: any): string {
+    if (price === null || price === undefined || price === '') return '';
+    const value = typeof price === 'number' ? price : Number(price);
+    if (Number.isNaN(value)) return `${price}`;
+    return `${value.toLocaleString('fr-FR')} F`;
+  }
+
+  private formatDate(updatedAt: string | undefined): string {
+    if (!updatedAt) return '';
+    const datePart = updatedAt.split(' ')[0];
+    return datePart ? datePart.replace(/-/g, '/') : updatedAt;
+  }
+
+  private buildImageUrl(image: string | undefined): string {
+    if (!image) return '/icones/default-product.svg';
+    if (image.startsWith('http') || image.startsWith('/')) return image;
+    return `${environment.apiUrl}/files/${image}`;
   }
 }

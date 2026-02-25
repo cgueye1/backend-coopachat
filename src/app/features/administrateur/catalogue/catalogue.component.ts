@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { environment } from '../../../../environments/environment';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
 import { NgChartsModule } from 'ng2-charts';
@@ -38,13 +39,17 @@ interface Product {
 export class CatalogueComponent implements OnInit {
   searchText = '';
   selectedCategory = 'Toutes les catégories';
+  selectedCategoryId: number | null = null;
   selectedStatus = 'Tous les status';
   showCategoryDropdown = false;
   showStatusDropdown = false;
   currentPage = 1;
-  totalPages = 6;
+  itemsPerPage = 6;
+  totalPages = 1;
+  totalElements = 0;
   showProductModal = false;
   selectedProduct: Product | null = null;
+  categories: { id: number; name: string }[] = [];
 
   constructor(private router: Router, private productService: ProductService) { }
 
@@ -189,20 +194,19 @@ export class CatalogueComponent implements OnInit {
   };
 
   ngOnInit() {
-    this.productService.products$.subscribe(products => {
-      this.products = products;
-      this.updateMetrics();
-    });
+    this.loadCategories();
+    this.loadProducts();
+    this.loadProductStats();
   }
 
   metricsData: MetricCard[] = [];
 
   products: Product[] = [];
 
-  updateMetrics() {
-    const total = this.products.length;
-    const disponibles = this.products.filter(p => p.stock > 0 && p.status === 'Actif').length;
-    const modifies = this.products.filter(p => p.updatedAt === '05/10/2025').length;
+  updateMetrics(stats?: { totalProducts: number; activeProducts: number; inactiveProducts: number }) {
+    const total = stats?.totalProducts ?? this.products.length;
+    const actifs = stats?.activeProducts ?? this.products.filter(p => p.status === 'Actif').length;
+    const inactifs = stats?.inactiveProducts ?? this.products.filter(p => p.status === 'Inactif').length;
 
     this.metricsData = [
       {
@@ -211,21 +215,20 @@ export class CatalogueComponent implements OnInit {
         icon: '/icones/commandefour.svg'
       },
       {
-        title: 'Disponibilité',
-        value: String(disponibles).padStart(2, '0'),
+        title: 'Actifs',
+        value: String(actifs).padStart(2, '0'),
         icon: '/icones/livraisonavenir.svg'
       },
       {
-        title: 'Modifiés récemment',
-        value: String(modifies).padStart(2, '0'),
+        title: 'Inactifs',
+        value: String(inactifs).padStart(2, '0'),
         icon: '/icones/temps.svg'
       }
     ];
   }
 
-  get uniqueCategories(): string[] {
-    const categories = new Set(this.products.map(p => p.category));
-    return ['Toutes les catégories', ...Array.from(categories)];
+  get uniqueCategories(): { id: number | null; name: string }[] {
+    return [{ id: null, name: 'Toutes les catégories' }, ...this.categories];
   }
 
   get uniqueStatuses(): string[] {
@@ -233,16 +236,11 @@ export class CatalogueComponent implements OnInit {
   }
 
   get filteredProducts(): Product[] {
-    return this.products.filter(product => {
-      const matchesSearch =
-        product.name.toLowerCase().includes(this.searchText.toLowerCase()) ||
-        product.reference.toLowerCase().includes(this.searchText.toLowerCase());
-
-      const matchesCategory = this.selectedCategory === 'Toutes les catégories' || product.category === this.selectedCategory;
-      const matchesStatus = this.selectedStatus === 'Tous les status' || product.status === this.selectedStatus;
-
-      return matchesSearch && matchesCategory && matchesStatus;
-    });
+    // Filtre local par catégorie (le backend ne fournit pas d'endpoint catégories)
+    if (this.selectedCategory === 'Toutes les catégories') {
+      return this.products;
+    }
+    return this.products.filter(product => product.category === this.selectedCategory);
   }
 
   toggleCategoryDropdown() {
@@ -255,14 +253,19 @@ export class CatalogueComponent implements OnInit {
     this.showCategoryDropdown = false;
   }
 
-  selectCategory(category: string) {
-    this.selectedCategory = category;
+  selectCategory(category: { id: number | null; name: string }) {
+    this.selectedCategory = category.name;
+    this.selectedCategoryId = category.id;
     this.showCategoryDropdown = false;
+    this.currentPage = 1;
+    this.loadProducts();
   }
 
   selectStatus(status: string) {
     this.selectedStatus = status;
     this.showStatusDropdown = false;
+    this.currentPage = 1;
+    this.loadProducts();
   }
 
   getStatusClass(status: string): string {
@@ -280,8 +283,16 @@ export class CatalogueComponent implements OnInit {
   }
 
   viewProduct(product: Product) {
-    this.selectedProduct = product;
-    this.showProductModal = true;
+    this.productService.getProductDetails(product.id).subscribe({
+      next: (details) => {
+        this.selectedProduct = this.mapProductDetailsToProduct(product, details);
+        this.showProductModal = true;
+      },
+      error: () => {
+        this.selectedProduct = product;
+        this.showProductModal = true;
+      }
+    });
   }
 
   closeProductModal() {
@@ -296,7 +307,10 @@ export class CatalogueComponent implements OnInit {
   }
 
   editProduct(product: Product) {
-    console.log('Modifier produit:', product);
+    this.router.navigate(['/admin/add-produit'], {
+      queryParams: { id: product.id },
+      state: { product }
+    });
   }
 
   toggleProductStatus(product: Product) {
@@ -332,9 +346,17 @@ export class CatalogueComponent implements OnInit {
       }
     }).then((result) => {
       if (result.isConfirmed) {
-        product.status = product.status === 'Actif' ? 'Inactif' : 'Actif';
-        this.updateMetrics();
-        this.showToggleSuccessMessage(product.status);
+        const nextStatus = product.status === 'Actif' ? false : true;
+        this.productService.updateProductStatus(product.id, nextStatus).subscribe({
+          next: () => {
+            product.status = nextStatus ? 'Actif' : 'Inactif';
+            this.loadProductStats();
+            this.showToggleSuccessMessage(product.status);
+          },
+          error: (error) => {
+            console.error('Erreur lors de la mise à jour du statut:', error);
+          }
+        });
       }
     });
   }
@@ -363,18 +385,139 @@ export class CatalogueComponent implements OnInit {
   }
 
   exportData() {
-    console.log('Exporter données');
+    const statusFilter = this.getStatusFilter();
+    this.productService
+      .exportProducts(this.searchText, undefined, statusFilter)
+      .subscribe({
+        next: (blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `produits_${new Date().toISOString().slice(0, 10)}.xlsx`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        },
+        error: (error) => {
+          console.error('Erreur export:', error);
+        }
+      });
   }
 
   previousPage() {
     if (this.currentPage > 1) {
       this.currentPage--;
+      this.loadProducts();
     }
   }
 
   nextPage() {
     if (this.currentPage < this.totalPages) {
       this.currentPage++;
+      this.loadProducts();
     }
+  }
+
+  onSearch() {
+    this.currentPage = 1;
+    this.loadProducts();
+  }
+
+  private loadProducts() {
+    const statusFilter = this.getStatusFilter();
+
+    this.productService
+      .getProducts(this.currentPage - 1, this.itemsPerPage, this.searchText, this.selectedCategoryId ?? undefined, statusFilter)
+      .subscribe({
+        next: (response) => {
+          const products = response?.content ?? [];
+          this.products = products.map((item: any) => this.mapApiProductToFrontend(item));
+          this.totalElements = response?.totalElements ?? this.products.length;
+          this.totalPages = Math.max(1, response?.totalPages ?? 1);
+        },
+        error: (error) => {
+          console.error('Erreur lors du chargement des produits:', error);
+        }
+      });
+  }
+
+  private loadProductStats() {
+    this.productService.getProductStats().subscribe({
+      next: (stats) => {
+        this.updateMetrics(stats);
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des statistiques:', error);
+      }
+    });
+  }
+
+  private loadCategories() {
+    this.productService.getCategories().subscribe({
+      next: (categories) => {
+        this.categories = Array.isArray(categories) ? categories : [];
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des catégories:', error);
+      }
+    });
+  }
+
+  private getStatusFilter(): boolean | undefined {
+    if (this.selectedStatus === 'Actif') return true;
+    if (this.selectedStatus === 'Inactif') return false;
+    return undefined;
+  }
+
+  private mapApiProductToFrontend(item: any): Product {
+    return {
+      id: item.id?.toString() ?? '',
+      name: item.name ?? '',
+      reference: item.productCode ?? '',
+      category: item.categoryName ?? '',
+      price: this.formatPrice(item.price),
+      stock: item.currentStock ?? 0,
+      updatedAt: this.formatDate(item.updatedAt),
+      status: this.normalizeStatus(item.status),
+      icon: this.buildImageUrl(item.image),
+      description: item.description
+    };
+  }
+
+  private mapProductDetailsToProduct(base: Product, details: any): Product {
+    return {
+      ...base,
+      name: details?.name ?? base.name,
+      reference: details?.productCode ?? base.reference,
+      category: details?.categoryName ?? base.category,
+      price: this.formatPrice(details?.price) || base.price,
+      status: details?.status === true ? 'Actif' : details?.status === false ? 'Inactif' : base.status,
+      icon: this.buildImageUrl(details?.image) || base.icon,
+      description: details?.description ?? base.description
+    };
+  }
+
+  private normalizeStatus(status: string | boolean | undefined): 'Actif' | 'Inactif' {
+    if (status === true || status === 'ACTIF' || status === 'ACTIVE' || status === 'Actif') return 'Actif';
+    if (status === false || status === 'INACTIF' || status === 'INACTIVE' || status === 'Inactif') return 'Inactif';
+    return 'Inactif';
+  }
+
+  private formatPrice(price: any): string {
+    if (price === null || price === undefined || price === '') return '';
+    const value = typeof price === 'number' ? price : Number(price);
+    if (Number.isNaN(value)) return `${price}`;
+    return `${value.toLocaleString('fr-FR')} F`;
+  }
+
+  private formatDate(updatedAt: string | undefined): string {
+    if (!updatedAt) return '';
+    const datePart = updatedAt.split(' ')[0]; // dd-MM-yyyy
+    return datePart ? datePart.replace(/-/g, '/') : updatedAt;
+  }
+
+  private buildImageUrl(image: string | undefined): string {
+    if (!image) return '/icones/default-product.svg';
+    if (image.startsWith('http') || image.startsWith('/')) return image;
+    return `${environment.apiUrl}/files/${image}`;
   }
 }

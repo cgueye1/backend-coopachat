@@ -59,7 +59,7 @@
                     (click)="activeTab = 'alertes'">
                     Alertes de réapprovisionnement
                     <span class="text-xs px-2 py-0.5 rounded-full font-bold"
-                        [ngClass]="activeTab === 'alertes' ? 'bg-white text-[#FF6B00]' : 'bg-gradient-to-r from-[#FF6B00]/20 to-[#FF914D]/20 text-orange-600'">2</span>
+                        [ngClass]="activeTab === 'alertes' ? 'bg-white text-[#FF6B00]' : 'bg-gradient-to-r from-[#FF6B00]/20 to-[#FF914D]/20 text-orange-600'">{{ alertItems.length }}</span>
                 </button>
             </div>
 
@@ -73,6 +73,7 @@
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                     <input type="text" placeholder="Rechercher par référence ou produit..." [(ngModel)]="searchText"
+                        (input)="onSearch()"
                         class="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm bg-white">
                 </div>
                 <div class="flex flex-col gap-2 sm:flex-row sm:gap-3">
@@ -144,7 +145,7 @@
                             </button>
                         </div>
                     </div>
-                    <button
+                    <button (click)="exportData()"
                         class="px-3 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white">
                         <svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd"
@@ -449,17 +450,28 @@
                     <div class="space-y-2 px-1 sm:px-2">
                         <label class="text-base font-medium text-gray-700">Fournisseur <span
                                 class="text-red-500">*</span></label>
-                        <input type="text" [(ngModel)]="newOrder.fournisseur" placeholder="Saisir"
-                            [class.border-red-500]="errors.fournisseur"
-                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base placeholder:text-[#6B7280] font-light">
+                        <select [(ngModel)]="newOrder.fournisseur" [class.border-red-500]="errors.fournisseur"
+                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base text-[#4B4848] font-semibold">
+                            <option value="">Sélectionner un fournisseur</option>
+                            <option *ngFor="let supplier of suppliers" [value]="supplier.id">
+                                {{ supplier.name }}
+                            </option>
+                        </select>
                         <p *ngIf="errors.fournisseur" class="text-red-500 text-xs mt-1">{{ errors.fournisseur }}</p>
                     </div>
 
                     <!-- Produit -->
                     <div class="space-y-2 px-1 sm:px-2">
-                        <label class="text-base font-medium text-gray-700">Produit</label>
-                        <input type="text" [(ngModel)]="newOrder.produit" readonly
-                            class="w-full p-3 rounded-lg border border-[#CBD5E1] outline-none transition-all text-base text-[#4B4848] font-semibold cursor-not-allowed">
+                        <label class="text-base font-medium text-gray-700">Produit <span
+                                class="text-red-500">*</span></label>
+                        <select [(ngModel)]="newOrder.produit" [class.border-red-500]="errors.produit"
+                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base text-[#4B4848] font-semibold">
+                            <option value="">Sélectionner un produit</option>
+                            <option *ngFor="let product of allProducts" [value]="product.id">
+                                {{ product.name }}
+                            </option>
+                        </select>
+                        <p *ngIf="errors.produit" class="text-red-500 text-xs mt-1">{{ errors.produit }}</p>
                     </div>
 
                     <!-- Quantité -->

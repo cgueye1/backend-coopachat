@@ -2,6 +2,7 @@ import { Component, Input, OnChanges, SimpleChanges, OnInit, Output, EventEmitte
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd, RouterModule } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { AuthService } from '../../../shared/services/auth.service';
 
 type Role = 'log' | 'com' | 'admin' | 'commercial';
 
@@ -19,7 +20,14 @@ export class SidebarComponent implements OnChanges, OnInit {
 
   userMenuOpen = false;
 
-  constructor(private router: Router) { }
+  // Informations utilisateur affichées dans le profil
+  displayName = 'Utilisateur';
+  displayRoleLabel = 'Commercial';
+
+  constructor(
+    private router: Router,
+    private authService: AuthService
+  ) { }
 
   private readonly menuItems = [
     { label: 'Tableau de bord', icon: 'dashboard', link: '/com/dashboard', active: false },
@@ -55,6 +63,9 @@ export class SidebarComponent implements OnChanges, OnInit {
       .subscribe(() => {
         this.updateActiveState();
       });
+
+    // Charger les infos utilisateur stockées
+    this.loadUserFromStorage();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -117,9 +128,63 @@ export class SidebarComponent implements OnChanges, OnInit {
   }
 
   logout() {
-    console.log('Déconnexion de l\'utilisateur');
-    // Implémentez ici la logique de déconnexion
-    // Par exemple : this.authService.logout(); this.router.navigate(['/login']);
+    const token =
+      sessionStorage.getItem('token') ||
+      localStorage.getItem('token') ||
+      '';
+
+    if (token) {
+      this.authService.logout(token).subscribe({
+        next: () => this.finishLogout(),
+        error: () => this.finishLogout()
+      });
+    } else {
+      this.finishLogout();
+    }
+  }
+
+  // Charger le nom/prénom et le rôle depuis le storage
+  private loadUserFromStorage(): void {
+    const firstName =
+      sessionStorage.getItem('firstName') ||
+      localStorage.getItem('firstName') ||
+      '';
+    const lastName =
+      sessionStorage.getItem('lastName') ||
+      localStorage.getItem('lastName') ||
+      '';
+    const email =
+      sessionStorage.getItem('email') ||
+      localStorage.getItem('email') ||
+      '';
+    const role =
+      sessionStorage.getItem('role') ||
+      localStorage.getItem('role') ||
+      '';
+
+    const fullName = `${firstName} ${lastName}`.trim();
+    const emailName = email ? email.split('@')[0] : '';
+    this.displayName = fullName || emailName || 'Utilisateur';
+    this.displayRoleLabel = role || 'Commercial';
+  }
+
+  // Nettoyer la session et rediriger
+  private finishLogout(): void {
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('role');
+    sessionStorage.removeItem('firstName');
+    sessionStorage.removeItem('lastName');
+    sessionStorage.removeItem('email');
+    sessionStorage.removeItem('otpEmail');
+    sessionStorage.removeItem('verificationEmail');
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('firstName');
+    localStorage.removeItem('lastName');
+    localStorage.removeItem('email');
+
     this.closeMenus();
+    this.router.navigate(['/login']);
   }
 }
