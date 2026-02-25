@@ -21,6 +21,8 @@ import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
 import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
+import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
+import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.services.admin.AdminService;
 import com.example.coopachat.util.FileTransferUtil;
@@ -508,4 +510,23 @@ public class AdminController {
         return ResponseEntity.ok(stats);
     }
 
+    @Operation(
+            summary = "Commandes vs Livraisons (7 derniers jours)",
+            description = "Retourne pour chacun des 7 derniers jours : date (dd/MM), nombre de commandes en attente (EN_ATTENTE), " +
+                    "nombre de livraisons (LIVREE). Utilisé par le graphique du tableau de bord admin. "
+    )
+    @GetMapping("/dashboard/commandes-vs-livraisons")
+    public ResponseEntity<List<CommandesVsLivraisonsDayDTO>> getCommandesVsLivraisons() {
+        List<CommandesVsLivraisonsDayDTO> list = adminService.getCommandesVsLivraisons();
+        return ResponseEntity.ok(list);
+    }
+
+    @Operation(
+            summary = "Stocks - État global",
+            description = "Retourne les effectifs Normal, Sous seuil, Critique (rupture) pour le donut du dashboard admin."
+    )
+    @GetMapping("/dashboard/stocks-etat-global")
+    public ResponseEntity<StockEtatGlobalDTO> getStockEtatGlobal() {
+        return ResponseEntity.ok(adminService.getStockEtatGlobal());
+    }
 }

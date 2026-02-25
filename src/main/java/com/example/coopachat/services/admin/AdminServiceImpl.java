@@ -23,7 +23,9 @@ import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
 import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
+import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
 import com.example.coopachat.dtos.dashboard.admin.PaymentStatusItemDTO;
+import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.entities.*;
 import com.example.coopachat.enums.ClaimStatus;
 import com.example.coopachat.enums.OrderStatus;
@@ -947,6 +949,59 @@ public class AdminServiceImpl implements AdminService {
                 reclamationsOuvertes,
                 paiementsParStatut
         );
+    }
+
+    @Override
+    public List<CommandesVsLivraisonsDayDTO> getCommandesVsLivraisons() {
+
+        // Définit le format d'affichage de la date (ex : 25/02)
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
+
+        // Récupère la date du jour
+        LocalDate today = LocalDate.now();
+
+        // Liste qui va contenir les résultats des 7 derniers jours
+        List<CommandesVsLivraisonsDayDTO> result = new ArrayList<>();
+
+        // Boucle sur les 7 derniers jours (de J-6 jusqu'à aujourd’hui)
+        for (int i = 6; i >= 0; i--) {
+
+            // Calcule la date du jour en cours dans la boucle
+            LocalDate day = today.minusDays(i);
+
+            // Définit le début de la journée (00:00:00)
+            LocalDateTime dayStart = day.atStartOfDay();
+
+            // Définit la fin de la journée (23:59:59.999999999)
+            LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);
+
+            // Compte les commandes créées ce jour-là avec le statut EN_ATTENTE
+            long commandesEnAttente = orderRepository.countByStatusAndCreatedAtBetween(
+                    OrderStatus.EN_ATTENTE, dayStart, dayEnd);
+
+            // Compte les commandes livrées ce jour-là (date de livraison effective)
+            long livraisons = orderRepository.countByStatusAndDeliveryCompletedAtBetween(
+                    OrderStatus.LIVREE, dayStart, dayEnd);
+
+            // Ajoute les données du jour dans la liste (date + commandes + livraisons)
+            result.add(new CommandesVsLivraisonsDayDTO(
+                    day.format(formatter),
+                    commandesEnAttente,
+                    livraisons
+            ));
+        }
+
+        // Retourne la liste complète pour alimenter le graphique
+        return result;
+    }
+
+    @Override
+    public StockEtatGlobalDTO getStockEtatGlobal() {
+        long total = productRepository.count();
+        long sousSeuil = productRepository.countLowStock();
+        long critique = productRepository.countByCurrentStock(0);
+        long normal = total - sousSeuil - critique;
+        return new StockEtatGlobalDTO(normal, sousSeuil, critique);
     }
 
     // ----------------------------------------------------------------------------

@@ -131,4 +131,19 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * Nombre de commandes avec le statut donné, créées dans la période [start, end].
      */
     long countByStatusAndCreatedAtBetween(OrderStatus status, LocalDateTime start, LocalDateTime end);
+
+    /**
+     * Nombre de commandes ayant le statut donné et dont la date de livraison effective (deliveryCompletedAt)
+     * est dans la période [start, end]. Utilisé pour le graphique "Commandes vs Livraisons" (livraisons par jour).
+     * <p>
+     * Exemple : pour le 10/02, compter les commandes LIVREE avec deliveryCompletedAt entre
+     * 10/02 00:00:00 et 10/02 23:59:59.
+     * </p>
+     *
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = :status AND o.deliveryCompletedAt IS NOT NULL AND o.deliveryCompletedAt BETWEEN :start AND :end")
+    long countByStatusAndDeliveryCompletedAtBetween(
+            @Param("status") OrderStatus status,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
 }
