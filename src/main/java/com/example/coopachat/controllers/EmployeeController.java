@@ -4,7 +4,6 @@ import com.example.coopachat.dtos.employees.DeliveryPreferenceDTO;
 import com.example.coopachat.dtos.cart.CartResponseDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.employees.AddressDTO;
-import com.example.coopachat.dtos.employees.EmployeePersonalInfo;
 import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
@@ -184,16 +183,6 @@ public class EmployeeController {
     @GetMapping("/personal-info")
     public ResponseEntity<EmployeePersonalInfoDTO> getPersonalInfo() {
         EmployeePersonalInfoDTO info = employeeService.getPersonalInfo();
-        return ResponseEntity.ok(info);
-    }
-
-    @Operation(
-            summary = "Infos pour compléter le profil (inscription)",
-            description = "Retourne prénom, nom et téléphone du user par email. L'email est déjà connu côté front."
-    )
-    @GetMapping("/personal-info/accueil")
-    public ResponseEntity<EmployeePersonalInfo> getPersonalInfoByEmail(@RequestParam String email) {
-        EmployeePersonalInfo info = employeeService.getPersonalInfoByEmail(email);
         return ResponseEntity.ok(info);
     }
 

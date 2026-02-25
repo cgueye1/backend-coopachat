@@ -132,12 +132,6 @@ public interface EmployeeService {
     EmployeePersonalInfoDTO getPersonalInfo();
 
     /**
-     * Récupère prénom, nom, téléphone du user par email pour l'écran « Complétez votre profil » (l'email est déjà connu côté front).
-     * Ne nécessite pas qu'un employé soit déjà créé.
-     */
-    EmployeePersonalInfo getPersonalInfoByEmail(String email);
-
-    /**
      *  Met à jour les informations personnelles
      * (mais utilise que les 3 champs modifiables)
      * @param employeeId ID de l'employé

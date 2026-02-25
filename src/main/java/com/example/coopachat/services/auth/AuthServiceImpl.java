@@ -273,7 +273,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * Envoie un code d'activation par email pour le flux mobile (salarié/livreur)
+     * Envoie un code d'activation par email pour le flux mobile (salarié/livreur).
+     * Un code n'est envoyé que si le user n'a pas encore de mot de passe (première inscription).
+     * Si un mot de passe existe déjà, on refuse pour éviter les abus du bouton.
      */
     @Override
     public void sendMobileActivationCode(RegisterMobileDTO requestDTO) {
@@ -281,6 +283,10 @@ public class AuthServiceImpl implements AuthService {
 
         Users user = getUserByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
+
+        if (user.getPassword() != null && !user.getPassword().isBlank()) {
+            throw new RuntimeException("Vous êtes déjà inscrit. Connectez-vous avec votre mot de passe.");
+        }
 
         if (user.getRole() == UserRole.EMPLOYEE) {
             Employee employee = employeeRepository.findByUserEmail(email)
