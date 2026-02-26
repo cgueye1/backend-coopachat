@@ -110,6 +110,25 @@ public class AdminController {
         return ResponseEntity.ok("Catégorie mise à jour");
     }
 
+    @Operation(
+            summary = "Upload une icône de catégorie",
+            description = "Envoie un fichier image (SVG, PNG, etc.) pour l'icône d'une catégorie. " +
+                    "Retourne le chemin relatif à utiliser dans le champ 'icon' (ex: categories/uuid.svg)."
+    )
+    @PostMapping(value = "/categories/upload-icon", consumes = "multipart/form-data")
+    public ResponseEntity<?> uploadCategoryIcon(@RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body("Fichier requis");
+        }
+        try {
+            String relativePath = fileTransferUtil.handleFileUpload(file, "categories");
+            return ResponseEntity.ok(java.util.Map.of("path", relativePath));
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur lors de l'upload: " + e.getMessage());
+        }
+    }
+
     // ============================================================================
     // 📦 GESTION DES PRODUITS (Catalogue)
     // ============================================================================
@@ -249,6 +268,9 @@ public class AdminController {
             @Parameter(description = "Seuil minimum de réapprovisionnement")
             @RequestParam(required = false) Integer minThreshold,
 
+            @Parameter(description = "Stock actuel (quantité en stock)")
+            @RequestParam(required = false) Integer currentStock,
+
             @Parameter(description = "Image du produit (JPG, PNG, max 5MB)")
             @RequestParam(required = false) MultipartFile image
     ) {
@@ -275,6 +297,7 @@ public class AdminController {
             updateProductDTO.setCategoryId(categoryId);
             updateProductDTO.setPrice(price);
             updateProductDTO.setMinThreshold(minThreshold);
+            updateProductDTO.setCurrentStock(currentStock);
             updateProductDTO.setImage(imageFileName);
 
             // 3. Appeler le service

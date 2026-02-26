@@ -26,5 +26,6 @@ public class ProductMobileDetailsDTO {
     private Integer discountPercent;
     private boolean hasPromo;
     private Integer currentStock;
+    private String currentStockStatus; // "En stock" ou "Rupture" (EtatStock)
     private Boolean status;
 }

@@ -29,6 +29,7 @@ import com.example.coopachat.dtos.dashboard.admin.PaymentStatusItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.entities.*;
 import com.example.coopachat.enums.ClaimStatus;
+import com.example.coopachat.enums.EtatStock;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.PaymentStatus;
 import com.example.coopachat.enums.UserRole;
@@ -369,6 +370,11 @@ public class AdminServiceImpl implements AdminService {
         // Mettre à jour le seuil minimum si fourni
         if (updateProductDTO.getMinThreshold() != null) {
             product.setMinThreshold(updateProductDTO.getMinThreshold());
+        }
+
+        // Mettre à jour le stock actuel si fourni
+        if (updateProductDTO.getCurrentStock() != null) {
+            product.setCurrentStock(updateProductDTO.getCurrentStock());
         }
 
         // Mettre à jour l'image si fournie
@@ -1204,21 +1210,22 @@ public class AdminServiceImpl implements AdminService {
         dto.setCategoryName(product.getCategory().getName());
         dto.setPrice(product.getPrice());
         dto.setStatus(product.getStatus());
-        dto.setCurrentStockStatus(getStockStatus(product.getCurrentStock())); // "En stock" ou "Rupture de stock"
+        dto.setCurrentStockStatus(getStockStatus(product.getCurrentStock())); // "En stock" ou "Rupture" (EtatStock)
         return dto;
     }
 
     /**
-     * Détermine le statut du stock en fonction de la quantité disponible
+     * Détermine le statut du stock en fonction de la quantité disponible.
+     * Stock = 0 ou null → Rupture (EtatStock.RUPTURE), sinon "En stock".
      *
      * @param currentStock La quantité en stock
-     * @return "En stock" si stock > 0, "Rupture de stock" sinon
+     * @return "En stock" si stock > 0, "Rupture" sinon (libellé EtatStock.RUPTURE)
      */
     private String getStockStatus(Integer currentStock) {
         if (currentStock != null && currentStock > 0) {
             return "En stock";
         }
-        return "Rupture de stock";
+        return EtatStock.RUPTURE.getLabel(); // "Rupture"
     }
 
 

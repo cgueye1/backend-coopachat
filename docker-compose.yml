@@ -97,6 +97,13 @@ services:
       SFTP_PASSWORD: ${SFTP_PASSWORD:-}
       SFTP_REMOTE_DIR: ${SFTP_REMOTE_DIR:-/coopacha/}
 
+      # Dossier des images (doit correspondre au volume monté ci-dessous)
+      APP_FILES_DIR: /var/coopachat/files
+
+    # Volume persistant pour les images uploadées (produits, profils, catégories)
+    volumes:
+      - app_files:/var/coopachat/files
+
     # Ports
     # 8083 → Port accessible depuis mon PC
     # 8082 → Port interne de l’application
@@ -110,6 +117,8 @@ services:
 # ===============================
 # VOLUMES PERSISTANTS
 # ===============================
-# Permet de conserver les données MySQL même si les containers sont supprimés
+# db_data : données MySQL
+# app_files : images uploadées (produits, profils, icônes catégories) – conservées après redémarrage du conteneur
 volumes:
   db_data:
+  app_files:
