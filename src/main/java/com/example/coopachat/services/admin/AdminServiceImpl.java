@@ -371,6 +371,11 @@ public class AdminServiceImpl implements AdminService {
             product.setMinThreshold(updateProductDTO.getMinThreshold());
         }
 
+        // Mettre à jour le stock actuel si fourni
+        if (updateProductDTO.getCurrentStock() != null) {
+            product.setCurrentStock(updateProductDTO.getCurrentStock());
+        }
+
         // Mettre à jour l'image si fournie
         if (updateProductDTO.getImage() != null && !updateProductDTO.getImage().trim().isEmpty()) {
             product.setImage(updateProductDTO.getImage());

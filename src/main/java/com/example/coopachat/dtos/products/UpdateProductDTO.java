@@ -31,6 +31,9 @@ public class UpdateProductDTO {
     @PositiveOrZero(message = "Le seuil minimum ne peut pas être négatif")
     private Integer minThreshold; // Seuil minimum de réapprovisionnement (optionnel)
 
+    @PositiveOrZero(message = "Le stock ne peut pas être négatif")
+    private Integer currentStock; // Stock actuel (optionnel)
+
     private String image; // Image du produit (URL/fichier) (optionnel)
 }
 
