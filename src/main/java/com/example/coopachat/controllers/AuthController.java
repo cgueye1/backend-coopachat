@@ -54,6 +54,7 @@ public class AuthController {
     public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid LoginRequestDTO loginRequest) {
         LoginResponseDTO response = authService.authenticateCredentialsUser(
                 loginRequest.getEmail(),
+                loginRequest.getPhone(),
                 loginRequest.getPassword()
         );
         return ResponseEntity.ok(response);

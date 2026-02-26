@@ -62,6 +62,9 @@ public class Users {
     @Column (nullable = false)
     private Boolean isActive = false ;
 
+    /** Nom du fichier photo de profil (ex. uuid.jpg), servi via GET /api/files/{filename}. Null si non renseigné. */
+    @Column(name = "profile_photo_url", length = 255)
+    private String profilePhotoUrl;
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @CreationTimestamp

@@ -8,12 +8,14 @@ import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 import com.example.coopachat.dtos.DeliveryDriver.OrderDetailsForDriverDTO;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.services.DeliveryDriver.DeliveryDriverService;
+import com.example.coopachat.services.admin.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -29,6 +31,7 @@ import java.util.List;
 public class DeliveryDriverController {
 
     private final DeliveryDriverService deliveryDriverService;
+    private final AdminService adminService;
 
     @Operation(
             summary = "Récupérer les informations personnelles du livreur",
@@ -140,5 +143,15 @@ public class DeliveryDriverController {
     public ResponseEntity<String> submitReport(@PathVariable Long orderId, @RequestBody @Valid CreateDriverReportDTO dto) {
         deliveryDriverService.submitReport(orderId, dto);
         return ResponseEntity.ok("Signalement enregistré");
+    }
+
+    @Operation(
+            summary = "Modifier ma photo de profil",
+            description = "Met à jour la photo de profil du livreur connecté. Accepte multipart/form-data, partie 'file' (JPEG, PNG, GIF, WebP, max 5 Mo)."
+    )
+    @PutMapping(value = "/profile-photo", consumes = "multipart/form-data")
+    public ResponseEntity<String> updateMyProfilePhoto(@RequestParam("file") MultipartFile file) {
+        adminService.updateProfilePhotoForCurrentUser(file);
+        return ResponseEntity.ok("Photo de profil mise à jour");
     }
 }

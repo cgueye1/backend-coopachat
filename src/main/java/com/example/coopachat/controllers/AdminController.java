@@ -12,6 +12,7 @@ import com.example.coopachat.dtos.fee.CreateFeeDTO;
 import com.example.coopachat.dtos.fee.FeeDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
+import com.example.coopachat.dtos.categories.UpdateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
@@ -60,13 +61,13 @@ public class AdminController {
     private final FileTransferUtil fileTransferUtil;
 
     // ============================================================================
-    // 📁 GESTION DES CATÉGORIES
+    // 📁 GESTION DES CATÉGORIES (inspiré du catalogue produits)
     // ============================================================================
 
     @Operation(
             summary = "Créer une nouvelle catégorie",
-            description = "Permet à un administrateur de créer une nouvelle catégorie de produit. " +
-                    "Le nom de la catégorie doit être unique."
+            description = "Permet à un administrateur de créer une nouvelle catégorie. " +
+                    "Le nom doit être unique. L'icon est optionnel (nom d'icône ou URL)."
     )
     @PostMapping("/categories")
     public ResponseEntity<String> createCategory(@RequestBody @Valid CreateCategoryDTO createCategoryDTO) {
@@ -77,7 +78,7 @@ public class AdminController {
 
     @Operation(
             summary = "Lister les catégories",
-            description = "Récupère la liste complète des catégories (id + nom)."
+            description = "Récupère la liste complète des catégories (id + nom + icon)."
     )
     @GetMapping("/categories")
     public ResponseEntity<List<CategoryListItemDTO>> getAllCategories() {
@@ -85,8 +86,32 @@ public class AdminController {
         return ResponseEntity.ok(categories);
     }
 
+    @Operation(
+            summary = "Récupérer les détails d'une catégorie",
+            description = "Récupère une catégorie par son ID (id + nom + icon)."
+    )
+    @GetMapping("/categories/{id}")
+    public ResponseEntity<CategoryListItemDTO> getCategoryById(@PathVariable Long id) {
+        CategoryListItemDTO category = adminService.getCategoryById(id);
+        return ResponseEntity.ok(category);
+    }
+
+    @Operation(
+            summary = "Modifier une catégorie",
+            description = "Met à jour les informations d'une catégorie. " +
+                    "Seuls les champs fournis (non null) sont mis à jour. " +
+                    "Le nom doit rester unique si modifié."
+    )
+    @PutMapping("/categories/{id}")
+    public ResponseEntity<String> updateCategory(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateCategoryDTO dto) {
+        adminService.updateCategory(id, dto);
+        return ResponseEntity.ok("Catégorie mise à jour");
+    }
+
     // ============================================================================
-    // 📦 GESTION DES PRODUITS
+    // 📦 GESTION DES PRODUITS (Catalogue)
     // ============================================================================
 
     @Operation(
@@ -492,6 +517,28 @@ public class AdminController {
             @RequestBody @Valid SaveUserDTO dto) {
         adminService.updateUser(id, dto);
         return ResponseEntity.ok("Utilisateur mis à jour avec succès");
+    }
+
+    @Operation(
+            summary = "Mettre à jour la photo de profil d'un utilisateur",
+            description = "Upload une image (photo de profil). Accepte multipart/form-data avec la partie 'file'. L'image est stockée et l'utilisateur est mis à jour."
+    )
+    @PutMapping(value = "/users/{id}/profile-photo", consumes = "multipart/form-data")
+    public ResponseEntity<String> updateUserProfilePhoto(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        adminService.updateUserProfilePhoto(id, file);
+        return ResponseEntity.ok("Photo de profil mise à jour");
+    }
+
+    @Operation(
+            summary = "Modifier ma photo de profil (admin)",
+            description = "Met à jour la photo de profil de l'administrateur connecté. Accepte multipart/form-data, partie 'file' (JPEG, PNG, GIF, WebP, max 5 Mo)."
+    )
+    @PutMapping(value = "/me/profile-photo", consumes = "multipart/form-data")
+    public ResponseEntity<String> updateMyProfilePhoto(@RequestParam("file") MultipartFile file) {
+        adminService.updateProfilePhotoForCurrentUser(file);
+        return ResponseEntity.ok("Photo de profil mise à jour");
     }
 
     // ============================================================================

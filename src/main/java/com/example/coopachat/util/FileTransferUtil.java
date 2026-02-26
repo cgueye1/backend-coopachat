@@ -40,12 +40,25 @@ public class FileTransferUtil {
 
     /**
      * Upload a single file locally and transfer it to remote server.
+     * @return relative path (e.g. "uuid.jpg" or "profiles/uuid.jpg" if subDir is set)
      */
     public String handleFileUpload(MultipartFile file) throws IOException {
+        return handleFileUpload(file, null);
+    }
+
+    /**
+     * Upload a file into an optional subdirectory (e.g. "profiles" for profile photos).
+     * @param subDir subdirectory under fileUploadDirectory (e.g. "profiles"), or null for root
+     * @return relative path to use in DB and in URLs (e.g. "profiles/abc-123.jpg" or "abc-123.jpg")
+     */
+    public String handleFileUpload(MultipartFile file, String subDir) throws IOException {
         if (file == null || file.isEmpty()) return "";
 
         String fileName = generateUniqueFileName(file.getOriginalFilename());
         Path uploadDir = Paths.get(fileUploadDirectory).toAbsolutePath().normalize();
+        if (subDir != null && !subDir.isBlank()) {
+            uploadDir = uploadDir.resolve(subDir.trim());
+        }
         if (!Files.exists(uploadDir)) {
             Files.createDirectories(uploadDir);
         }
@@ -53,10 +66,11 @@ public class FileTransferUtil {
         Path localFilePath = uploadDir.resolve(fileName);
         Files.copy(file.getInputStream(), localFilePath, StandardCopyOption.REPLACE_EXISTING);
 
+        String relativePath = (subDir != null && !subDir.isBlank()) ? subDir.trim() + "/" + fileName : fileName;
         if (sftpEnabled) {
-            transferFileToRemote(localFilePath.toString(), remoteDir + fileName);
+            transferFileToRemote(localFilePath.toString(), remoteDir + relativePath);
         }
-        return fileName;
+        return relativePath;
     }
 
     /**
@@ -111,6 +125,32 @@ public class FileTransferUtil {
             log.info("Fichier supprimé (SFTP): {}", remoteFilePath);
         } catch (Exception e) {
             log.warn("Suppression SFTP échouée: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Delete a file by its relative path (as stored in DB, e.g. "profiles/uuid.jpg" or "uuid.jpg").
+     * Deletes locally and on SFTP if enabled. Does nothing if path is null/blank or file does not exist.
+     */
+    public void deleteFile(String relativeFilePath) {
+        if (relativeFilePath == null || relativeFilePath.isBlank()) return;
+
+        Path baseDir = Paths.get(fileUploadDirectory).toAbsolutePath().normalize();
+        Path localPath = baseDir.resolve(relativeFilePath).normalize();
+        if (!localPath.startsWith(baseDir)) {
+            log.warn("Chemin invalide (hors base): {}", relativeFilePath);
+            return;
+        }
+        try {
+            if (Files.exists(localPath)) {
+                Files.delete(localPath);
+                log.info("Fichier supprimé (local): {}", localPath);
+            }
+        } catch (IOException e) {
+            log.warn("Suppression locale échouée: {}", e.getMessage());
+        }
+        if (sftpEnabled) {
+            deleteRemoteFile(remoteDir + relativeFilePath);
         }
     }
 

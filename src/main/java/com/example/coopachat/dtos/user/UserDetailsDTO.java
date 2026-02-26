@@ -27,6 +27,9 @@ public class UserDetailsDTO {
     private String companyCommercial;
     private Boolean isActive;
 
+    /** Nom du fichier photo de profil. URL d'affichage : /api/files/{profilePhotoUrl}. */
+    private String profilePhotoUrl;
+
     @JsonFormat(pattern = "dd/MM/yyyy HH:mm")
     private LocalDateTime createdAt;
 }
