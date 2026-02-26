@@ -1,5 +1,6 @@
 package com.example.coopachat.controllers;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -16,18 +17,24 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-//Stocker localement les fichiers (images)
+/** Sert les fichiers uploadés (images, etc.) depuis le répertoire configuré (app.files.dir). */
 @RestController
 @RequestMapping({"/files", "/api/files"})
 public class FileController {
 
-    private static final Path FILE_UPLOAD_DIR = Paths.get("files").toAbsolutePath().normalize();
+    @Value("${app.files.dir:files}")
+    private String filesDir;
+
+    private Path getFileUploadDir() {
+        return Paths.get(filesDir).toAbsolutePath().normalize();
+    }
 
     @GetMapping("/{filename:.+}")
     public ResponseEntity<Resource> getFile(@PathVariable String filename) {
         try {
-            Path filePath = FILE_UPLOAD_DIR.resolve(filename).normalize();
-            if (!filePath.startsWith(FILE_UPLOAD_DIR)) {
+            Path baseDir = getFileUploadDir();
+            Path filePath = baseDir.resolve(filename).normalize();
+            if (!filePath.startsWith(baseDir)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
             if (!Files.exists(filePath)) {

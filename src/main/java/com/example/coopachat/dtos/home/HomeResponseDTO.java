@@ -11,6 +11,8 @@ import java.util.List;
 
 /**
  * DTO pour l'accueil salarié (home).
+ * Sans filtre : products = 4 derniers, champs pagination à null.
+ * Avec filtre (search et/ou categoryId) : products = page de résultats, pagination renseignée.
  */
 @Data
 @AllArgsConstructor
@@ -18,7 +20,15 @@ import java.util.List;
 public class HomeResponseDTO {
 
     private String firstName;
-    private List<ProductPromoItemDTO> products; // max 4
+    private List<ProductPromoItemDTO> products;
     private List<CategoryHomeItemDTO> categories; // max 4
     private CouponPromoDTO activeCoupon; // null si aucune promo
+
+    /** Présents uniquement quand un filtre (search/categoryId) est appliqué. */
+    private Long totalElements;
+    private Integer totalPages;
+    private Integer currentPage;
+    private Integer pageSize;
+    private Boolean hasNext;
+    private Boolean hasPrevious;
 }

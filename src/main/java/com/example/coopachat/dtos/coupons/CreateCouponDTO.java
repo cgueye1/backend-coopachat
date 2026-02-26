@@ -46,11 +46,11 @@ public class CreateCouponDTO {
     private Boolean isActive;
 
     @NotNull(message = "La date de debut est obligatoire")
-    @JsonFormat(pattern = "dd-MM-yyyy")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     private LocalDateTime startDate;
 
     @NotNull(message = "La date de fin est obligatoire")
-    @JsonFormat(pattern = "dd-MM-yyyy")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     private LocalDateTime endDate;
 
     // optionnel: liste des produits pour le scope PRODUCTS

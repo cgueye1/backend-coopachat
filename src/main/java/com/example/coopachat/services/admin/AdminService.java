@@ -6,6 +6,7 @@ import com.example.coopachat.dtos.fee.CreateFeeDTO;
 import com.example.coopachat.dtos.fee.FeeDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
+import com.example.coopachat.dtos.categories.UpdateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
@@ -25,6 +26,7 @@ import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.enums.UserRole;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -42,11 +44,19 @@ public interface AdminService {
     void createCategory(CreateCategoryDTO createCategoryDTO);
 
     /**
-     * Récupère la liste des catégories
-     *
-     * @return Liste des catégories (id + nom)
+     * Récupère la liste des catégories (id + nom + icon).
      */
     List<CategoryListItemDTO> getAllCategories();
+
+    /**
+     * Récupère une catégorie par son ID (id + nom + icon).
+     */
+    CategoryListItemDTO getCategoryById(Long id);
+
+    /**
+     * Met à jour une catégorie : seuls les champs non null du DTO sont modifiés.
+     */
+    void updateCategory(Long id, UpdateCategoryDTO dto);
 
     /**
      * Crée un nouveau produit
@@ -203,6 +213,18 @@ public interface AdminService {
      * Modifier les infos de base d'un utilisateur (prénom, nom, email, téléphone, rôle, companyCommercial).
      */
     void updateUser(Long id, SaveUserDTO dto);
+
+    /**
+     * Met à jour la photo de profil d'un utilisateur (upload du fichier puis mise à jour de profilePhotoUrl).
+     * Réservé à l'admin ou à l'utilisateur lui-même selon l'endpoint appelé.
+     */
+    void updateUserProfilePhoto(Long userId, MultipartFile file);
+
+    /**
+     * Met à jour la photo de profil de l'utilisateur connecté (salarié, livreur, admin).
+     * Utilisé par PUT /api/users/me/profile-photo.
+     */
+    void updateProfilePhotoForCurrentUser(MultipartFile file);
 
     // ============================================================================
     // 📊 DASHBOARD ADMIN

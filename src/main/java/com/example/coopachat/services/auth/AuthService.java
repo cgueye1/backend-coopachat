@@ -23,12 +23,13 @@ public interface AuthService {
     /**
      * Authentifie un utilisateur avec email et mot de passe (étape 1)
      *
-     * @param email L'email de l'utilisateur
+     * @param email L'email de l'utilisateur (optionnel si phone renseigné)
+     * @param phone Le téléphone de l'utilisateur (optionnel si email renseigné)
      * @param password Le mot de passe
      * @return LoginResponseDTO avec tokens JWT si succès
      * @throws RuntimeException si l'authentification échoue
      */
-    LoginResponseDTO authenticateCredentialsUser(String email, String password);
+    LoginResponseDTO authenticateCredentialsUser(String email, String phone, String password);
 
     /**
      * Authentifie un utilisateur via Google (OAuth)

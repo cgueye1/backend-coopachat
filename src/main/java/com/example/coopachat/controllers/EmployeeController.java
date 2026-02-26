@@ -15,6 +15,7 @@ import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
 import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
 import com.example.coopachat.services.Employee.EmployeeService;
+import com.example.coopachat.services.admin.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -36,6 +38,7 @@ import java.util.List;
 public class EmployeeController {
 
     private final EmployeeService employeeService;
+    private final AdminService adminService;
 
     // ============================================================================
     // ACCUEIL
@@ -43,11 +46,16 @@ public class EmployeeController {
 
     @Operation(
             summary = "Accueil salarié",
-            description = "Retourne les 4 derniers produits, 4 dernières catégories et une promo active si existante."
+            description = "Sans filtre : 4 derniers produits, 4 catégories, promo. " +
+                    "Avec search et/ou categoryId : produits filtrés avec pagination (page, size)."
     )
     @GetMapping("/home")
-    public ResponseEntity<HomeResponseDTO> getHome() {
-        HomeResponseDTO response = employeeService.getHomeData();
+    public ResponseEntity<HomeResponseDTO> getHome(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        HomeResponseDTO response = employeeService.getHomeData(search, categoryId, page, size);
         return ResponseEntity.ok(response);
     }
 
@@ -368,4 +376,13 @@ public class EmployeeController {
         return ResponseEntity.ok("Commande annulée");
     }
 
+    @Operation(
+            summary = "Modifier ma photo de profil",
+            description = "Met à jour la photo de profil du salarié connecté. Accepte multipart/form-data, partie 'file' (JPEG, PNG, GIF, WebP, max 5 Mo)."
+    )
+    @PutMapping(value = "/profile-photo", consumes = "multipart/form-data")
+    public ResponseEntity<String> updateMyProfilePhoto(@RequestParam("file") MultipartFile file) {
+        adminService.updateProfilePhotoForCurrentUser(file);
+        return ResponseEntity.ok("Photo de profil mise à jour");
+    }
 }

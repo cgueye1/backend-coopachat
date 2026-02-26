@@ -13,6 +13,7 @@ import com.example.coopachat.dtos.fee.CreateFeeDTO;
 import com.example.coopachat.dtos.fee.FeeDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
+import com.example.coopachat.dtos.categories.UpdateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListItemDTO;
@@ -34,6 +35,7 @@ import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.auth.ActivationCodeService;
 import com.example.coopachat.services.auth.EmailService;
+import com.example.coopachat.util.FileTransferUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -46,6 +48,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -77,6 +80,7 @@ public class AdminServiceImpl implements AdminService {
     private final FeeRepository feeRepository;
     private final ActivationCodeService activationCodeService;
     private final EmailService emailService;
+    private final FileTransferUtil fileTransferUtil;
     private final DeliveryDriverRepository deliveryDriverRepository;
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
@@ -103,10 +107,12 @@ public class AdminServiceImpl implements AdminService {
             throw new RuntimeException("Une catégorie avec ce nom existe déjà");
         }
 
-        // Créer la catégorie
+        // Créer la catégorie (nom + icon si fourni)
         Category category = new Category();
         category.setName(createCategoryDTO.getName());
-
+        if (createCategoryDTO.getIcon() != null && !createCategoryDTO.getIcon().isBlank()) {
+            category.setIcon(createCategoryDTO.getIcon().trim());
+        }
         categoryRepository.save(category);
 
         log.info("Catégorie créée avec succès par l'administrateur {}: {}",
@@ -117,8 +123,51 @@ public class AdminServiceImpl implements AdminService {
     public List<CategoryListItemDTO> getAllCategories() {
         return categoryRepository.findAll()
                 .stream()
-                .map(category -> new CategoryListItemDTO(category.getId(), category.getName()))
+                .map(this::mapCategoryToListItemDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public CategoryListItemDTO getCategoryById(Long id) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut consulter une catégorie");
+        }
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Catégorie introuvable"));
+        return mapCategoryToListItemDTO(category);
+    }
+
+    private CategoryListItemDTO mapCategoryToListItemDTO(Category c) {
+        CategoryListItemDTO dto = new CategoryListItemDTO();
+        dto.setId(c.getId());
+        dto.setName(c.getName());
+        dto.setIcon(c.getIcon());
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public void updateCategory(Long id, UpdateCategoryDTO dto) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut modifier une catégorie");
+        }
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Catégorie introuvable"));
+        // Mise à jour uniquement des champs non null
+        if (dto.getName() != null && !dto.getName().isBlank()) {
+            String newName = dto.getName().trim();
+            if (!newName.equals(category.getName()) && Boolean.TRUE.equals(categoryRepository.existsByName(newName))) {
+                throw new RuntimeException("Une catégorie avec ce nom existe déjà");
+            }
+            category.setName(newName);
+        }
+        if (dto.getIcon() != null) {
+            category.setIcon(dto.getIcon().isBlank() ? null : dto.getIcon().trim());
+        }
+        categoryRepository.save(category);
+        log.info("Catégorie {} mise à jour par l'admin {}", category.getName(), admin.getEmail());
     }
 
     // ============================================================================
@@ -735,6 +784,7 @@ public class AdminServiceImpl implements AdminService {
                     dto.setRoleLabel(u.getRole() != null ? u.getRole().getLabel() : "");
                     dto.setCreatedAt(u.getCreatedAt());
                     dto.setIsActive(u.getIsActive());
+                    dto.setProfilePhotoUrl(u.getProfilePhotoUrl());
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -832,6 +882,7 @@ public class AdminServiceImpl implements AdminService {
         dto.setRoleLabel(u.getRole() != null ? u.getRole().getLabel() : "");
         dto.setCompanyCommercial(u.getCompanyCommercial());
         dto.setIsActive(u.getIsActive());
+        dto.setProfilePhotoUrl(u.getProfilePhotoUrl());
         dto.setCreatedAt(u.getCreatedAt());
         return dto;
     }
@@ -891,6 +942,77 @@ public class AdminServiceImpl implements AdminService {
         }
         userRepository.save(u);
         log.info("Utilisateur {} mis à jour par l'admin", u.getEmail());
+    }
+
+    private static final long PROFILE_PHOTO_MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+    private static final List<String> PROFILE_PHOTO_ALLOWED_CONTENT_TYPES = List.of(
+            "image/jpeg", "image/png", "image/gif", "image/webp"
+    );
+    private static final List<String> PROFILE_PHOTO_ALLOWED_EXTENSIONS = List.of("jpg", "jpeg", "png", "gif", "webp");
+
+    @Override
+    @Transactional
+    public void updateUserProfilePhoto(Long userId, MultipartFile file) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut modifier la photo de profil d'un autre utilisateur.");
+        }
+        doUpdateUserProfilePhoto(userId, file);
+    }
+
+    @Override
+    @Transactional
+    public void updateProfilePhotoForCurrentUser(MultipartFile file) {
+        Users currentUser = getCurrentUser();
+        doUpdateUserProfilePhoto(currentUser.getId(), file);
+    }
+
+    /**
+     * Logique commune : validation image, suppression ancienne photo, upload, mise à jour en BDD.
+     */
+    private void doUpdateUserProfilePhoto(Long userId, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Aucun fichier fourni");
+        }
+        // Validation type MIME (ignorer paramètres ex. "image/jpeg; charset=utf-8")
+        String contentType = file.getContentType();
+        if (contentType != null && contentType.contains(";")) {
+            contentType = contentType.substring(0, contentType.indexOf(';')).trim();
+        }
+        if (contentType == null || !PROFILE_PHOTO_ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
+            throw new RuntimeException("Type de fichier non autorisé. Utilisez une image JPEG, PNG, GIF ou WebP.");
+        }
+        // Validation extension (sécurité supplémentaire)
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename != null) {
+            String ext = originalFilename.contains(".")
+                    ? originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase()
+                    : "";
+            if (!PROFILE_PHOTO_ALLOWED_EXTENSIONS.contains(ext)) {
+                throw new RuntimeException("Extension non autorisée. Utilisez .jpg, .png, .gif ou .webp.");
+            }
+        }
+        // Taille max 5 Mo
+        if (file.getSize() > PROFILE_PHOTO_MAX_SIZE_BYTES) {
+            throw new RuntimeException("La photo ne doit pas dépasser 5 Mo.");
+        }
+        Users u = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+        try {
+            // Supprimer l'ancienne photo si elle existe (local + SFTP)
+            String oldPhoto = u.getProfilePhotoUrl();
+            if (oldPhoto != null && !oldPhoto.isBlank()) {
+                fileTransferUtil.deleteFile(oldPhoto);
+            }
+            // Upload dans le sous-dossier "profiles" (ex. files/profiles/uuid.jpg)
+            String relativePath = fileTransferUtil.handleFileUpload(file, "profiles");
+            u.setProfilePhotoUrl(relativePath);
+            userRepository.save(u);
+            log.info("Photo de profil mise à jour pour l'utilisateur {}", u.getEmail());
+        } catch (IOException e) {
+            log.error("Erreur upload photo de profil: {}", e.getMessage());
+            throw new RuntimeException("Impossible d'enregistrer la photo");
+        }
     }
 
     // ============================================================================

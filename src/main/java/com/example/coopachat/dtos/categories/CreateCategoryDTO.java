@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * DTO pour la création d'une catégorie
+ * DTO pour la création d'une catégorie (nom + icon optionnel).
  */
 @Data
 @NoArgsConstructor
@@ -14,7 +14,10 @@ import lombok.NoArgsConstructor;
 public class CreateCategoryDTO {
 
     @NotBlank(message = "Le nom de la catégorie est obligatoire")
-    private String name; // Nom de la catégorie (ex: "Épicerie", "Boissons", "Frais", "Hygiène")
+    private String name;
+
+    /** Icône (nom ou URL), optionnel. */
+    private String icon;
 }
 
 

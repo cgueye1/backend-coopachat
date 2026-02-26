@@ -81,9 +81,15 @@ public class EmployeeServiceImpl implements EmployeeService {
     // 🏠 ACCUEIL SALARIÉ
     // ============================================================================
 
+    /**
+     * Données de la page d'accueil salarié.
+     * - Sans filtre (search + categoryId vides) : 4 derniers produits, pas de pagination.
+     * - Avec filtre : produits recherchés/filtrés par catégorie, avec pagination.
+     */
     @Override
     @Transactional(readOnly = true)
-    public HomeResponseDTO getHomeData() {
+    public HomeResponseDTO getHomeData(String search, Long categoryId, int page, int size) {
+        // --- Utilisateur connecté ---
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {
             throw new RuntimeException("Utilisateur non authentifié");
@@ -95,8 +101,60 @@ public class EmployeeServiceImpl implements EmployeeService {
         Users user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
+        // --- Décider : filtre actif ou pas ? ---
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+        boolean hasFilter = searchTerm != null || categoryId != null;
+
+        List<ProductPromoItemDTO> productItems;
+        if (hasFilter) {
+            // ----- CAS AVEC FILTRE : recherche et/ou catégorie → pagination -----
+            Pageable pageable = PageRequest.of(page, size);
+            Category category = null;
+            if (categoryId != null) {
+                category = categoryRepository.findById(categoryId)
+                        .orElseThrow(() -> new RuntimeException("Catégorie introuvable"));
+            }
+            // Appel BDD selon combinaison search + catégorie
+            Page<Product> productPage;
+            boolean activeOnly = true;
+            if (searchTerm != null && category != null) {
+                productPage = productRepository.findByNameContainingIgnoreCaseAndCategoryAndStatus(searchTerm, category, activeOnly, pageable);
+            } else if (searchTerm != null) {
+                productPage = productRepository.findByNameContainingIgnoreCaseAndStatus(searchTerm, activeOnly, pageable);
+            } else {
+                productPage = productRepository.findByCategoryAndStatus(category, activeOnly, pageable);
+            }
+            productItems = productPage.getContent().stream()
+                    .map(this::mapToProductPromoItemDTO)
+                    .collect(Collectors.toList());
+
+            // Catégories + promo (inchangés)
+            List<Category> latestCategories = categoryRepository.findTop4ByOrderByIdDesc();
+            List<CategoryHomeItemDTO> categoryItems = latestCategories.stream()
+                    .map(this::mapToCategoryHomeItemDTO)
+                    .collect(Collectors.toList());
+            CouponPromoDTO promoDTO = couponRepository.findLatestActiveCoupon(LocalDateTime.now())
+                    .map(this::mapToCouponPromoDTO)
+                    .orElse(null);
+
+            // Réponse avec infos de pagination
+            HomeResponseDTO response = new HomeResponseDTO();
+            response.setFirstName(user.getFirstName());
+            response.setProducts(productItems);
+            response.setCategories(categoryItems);
+            response.setActiveCoupon(promoDTO);
+            response.setTotalElements(productPage.getTotalElements());
+            response.setTotalPages(productPage.getTotalPages());
+            response.setCurrentPage(productPage.getNumber());
+            response.setPageSize(productPage.getSize());
+            response.setHasNext(productPage.hasNext());
+            response.setHasPrevious(productPage.hasPrevious());
+            return response;
+        }
+
+        // ----- CAS SANS FILTRE : 4 derniers produits, pas de pagination -----
         List<Product> products = productRepository.findTop4ByStatusTrueOrderByCreatedAtDesc();
-        List<ProductPromoItemDTO> productItems = products.stream()
+        productItems = products.stream()
                 .map(this::mapToProductPromoItemDTO)
                 .collect(Collectors.toList());
 
@@ -104,7 +162,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         List<CategoryHomeItemDTO> categoryItems = latestCategories.stream()
                 .map(this::mapToCategoryHomeItemDTO)
                 .collect(Collectors.toList());
-
         CouponPromoDTO promoDTO = couponRepository.findLatestActiveCoupon(LocalDateTime.now())
                 .map(this::mapToCouponPromoDTO)
                 .orElse(null);
@@ -127,44 +184,33 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Catalogue produits (page dédiée catalogue) : toujours paginé, avec search et categoryId optionnels.
+     */
     @Override
     @Transactional
     public ProductCatalogueListResponseDTO getCatalogueProducts(int page, int size, String search, Long categoryId) {
-
-        // Créer l'objet Pageable pour la pagination
         Pageable pageable = PageRequest.of(page, size);
-
-        // Normaliser le terme de recherche
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
-
-        // Récupérer la catégorie si categoryId est fourni
         Category category = null;
         if (categoryId != null) {
             category = categoryRepository.findById(categoryId)
                     .orElseThrow(() -> new RuntimeException("Catégorie introuvable"));
         }
-        ;
-        // Récupérer la page de produits selon les filtres
-        Page<Product> productPage;
-        boolean activeOnly = true; // Pour les salariés, on montre seulement les produits actifs
 
+        // Choix de la requête selon search et catégorie
+        Page<Product> productPage;
+        boolean activeOnly = true;
         if (searchTerm != null && category != null) {
             productPage = productRepository.findByNameContainingIgnoreCaseAndCategoryAndStatus(searchTerm, category, activeOnly, pageable);
-        }
-        //Recherche seulement
-        else if (searchTerm != null) {
-            productPage = productRepository.findByNameContainingIgnoreCaseAndStatus(
-                    searchTerm, activeOnly, pageable);
-        }
-        // Catégorie seulement
-        else if (category != null) {
+        } else if (searchTerm != null) {
+            productPage = productRepository.findByNameContainingIgnoreCaseAndStatus(searchTerm, activeOnly, pageable);
+        } else if (category != null) {
             productPage = productRepository.findByCategoryAndStatus(category, activeOnly, pageable);
-        }
-        //Aucun filtre (tous les produits ACTIFS)
-        else {
+        } else {
             productPage = productRepository.findByStatus(activeOnly, pageable);
         }
-        // Mapper les produits vers ProductCatalogueItemDTO
+
         List<ProductCatalogueItemDTO> productList = productPage.getContent().stream()
                 .map(this::mapToProductCatalogueItemDTO)
                 .collect(Collectors.toList());

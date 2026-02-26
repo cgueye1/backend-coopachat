@@ -20,6 +20,9 @@ public class UserListItemDTO {
     private String email;
     private String roleLabel;
 
+    /** Nom du fichier photo de profil. URL d'affichage : /api/files/{profilePhotoUrl}. */
+    private String profilePhotoUrl;
+
     @JsonFormat(pattern = "dd/MM/yyyy")
     private LocalDateTime createdAt;
 

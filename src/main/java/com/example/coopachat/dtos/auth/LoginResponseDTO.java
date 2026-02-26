@@ -30,6 +30,8 @@ public class LoginResponseDTO {
     private String firstName;     // Prénom de l'utilisateur
     private String lastName;      // Nom de l'utilisateur
     private Long id;                // ID de l'utilisateur
+    /** Nom du fichier photo de profil. URL d'affichage : /api/files/{profilePhotoUrl}. */
+    private String profilePhotoUrl;
 
     // Connexion avec vérification OTP
     public LoginResponseDTO( String email, boolean requiresOtp) {
@@ -46,12 +48,17 @@ public class LoginResponseDTO {
     }
 
     public LoginResponseDTO(String accessToken, String email, String role, Long id, String firstName, String lastName) {
+        this(accessToken, email, role, id, firstName, lastName, null);
+    }
+
+    public LoginResponseDTO(String accessToken, String email, String role, Long id, String firstName, String lastName, String profilePhotoUrl) {
         this.accessToken = accessToken;
         this.email = email;
         this.role = role;
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
+        this.profilePhotoUrl = profilePhotoUrl;
         this.success = true;
         this.requiresOtp = false;
         this.message = "Authentification réussie ✅";

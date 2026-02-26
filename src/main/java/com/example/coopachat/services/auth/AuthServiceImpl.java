@@ -95,15 +95,22 @@ public class AuthServiceImpl implements AuthService {
     // ============================================================================
 
     @Override
-    public LoginResponseDTO authenticateCredentialsUser(String email, String password) {
+    public LoginResponseDTO authenticateCredentialsUser(String email, String phone, String password) {
+        // Identifiant = email ou téléphone : on cherche d’abord par email, puis par téléphone
+        boolean hasEmail = email != null && !email.isBlank();
+        boolean hasPhone = phone != null && !phone.isBlank();
+        if (!hasEmail && !hasPhone) {
+            throw new RuntimeException("Email ou téléphone requis");
+        }
 
-        // Vérifier si l'utilisateur existe dans la base de données
-        Users user = getUserByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Email ou mot de passe incorrect"));
+        // Récupérer l'utilisateur par email ou par téléphone (même logique qu'avec l'email)
+        Users user = hasEmail
+                ? getUserByEmail(email).orElseThrow(() -> new RuntimeException("Email ou mot de passe incorrect"))
+                : userRepository.findByPhone(phone).orElseThrow(() -> new RuntimeException("Téléphone ou mot de passe incorrect"));
 
         // Vérifier les mots de passe
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Email ou mot de passe incorrect");
+            throw new RuntimeException(hasEmail ? "Email ou mot de passe incorrect" : "Téléphone ou mot de passe incorrect");
         }
 
         // Vérifier si le compte est actif
@@ -111,11 +118,11 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Votre compte n'est pas actif");
         }
 
-        // Si l'utilisateur est admin, déclencher l'OTP
+        // Si l'utilisateur est admin, déclencher l'OTP (on envoie sur l’email du compte)
         if (user.getRole() == UserRole.ADMINISTRATOR) {
-            String otpCode = activationCodeService.generateAndStoreCode(email);
-            emailService.sendOtpCode(email, otpCode, user.getFirstName());
-            return new LoginResponseDTO(email, true);
+            String otpCode = activationCodeService.generateAndStoreCode(user.getEmail());
+            emailService.sendOtpCode(user.getEmail(), otpCode, user.getFirstName());
+            return new LoginResponseDTO(user.getEmail(), true);
         }
 
         // Générer le token
@@ -127,7 +134,8 @@ public class AuthServiceImpl implements AuthService {
                 user.getRole().getLabel(),
                 user.getId(),
                 user.getFirstName(),
-                user.getLastName()
+                user.getLastName(),
+                user.getProfilePhotoUrl()
         );
     }
 
@@ -203,7 +211,8 @@ public class AuthServiceImpl implements AuthService {
                 user.getRole().getLabel(),
                 user.getId(),
                 user.getFirstName(),
-                user.getLastName()
+                user.getLastName(),
+                user.getProfilePhotoUrl()
         );
     }
 
@@ -246,7 +255,8 @@ public class AuthServiceImpl implements AuthService {
                 user.getRole().getLabel(),
                 user.getId(),
                 user.getFirstName(),
-                user.getLastName()
+                user.getLastName(),
+                user.getProfilePhotoUrl()
         );
     }
 
@@ -540,6 +550,9 @@ public class AuthServiceImpl implements AuthService {
         user.setPhone(userDto.getPhoneNumber());
         user.setRole(userDto.getRole());
         user.setCompanyCommercial(userDto.getCompanyCommercial());
+        if (userDto.getProfilePhotoUrl() != null && !userDto.getProfilePhotoUrl().isBlank()) {
+            user.setProfilePhotoUrl(userDto.getProfilePhotoUrl());
+        }
         return user;
     }
 

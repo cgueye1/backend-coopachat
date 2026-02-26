@@ -26,9 +26,11 @@ public interface EmployeeService {
     // ============================================================================
 
     /**
-     * Récupère les données d'accueil du salarié (4 derniers produits, 4 catégories, promo active).
+     * Récupère les données d'accueil du salarié.
+     * Sans filtre (search et categoryId null/vides) : 4 derniers produits, pas de pagination.
+     * Avec filtre : produits filtrés avec pagination (page, size).
      */
-    HomeResponseDTO getHomeData();
+    HomeResponseDTO getHomeData(String search, Long categoryId, int page, int size);
 
     // ============================================================================
     // 📚 CATALOGUE (CATÉGORIES + PRODUITS)
