@@ -8,6 +8,7 @@ import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -45,6 +46,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleResourceNotFound(ResourceNotFoundException ex) {
         ErrorResponseDTO error = new ErrorResponseDTO(
                 ex.getMessage(),
+                null,
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value()
+        );
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    /** Aucun contrôleur ne correspond à la requête (ex. mauvaise URL ou méthode HTTP). */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> handleNoResourceFound(NoResourceFoundException ex) {
+        ErrorResponseDTO error = new ErrorResponseDTO(
+                "Ressource non trouvée: " + ex.getResourcePath() + ". Vérifiez l'URL et la méthode (GET/POST/PUT/DELETE).",
                 null,
                 LocalDateTime.now(),
                 HttpStatus.NOT_FOUND.value()

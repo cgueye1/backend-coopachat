@@ -115,7 +115,7 @@ public class AdminController {
             description = "Envoie un fichier image (SVG, PNG, etc.) pour l'icône d'une catégorie. " +
                     "Retourne le chemin relatif à utiliser dans le champ 'icon' (ex: categories/uuid.svg)."
     )
-    @PostMapping(value = "/categories/upload-icon", consumes = "multipart/form-data")
+    @PostMapping("/categories/upload-icon")
     public ResponseEntity<?> uploadCategoryIcon(@RequestParam("file") MultipartFile file) {
         if (file == null || file.isEmpty()) {
             return ResponseEntity.badRequest().body("Fichier requis");
