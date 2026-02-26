@@ -19,7 +19,7 @@ import java.nio.file.Paths;
 
 /** Sert les fichiers uploadés (images, etc.) depuis le répertoire configuré (app.files.dir). */
 @RestController
-@RequestMapping({"/files", "/api/files"})
+@RequestMapping({"/files", "/api/files", "/uploads"})
 public class FileController {
 
     @Value("${app.files.dir:files}")
