@@ -1853,7 +1853,9 @@ public class EmployeeServiceImpl implements EmployeeService {
             dto.setHasPromo(false);
         }
         // Stock
-        dto.setCurrentStock(product.getCurrentStock() != null ? product.getCurrentStock() : 0);
+        Integer stock = product.getCurrentStock() != null ? product.getCurrentStock() : 0;
+        dto.setCurrentStock(stock);
+        dto.setCurrentStockStatus(stock != null && stock > 0 ? "En stock" : EtatStock.RUPTURE.getLabel()); // "Rupture" si stock = 0
         dto.setStatus(product.getStatus());
 
 
