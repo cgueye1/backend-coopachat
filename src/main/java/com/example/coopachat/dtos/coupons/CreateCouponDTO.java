@@ -59,4 +59,6 @@ public class CreateCouponDTO {
 
     // Optionnel : liste des catégories pour le scope CATEGORIES. Pour CART_TOTAL, doit être null ou vide.
     private List<Long> categoryIds;
+
+
 }

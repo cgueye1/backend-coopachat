@@ -208,7 +208,7 @@ public class EmployeeController {
             summary = "Ajouter une adresse de livraison ",
             description = "Ajoute une nouvelle adresse de livraison  (max 3: Domicile/Bureau/Autre)"
     )
-    @PostMapping("/adresses ")
+    @PostMapping("/adresses")
     public ResponseEntity<String> createAddress(@RequestBody AddressDTO dto) {
        employeeService.createAddress(dto);
         return ResponseEntity.ok("Adresse ajoutée");
