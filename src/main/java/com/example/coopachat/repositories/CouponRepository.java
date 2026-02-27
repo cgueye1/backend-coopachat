@@ -75,4 +75,22 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
             """)
     Optional<Coupon> findLatestActiveCoupon(@Param("now") LocalDateTime now);
 
+    /**
+     * Liste tous les coupons actifs dont le scope n’est pas lié à un produit ou une catégorie.
+     * On exclut uniquement ALL_PRODUCTS, CATEGORIES, PRODUCTS ; tout autre scope (CART_TOTAL, livraison, etc.) est inclus.
+     * Utilisé pour l’accueil salarié : coupons à saisir manuellement (panier, livraison, etc.).
+     * //NOT IN "ne pas inclure les produits ou catégories"
+     */
+    @Query("""
+            SELECT c
+            FROM Coupon c
+            WHERE c.isActive = true
+              AND c.status = 'ACTIVE'
+              AND c.scope NOT IN ('ALL_PRODUCTS', 'CATEGORIES', 'PRODUCTS') 
+              AND c.startDate <= :now
+              AND c.endDate >= :now
+            ORDER BY c.startDate DESC
+            """)
+    List<Coupon> findActiveCouponsNotProductOrCategory(@Param("now") LocalDateTime now);
+
 }

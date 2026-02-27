@@ -172,11 +172,21 @@ public interface EmployeeService {
     List<com.example.coopachat.dtos.delivery.DeliveryOptionDTO> getActiveDeliveryOptions();
 
     /**
-     * Crée une nouvelle commande à partir du panier de l'utilisateur connecté
+     * Étape 2 (Livraison) : retourne un aperçu de la commande sans rien sauvegarder en base.
+     * Utilisé pour afficher l'écran de récap avant que le salarié ne clique sur "Valider ma commande".
+     *
      * @param dto Contient l'option de livraison (deliveryOptionId) et le code promo (optionnel)
-     * @return Les détails de la commande créée
+     * @return OrderPreviewDTO avec nbArticles, option de livraison, date estimée, adresse, total
      */
-    OrderResponseDTO createOrder(CreateOrderDTO dto);
+    OrderPreviewDTO previewOrder(CreateOrderDTO dto);
+
+    /**
+     * Étape 3 (Confirmation) : crée la commande en base, ajoute le paiement (Impayé), vide le panier.
+     * À appeler uniquement quand le salarié clique sur "Valider ma commande".
+     *
+     * @param dto Contient l'option de livraison (deliveryOptionId) et le code promo (optionnel)
+     */
+    void createOrder(CreateOrderDTO dto);
 
     /**
      * Liste des commandes du client (salarié connecté), avec filtres optionnels et pagination.

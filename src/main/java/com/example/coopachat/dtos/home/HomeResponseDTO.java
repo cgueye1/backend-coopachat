@@ -22,7 +22,7 @@ public class HomeResponseDTO {
     private String firstName;
     private List<ProductPromoItemDTO> products;
     private List<CategoryHomeItemDTO> categories; // max 4
-    private CouponPromoDTO activeCoupon; // null si aucune promo
+    private List<CouponPromoDTO> activeCoupons; // liste des coupons "panier" / hors produit-catégorie (vide si aucun)
 
     /** Présents uniquement quand un filtre (search/categoryId) est appliqué. */
     private Long totalElements;

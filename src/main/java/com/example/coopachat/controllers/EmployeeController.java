@@ -241,14 +241,33 @@ public class EmployeeController {
     // ============================================================================
     // Commande Salarié🛒
     // ============================================================================
+
+    /**
+     * Étape 2 (Livraison) : aperçu de la commande sans sauvegarde.
+     * Le mobile envoie deliveryOptionId + couponCode (optionnel) et reçoit le récap (nbArticles, livraison, date, adresse, total).
+     */
     @Operation(
-            summary = "Passer une commande",
-            description = "Finalise la commande à partir du panier. Requiert deliveryOptionId (id d'une option renvoyée par GET /delivery-options). couponCode optionnel."
+            summary = "Aperçu commande (étape 2)",
+            description = "Retourne le récap de la commande (livraison, date estimée, adresse, total avec promo) sans rien enregistrer. À appeler avant POST /orders (étape 3)."
+    )
+    @PostMapping("/orders/preview")
+    public ResponseEntity<OrderPreviewDTO> previewOrder(@RequestBody CreateOrderDTO dto) {
+        OrderPreviewDTO preview = employeeService.previewOrder(dto);
+        return ResponseEntity.ok(preview);
+    }
+
+    /**
+     * Étape 3 (Confirmation) : crée la commande en base, ajoute le paiement (Impayé), vide le panier.
+     * À appeler quand le salarié clique sur "Valider ma commande". Retourne un message de succès en réponse.
+     */
+    @Operation(
+            summary = "Passer une commande (étape 3)",
+            description = "Finalise la commande à partir du panier. Retourne un message de confirmation."
     )
     @PostMapping("/orders")
-    public ResponseEntity<OrderResponseDTO> createOrder(@RequestBody CreateOrderDTO dto) {
-        OrderResponseDTO order = employeeService.createOrder(dto);
-        return ResponseEntity.ok(order);
+    public ResponseEntity<?> createOrder(@RequestBody CreateOrderDTO dto) {
+        employeeService.createOrder(dto);
+        return ResponseEntity.ok("Commande créée avec succès");
     }
 
     @Operation(
