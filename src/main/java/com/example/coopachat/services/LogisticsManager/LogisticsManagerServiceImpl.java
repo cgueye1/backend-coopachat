@@ -2034,21 +2034,48 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         return dto;
     }
 
-    /** Mappe une commande vers le DTO (orderId, orderNumber, customerName, formattedAddress). */
+    /**
+     * Mappe une commande vers le DTO des commandes éligibles pour une tournée.
+     * Inclut les infos client/adresse et les préférences de livraison du salarié (informatif pour le RL).
+     */
     private EligibleOrderDTO mapToEligibleOrderDTO(Order order) {
-        // Nom du client = salarié (prénom + nom)
+        // ——— Client et adresse ———
         String customerName = order.getEmployee() != null && order.getEmployee().getUser() != null
                 ? order.getEmployee().getUser().getFirstName() + " " + order.getEmployee().getUser().getLastName()
                 : "";
-        // Adresse principale de livraison pour la tournée
-        Address addr = getPrimaryAddress(order.getEmployee());
+        Address addr = order.getEmployee() != null ? getPrimaryAddress(order.getEmployee()) : null;
         String formattedAddress = (addr != null && addr.getFormattedAddress() != null && !addr.getFormattedAddress().isBlank())
                 ? addr.getFormattedAddress() : null;
+
+        // ——— Préférences de livraison (informatif uniquement : le RL peut créer la tournée même si pas de correspondance) ———
+        EmployeeDeliveryPreference pref = order.getEmployee() != null ? order.getEmployee().getEmployeeDeliveryPreference() : null;
+        boolean hasPreferences = (pref != null);
+        // Jours préférés (ex: ["MONDAY", "WEDNESDAY"]) ou null si aucune préférence
+        List<String> preferredDays = (pref != null && pref.getPreferredDays() != null)
+                ? new ArrayList<>(pref.getPreferredDays()) : null;
+        // Créneau affiché (ex: "Matin (8h - 12h)")
+        String preferredTimeSlot = (pref != null && pref.getPreferredTimeSlot() != null)
+                ? pref.getPreferredTimeSlot().getDisplayName() : null;
+        // Mode de livraison affiché (ex: "Domicile", "Bureau")
+        String preferredDeliveryMode = (pref != null && pref.getDeliveryMode() != null)
+                ? pref.getDeliveryMode().getDisplayName() : null;
+        // true si la date de livraison de la commande tombe un jour préféré par le salarié ; null si pas de préférences ou pas de jours renseignés
+        Boolean matchesPreferences = null;
+        if (hasPreferences && order.getDeliveryDate() != null && pref.getPreferredDays() != null && !pref.getPreferredDays().isEmpty()) {
+            String dayOfWeek = order.getDeliveryDate().getDayOfWeek().name(); // ex: MONDAY
+            matchesPreferences = pref.isAvailableOn(dayOfWeek);
+        }
+
         return new EligibleOrderDTO(
                 order.getId(),
                 order.getOrderNumber(),
                 customerName,
-                formattedAddress
+                formattedAddress,
+                preferredDays,
+                preferredTimeSlot,
+                preferredDeliveryMode,
+                matchesPreferences,
+                hasPreferences
         );
     }
 
