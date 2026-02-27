@@ -12,8 +12,9 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DeliveryPreferenceDTO {
-    private Long id; // ID de la préférence
-    private Set<String> preferredDays; // ["MONDAY", "WEDNESDAY", "FRIDAY"]
+    private Long id;
+    /** Un jour par élément Ex: ["MONDAY", "TUESDAY", "WEDNESDAY"] */
+    private Set<String> preferredDays;
     private TimeSlot preferredTimeSlot; // MORNING, AFTERNOON, ALL_DAY
-    private DeliveryMode deliveryMode; // OFFICE, HOME
+    private DeliveryMode deliveryMode;   // OFFICE, HOME
 }
