@@ -575,7 +575,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             //on va parcourir les adresses existantes et les mettre à "false "
             employee.getAddresses().forEach((addr -> addr.setPrimary(false)));
         }
-        // 5. Créer l'adresse (formattedAddress + lat/long uniquement)
+        // 5. Créer l'adresse (formattedAddress + lat/long uniquement) — id ignoré (généré par la BDD)
         Address address = new Address();
         address.setEmployee(employee);
         address.setDeliveryMode(dto.getDeliveryMode());
@@ -664,7 +664,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         return addresses.stream()
                 .map(address -> {
                     AddressDTO dto = new AddressDTO();
-                    dto.setId(address.getId());
                     dto.setDeliveryMode(address.getDeliveryMode());
                     dto.setFormattedAddress(address.getFormattedAddress());
                     dto.setLatitude(address.getLatitude());
