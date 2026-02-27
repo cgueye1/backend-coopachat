@@ -18,7 +18,6 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class AddressDTO {
 
-   
     @NotNull(message = "Le type d'adresse est obligatoire")
     private DeliveryMode deliveryMode;
 
