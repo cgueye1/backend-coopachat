@@ -35,14 +35,14 @@ public class Payment {
      * Mode de paiement (ENUM). Null tant que le client n'a pas choisi (paiement créé à la commande, statut Impayé).
      */
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method", nullable = true)
+    @Column(name = "payment_method", nullable = true, columnDefinition = "VARCHAR(50) NULL")
     private PaymentMethodType paymentMethod;
 
     /**
      * Moment du paiement (ENUM). Null tant que non défini (rempli au moment du paiement).
      */
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_timing", nullable = true)
+    @Column(name = "payment_timing", nullable = true, columnDefinition = "VARCHAR(50) NULL")
     private PaymentTimingType paymentTiming;
 
 
