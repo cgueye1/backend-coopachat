@@ -121,7 +121,7 @@ public class AdminController {
     @Operation(
             summary = "Upload une icône de catégorie",
             description = "Envoie un fichier image (SVG, PNG, etc.) pour l'icône d'une catégorie. " +
-                    "Retourne le chemin relatif à utiliser dans le champ 'icon' (ex: categories/uuid.svg)."
+                    "Retourne le chemin relatif à utiliser dans le champ 'icon' (ex: uuid.svg), stocké directement dans files/."
     )
     @PostMapping("/categories/upload-icon")
     public ResponseEntity<?> uploadCategoryIcon(@RequestParam("file") MultipartFile file) {
@@ -138,7 +138,7 @@ public class AdminController {
             }
         }
         try {
-            String relativePath = fileTransferUtil.handleFileUpload(file, "categories");
+            String relativePath = fileTransferUtil.handleFileUpload(file);
             return ResponseEntity.ok(java.util.Map.of("path", relativePath));
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
