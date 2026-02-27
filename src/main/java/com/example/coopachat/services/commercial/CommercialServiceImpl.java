@@ -731,6 +731,17 @@ public class CommercialServiceImpl implements CommercialService {
             }
         }
 
+        // 2c) Montant fixe = uniquement sur le total du panier (évite coupon > prix produit sur une ligne(article) de panier)
+        if (createCouponDTO.getDiscountType() == DiscountType.FIXED_AMOUNT) {
+            if (createCouponDTO.getScope() != CouponScope.CART_TOTAL) {
+                throw new RuntimeException("Un coupon en montant fixe ne peut être appliqué que sur le total du panier (scope CART_TOTAL)");
+            }
+            if ((createCouponDTO.getProductIds() != null && !createCouponDTO.getProductIds().isEmpty())
+                    || (createCouponDTO.getCategoryIds() != null && !createCouponDTO.getCategoryIds().isEmpty())) {
+                throw new RuntimeException("Un coupon en montant fixe ne doit pas être lié à des produits ou catégories");
+            }
+        }
+
         // 3) Création du coupon
         Coupon coupon = new Coupon();
         coupon.setCode(createCouponDTO.getCode().trim().toUpperCase()); // Normalisation du code
