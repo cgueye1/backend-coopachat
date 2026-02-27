@@ -490,12 +490,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
-        // 2. Chercher les préférences en base
+        // 2. Chercher les préférences en base (aucune préférence = DTO vide, pas d'erreur)
         EmployeeDeliveryPreference preference = employeeDeliveryPreferenceRepository.findByEmployee(employee)
-                .orElseThrow(() -> new RuntimeException("Aucune préférence de livraison trouvée"));
+                .orElse(null);
 
-        // 3. Convertir en DTO
-        DeliveryPreferenceDTO dto = convertPreferenceToDto(preference);
+        // 3. Convertir en DTO ou retourner un DTO vide
+        DeliveryPreferenceDTO dto = preference != null ? convertPreferenceToDto(preference) : new DeliveryPreferenceDTO();
 
         log.info("Préférences récupérées pour {}: {} jours, créneau: {}, mode: {}",
                 currentUser.getEmail(),
@@ -1740,11 +1740,10 @@ public class EmployeeServiceImpl implements EmployeeService {
      */
     private DeliveryPreferenceDTO convertPreferenceToDto(EmployeeDeliveryPreference entity) {
         DeliveryPreferenceDTO dto = new DeliveryPreferenceDTO();
-
+        dto.setId(entity.getId());
         dto.setPreferredDays(entity.getPreferredDays());
         dto.setPreferredTimeSlot(entity.getPreferredTimeSlot());
         dto.setDeliveryMode(entity.getDeliveryMode());
-
         return dto;
     }
 

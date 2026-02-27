@@ -122,8 +122,9 @@ public class SecurityConfig {
         // Autorise tous les headers (dont Authorization pour le Bearer token)
         configuration.setAllowedHeaders(Arrays.asList("*"));
 
-        // Autorise l'envoi de cookies/tokens
-        configuration.setAllowCredentials(true);
+        // Credentials (cookies) : false car avec allowOriginPatterns("*") le navigateur refuse sinon ("Failed to fetch").
+        // Le JWT dans le header Authorization est quand même envoyé par le front.
+        configuration.setAllowCredentials(false);
 
         // Crée la "boîte à configuration" CORS
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

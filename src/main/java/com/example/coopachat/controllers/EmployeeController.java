@@ -161,7 +161,7 @@ public class EmployeeController {
     @Operation(
             summary = "Enregistrer/modifier mes préférences de livraison",
             description = "Crée ou met à jour les préférences de livraison de l'utilisateur connecté " +
-                    "(jours, créneaux horaires, mode de réception)"
+                    "(jours Ex: [\"MONDAY\", \"TUESDAY\", \"WEDNESDAY\"], créneaux horaires, mode de réception)"
     )
     @PostMapping("/delivery-preferences")
     public ResponseEntity<String> saveDeliveryPreference(@RequestBody DeliveryPreferenceDTO dto) {
