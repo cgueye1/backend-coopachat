@@ -16,7 +16,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * DTO pour la creation d'un coupon
+ * DTO pour la création d'un coupon.
+ * Deux types : (1) produit/catégorie (scope ALL_PRODUCTS, CATEGORIES ou PRODUCTS) ; (2) code promo panier (scope CART_TOTAL), pas lié à un produit/catégorie.
  */
 @Data
 @NoArgsConstructor
@@ -37,7 +38,7 @@ public class CreateCouponDTO {
     private BigDecimal value;
 
     @NotNull(message = "Le scope du coupon est obligatoire")
-    private CouponScope scope;
+    private CouponScope scope; // ALL_PRODUCTS, CATEGORIES, PRODUCTS ou CART_TOTAL (code promo sans produit/catégorie)
 
     @NotNull(message = "Le statut du coupon est obligatoire")
     private CouponStatus status;
@@ -53,9 +54,9 @@ public class CreateCouponDTO {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     private LocalDateTime endDate;
 
-    // optionnel: liste des produits pour le scope PRODUCTS
+    // Optionnel : liste des produits pour le scope PRODUCTS. Pour CART_TOTAL, doit être null ou vide.
     private List<Long> productIds;
 
-    // optionnel: liste des categories pour le scope CATEGORIES
+    // Optionnel : liste des catégories pour le scope CATEGORIES. Pour CART_TOTAL, doit être null ou vide.
     private List<Long> categoryIds;
 }

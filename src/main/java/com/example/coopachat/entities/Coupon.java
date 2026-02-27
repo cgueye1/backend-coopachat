@@ -52,7 +52,7 @@ public class Coupon {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @NotNull(message = "Le scope du coupon est obligatoire")
-    private CouponScope scope; // ALL_PRODUCTS / CATEGORIES / PRODUCTS
+    private CouponScope scope; // ALL_PRODUCTS, CATEGORIES, PRODUCTS (lié produit/catégorie) ou CART_TOTAL (code promo manuel, pas lié, s'applique au total du panier)
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

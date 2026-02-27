@@ -1,5 +1,6 @@
 package com.example.coopachat.services.Employee;
 
+import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
 import com.example.coopachat.dtos.employees.DeliveryPreferenceDTO;
 import com.example.coopachat.dtos.cart.CartItemDTO;
 import com.example.coopachat.dtos.cart.CartResponseDTO;
@@ -128,21 +129,22 @@ public class EmployeeServiceImpl implements EmployeeService {
                     .map(this::mapToProductPromoItemDTO)
                     .collect(Collectors.toList());
 
-            // Catégories + promo (inchangés)
+            // Catégories + liste des coupons actifs (scope non produit/catégorie : panier, livraison, etc.)
             List<Category> latestCategories = categoryRepository.findTop4ByOrderByIdDesc();
             List<CategoryHomeItemDTO> categoryItems = latestCategories.stream()
                     .map(this::mapToCategoryHomeItemDTO)
                     .collect(Collectors.toList());
-            CouponPromoDTO promoDTO = couponRepository.findLatestActiveCoupon(LocalDateTime.now())
+            List<CouponPromoDTO> promoCoupons = couponRepository.findActiveCouponsNotProductOrCategory(LocalDateTime.now())
+                    .stream()
                     .map(this::mapToCouponPromoDTO)
-                    .orElse(null);
+                    .collect(Collectors.toList());
 
             // Réponse avec infos de pagination
             HomeResponseDTO response = new HomeResponseDTO();
             response.setFirstName(user.getFirstName());
             response.setProducts(productItems);
             response.setCategories(categoryItems);
-            response.setActiveCoupon(promoDTO);
+            response.setActiveCoupons(promoCoupons);
             response.setTotalElements(productPage.getTotalElements());
             response.setTotalPages(productPage.getTotalPages());
             response.setCurrentPage(productPage.getNumber());
@@ -162,15 +164,16 @@ public class EmployeeServiceImpl implements EmployeeService {
         List<CategoryHomeItemDTO> categoryItems = latestCategories.stream()
                 .map(this::mapToCategoryHomeItemDTO)
                 .collect(Collectors.toList());
-        CouponPromoDTO promoDTO = couponRepository.findLatestActiveCoupon(LocalDateTime.now())
+        List<CouponPromoDTO> promoCoupons = couponRepository.findActiveCouponsNotProductOrCategory(LocalDateTime.now())
+                .stream()
                 .map(this::mapToCouponPromoDTO)
-                .orElse(null);
+                .collect(Collectors.toList());
 
         HomeResponseDTO response = new HomeResponseDTO();
         response.setFirstName(user.getFirstName());
         response.setProducts(productItems);
         response.setCategories(categoryItems);
-        response.setActiveCoupon(promoDTO);
+        response.setActiveCoupons(promoCoupons);
         return response;
     }
 
@@ -676,9 +679,9 @@ public class EmployeeServiceImpl implements EmployeeService {
     // ============================================================================
 
     @Override
-    public List<com.example.coopachat.dtos.delivery.DeliveryOptionDTO> getActiveDeliveryOptions() {
+    public List<DeliveryOptionDTO> getActiveDeliveryOptions() {
         return deliveryOptionRepository.findByIsActiveTrue().stream()
-                .map(opt -> new com.example.coopachat.dtos.delivery.DeliveryOptionDTO(
+                .map(opt -> new DeliveryOptionDTO(
                         opt.getId(),
                         opt.getName(),
                         opt.getDescription(),
@@ -687,16 +690,112 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .toList();
     }
 
+    // ---------- previewOrder : étape 2 (Livraison) — aucun enregistrement en base ----------
+    /**
+     * Aperçu de la commande sans rien écrire en base (écran récap avant "Valider ma commande").
+     */
+    @Override
+    @Transactional(readOnly = true)  // ← rien en base
+    public OrderPreviewDTO previewOrder(CreateOrderDTO dto) {
+
+        // 1. Récupérer employé + panier
+        Users currentUser = getCurrentUser();
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+
+        // Liste des lignes du panier (un seul panier par employé, mais plusieurs articles = plusieurs CartItem)
+        List<CartItem> cartItems = cartItemRepository.findByEmployee(employee);
+        if (cartItems.isEmpty()) {
+            throw new RuntimeException("Votre panier est vide");
+        }
+
+        // 2. Option de livraison
+        DeliveryOption deliveryOption = deliveryOptionRepository.findById(dto.getDeliveryOptionId())
+                .orElseThrow(() -> new RuntimeException("Option introuvable"));
+
+        // 3. Calculer total (à partir des lignes du panier, sans créer de commande)
+        BigDecimal total = BigDecimal.ZERO;   // Montant total du panier avant coupon
+        int nbArticles = 0;                   // Nombre total d’articles (somme des quantités)
+        for (CartItem item : cartItems) {
+            // Prix unitaire à utiliser : promo s’il existe, sinon prix normal
+            BigDecimal prix = item.getPromoPrice() != null
+                    ? item.getPromoPrice()
+                    : item.getUnitPrice();
+            total = total.add(prix.multiply(BigDecimal.valueOf(item.getQuantity()))); // Sous-total ligne = prix × quantité
+            nbArticles += item.getQuantity(); // Cumuler le nombre d’articles (somme des quantités) pour l’affichage 
+        }
+
+        // 4. Appliquer coupon si fourni (ça une réduction supplémentaire si promo price est présent sur un article)
+        if (dto.getCouponCode() != null && !dto.getCouponCode().isBlank()) {
+            Coupon coupon = couponRepository.findByCodeAndIsActiveTrue(dto.getCouponCode())
+                    .orElseThrow(() -> new RuntimeException("Coupon invalide ou expiré"));
+
+            // Vérifier si le coupon est encore valide (dates)
+            LocalDateTime now = LocalDateTime.now();
+            if (now.isBefore(coupon.getStartDate())) {
+                throw new RuntimeException("Ce coupon n'est pas encore valide");
+            }
+            if (now.isAfter(coupon.getEndDate())) {
+                throw new RuntimeException("Ce coupon a expiré");
+            }
+
+             // Calculer la réduction selon le type
+            BigDecimal discount;
+
+            // Si la réduction est de type pourcentage, on calcule le montant à déduire
+            // en multipliant le total par le pourcentage
+            if (coupon.getDiscountType() == DiscountType.PERCENTAGE) {
+
+             // Pourcentage : (total × valeur) ÷ 100
+                BigDecimal pourcentage = coupon.getValue()
+                        .divide(BigDecimal.valueOf(100)); // 10% → 0.10
+
+                discount = total.multiply(pourcentage);
+
+            } else {
+                // Montant fixe : on vérifie que la valeur du coupon ne dépasse pas le total de la commande
+                if (coupon.getValue().compareTo(total) > 0) {
+                    throw new RuntimeException(
+                            "Ce coupon ne peut pas être utilisé sur une commande inférieure à "
+                                    + coupon.getValue() + " F"
+                    );
+                }
+                // On déduit directement la valeur du coupon du total
+                total = total.subtract(coupon.getValue());
+            }
+        }
+
+        // 5. Adresse principale (pour l’affichage du récap)
+        Address primaryAddress = addressRepository
+                .findByEmployeeAndIsPrimaryTrue(employee);
+        String deliveryAddress = primaryAddress != null && primaryAddress.getFormattedAddress() != null && !primaryAddress.getFormattedAddress().isBlank()
+                ? primaryAddress.getFormattedAddress()
+                : "Adresse non définie";
+
+        // 6. Retourner preview ← RIEN SAUVEGARDÉ
+        return new OrderPreviewDTO(
+                nbArticles,
+                deliveryOption.getName(),
+                calculateDeliveryDate(deliveryOption),
+                deliveryAddress,
+                total
+        );
+    }
+
+    // ---------- createOrder : étape 3 (Confirmation) — sauvegarde commande + paiement + vide panier ----------
+    /**
+     * Crée la commande en base, associe le paiement (Impayé), vide le panier. À appeler quand le salarié clique sur "Valider ma commande".
+     */
     @Override
     @Transactional
-    public OrderResponseDTO createOrder(CreateOrderDTO dto) {
+    public void createOrder(CreateOrderDTO dto) {
 
         // 1. Récupérer l'utilisateur et l'employé
         Users currentUser = getCurrentUser();
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
-        // 2. Récupérer le panier
+        // 2. Récupérer le panier (liste des lignes du panier : un seul panier par employé, plusieurs CartItem = plusieurs articles)
         List<CartItem> cartItems = cartItemRepository.findByEmployee(employee);
 
         if (cartItems.isEmpty()) {
@@ -816,23 +915,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         savedOrder.setPayment(savedPayment);
 
         cartItemRepository.deleteAll(cartItems);//on vide le panier
-
-        // 8. Préparer la réponse
-
-        // Récupérer l’adresse de livraison principale de l’employé
-        Address primaryAddress = addressRepository.findByEmployeeAndIsPrimaryTrue(employee);
-
-        String deliveryAddress = primaryAddress != null && primaryAddress.getFormattedAddress() != null && !primaryAddress.getFormattedAddress().isBlank()
-                ? primaryAddress.getFormattedAddress()
-                : "Adresse non définie";
-
-        return new OrderResponseDTO(
-                nbArticles, // Nombre total d’articles commandés
-                order.getDeliveryOption().getName(), // Option de livraison choisie
-                order.getDeliveryDate(), // Date de livraison prévue
-                deliveryAddress, // Adresse de livraison
-                order.getTotalPrice() // Montant total de la commande
-        );
 
     }
 

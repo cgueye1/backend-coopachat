@@ -644,13 +644,18 @@ public class CommercialServiceImpl implements CommercialService {
         Coupon coupon = couponRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Coupon introuvable"));
 
+        // Récupérer les produits concernés selon le scope (CART_TOTAL : pas de produit ni catégorie liés → liste vide)
         List<Product> products = Collections.emptyList();
+        // Récupérer les produits concernés selon le scope du coupon (pour l’affichage détail)
+        // CART_TOTAL : code promo sur le total du panier, pas de produit ni catégorie liés → liste vide
         if (coupon.getScope() == CouponScope.ALL_PRODUCTS || coupon.getScope() == CouponScope.PRODUCTS) {
+            // Coupon appliqué à des produits : on charge les produits qui ont ce coupon en référence
             products = productRepository.findByCouponId(coupon.getId());
         } else if (coupon.getScope() == CouponScope.CATEGORIES) {
+            // Coupon appliqué à des catégories : on charge les catégories liées, puis tous les produits de ces catégories
             List<Category> categories = categoryRepository.findByCouponId(coupon.getId());
             if (categories != null && !categories.isEmpty()) {
-                products = productRepository.findByCategoryIn(categories);
+                products = productRepository.findByCategoryIn(categories);//findByCategoryIn signifie "trouver les produits qui appartiennent à une des catégories"
             }
         }
 
@@ -718,6 +723,14 @@ public class CommercialServiceImpl implements CommercialService {
             throw new RuntimeException("La date de fin doit être après la date de début");
         }
 
+        // 2b) Scope CART_TOTAL = code promo panier, pas de produit ni catégorie
+        if (createCouponDTO.getScope() == CouponScope.CART_TOTAL) {
+            if ((createCouponDTO.getProductIds() != null && !createCouponDTO.getProductIds().isEmpty())
+                    || (createCouponDTO.getCategoryIds() != null && !createCouponDTO.getCategoryIds().isEmpty())) {
+                throw new RuntimeException("Un coupon \"Sur le total du panier\" ne doit pas être lié à des produits ou catégories");
+            }
+        }
+
         // 3) Création du coupon
         Coupon coupon = new Coupon();
         coupon.setCode(createCouponDTO.getCode().trim().toUpperCase()); // Normalisation du code
@@ -732,7 +745,7 @@ public class CommercialServiceImpl implements CommercialService {
 
         Coupon saved = couponRepository.save(coupon);
 
-        // 4) Application selon le scope
+        // 4) Lier des produits/catégories uniquement pour les scopes autre que CART_TOTAL (déjà validé en 2b)
         if (createCouponDTO.getScope() == CouponScope.ALL_PRODUCTS) {
             // Appliquer sur tous les produits actifs
             List<Product> activeProducts = productRepository.findByStatus(true);
@@ -740,9 +753,7 @@ public class CommercialServiceImpl implements CommercialService {
                 p.setCoupon(saved);
             }
             productRepository.saveAll(activeProducts);
-        }
-
-        if (createCouponDTO.getScope() == CouponScope.PRODUCTS) {
+        } else if (createCouponDTO.getScope() == CouponScope.PRODUCTS) {//on a ciblé des produits, on les lie au coupon
             if (createCouponDTO.getProductIds() == null || createCouponDTO.getProductIds().isEmpty()) {
                 throw new RuntimeException("Veuillez sélectionner au moins un produit");
             }
@@ -754,9 +765,7 @@ public class CommercialServiceImpl implements CommercialService {
                 p.setCoupon(saved);
             }
             productRepository.saveAll(products);
-        }
-
-        if (createCouponDTO.getScope() == CouponScope.CATEGORIES) {
+        } else if (createCouponDTO.getScope() == CouponScope.CATEGORIES) {
             if (createCouponDTO.getCategoryIds() == null || createCouponDTO.getCategoryIds().isEmpty()) {
                 throw new RuntimeException("Veuillez sélectionner au moins une catégorie");
             }
