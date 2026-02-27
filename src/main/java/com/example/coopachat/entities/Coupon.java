@@ -50,7 +50,7 @@ public class Coupon {
     private BigDecimal value; // Pourcentage ou montant
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     @NotNull(message = "Le scope du coupon est obligatoire")
     private CouponScope scope; // ALL_PRODUCTS, CATEGORIES, PRODUCTS (lié produit/catégorie) ou CART_TOTAL (code promo manuel, pas lié, s'applique au total du panier)
 
