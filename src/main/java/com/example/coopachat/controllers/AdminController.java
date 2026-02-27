@@ -71,9 +71,13 @@ public class AdminController {
     )
     @PostMapping("/categories")
     public ResponseEntity<String> createCategory(@RequestBody @Valid CreateCategoryDTO createCategoryDTO) {
-        adminService.createCategory(createCategoryDTO);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Catégorie créée avec succès");
+        try {
+            adminService.createCategory(createCategoryDTO);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body("Catégorie créée avec succès");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
     @Operation(
@@ -106,8 +110,12 @@ public class AdminController {
     public ResponseEntity<String> updateCategory(
             @PathVariable Long id,
             @RequestBody @Valid UpdateCategoryDTO dto) {
-        adminService.updateCategory(id, dto);
-        return ResponseEntity.ok("Catégorie mise à jour");
+        try {
+            adminService.updateCategory(id, dto);
+            return ResponseEntity.ok("Catégorie mise à jour");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
     @Operation(
@@ -115,10 +123,19 @@ public class AdminController {
             description = "Envoie un fichier image (SVG, PNG, etc.) pour l'icône d'une catégorie. " +
                     "Retourne le chemin relatif à utiliser dans le champ 'icon' (ex: categories/uuid.svg)."
     )
-    @PostMapping(value = "/categories/upload-icon", consumes = "multipart/form-data")
+    @PostMapping("/categories/upload-icon")
     public ResponseEntity<?> uploadCategoryIcon(@RequestParam("file") MultipartFile file) {
         if (file == null || file.isEmpty()) {
             return ResponseEntity.badRequest().body("Fichier requis");
+        }
+        // Même règle que produit : valider le format (produit = JPG/PNG ; icône = JPG, PNG, SVG)
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename != null) {
+            String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+            if (!extension.equals("jpg") && !extension.equals("jpeg") && !extension.equals("png") && !extension.equals("svg")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Format non supporté. Formats acceptés: JPG, PNG, SVG");
+            }
         }
         try {
             String relativePath = fileTransferUtil.handleFileUpload(file, "categories");
