@@ -89,7 +89,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT DISTINCT o FROM Order o " +                           // on prend les commandes, sans doublon
             "JOIN FETCH o.employee e " +                            // on charge l'employé
             "JOIN FETCH e.user " +                                  // on charge l'utilisateur
-            "WHERE o.deliveryDate = :deliveryDate AND o.status = :status " +  // filtre : même date + statut EN_ATTENTE
+            "WHERE o.deliveryDate <= :deliveryDate AND o.status = :status " +  // filtre : même date + statut EN_ATTENTE
             "AND o.deliveryTour IS NULL AND e.user.isActive = true " +   // pas déjà en tournée + employé actif
             "ORDER BY o.id ASC")                                         // tri par id pour ordre stable
     List<Order> findEligibleOrdersForDate(
