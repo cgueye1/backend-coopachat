@@ -81,5 +81,8 @@ public enum DeliveryTourStatus {
         return label;
     }
 
-
+    /** Alias pour cohérence avec les autres enums (TimeSlot, DeliveryMode). */
+    public String getDisplayName() {
+        return label;
+    }
 }
