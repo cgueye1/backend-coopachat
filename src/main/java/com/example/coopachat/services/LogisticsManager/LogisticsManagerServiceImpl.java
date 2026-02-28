@@ -1356,7 +1356,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             throw new RuntimeException("Seul un responsable logistique peut consulter les commandes éligibles");
         }
         return filterEligibleOrders(deliveryDate).stream()
-                .map(this::mapToEligibleOrderDTO)
+                .map(order -> mapToEligibleOrderDTO(order, deliveryDate))
                 .toList();
     }
 
@@ -1439,7 +1439,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
             List<EligibleOrderDTO> orderDTOs =
                     lotOrders.stream()
-                            .map(this::mapToEligibleOrderDTO)
+                            .map(order -> mapToEligibleOrderDTO(order, deliveryDate))
                             .toList();
 
 
@@ -2030,8 +2030,9 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     /**
      * Mappe une commande vers le DTO des commandes éligibles pour une tournée.
      * Inclut les infos client/adresse et les préférences de livraison du salarié (informatif pour le RL).
+     * « Correspond aux préférences » = la date de la tournée (tourDeliveryDate) tombe un jour préféré par le salarié.
      */
-    private EligibleOrderDTO mapToEligibleOrderDTO(Order order) {
+    private EligibleOrderDTO mapToEligibleOrderDTO(Order order, LocalDate tourDeliveryDate) {
         // ——— Client et adresse ———
         String customerName = order.getEmployee() != null && order.getEmployee().getUser() != null
                 ? order.getEmployee().getUser().getFirstName() + " " + order.getEmployee().getUser().getLastName()
@@ -2043,7 +2044,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // ——— Préférences de livraison (informatif uniquement : le RL peut créer la tournée même si pas de correspondance) ———
         EmployeeDeliveryPreference pref = order.getEmployee() != null ? order.getEmployee().getEmployeeDeliveryPreference() : null;
         boolean hasPreferences = (pref != null);
-        // Jours préférés (ex: ["MONDAY", "WEDNESDAY"]) ou null si aucune préférence
+        // Jours préférés (ex: ["LUNDI", "VENDREDI"])
         List<String> preferredDays = (pref != null && pref.getPreferredDays() != null)
                 ? new ArrayList<>(pref.getPreferredDays()) : null;
         // Créneau affiché (ex: "Matin (8h - 12h)")
@@ -2052,11 +2053,10 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // Mode de livraison affiché (ex: "Domicile", "Bureau")
         String preferredDeliveryMode = (pref != null && pref.getDeliveryMode() != null)
                 ? pref.getDeliveryMode().getDisplayName() : null;
-        // true si la date de livraison de la commande tombe un jour préféré par le salarié ; null si pas de préférences ou pas de jours renseignés
-        // Convention : tout en français (LUNDI, VENDREDI...). On convertit le jour Java (anglais) en français pour la comparaison.
+        // true si la date de la tournée (celle choisie par le RL) tombe un jour préféré par le salarié
         Boolean matchesPreferences = null;
-        if (hasPreferences && order.getDeliveryDate() != null && pref.getPreferredDays() != null && !pref.getPreferredDays().isEmpty()) {
-            String dayOfWeekEn = order.getDeliveryDate().getDayOfWeek().name();
+        if (hasPreferences && tourDeliveryDate != null && pref.getPreferredDays() != null && !pref.getPreferredDays().isEmpty()) {
+            String dayOfWeekEn = tourDeliveryDate.getDayOfWeek().name();
             String dayOfWeekFr = dayOfWeekEnToFrench(dayOfWeekEn);
             matchesPreferences = pref.isAvailableOn(dayOfWeekFr);
         }

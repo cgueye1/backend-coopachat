@@ -660,10 +660,11 @@ public class EmployeeServiceImpl implements EmployeeService {
         // 3. Récupérer toutes les adresses de cet employé
         List<Address> addresses = addressRepository.findByEmployee(employee);
 
-        // 4. Convertir en DTOs chaque adresse retournée (avec GPS)
+        // 4. Convertir en DTOs chaque adresse retournée (avec id pour que le front puisse appeler updateAddress(id, ...))
         return addresses.stream()
                 .map(address -> {
                     AddressDTO dto = new AddressDTO();
+                    dto.setId(address.getId());
                     dto.setDeliveryMode(address.getDeliveryMode());
                     dto.setFormattedAddress(address.getFormattedAddress());
                     dto.setLatitude(address.getLatitude());
