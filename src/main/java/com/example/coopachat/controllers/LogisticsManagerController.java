@@ -386,7 +386,7 @@ public class LogisticsManagerController {
             summary = "Récupérer les détails d'une commande salarié",
             description = "Récupère toutes les informations détaillées d'une commande salarié"
     )
-    @GetMapping("/employee-order/{id}")
+    @GetMapping(value = "/employee-order/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OrderItemDetailsDTO> getOrderById(@PathVariable Long id) {
         OrderItemDetailsDTO details = logisticsManagerService.getOrderItemDetailById(id);
         return ResponseEntity.ok(details);
@@ -504,7 +504,7 @@ public class LogisticsManagerController {
 
     @Operation(
             summary = "Annuler une tournée",
-            description = "Annule une tournée planifiée ou assignée (statut: PLANIFIEE/ASSIGNEE → ANNULEE) "
+            description = "Annule une tournée assignée avant départ livreur (statut: ASSIGNEE → ANNULEE) "
                     + "avec motif obligatoire."
     )
     @PostMapping("/delivery-tours/{tourId}/cancel")

@@ -5,11 +5,14 @@ import lombok.Getter;
 @Getter
 public enum DeliveryTourStatus {
 
-    PLANIFIEE("Planifiée"),           // Le RL a créé la tournée (brouillon)
-    ASSIGNEE("Assignée"),             // Tournée assignée au livreur (notification envoyée)
-    EN_COURS("En cours"),             // Le livreur a démarré la tournée
-    TERMINEE("Terminée"),             // Le livreur a terminé toutes les livraisons
-    ANNULEE("Annulée");               // Le Responsable Logistique a annulé la tournée
+    /** Création par RL → tournée créée, livreur assigné (RL peut encore annuler ou modifier). */
+    ASSIGNEE("Assignée"),
+    /** Livreur a swipé "Confirmer récupération" (impossible d'annuler). */
+    EN_COURS("En cours"),
+    /** Toutes commandes = LIVREE ou INCIDENT (passage automatique par le système). */
+    TERMINEE("Terminée"),
+    /** RL annule avant départ livreur (ASSIGNEE → ANNULEE uniquement). */
+    ANNULEE("Annulée");
 
     private final String displayName;
 

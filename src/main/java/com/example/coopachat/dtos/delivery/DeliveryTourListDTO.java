@@ -12,7 +12,8 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class DeliveryTourListDTO {
 
-    private String tourNumber;
+    private Long id;           // Pour les actions frontend (détails, modifier, annuler)
+    private String tourNumber; // N° Tour
     private LocalDate deliveryDate;
     private String driverName;
     private String vehicle;//(type/plaque)

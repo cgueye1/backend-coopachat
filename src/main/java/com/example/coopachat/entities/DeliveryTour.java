@@ -60,7 +60,7 @@ public class DeliveryTour {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private DeliveryTourStatus status = DeliveryTourStatus.PLANIFIEE;
+    private DeliveryTourStatus status = DeliveryTourStatus.ASSIGNEE;
 
     // ==================== NOTES ====================
 
@@ -108,9 +108,9 @@ public class DeliveryTour {
 
     // ==================== MÉTHODES UTILES ====================
 
+    /** RL peut modifier uniquement si tournée assignée (avant que le livreur parte). */
     public boolean canBeModified() {
-        return status == DeliveryTourStatus.PLANIFIEE ||
-                status == DeliveryTourStatus.ASSIGNEE;
+        return status == DeliveryTourStatus.ASSIGNEE;
     }
 
     public boolean canBeStarted() {

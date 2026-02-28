@@ -19,6 +19,20 @@ import java.util.List;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
+
+    /**
+     * Charge une commande avec ses lignes (items) et les produits associés, pour les détails RL.
+     * Évite les chargements lazy et garantit que getItems() est rempli avec product + category.
+     */
+    @Query("SELECT DISTINCT o FROM Order o " +
+            "LEFT JOIN FETCH o.items i " +
+            "LEFT JOIN FETCH i.product p " +
+            "LEFT JOIN FETCH p.category " +
+            "LEFT JOIN FETCH o.employee e " +
+            "LEFT JOIN FETCH e.user " +
+            "WHERE o.id = :id")
+    java.util.Optional<Order> findByIdWithItemsAndProducts(@Param("id") Long id);
+
     /**
      * vérifie si un numéro de commande existe déjà
      */
