@@ -33,7 +33,7 @@ public class EmployeeNotificationService {
      */
     public void notifyOrderCreated(Order order) {
         if (order == null || order.getEmployee() == null || order.getEmployee().getUser() == null) {
-            log.warn("order ou employee/user manquant, notification ignorée");/
+            log.warn("order ou employee/user manquant, notification ignorée");
             return;
         }
         String email = order.getEmployee().getUser().getEmail();
@@ -49,18 +49,9 @@ public class EmployeeNotificationService {
                 : "À définir";
 
         String subject = "Commande enregistrée - " + orderNumber;
-        String body = String.format("""
-                Bonjour %s,
-
-                Votre commande a bien été enregistrée.
-
-                Numéro de commande : %s
-                Montant total : %s
-                Date de livraison prévue : %s
-
-                Merci pour votre confiance.
-                L'équipe CoopAchat
-                """, firstName, orderNumber, amount, deliveryDateStr);
+        String body = String.format(
+                "Bonjour %s,\n\nVotre commande a bien été enregistrée.\n\nNuméro de commande : %s\nMontant total : %s\nDate de livraison prévue : %s\n\nMerci pour votre confiance.\nL'équipe CoopAchat",
+                firstName, orderNumber, amount, deliveryDateStr);
 
         try {
             emailService.sendEmail(email, subject, body);
@@ -96,17 +87,9 @@ public class EmployeeNotificationService {
         String address = getPrimaryAddressFormatted(order.getEmployee());
 
         String subject = "Livraison planifiée - " + orderNumber;
-        String body = String.format("""
-                Bonjour %s,
-
-                Votre livraison pour la commande %s est planifiée.
-
-                Date : %s
-                Créneau : %s
-                Adresse de livraison : %s
-
-                L'équipe CoopAchat
-                """, firstName, orderNumber, deliveryDateStr, timeSlot, address);
+        String body = String.format(
+                "Bonjour %s,\n\nVotre livraison pour la commande %s est planifiée.\n\nDate : %s\nCréneau : %s\nAdresse de livraison : %s\n\nL'équipe CoopAchat",
+                firstName, orderNumber, deliveryDateStr, timeSlot, address);
 
         try {
             emailService.sendEmail(email, subject, body);
