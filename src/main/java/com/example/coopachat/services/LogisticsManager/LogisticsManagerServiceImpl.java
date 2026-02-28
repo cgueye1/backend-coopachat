@@ -1201,6 +1201,31 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
     @Transactional(readOnly = true)
     @Override
+    public EmployeeOrderStatsDTO getEmployeeOrderStats() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+        String username = authentication.getName();
+        Users user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter les statistiques des commandes salariés");
+        }
+
+        LocalDate today = LocalDate.now();
+        long enAttente = orderRepository.countByStatusAndDeliveryTourIsNull(OrderStatus.EN_ATTENTE);
+        long enRetard = orderRepository.countByStatusAndDeliveryDateBeforeAndDeliveryTourIsNull(OrderStatus.EN_ATTENTE, today);
+        long enCours = deliveryTourRepository.countByStatus(DeliveryTourStatus.EN_COURS);
+        LocalDateTime monthStart = today.withDayOfMonth(1).atStartOfDay();
+        LocalDateTime monthEnd = today.withDayOfMonth(today.lengthOfMonth()).atTime(23, 59, 59, 999_000_000);
+        long livreesCeMois = orderRepository.countByStatusAndDeliveryCompletedAtBetween(OrderStatus.LIVREE, monthStart, monthEnd);
+
+        return new EmployeeOrderStatsDTO(enAttente, enRetard, enCours, livreesCeMois);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
     public OrderItemDetailsDTO getOrderItemDetailById(Long orderId) {
 
         // Récupérer l'utilisateur connecté

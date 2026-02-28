@@ -160,4 +160,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("status") OrderStatus status,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
+
+    /** Commandes avec le statut donné et non affectées à une tournée (à valider par le RL). */
+    long countByStatusAndDeliveryTourIsNull(OrderStatus status);
+
+    /** Commandes avec le statut donné, date de livraison avant la date donnée, non affectées à une tournée (en retard). */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = :status AND o.deliveryDate < :before AND o.deliveryTour IS NULL")
+    long countByStatusAndDeliveryDateBeforeAndDeliveryTourIsNull(
+            @Param("status") OrderStatus status,
+            @Param("before") LocalDate before);
 }

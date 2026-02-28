@@ -11,6 +11,7 @@ import com.example.coopachat.dtos.claim.ValidateClaimDTO;
 import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.EligibleOrderLotDTO;
+import com.example.coopachat.dtos.order.EmployeeOrderStatsDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
@@ -233,6 +234,13 @@ public interface LogisticsManagerService {
      * @throws RuntimeException si une erreur survient
      */
      OrderEmployeeListResponseDTO getAllEmployeeOrders(int page, int size, String search, OrderStatus status);
+
+    /**
+     * Récupère les statistiques pour la page Gestion des commandes : EN ATTENTE, EN RETARD, EN COURS, LIVRÉES ce mois.
+     *
+     * @return EmployeeOrderStatsDTO (enAttente, enRetard, enCours, livreesCeMois)
+     */
+    EmployeeOrderStatsDTO getEmployeeOrderStats();
 
     /**
      * Récupère les détails complets d'une commande d'un salarié
