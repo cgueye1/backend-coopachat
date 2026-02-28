@@ -2053,10 +2053,12 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         String preferredDeliveryMode = (pref != null && pref.getDeliveryMode() != null)
                 ? pref.getDeliveryMode().getDisplayName() : null;
         // true si la date de livraison de la commande tombe un jour préféré par le salarié ; null si pas de préférences ou pas de jours renseignés
+        // Convention : tout en français (LUNDI, VENDREDI...). On convertit le jour Java (anglais) en français pour la comparaison.
         Boolean matchesPreferences = null;
         if (hasPreferences && order.getDeliveryDate() != null && pref.getPreferredDays() != null && !pref.getPreferredDays().isEmpty()) {
-            String dayOfWeek = order.getDeliveryDate().getDayOfWeek().name(); // ex: MONDAY
-            matchesPreferences = pref.isAvailableOn(dayOfWeek);
+            String dayOfWeekEn = order.getDeliveryDate().getDayOfWeek().name();
+            String dayOfWeekFr = dayOfWeekEnToFrench(dayOfWeekEn);
+            matchesPreferences = pref.isAvailableOn(dayOfWeekFr);
         }
 
         return new EligibleOrderDTO(
@@ -2084,6 +2086,21 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
      *      Lot 1 = [O1, O2, O3]
      *      Lot 2 = [O4, O5]
      */
+    /** Jour de la semaine en anglais (MONDAY) → français (LUNDI) pour comparaison avec préférences stockées en français. */
+    private static String dayOfWeekEnToFrench(String dayEn) {
+        if (dayEn == null) return null;
+        return switch (dayEn.toUpperCase()) {
+            case "MONDAY" -> "LUNDI";
+            case "TUESDAY" -> "MARDI";
+            case "WEDNESDAY" -> "MERCREDI";
+            case "THURSDAY" -> "JEUDI";
+            case "FRIDAY" -> "VENDREDI";
+            case "SATURDAY" -> "SAMEDI";
+            case "SUNDAY" -> "DIMANCHE";
+            default -> dayEn;
+        };
+    }
+
     private List<List<Order>> groupOrdersByProximity(List<Order> orders, int lotSize) {
         if (orders == null || orders.isEmpty() || lotSize <= 0) {
             return new ArrayList<>(); // Si pas de commandes ou lotSize <= 0, retourne vide
