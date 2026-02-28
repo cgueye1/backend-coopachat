@@ -8,26 +8,31 @@ import com.example.coopachat.dtos.coupons.CouponProductItemDTO;
 import com.example.coopachat.dtos.coupons.CreateCouponDTO;
 import com.example.coopachat.dtos.coupons.UpdateCouponStatusDTO;
 import com.example.coopachat.dtos.employees.*;
+import com.example.coopachat.entities.Address;
 import com.example.coopachat.entities.Category;
 import com.example.coopachat.entities.Company;
 import com.example.coopachat.entities.Coupon;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Product;
 import com.example.coopachat.entities.Users;
+import com.example.coopachat.enums.DeliveryMode;
 import com.example.coopachat.enums.*;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
 import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
 import com.example.coopachat.repositories.*;
+import com.example.coopachat.util.FileTransferUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -46,9 +51,11 @@ public class CommercialServiceImpl implements CommercialService {
     private final CompanyRepository companyRepository;
     private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
+    private final AddressRepository addressRepository;
     private final CouponRepository couponRepository;
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final FileTransferUtil fileTransferUtil;
 
     // ============================================================================
     // 🏢 GESTION DES ENTREPRISES
@@ -100,8 +107,8 @@ public class CommercialServiceImpl implements CommercialService {
             throw new RuntimeException("Seuls les commerciaux peuvent consulter leurs entreprises");
         }
 
-        // Créer l'objet Pageable pour la pagination
-        Pageable pageable = PageRequest.of(page, size);
+        // Créer l'objet Pageable pour la pagination (les plus récents en premier)
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
 
         // Normaliser le terme de recherche (supprimer les espaces)
         //Si search != null et non vide, alors on récupère le terme de recherche sinon on met null
@@ -290,6 +297,40 @@ public class CommercialServiceImpl implements CommercialService {
 
     @Override
     @Transactional
+    public void uploadCompanyLogo(Long id, org.springframework.web.multipart.MultipartFile file) {
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent modifier le logo d'une entreprise");
+        }
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
+        if (!company.getCommercial().getId().equals(commercial.getId())) {
+            throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
+        }
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Fichier requis");
+        }
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename != null) {
+            String ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+            if (!ext.equals("jpg") && !ext.equals("jpeg") && !ext.equals("png")) {
+                throw new RuntimeException("Format d'image non supporté. Formats acceptés: JPG, PNG");
+            }
+        }
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new RuntimeException("La taille du fichier ne doit pas dépasser 5 Mo");
+        }
+        try {
+            String logoFileName = fileTransferUtil.handleFileUpload(file);
+            company.setLogo(logoFileName);
+            companyRepository.save(company);
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur lors de l'enregistrement du logo", e);
+        }
+    }
+
+    @Override
+    @Transactional
     public CompanyStatsDTO getCompanyStats() {
 
         Users commercial = getCurrentUser();
@@ -384,8 +425,8 @@ public class CommercialServiceImpl implements CommercialService {
             throw new RuntimeException("Seuls les commerciaux peuvent consulter leurs employés");
         }
 
-        // Créer l'objet Pageable pour la pagination
-        Pageable pageable = PageRequest.of(page, size);
+        // Créer l'objet Pageable pour la pagination (les plus récents en premier)
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
 
         // Normaliser le terme de recherche (supprimer les espaces)
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
@@ -579,6 +620,22 @@ public class CommercialServiceImpl implements CommercialService {
                 throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
             }
             employee.setCompany(company);
+        }
+
+        // Mettre à jour l'adresse principale si address est fourni
+        if (updateEmployeeDTO.getAddress() != null) {
+            Address primary = addressRepository.findByEmployeeAndIsPrimaryTrue(employee);
+            if (primary != null) {
+                primary.setFormattedAddress(updateEmployeeDTO.getAddress().trim());
+                addressRepository.save(primary);
+            } else {
+                Address newAddress = new Address();
+                newAddress.setEmployee(employee);
+                newAddress.setFormattedAddress(updateEmployeeDTO.getAddress().trim());
+                newAddress.setPrimary(true);
+                newAddress.setDeliveryMode(DeliveryMode.HOME);
+                addressRepository.save(newAddress);
+            }
         }
 
         // Sauvegarder les modifications
@@ -802,6 +859,29 @@ public class CommercialServiceImpl implements CommercialService {
         couponRepository.save(coupon);
     }
 
+    @Override
+    @Transactional
+    public void deleteCoupon(Long id) {
+        Coupon coupon = couponRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Coupon introuvable"));
+
+        // Délier les produits qui référencent ce coupon
+        List<Product> productsWithCoupon = productRepository.findByCouponId(coupon.getId());
+        for (Product p : productsWithCoupon) {
+            p.setCoupon(null);
+        }
+        productRepository.saveAll(productsWithCoupon);
+
+        // Délier les catégories qui référencent ce coupon
+        List<Category> categoriesWithCoupon = categoryRepository.findByCouponId(coupon.getId());
+        for (Category c : categoriesWithCoupon) {
+            c.setCoupon(null);
+        }
+        categoryRepository.saveAll(categoriesWithCoupon);
+
+        couponRepository.delete(coupon);
+    }
+
 
 
     // ============================================================================
@@ -899,7 +979,8 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setContactName(company.getContactName());
         dto.setContactPhone(company.getContactPhone());
         dto.setCreatedAt(company.getCreatedAt());
-        dto.setStatus(status(company.getIsActive())); // Convertit isActive en "Actif" ou "Inactif"
+        dto.setStatus(company.getStatus() != null ? company.getStatus().getLabel() : null); // Libellé prospection (ex. Partenaire signé)
+        dto.setLogo(company.getLogo());
         return dto;
     }
 
@@ -948,10 +1029,12 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setContactPhone(company.getContactPhone());
         dto.setContactEmail(company.getContactEmail());
         dto.setCreatedAt(company.getCreatedAt());
-        dto.setStatus(status(company.getIsActive())); // Convertit isActive en "Actif" ou "Inactif"
+        dto.setStatus(company.getStatus() != null ? company.getStatus().getLabel() : null); // Libellé prospection (ex. Partenaire signé)
         dto.setCompanyCode(company.getCompanyCode());
         dto.setSector(company.getSector());
         dto.setNote(company.getNote());
+        dto.setLogo(company.getLogo());
+        dto.setIsActive(company.getIsActive());
         return dto;
     }
 
@@ -971,6 +1054,7 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setCreatedAt(employee.getCreatedAt());
         dto.setStatus(status(employee.getUser().getIsActive())); // Convertit isActive en "Actif" ou "Inactif"
         dto.setEmployeeCode(employee.getEmployeeCode());
+        dto.setProfilePhotoUrl(employee.getUser().getProfilePhotoUrl());
         return dto;
     }
 
@@ -988,6 +1072,8 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setLastName(employee.getUser().getLastName());
         dto.setEmail(employee.getUser().getEmail());
         dto.setPhone(employee.getUser().getPhone());
+        Address primaryAddress = addressRepository.findByEmployeeAndIsPrimaryTrue(employee);
+        dto.setAddress(primaryAddress != null ? primaryAddress.getFormattedAddress() : null);
         dto.setCompanyName(employee.getCompany().getName());
         dto.setCompanyId(employee.getCompany().getId());
         dto.setCreatedAt(employee.getCreatedAt());
@@ -1008,6 +1094,7 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setId(coupon.getId());
         dto.setCode(coupon.getCode());
         dto.setName(coupon.getName());
+        dto.setDiscountType(coupon.getDiscountType());
         dto.setValue(coupon.getValue());
         dto.setScope(coupon.getScope());
         dto.setStatus(coupon.getStatus());
@@ -1049,6 +1136,7 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setId(coupon.getId());
         dto.setCode(coupon.getCode());
         dto.setName(coupon.getName());
+        dto.setDiscountType(coupon.getDiscountType());
         dto.setValue(coupon.getValue());
         dto.setScope(coupon.getScope());
         dto.setStatus(coupon.getStatus());
