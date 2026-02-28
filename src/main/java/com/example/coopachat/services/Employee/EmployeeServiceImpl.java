@@ -469,9 +469,9 @@ public class EmployeeServiceImpl implements EmployeeService {
         // Chercher ou créer ses préférences de livraison puisque une préférence = un user soit ça existe soit ça n'existe pas
         EmployeeDeliveryPreference pref = employeeDeliveryPreferenceRepository.findByEmployee(employee).orElse(new EmployeeDeliveryPreference());
 
-        // Mettre à jour
+        // Mettre à jour (jours toujours stockés en français : LUNDI, MARDI, VENDREDI...)
         pref.setEmployee(employee);
-        pref.setPreferredDays(dto.getPreferredDays());
+        pref.setPreferredDays(normalizePreferredDaysToFrench(dto.getPreferredDays()));
         pref.setPreferredTimeSlot(dto.getPreferredTimeSlot());
         pref.setDeliveryMode(dto.getDeliveryMode());
 
@@ -1747,6 +1747,33 @@ public class EmployeeServiceImpl implements EmployeeService {
         return dto;
     }
 
+    /**
+     * Normalise les jours en français (LUNDI, MARDI, VENDREDI...).
+     * Accepte en entrée anglais (MONDAY, FRIDAY) ou déjà français ; stockage toujours en français.
+     */
+    private static java.util.Set<String> normalizePreferredDaysToFrench(java.util.Set<String> days) {
+        if (days == null || days.isEmpty()) return days;
+        java.util.Set<String> out = new java.util.HashSet<>();
+        for (String day : days) {
+            if (day != null && !day.isBlank()) {
+                out.add(dayOfWeekToFrench(day.trim().toUpperCase()));
+            }
+        }
+        return out;
+    }
+
+    private static String dayOfWeekToFrench(String day) {
+        return switch (day) {
+            case "MONDAY" -> "LUNDI";
+            case "TUESDAY" -> "MARDI";
+            case "WEDNESDAY" -> "MERCREDI";
+            case "THURSDAY" -> "JEUDI";
+            case "FRIDAY" -> "VENDREDI";
+            case "SATURDAY" -> "SAMEDI";
+            case "SUNDAY" -> "DIMANCHE";
+            default -> day; // déjà en français (LUNDI, etc.) ou inchangé
+        };
+    }
 
     private CartItemDTO convertToDTO(CartItem cartItem) {
         CartItemDTO dto = new CartItemDTO();
