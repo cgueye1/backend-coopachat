@@ -169,4 +169,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     long countByStatusAndDeliveryDateBeforeAndDeliveryTourIsNull(
             @Param("status") OrderStatus status,
             @Param("before") LocalDate before);
+
+    /** Nombre de commandes ayant le statut donné (ex. VALIDEE). */
+    long countByStatus(OrderStatus status);
 }

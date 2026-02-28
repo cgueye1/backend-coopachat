@@ -45,6 +45,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -225,8 +226,8 @@ public class AdminServiceImpl implements AdminService {
             throw new RuntimeException("Seul un administrateur peut consulter la liste des produits");
         }
 
-        // Créer l'objet Pageable pour la pagination
-        Pageable pageable = PageRequest.of(page, size);
+        // Créer l'objet Pageable pour la pagination (les plus récents en premier)
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
 
         // Normaliser le terme de recherche
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;

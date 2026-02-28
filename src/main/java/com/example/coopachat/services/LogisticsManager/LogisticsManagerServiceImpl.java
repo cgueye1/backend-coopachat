@@ -844,8 +844,9 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         long total = productRepository.count();
         long lowStock = productRepository.countLowStock();
         long outOfStock = productRepository.countByCurrentStock(0);
+        long sufficient = total - lowStock - outOfStock;
 
-        return new StockStatsDTO(total, lowStock, outOfStock);
+        return new StockStatsDTO(total, lowStock, outOfStock, sufficient);
     }
 
     // ============================================================================
@@ -1217,11 +1218,12 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         long enAttente = orderRepository.countByStatusAndDeliveryTourIsNull(OrderStatus.EN_ATTENTE);
         long enRetard = orderRepository.countByStatusAndDeliveryDateBeforeAndDeliveryTourIsNull(OrderStatus.EN_ATTENTE, today);
         long enCours = deliveryTourRepository.countByStatus(DeliveryTourStatus.EN_COURS);
+        long validees = orderRepository.countByStatus(OrderStatus.VALIDEE);
         LocalDateTime monthStart = today.withDayOfMonth(1).atStartOfDay();
         LocalDateTime monthEnd = today.withDayOfMonth(today.lengthOfMonth()).atTime(23, 59, 59, 999_000_000);
         long livreesCeMois = orderRepository.countByStatusAndDeliveryCompletedAtBetween(OrderStatus.LIVREE, monthStart, monthEnd);
 
-        return new EmployeeOrderStatsDTO(enAttente, enRetard, enCours, livreesCeMois);
+        return new EmployeeOrderStatsDTO(enAttente, enRetard, enCours, validees, livreesCeMois);
     }
 
     @Transactional(readOnly = true)
@@ -2287,6 +2289,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         SupplierOrderDetailsDTO dto = new SupplierOrderDetailsDTO();
         dto.setId(supplierOrder.getId());
         dto.setOrderNumber(supplierOrder.getOrderNumber());
+        dto.setSupplierId(supplierOrder.getSupplier().getId());
         dto.setSupplierName(supplierOrder.getSupplier().getName());
         dto.setExpectedDate(supplierOrder.getExpectedDate());
         dto.setStatus(supplierOrder.getStatus().getLabel()); // Récupérer le label de l'enum
