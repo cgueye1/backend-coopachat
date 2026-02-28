@@ -90,4 +90,16 @@ public class Order {
     /** Heure à laquelle le colis a été remis au client (statut LIVREE). Affichage heure:minute uniquement. */
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
     private LocalDateTime deliveryCompletedAt;
+
+    /**
+     * Raison de l'échec de livraison
+     */
+    @Column(name = "failure_reason")
+    private String failureReason;
+
+    /**
+     * Date/heure du signalement d'échec
+     */
+    @Column(name = "failure_reported_at")
+    private LocalDateTime failureReportedAt;
 }

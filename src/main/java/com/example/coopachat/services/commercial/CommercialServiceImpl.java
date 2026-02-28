@@ -981,6 +981,7 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setCreatedAt(company.getCreatedAt());
         dto.setStatus(company.getStatus() != null ? company.getStatus().getLabel() : null); // Libellé prospection (ex. Partenaire signé)
         dto.setLogo(company.getLogo());
+        dto.setIsActive(company.getIsActive());
         return dto;
     }
 
