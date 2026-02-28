@@ -5,6 +5,7 @@ import com.example.coopachat.dtos.DeliveryDriver.CancelDeliveryTourDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
+import com.example.coopachat.dtos.order.EmployeeOrderStatsDTO;
 import com.example.coopachat.dtos.order.EligibleOrderLotDTO;
 import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
@@ -368,6 +369,16 @@ public class LogisticsManagerController {
         OrderStatus orderStatus = parseOrderStatus(status);
         OrderEmployeeListResponseDTO response = logisticsManagerService.getAllEmployeeOrders(page, size, search, orderStatus);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Statistiques des commandes salariés",
+            description = "Retourne les compteurs pour la page Gestion des commandes : EN ATTENTE, EN RETARD, EN COURS, LIVRÉES ce mois."
+    )
+    @GetMapping(value = "/employee-orders/stats", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EmployeeOrderStatsDTO> getEmployeeOrderStats() {
+        EmployeeOrderStatsDTO stats = logisticsManagerService.getEmployeeOrderStats();
+        return ResponseEntity.ok(stats);
     }
 
     /** Convertit le paramètre status (optionnel) en OrderStatus. null si vide ou invalide. */
