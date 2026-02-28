@@ -1,14 +1,16 @@
 package com.example.coopachat.dtos.order;
 
-import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductPreviewDTO;
-import com.example.coopachat.entities.OrderItem;
 import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.List;
 
-//DTO pour afficher les détails d'un produit
+/** DTO pour afficher les détails d'une commande salarié (sérialisé en JSON pour le front). */
+@Data
+@NoArgsConstructor
 @AllArgsConstructor
 public class OrderItemDetailsDTO {
 

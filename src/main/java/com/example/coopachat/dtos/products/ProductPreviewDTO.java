@@ -1,8 +1,12 @@
 package com.example.coopachat.dtos.products;
 
 import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-//DTO pour avoir un aperçu du produit
+/** DTO pour avoir un aperçu du produit (sérialisé en JSON pour le front). */
+@Data
+@NoArgsConstructor
 @AllArgsConstructor
 public class ProductPreviewDTO {
 

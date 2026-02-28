@@ -1199,6 +1199,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
     }
 
+    @Transactional(readOnly = true)
     @Override
     public OrderItemDetailsDTO getOrderItemDetailById(Long orderId) {
 
@@ -1217,8 +1218,9 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             throw new RuntimeException("Seul un responsable logistique peut consulter les détails d'une commande");
         }
 
-        //Récupérons la commande
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Commande introuvable"));
+        // Charger la commande avec items + produits (évite lazy et liste vide)
+        Order order = orderRepository.findByIdWithItemsAndProducts(orderId)
+                .orElseThrow(() -> new RuntimeException("Commande introuvable"));
 
         // On prépare un DTO contenant  - les infos générales de la commande - la liste des produits associés à la commande
         return new OrderItemDetailsDTO(
@@ -1227,11 +1229,10 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 order.getEmployee().getUser().getFirstName() + " " + order.getEmployee().getUser().getLastName(),
                 order.getStatus().getLabel(),
                 order.getItems().stream().map(item -> new ProductPreviewDTO(
-                        item.getProduct().getName(),
                         item.getProduct().getImage(),
+                        item.getProduct().getName(),
                         item.getProduct().getCategory().getName(),
                         item.getProduct().getCurrentStock()
-
                 )).toList()
         );
 
@@ -1640,7 +1641,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         DeliveryTour deliveryTour = deliveryTourRepository.findById(tourId)
                 .orElseThrow(() -> new EntityNotFoundException("Tournée non trouvée"));
 
-        // 3. Vérification statut modifiable (PLANIFIEE ou ASSIGNEE)
+        // 3. Vérification statut modifiable (ASSIGNEE uniquement)
         if (!deliveryTour.canBeModified()) {
             throw new IllegalStateException("Modification impossible : tournée déjà en cours ou terminée");
         }
@@ -1679,11 +1680,10 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         DeliveryTour tour = deliveryTourRepository.findById(tourId)
                 .orElseThrow(() -> new EntityNotFoundException("Tournée non trouvée"));
 
-        // Vérifier statut annulable
-        if (tour.getStatus() != DeliveryTourStatus.PLANIFIEE &&
-                tour.getStatus() != DeliveryTourStatus.ASSIGNEE) {
+        // Vérifier statut annulable (ASSIGNEE uniquement : RL annule avant départ livreur)
+        if (tour.getStatus() != DeliveryTourStatus.ASSIGNEE) {
             throw new IllegalStateException(
-                    "Seules les tournées PLANIFIEE ou ASSIGNEE peuvent être annulées"
+                    "Seules les tournées ASSIGNEE peuvent être annulées (avant départ du livreur)"
             );
         }
 
@@ -1819,21 +1819,14 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             throw new RuntimeException("Seul un responsable logistique peut consulter les statistiques des tournées");
         }
 
-        // 2. COMPTAGE PAR STATUT
-        long planned = deliveryTourRepository.countByStatus(DeliveryTourStatus.PLANIFIEE);
+        // 2. COMPTAGE PAR STATUT (4 statuts : ASSIGNEE, EN_COURS, TERMINEE, ANNULEE)
         long assigned = deliveryTourRepository.countByStatus(DeliveryTourStatus.ASSIGNEE);
         long inProgress = deliveryTourRepository.countByStatus(DeliveryTourStatus.EN_COURS);
         long completed = deliveryTourRepository.countByStatus(DeliveryTourStatus.TERMINEE);
         long cancelled = deliveryTourRepository.countByStatus(DeliveryTourStatus.ANNULEE);
 
         // 3. RETOUR DU DTO
-        return new DeliveryTourStatsDTO(
-                planned,
-                assigned,
-                inProgress,
-                completed,
-                cancelled
-        );
+        return new DeliveryTourStatsDTO(assigned, inProgress, completed, cancelled);
     }
 
     // ============================================================================
@@ -2189,10 +2182,14 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // ============================================================================
     // Méthodes utilitaires
     // ============================================================================
+    /**
+     * Mappe une entité DeliveryTour vers le DTO liste (N° Tour | Date | Chauffeur | Véhicule | Nb Cmd | Statut | id pour Actions).
+     */
     private DeliveryTourListDTO mapToDeliveryTourListDTO(DeliveryTour deliveryTour) {
         DeliveryTourListDTO dto = new DeliveryTourListDTO();
 
-        // 1. Informations tournée
+        dto.setId(deliveryTour.getId());
+        // 1. Informations tournée (N° Tour, Date)
         dto.setTourNumber(deliveryTour.getTourNumber());
         dto.setDeliveryDate(deliveryTour.getDeliveryDate());
 
