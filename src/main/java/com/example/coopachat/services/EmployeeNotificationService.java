@@ -42,16 +42,14 @@ public class EmployeeNotificationService {
             return;
         }
         String firstName = Optional.ofNullable(order.getEmployee().getUser().getFirstName()).orElse("Salarié");
-        String orderNumber = Optional.ofNullable(order.getOrderNumber()).orElse("—");
+        String orderNumber = Optional.ofNullable(order.getOrderNumber()).orElse("-");
         String amount = formatAmount(order.getTotalPrice());
         String deliveryDateStr = order.getDeliveryDate() != null
                 ? order.getDeliveryDate().format(DATE_FORMAT)
                 : "À définir";
 
         String subject = "Commande enregistrée - " + orderNumber;
-        String body = String.format(
-                "Bonjour %s,\n\nVotre commande a bien été enregistrée.\n\nNuméro de commande : %s\nMontant total : %s\nDate de livraison prévue : %s\n\nMerci pour votre confiance.\nL'équipe CoopAchat",
-                firstName, orderNumber, amount, deliveryDateStr);
+        String body = String.format("Bonjour %s,%n%nVotre commande a bien été enregistrée.%n%nNuméro de commande : %s%nMontant total : %s%nDate de livraison prévue : %s%n%nMerci pour votre confiance.%nL'équipe CoopAchat", firstName, orderNumber, amount, deliveryDateStr);
 
         try {
             emailService.sendEmail(email, subject, body);
@@ -77,7 +75,7 @@ public class EmployeeNotificationService {
             return;
         }
         String firstName = Optional.ofNullable(order.getEmployee().getUser().getFirstName()).orElse("Salarié");
-        String orderNumber = Optional.ofNullable(order.getOrderNumber()).orElse("—");
+        String orderNumber = Optional.ofNullable(order.getOrderNumber()).orElse("-");
         String deliveryDateStr = order.getDeliveryDate() != null
                 ? order.getDeliveryDate().format(DATE_FORMAT)
                 : "À définir";
@@ -87,9 +85,7 @@ public class EmployeeNotificationService {
         String address = getPrimaryAddressFormatted(order.getEmployee());
 
         String subject = "Livraison planifiée - " + orderNumber;
-        String body = String.format(
-                "Bonjour %s,\n\nVotre livraison pour la commande %s est planifiée.\n\nDate : %s\nCréneau : %s\nAdresse de livraison : %s\n\nL'équipe CoopAchat",
-                firstName, orderNumber, deliveryDateStr, timeSlot, address);
+        String body = String.format("Bonjour %s,%n%nVotre livraison pour la commande %s est planifiée.%n%nDate : %s%nCréneau : %s%nAdresse de livraison : %s%n%nL'équipe CoopAchat", firstName, orderNumber, deliveryDateStr, timeSlot, address);
 
         try {
             emailService.sendEmail(email, subject, body);
