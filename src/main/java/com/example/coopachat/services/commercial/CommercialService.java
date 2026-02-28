@@ -65,6 +65,14 @@ public interface CommercialService {
     void updateCompanyStatus(Long id, UpdateCompanyStatusDTO updateCompanyStatusDTO);
 
     /**
+     * Téléverse le logo d'une entreprise (JPG, PNG, max 5 Mo).
+     *
+     * @param id L'identifiant de l'entreprise
+     * @param file Fichier image
+     */
+    void uploadCompanyLogo(Long id, org.springframework.web.multipart.MultipartFile file);
+
+    /**
      * Récupère les statistiques des entreprises du commercial connecté
      *
      * @return Les statistiques (total, actives, inactives)
@@ -167,6 +175,13 @@ public interface CommercialService {
      * @return Détails du coupon
      */
     CouponDetailsDTO getCouponById(Long id);
+
+    /**
+     * Supprime un coupon après avoir délié les produits et catégories associés.
+     *
+     * @param id L'identifiant du coupon
+     */
+    void deleteCoupon(Long id);
 
 }
 

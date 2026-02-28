@@ -26,5 +26,6 @@ public class EmployeeListItemDTO {
     
     private String status; // État actif/inactif de l'employé
     private String employeeCode; // Code unique de l'employé
+    private String profilePhotoUrl; // Photo de profil (nom fichier pour /api/files/{filename})
 }
 

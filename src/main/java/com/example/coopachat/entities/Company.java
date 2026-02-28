@@ -63,6 +63,10 @@ public class  Company {
     @Column(columnDefinition = "TEXT")
     private String note; // Commentaire ou note
 
+    /** Nom du fichier logo (ex. uuid.png), servi via GET /api/files/{filename}. Null si non renseigné. */
+    @Column(name = "logo", length = 255)
+    private String logo;
+
     @Column(nullable = false)
     private Boolean isActive = true; // Entreprise activée ou non
 

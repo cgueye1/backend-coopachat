@@ -30,6 +30,8 @@ public class CompanyDetailsDTO {
     private String companyCode; // Code unique de l'entreprise
     private CompanySector sector; // Secteur d'activité
     private String note; // Commentaires ou notes
+    private String logo; // Nom du fichier logo (pour affichage via /api/files/{filename})
+    private Boolean isActive; // Entreprise activée (toggle)
 }
 
 

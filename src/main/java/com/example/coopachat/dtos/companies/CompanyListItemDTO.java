@@ -25,6 +25,7 @@ public class CompanyListItemDTO {
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime createdAt;
 
-    private String status; // État actif/inactif de l'entreprise
+    private String status; // Libellé du statut de prospection (ex. Partenaire signé)
+    private String logo; // Nom du fichier logo pour affichage
 
 }

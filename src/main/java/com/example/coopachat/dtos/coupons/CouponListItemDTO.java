@@ -2,6 +2,7 @@ package com.example.coopachat.dtos.coupons;
 
 import com.example.coopachat.enums.CouponScope;
 import com.example.coopachat.enums.CouponStatus;
+import com.example.coopachat.enums.DiscountType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,6 +20,7 @@ public class CouponListItemDTO {
     private Long id;
     private String code;
     private String name;
+    private DiscountType discountType;
     private BigDecimal value;
     private CouponScope scope;
     private CouponStatus status;

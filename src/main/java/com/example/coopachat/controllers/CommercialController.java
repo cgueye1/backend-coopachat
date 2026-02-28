@@ -27,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Contrôleur pour la gestion des actions du commercial
@@ -130,6 +131,19 @@ public class CommercialController {
                 : "Entreprise désactivée avec succès";
         
         return ResponseEntity.ok(message);
+    }
+
+    @Operation(
+            summary = "Téléverser le logo d'une entreprise",
+            description = "Enregistre ou remplace le logo d'une entreprise. Formats acceptés: JPG, PNG. Taille max 5 Mo."
+    )
+    @PostMapping("/companies/{id}/logo")
+    public ResponseEntity<String> uploadCompanyLogo(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file
+    ) {
+        commercialService.uploadCompanyLogo(id, file);
+        return ResponseEntity.ok("Logo enregistré avec succès");
     }
 
     // ============================================================================
@@ -281,6 +295,16 @@ public class CommercialController {
     public ResponseEntity<CouponDetailsDTO> getCouponById(@PathVariable Long id) {
         CouponDetailsDTO details = commercialService.getCouponById(id);
         return ResponseEntity.ok(details);
+    }
+
+    @Operation(
+            summary = "Supprimer un coupon",
+            description = "Supprime un coupon après avoir délié les produits et catégories associés."
+    )
+    @DeleteMapping("/coupons/{id}")
+    public ResponseEntity<String> deleteCoupon(@PathVariable Long id) {
+        commercialService.deleteCoupon(id);
+        return ResponseEntity.ok("Coupon supprimé avec succès");
     }
 
 }
