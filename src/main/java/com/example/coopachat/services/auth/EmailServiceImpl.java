@@ -1100,8 +1100,21 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-
-
-
+    @Override
+    public void sendEmail(String to, String subject, String body) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(mailFrom);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(body != null ? body : "", false);
+            mailSender.send(message);
+            log.info("Email envoyé à: {} (sujet: {})", to, subject);
+        } catch (Exception e) {
+            log.error("Erreur envoi email à {}: {}", to, e.getMessage());
+            throw new RuntimeException("Impossible d'envoyer l'email", e);
+        }
+    }
 }
 

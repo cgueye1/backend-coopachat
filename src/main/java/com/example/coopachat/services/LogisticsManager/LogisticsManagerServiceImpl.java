@@ -21,6 +21,7 @@ import com.example.coopachat.entities.*;
 import com.example.coopachat.entities.util.GeoUtil;
 import com.example.coopachat.enums.*;
 import com.example.coopachat.repositories.*;
+import com.example.coopachat.services.EmployeeNotificationService;
 import com.example.coopachat.services.auth.EmailService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ValidationException;
@@ -73,6 +74,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     private final DeliveryTourRepository deliveryTourRepository;
     private final ClaimRepository claimRepository;
     private final EmailService emailService;
+    private final EmployeeNotificationService employeeNotificationService;
 
     // ============================================================================
     // 🚚CRÉER UN LIVREUR
@@ -1562,7 +1564,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         tour.setCreatedBy(currentUser);
         tour.setUpdatedBy(currentUser);
         tour.setNotes(dto.getNotes());
-        // Tournée directement assignée au livreur (pas de brouillon PLANIFIEE)
+        // Tournée directement assignée au livreur 
         tour.setStatus(DeliveryTourStatus.ASSIGNEE);
 
         // 5. SAUVEGARDE
@@ -1574,6 +1576,8 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             order.setStatus(OrderStatus.VALIDEE);
             order.setValidatedAt(LocalDateTime.now());
             orderRepository.save(order);
+            // Notification au salarié que sa commande a été validée
+            employeeNotificationService.notifyOrderScheduled(order);
         }
 
         log.info("Tournée {} créée par {} avec {} commandes (chauffeur: {})",

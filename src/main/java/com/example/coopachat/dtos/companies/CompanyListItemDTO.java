@@ -27,5 +27,6 @@ public class CompanyListItemDTO {
 
     private String status; // Libellé du statut de prospection (ex. Partenaire signé)
     private String logo; // Nom du fichier logo pour affichage
+    private Boolean isActive; // true = Actif, false = Inactif (activation manuelle)
 
 }

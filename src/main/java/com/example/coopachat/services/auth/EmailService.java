@@ -80,5 +80,14 @@ public interface EmailService {
      * @param orderNumber    Numéro de commande
      */
     void sendDriverReportToLogisticsManager(String rlEmail, String driverName, String reportTypeLabel, String comment, String orderNumber);
+
+    /**
+     * Envoie un email libre (sujet + corps texte).
+     *
+     * @param to      Email du destinataire
+     * @param subject Sujet de l'email
+     * @param body    Corps du message (texte brut, peut contenir des retours à la ligne)
+     */
+    void sendEmail(String to, String subject, String body);
 }
 
