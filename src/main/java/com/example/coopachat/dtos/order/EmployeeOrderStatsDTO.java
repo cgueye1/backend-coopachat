@@ -21,6 +21,9 @@ public class EmployeeOrderStatsDTO {
     /** Tournées en cours (statut EN_COURS) — tournées actives. */
     private long enCours;
 
+    /** Commandes validées (statut VALIDEE, affectées à une tournée). */
+    private long validees;
+
     /** Commandes livrées ce mois (statut LIVREE, deliveryCompletedAt dans le mois). */
     private long livreesCeMois;
 }

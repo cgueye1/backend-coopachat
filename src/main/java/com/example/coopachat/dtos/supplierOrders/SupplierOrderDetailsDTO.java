@@ -20,6 +20,8 @@ public class SupplierOrderDetailsDTO {
 
     private String orderNumber; // Numéro de commande
 
+    private Long supplierId; // ID du fournisseur (pour préremplir le formulaire d'édition)
+
     private String supplierName; // Nom du fournisseur
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")

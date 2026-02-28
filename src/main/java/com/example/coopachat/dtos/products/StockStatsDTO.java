@@ -13,8 +13,9 @@ import lombok.NoArgsConstructor;
 public class StockStatsDTO {
 
     private long total; // Nombre total de produits suivis
-    private long lowStock; // Produits sous le seuil (stock > 0 et <= seuil)
+    private long lowStock; // Produits sous le seuil (stock > 0 et < seuil)
     private long outOfStock; // Produits en rupture (stock = 0)
+    private long sufficient; // Produits avec stock suffisant (stock >= seuil)
 }
 
 
