@@ -21,6 +21,7 @@ import com.example.coopachat.entities.*;
 import com.example.coopachat.entities.util.GeoUtil;
 import com.example.coopachat.enums.*;
 import com.example.coopachat.repositories.*;
+import com.example.coopachat.services.DriverNotificationService;
 import com.example.coopachat.services.EmployeeNotificationService;
 import com.example.coopachat.services.auth.EmailService;
 import jakarta.persistence.EntityNotFoundException;
@@ -75,6 +76,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     private final ClaimRepository claimRepository;
     private final EmailService emailService;
     private final EmployeeNotificationService employeeNotificationService;
+    private final DriverNotificationService driverNotificationService;
 
     // ============================================================================
     // 🚚CRÉER UN LIVREUR
@@ -1580,6 +1582,9 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             employeeNotificationService.notifyOrderScheduled(order);
         }
 
+        // Notification au livreur qu'une tournée lui a été assignée
+        driverNotificationService.notifyTourAssigned(savedTour, orders.size());
+
         log.info("Tournée {} créée par {} avec {} commandes (chauffeur: {})",
                 tourNumber, currentUser.getEmail(), orders.size(),
                 driver.getUser().getFirstName());
@@ -1732,7 +1737,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
         // Notifier le livreur si la tournée était assignée
         if (oldStatus == DeliveryTourStatus.ASSIGNEE && driverUserEmail != null) {
-            emailService.sendTourCancellationToDriver(driverUserEmail, tour.getTourNumber(), tour.getCancellationReason(), driverUserName);
+            driverNotificationService.notifyTourCancelled(tour);
         }
         deliveryTourRepository.save(tour);
         log.info("Tournée {} annulée par {}", tourId, currentUser.getEmail());

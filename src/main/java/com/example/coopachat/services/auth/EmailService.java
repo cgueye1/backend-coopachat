@@ -1,7 +1,5 @@
 package com.example.coopachat.services.auth;
 
-import java.time.LocalDate;
-
 /**
  * Interface pour le service d'envoi d'emails
  * Gère l'envoi d'emails pour l'activation de compte et autres notifications
@@ -53,33 +51,6 @@ public interface EmailService {
      * @param firstName Le prénom du livreur
      */
     void sendDriverActivationCode(String email, String code, String firstName);
-
-    /**
-     * Envoie une notification de proposition de tournée à un chauffeur
-     * @param email Email du chauffeur
-     * @param tourNumber Numéro de la tournée
-     * @param deliveryDate Date de livraison
-     * @param timeSlot Créneau horaire
-     * @param driverName Nom du chauffeur
-     */
-    void sendTourProposalToDriver(String email, String tourNumber, LocalDate deliveryDate, String timeSlot, String driverName);
-
-
-    /**
-     * Envoie un email d'annulation de tournée au livreur
-     */
-    void sendTourCancellationToDriver(String driverEmail, String tourNumber, String reason, String driverName);
-
-    /**
-     * Notifie le Responsable Logistique par email lorsqu'un livreur soumet un signalement.
-     *
-     * @param rlEmail         Email du RL
-     * @param driverName     Nom du livreur (prénom + nom)
-     * @param reportTypeLabel Nature du signalement
-     * @param comment        Commentaire du livreur (peut être vide)
-     * @param orderNumber    Numéro de commande
-     */
-    void sendDriverReportToLogisticsManager(String rlEmail, String driverName, String reportTypeLabel, String comment, String orderNumber);
 
     /**
      * Envoie un email libre (sujet + corps texte).

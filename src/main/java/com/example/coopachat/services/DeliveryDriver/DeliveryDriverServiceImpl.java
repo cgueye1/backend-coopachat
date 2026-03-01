@@ -14,7 +14,7 @@ import com.example.coopachat.enums.PaymentMethodType;
 import com.example.coopachat.enums.PaymentStatus;
 import com.example.coopachat.enums.PaymentTimingType;
 import com.example.coopachat.repositories.*;
-import com.example.coopachat.services.auth.EmailService;
+import com.example.coopachat.services.DriverNotificationService;
 import com.example.coopachat.services.fee.FeeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +48,7 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     private final FeeService feeService;
     private final PaymentRepository paymentRepository;
     private final DriverReportRepository driverReportRepository;
-    private final EmailService emailService;
+    private final DriverNotificationService driverNotificationService;
     private final DriverReviewRepository driverReviewRepository;
 
 
@@ -370,7 +370,7 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         Users rlCreatedTour = order.getDeliveryTour().getCreatedBy();
         if (rlCreatedTour != null && rlCreatedTour.getEmail() != null && !rlCreatedTour.getEmail().isBlank()) {
             String driverName = driver.getUser().getFirstName() + " " + driver.getUser().getLastName();
-            emailService.sendDriverReportToLogisticsManager(
+            driverNotificationService.notifyLogisticsManagerOfDriverReport(
                     rlCreatedTour.getEmail(),
                     driverName,
                     dto.getReportType().getLabel(),
