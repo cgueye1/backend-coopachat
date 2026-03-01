@@ -133,10 +133,6 @@ public class DeliveryDriverController {
             summary = "Signaler un problème",
             description = "Le livreur soumet un signalement sur une ligne de commande. Le bouton apparaît en swipant sur l’article."
     )
-    @Operation(
-            summary = "Signaler un échec de livraison",
-            description = "Le livreur signale qu'une livraison n'a pas pu être effectuée. Commande passée en ECHEC_LIVRAISON, notification au salarié et au RL (créateur de la tournée)."
-    )
     @PostMapping("/deliveries/{orderId}/report-issue")
     public ResponseEntity<String> reportDeliveryIssue(@PathVariable Long orderId, @RequestBody @Valid DeliveryIssueDTO dto) {
         deliveryDriverService.reportDeliveryIssue(orderId, dto);
