@@ -8,6 +8,11 @@ import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
 import com.example.coopachat.dtos.claim.ClaimStatsDTO;
 import com.example.coopachat.dtos.claim.RejectClaimDTO;
 import com.example.coopachat.dtos.claim.ValidateClaimDTO;
+import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
+import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
+import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.RLDashboardKpisDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.StatutTourneesDTO;
 import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.EligibleOrderLotDTO;
@@ -383,6 +388,23 @@ public interface LogisticsManagerService {
      * @param dto motif du rejet (obligatoire)
      */
     void rejectClaim(Long id, RejectClaimDTO dto);
+
+    // ----------- Tableau de bord RL -----------
+
+    /** KPIs : commandes en attente, en retard, tournées actives, livrées ce mois. */
+    RLDashboardKpisDTO getDashboardKpis();
+
+    /** Graphique "Statut tournées" : effectif par statut (ASSIGNEE, EN_COURS, TERMINEE, ANNULEE). */
+    StatutTourneesDTO getStatutTournees();
+
+    /** Graphique "Commandes vs Livraisons" : 7 derniers jours (date, commandesEnAttente, livraisons). */
+    List<CommandesVsLivraisonsDayDTO> getCommandesVsLivraisons();
+
+    /** Donut "Stocks - État global" : normal, sous seuil, critique. */
+    StockEtatGlobalDTO getStockEtatGlobal();
+
+    /** Graphique "Livraisons 7 jours" : pour chaque jour (date, nbLivrees, nbAssignes, nbEnAttente). */
+    List<LivraisonParJourDTO> getLivraisonsParJour();
 
 }
 

@@ -3,6 +3,11 @@ package com.example.coopachat.controllers;
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.CancelDeliveryTourDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
+import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
+import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
+import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.RLDashboardKpisDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.StatutTourneesDTO;
 import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.EmployeeOrderStatsDTO;
@@ -618,6 +623,38 @@ public class LogisticsManagerController {
             @RequestBody @Valid RejectClaimDTO dto) {
         logisticsManagerService.rejectClaim(id, dto);
         return ResponseEntity.ok("Réclamation rejetée");
+    }
+
+    //-----------  Tableau de Bord ------------
+
+    @Operation(summary = "KPIs tableau de bord RL", description = "Commandes en attente, en retard, tournées actives, livrées ce mois.")
+    @GetMapping("/dashboard/kpis")
+    public ResponseEntity<RLDashboardKpisDTO> getDashboardKpis() {
+        return ResponseEntity.ok(logisticsManagerService.getDashboardKpis());
+    }
+
+    @Operation(summary = "Statut tournées", description = "Effectif par statut (ASSIGNEE, EN_COURS, TERMINEE, ANNULEE) pour le graphique.")
+    @GetMapping("/dashboard/statut-tournees")
+    public ResponseEntity<StatutTourneesDTO> getStatutTournees() {
+        return ResponseEntity.ok(logisticsManagerService.getStatutTournees());
+    }
+
+    @Operation(summary = "Commandes vs Livraisons (7 derniers jours)", description = "Pour chaque jour : date, commandesEnAttente, livraisons.")
+    @GetMapping("/dashboard/commandes-vs-livraisons")
+    public ResponseEntity<List<CommandesVsLivraisonsDayDTO>> getCommandesVsLivraisons() {
+        return ResponseEntity.ok(logisticsManagerService.getCommandesVsLivraisons());
+    }
+
+    @Operation(summary = "Stocks - État global", description = "Effectifs : normal, sous seuil, critique (donut).")
+    @GetMapping("/dashboard/stock-etat-global")
+    public ResponseEntity<StockEtatGlobalDTO> getStockEtatGlobal() {
+        return ResponseEntity.ok(logisticsManagerService.getStockEtatGlobal());
+    }
+
+    @Operation(summary = "Livraisons par jour (7 derniers jours)", description = "Pour chaque jour : date, nbLivrees, nbAssignes, nbEnAttente.")
+    @GetMapping("/dashboard/livraisons-par-jour")
+    public ResponseEntity<List<LivraisonParJourDTO>> getLivraisonsParJour() {
+        return ResponseEntity.ok(logisticsManagerService.getLivraisonsParJour());
     }
 
 }

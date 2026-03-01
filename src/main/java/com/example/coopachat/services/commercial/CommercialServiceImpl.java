@@ -1,6 +1,7 @@
 package com.example.coopachat.services.commercial;
 
 import com.example.coopachat.dtos.companies.*;
+import com.example.coopachat.dtos.coupons.CartTotalCouponStatsDTO;
 import com.example.coopachat.dtos.coupons.CouponDetailsDTO;
 import com.example.coopachat.dtos.coupons.CouponListItemDTO;
 import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
@@ -882,7 +883,20 @@ public class CommercialServiceImpl implements CommercialService {
         couponRepository.delete(coupon);
     }
 
-
+    @Override
+    public CartTotalCouponStatsDTO getCartTotalCouponStats() {
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter les statistiques coupons");
+        }
+        long activeCount = couponRepository.countByScopeAndStatus(CouponScope.CART_TOTAL, CouponStatus.ACTIVE);
+        long totalUsages = couponRepository.sumUsageCountByScope(CouponScope.CART_TOTAL);
+        BigDecimal totalGenerated = couponRepository.sumTotalGeneratedByScope(CouponScope.CART_TOTAL);
+        if (totalGenerated == null) {
+            totalGenerated = java.math.BigDecimal.ZERO;
+        }
+        return new CartTotalCouponStatsDTO(activeCount, totalUsages, totalGenerated);
+    }
 
     // ============================================================================
     // 🔧 MÉTHODES UTILITAIRES

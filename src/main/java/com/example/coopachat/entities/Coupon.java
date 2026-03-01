@@ -18,7 +18,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Entity représentant un coupon de réduction
+ * Entity représentant un coupon de réduction ou une promotion
  */
 @Entity
 @Table(name = "coupons")
@@ -33,11 +33,11 @@ public class Coupon {
 
     @Column(nullable = false, unique = true)
     @NotBlank(message = "Le code du coupon est obligatoire")
-    private String code; // Code unique du coupon
+    private String code; // Code unique du coupon/Promotion
 
     @Column(nullable = false, unique = true)
     @NotBlank(message = "Le nom du coupon est obligatoire")
-    private String name; // Nom unique du coupon
+    private String name; // Nom unique du coupon/Promotion
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

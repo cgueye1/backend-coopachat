@@ -1,5 +1,6 @@
 package com.example.coopachat.services.auth;
 
+import com.example.coopachat.dtos.user.UserDetailsDTO;
 import com.example.coopachat.dtos.user.UserDto;
 import com.example.coopachat.dtos.auth.LoginResponseDTO;
 import com.example.coopachat.dtos.auth.RegisterMobileDTO;
@@ -118,5 +119,13 @@ public interface AuthService {
      * @throws RuntimeException si le token est invalide
      */
     void logout (String token);
+
+    /**
+     * Retourne le profil de l'utilisateur connecté (tous rôles).
+     *
+     * @return UserDetailsDTO avec les infos de l'utilisateur connecté
+     * @throws RuntimeException si non authentifié
+     */
+    UserDetailsDTO getCurrentUserProfile();
 
 }

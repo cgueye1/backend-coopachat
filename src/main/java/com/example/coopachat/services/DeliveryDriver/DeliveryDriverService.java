@@ -1,15 +1,11 @@
 package com.example.coopachat.services.DeliveryDriver;
 
-import com.example.coopachat.dtos.DeliveryDriver.CreateDriverReportDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
-import com.example.coopachat.dtos.DeliveryDriver.DriverDeliveryListItemDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDashboardDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
-import com.example.coopachat.dtos.DeliveryDriver.OrderDetailsForDriverDTO;
-import com.example.coopachat.enums.OrderStatus;
-
-import java.time.LocalDate;
-import java.util.List;
+import com.example.coopachat.dtos.driver.DeliveryDetailDTO;
+import com.example.coopachat.dtos.driver.DeliveryIssueDTO;
+import com.example.coopachat.dtos.driver.DriverDeliveriesResponseDTO;
 
 
 /**
@@ -31,13 +27,18 @@ public interface DeliveryDriverService {
     void updatePersonalInfo(DriverPersonalInfoDTO updateRequest);
 
     /**
-     * Liste des livraisons du livreur connecté (commandes de ses tournées), avec filtres optionnels.
-     * @param deliveryDate date de livraison (optionnel, ex. aujourd'hui)
-     * @param status statut de la commande (optionnel : À livrer / En cours / Livrée)
-     * @param search recherche par numéro de commande ou nom du client (optionnel)
-     * @return liste de DriverDeliveryListItemDTO
+     * Liste paginée des livraisons du livreur (simplifiée).
+     * @param statusFilter ALL | TO_CONFIRM | IN_PROGRESS | COMPLETED
+     * @param page page (0-based)
+     * @param size taille de page
+     * @return DriverDeliveriesResponseDTO avec liste de cartes + infos pagination
      */
-    List<DriverDeliveryListItemDTO> getMyDeliveries(LocalDate deliveryDate, OrderStatus status, String search);
+    DriverDeliveriesResponseDTO getMyDeliveries(String statusFilter, int page, int size);
+
+    /**
+     * Indique si le livreur a une tournée en cours (statut EN_COURS).
+     */
+    boolean hasActiveTour();
 
     /** Livreur confirme la récupération des colis au dépôt → tournée EN_COURS. */
     void confirmPickup(Long tourId);
@@ -58,10 +59,10 @@ public interface DeliveryDriverService {
     void confirmCashPayment(Long orderId);
 
     /**
-     * Détail d'une commande pour l'écran "Détail commande" du livreur (produits, total, client, adresse, suivi).
+     * Détail simplifié d'une livraison pour l'écran livreur (commande, client, adresse, montant).
      * La commande doit appartenir à une tournée assignée au livreur connecté.
      */
-    OrderDetailsForDriverDTO getOrderDetails(Long orderId);
+    DeliveryDetailDTO getDeliveryDetail(Long orderId);
 
     /** Récupère l'adresse du livreur connecté (formattedAddress + lat/long). */
     DriverAddressDTO getMyAddress();
@@ -70,10 +71,10 @@ public interface DeliveryDriverService {
     void updateMyAddress(DriverAddressDTO dto);
 
     /**
-     * Soumettre un signalement pour une livraison (commande).
-     * Email envoyé au RL qui a créé la tournée.
+     * Signaler un problème de livraison (échec) : commande passée en ECHEC_LIVRAISON,
+     * notification au salarié et au RL (créateur de la tournée).
      */
-    void submitReport(Long orderId, CreateDriverReportDTO dto);
+    void reportDeliveryIssue(Long orderId, DeliveryIssueDTO dto);
 
     /**
      * Tableau de bord du livreur : livraisons aujourd'hui, total livraisons, satisfaction moyenne.

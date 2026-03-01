@@ -61,9 +61,14 @@ public class SecurityConfig {
                 // CONFIGURATION DES AUTORISATIONS
                 .authorizeHttpRequests(auth -> auth
                         // ==================================
+                        // 🔒 PROFIL UTILISATEUR CONNECTÉ
+                        // ==================================
+                        .requestMatchers("/api/auth/me").authenticated()               // Profil courant (tous rôles)
+
+                        // ==================================
                         // 🟢 ZONES PUBLIQUES (sans connexion)
                         // ==================================
-                        .requestMatchers("/api/auth/**").permitAll()                    // Inscription + Connexion
+                        .requestMatchers("/api/auth/**").permitAll()                   // Inscription + Connexion
                         .requestMatchers("/files/**", "/api/files/**", "/uploads/**").permitAll()  // Accès public aux images
                         .requestMatchers("/swagger-ui/**").permitAll()                  // Documentation API
                         .requestMatchers("/v3/api-docs/**").permitAll()                 // Documentation API
