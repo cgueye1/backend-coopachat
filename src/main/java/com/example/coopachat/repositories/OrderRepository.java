@@ -2,6 +2,7 @@ package com.example.coopachat.repositories;
 
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Order;
+import com.example.coopachat.enums.DeliveryTourStatus;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.PaymentStatus;
 import org.springframework.data.domain.Page;
@@ -170,6 +171,47 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("status") OrderStatus status,
             @Param("before") LocalDate before);
 
+    /** Commandes en retard : statut donné et date de livraison strictement avant :now (ex. LocalDate.now()) (pour notification RL et Admin). */
+    @Query("SELECT o FROM Order o WHERE o.status = :status AND o.deliveryDate < :now ORDER BY o.deliveryDate ASC")
+    List<Order> findByStatusAndDeliveryDateBefore(
+            @Param("status") OrderStatus status,
+            @Param("now") LocalDate now);
+
     /** Nombre de commandes ayant le statut donné (ex. VALIDEE). */
     long countByStatus(OrderStatus status);
+
+    /** Nombre de commandes créées dans la période [start, end] (tous statuts). Pour graphique "Commandes par jour". */
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
+    /** Nombre de commandes dont le statut est dans la liste et la date de livraison = day. Pour livraisons par jour (nbAssignes). */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status IN :statuses AND o.deliveryDate = :day")
+    long countByStatusInAndDeliveryDate(
+            @Param("statuses") List<OrderStatus> statuses,
+            @Param("day") LocalDate day);
+
+    /** Nombre de commandes EN_ATTENTE, date de livraison = day, non assignées à une tournée. Pour livraisons par jour (nbEnAttente). */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = :status AND o.deliveryDate = :day AND o.deliveryTour IS NULL")
+    long countByStatusAndDeliveryDateAndDeliveryTourIsNull(
+            @Param("status") OrderStatus status,
+            @Param("day") LocalDate day);
+
+    /**
+     * Commandes du livreur dont la tournée a un des statuts donnés (paginé).
+     * triés par date de livraison, puis id de la tournée, puis id de la commande du plus ancien au plus récent
+     */
+    @Query("SELECT o FROM Order o WHERE o.deliveryTour IS NOT NULL AND o.deliveryTour.driver.id = :driverId AND o.deliveryTour.status IN :statuses ORDER BY o.deliveryDate ASC, o.deliveryTour.id ASC, o.id ASC")
+    Page<Order> findByDriverAndTourStatusIn(
+            @Param("driverId") Long driverId,
+            @Param("statuses") List<DeliveryTourStatus> statuses,
+            Pageable pageable);
+
+    /**
+     * Commandes du livreur dont la tournée a le statut donné (paginé).
+     * triés par date de livraison, puis id de la tournée, puis id de la commande du plus ancien au plus récent
+     */
+    @Query("SELECT o FROM Order o WHERE o.deliveryTour IS NOT NULL AND o.deliveryTour.driver.id = :driverId AND o.deliveryTour.status = :status ORDER BY o.deliveryDate ASC, o.deliveryTour.id ASC, o.id ASC")
+    Page<Order> findByDriverAndTourStatus(
+            @Param("driverId") Long driverId,
+            @Param("status") DeliveryTourStatus status,
+            Pageable pageable);
 }

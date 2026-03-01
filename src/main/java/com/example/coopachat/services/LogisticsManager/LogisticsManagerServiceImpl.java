@@ -9,6 +9,12 @@ import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
 import com.example.coopachat.dtos.claim.ClaimStatsDTO;
 import com.example.coopachat.dtos.claim.RejectClaimDTO;
 import com.example.coopachat.dtos.claim.ValidateClaimDTO;
+import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
+import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
+import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.RLDashboardKpisDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.StatutTourneesDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.StatusCountDTO;
 import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.ProductPreviewDTO;
@@ -21,8 +27,8 @@ import com.example.coopachat.entities.*;
 import com.example.coopachat.entities.util.GeoUtil;
 import com.example.coopachat.enums.*;
 import com.example.coopachat.repositories.*;
-import com.example.coopachat.services.DriverNotificationService;
-import com.example.coopachat.services.EmployeeNotificationService;
+import com.example.coopachat.services.DeliveryDriver.DriverNotificationService;
+import com.example.coopachat.services.Employee.EmployeeNotificationService;
 import com.example.coopachat.services.auth.EmailService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ValidationException;
@@ -45,10 +51,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -1702,45 +1705,72 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         log.info("Tournée {} mise à jour par {}", tourId, currentUser.getEmail());
     }
 
+    // ========================================
+    // ANNULATION TOURNÉE PAR LE RL
+    // ========================================
+    // Quand : tournée ASSIGNEE (livreur pas parti) ou EN_COURS sans livraison démarrée.
+    // Effet : tournée ANNULEE, toutes les commandes remises EN_ATTENTE (deliveryTour = null),
+    // notification salarié + livreur.
+
     @Override
     @Transactional
     public void cancelDeliveryTour(Long tourId, CancelDeliveryTourDTO dto) {
-
-        // 1. VÉRIFICATION DES DROITS
+        // 1. Vérifier que l'utilisateur connecté est bien un RL
         Users currentUser = getCurrentUser();
         if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
             throw new RuntimeException("Seul un responsable logistique peut annuler une tournée");
         }
 
-        // 2. RÉCUPÉRATION TOURNÉE
+        // 2. Charger la tournée
         DeliveryTour tour = deliveryTourRepository.findById(tourId)
                 .orElseThrow(() -> new EntityNotFoundException("Tournée non trouvée"));
 
-        // Vérifier statut annulable (ASSIGNEE uniquement : RL annule avant départ livreur)
-        if (tour.getStatus() != DeliveryTourStatus.ASSIGNEE) {
+        // 3. Vérifier qu'aucune livraison n'a été démarrée (on ne peut pas annuler si une commande est EN_COURS, ARRIVE ou LIVREE)
+        if (tour.getOrders() != null) {
+            for (Order order : tour.getOrders()) {
+                if (order.getStatus() == OrderStatus.EN_COURS
+                        || order.getStatus() == OrderStatus.ARRIVE
+                        || order.getStatus() == OrderStatus.LIVREE) {
+                    throw new RuntimeException(
+                            "Impossible d'annuler : des livraisons sont déjà en cours"
+                    );
+                }
+            }
+        }
+
+        // 4. Vérifier que la tournée est annulable (ASSIGNEE ou EN_COURS tant qu'aucune livraison démarrée)
+        if (tour.getStatus() != DeliveryTourStatus.ASSIGNEE && tour.getStatus() != DeliveryTourStatus.EN_COURS) {
             throw new IllegalStateException(
-                    "Seules les tournées ASSIGNEE peuvent être annulées (avant départ du livreur)"
+                    "Seules les tournées ASSIGNEE ou EN_COURS (sans livraison démarrée) peuvent être annulées"
             );
         }
 
-        // Sauvegarder ancien statut
         DeliveryTourStatus oldStatus = tour.getStatus();
 
-        // Annuler
+        // 5. Marquer la tournée comme annulée
         tour.setStatus(DeliveryTourStatus.ANNULEE);
+        tour.setCancellationReason(dto.getReason());
         tour.setCancelledAt(LocalDateTime.now());
         tour.setCancelledBy(currentUser);
-        tour.setCancellationReason(dto.getReason());
 
-        String driverUserEmail = tour.getDriver() != null ? tour.getDriver().getUser().getEmail() : null;
-        String driverUserName = tour.getDriver() != null ? tour.getDriver().getUser().getFirstName() + " " + tour.getDriver().getUser().getLastName() : null;
+        // 6. Notifier le salarié puis remettre chaque commande en EN_ATTENTE et détacher de la tournée
+        if (tour.getOrders() != null) {
+            for (Order order : tour.getOrders()) {
+                employeeNotificationService.notifyTourCancelled(order, dto.getReason());
+                order.setStatus(OrderStatus.EN_ATTENTE);
+                order.setDeliveryTour(null);
+                orderRepository.save(order);
+            }
+        }
 
-        // Notifier le livreur si la tournée était assignée
-        if (oldStatus == DeliveryTourStatus.ASSIGNEE && driverUserEmail != null) {
+        // 7. Notifier le livreur que la tournée est annulée
+        if (tour.getDriver() != null && tour.getDriver().getUser() != null
+                && tour.getDriver().getUser().getEmail() != null && !tour.getDriver().getUser().getEmail().isBlank()) {
             driverNotificationService.notifyTourCancelled(tour);
         }
+
         deliveryTourRepository.save(tour);
-        log.info("Tournée {} annulée par {}", tourId, currentUser.getEmail());
+        log.info("Tournée {} annulée par {}", tour.getTourNumber(), currentUser.getEmail());
     }
 
     @Override
@@ -1980,6 +2010,137 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         claim.setStatus(ClaimStatus.REJETE);
         claim.setRejectionReason(dto.getRejectionReason());
         claimRepository.save(claim);
+    }
+
+   //----------- Méthode Tableau de Bord ------------
+
+    /**
+     * KPIs du tableau de bord RL : commandes en attente, en retard, tournées actives, livrées ce mois.
+     */
+    @Override
+    public RLDashboardKpisDTO getDashboardKpis() {
+        LocalDate today = LocalDate.now();
+        // Toutes les commandes dont le statut est EN_ATTENTE
+        long commandesEnAttente = orderRepository.countByStatus(OrderStatus.EN_ATTENTE);
+        // EN_ATTENTE avec date de livraison déjà passée et non encore assignées à une tournée
+        long commandesEnRetard = orderRepository.countByStatusAndDeliveryDateBeforeAndDeliveryTourIsNull(
+                OrderStatus.EN_ATTENTE, today);
+        // Tournées dont le statut est EN_COURS
+        long tourneesActives = deliveryTourRepository.countByStatus(DeliveryTourStatus.EN_COURS);
+        LocalDateTime debutMois = today.withDayOfMonth(1).atStartOfDay();
+        LocalDateTime finAujourdhui = today.atTime(23, 59, 59, 999_999_999);
+        // Commandes LIVREE avec deliveryCompletedAt dans le mois en cours
+        long livreesCeMois = orderRepository.countByStatusAndDeliveryCompletedAtBetween(
+                OrderStatus.LIVREE, debutMois, finAujourdhui);
+        return new RLDashboardKpisDTO(commandesEnAttente, commandesEnRetard, tourneesActives, livreesCeMois);
+    }
+
+    /**
+     * Effectif des tournées par statut (ASSIGNEE, EN_COURS, TERMINEE, ANNULEE) pour le graphique donut.
+     */
+    @Override
+    public StatutTourneesDTO getStatutTournees() {
+        // Map qui va contenir le nombre de tournées pour chaque statut (clé = nom du statut, valeur = effectif)
+        Map<String, Long> parStatut = new LinkedHashMap<>();
+
+        // Initialise tous les statuts à 0 pour que le front affiche les 4 libellés même sans donnée
+        for (DeliveryTourStatus s : DeliveryTourStatus.values()) {
+            parStatut.put(s.name(), 0L);
+        }
+
+        // Remplit la map avec les vrais effectifs retournés par le repository (comptage groupé par status)
+        for (StatusCountDTO row : deliveryTourRepository.countGroupByStatus()) {
+            parStatut.put(row.status().name(), row.count());
+        }
+
+        // Retourne le DTO pour alimenter le graphique donut
+        return new StatutTourneesDTO(parStatut);
+    }
+
+    @Override
+    public List<CommandesVsLivraisonsDayDTO> getCommandesVsLivraisons() {
+
+        // Définit le format d'affichage de la date (ex : 25/02)
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
+
+        // Récupère la date du jour
+        LocalDate today = LocalDate.now();
+
+        // Liste qui va contenir les résultats des 7 derniers jours
+        List<CommandesVsLivraisonsDayDTO> result = new ArrayList<>();
+
+        // Boucle sur les 7 derniers jours (de J-6 jusqu'à aujourd'hui)
+        for (int i = 6; i >= 0; i--) {
+
+            // Calcule la date du jour en cours dans la boucle
+            LocalDate day = today.minusDays(i);
+
+            // Définit le début de la journée (00:00:00)
+            LocalDateTime dayStart = day.atStartOfDay();
+
+            // Définit la fin de la journée (23:59:59.999999999)
+            LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);
+
+            // Compte les commandes créées ce jour-là avec le statut EN_ATTENTE
+            long commandesEnAttente = orderRepository.countByStatusAndCreatedAtBetween(
+                    OrderStatus.EN_ATTENTE, dayStart, dayEnd);
+
+            // Compte les commandes livrées ce jour-là (date de livraison effective)
+            long livraisons = orderRepository.countByStatusAndDeliveryCompletedAtBetween(
+                    OrderStatus.LIVREE, dayStart, dayEnd);
+
+            // Ajoute les données du jour dans la liste (date + commandes + livraisons)
+            result.add(new CommandesVsLivraisonsDayDTO(
+                    day.format(formatter),
+                    commandesEnAttente,
+                    livraisons
+            ));
+        }
+
+        // Retourne la liste complète pour alimenter le graphique
+        return result;
+    }
+
+    @Override
+    public StockEtatGlobalDTO getStockEtatGlobal() {
+        // Nombre total de produits
+        long total = productRepository.count();
+        // Produits sous le seuil minimum (stock > 0 et < seuil)
+        long sousSeuil = productRepository.countLowStock();
+        // Produits en rupture (stock = 0)
+        long critique = productRepository.countByCurrentStock(0);
+        // Produits avec stock normal (au-dessus du seuil)
+        long normal = total - sousSeuil - critique;
+        return new StockEtatGlobalDTO(normal, sousSeuil, critique);
+    }
+
+    /**
+     * Par jour sur les 7 derniers jours : nb livrées, nb assignées à une tournée, nb en attente (non assignées).
+     * Utilisé pour le graphique Livraisons (Admin et RL).
+     */
+    @Override
+    public List<LivraisonParJourDTO> getLivraisonsParJour() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
+        LocalDate today = LocalDate.now();
+        // Statuts considérés comme "assignés" (en tournée ou en préparation)
+        List<OrderStatus> assignesStatuses = Arrays.asList(
+                OrderStatus.VALIDEE, OrderStatus.EN_PREPARATION, OrderStatus.EN_COURS, OrderStatus.ARRIVE);
+        List<LivraisonParJourDTO> result = new ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate day = today.minusDays(i);
+            LocalDateTime dayStart = day.atStartOfDay();
+            LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);
+            // Livrées ce jour (LIVREE, deliveryCompletedAt dans la journée)
+            long nbLivrees = orderRepository.countByStatusAndDeliveryCompletedAtBetween(
+                    OrderStatus.LIVREE, dayStart, dayEnd);
+            // Assignées à une tournée ce jour (statut dans assignesStatuses, deliveryDate = day)
+            long nbAssignes = orderRepository.countByStatusInAndDeliveryDate(assignesStatuses, day);
+            // EN_ATTENTE avec deliveryDate = day et pas encore en tournée
+            long nbEnAttente = orderRepository.countByStatusAndDeliveryDateAndDeliveryTourIsNull(
+                    OrderStatus.EN_ATTENTE, day);
+            result.add(new LivraisonParJourDTO(day.format(formatter), nbLivrees, nbAssignes, nbEnAttente));
+        }
+        return result;
     }
 
     // ============================================================================

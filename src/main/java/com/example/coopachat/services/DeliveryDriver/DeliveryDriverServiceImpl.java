@@ -1,12 +1,12 @@
 package com.example.coopachat.services.DeliveryDriver;
 
-import com.example.coopachat.dtos.DeliveryDriver.CreateDriverReportDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
-import com.example.coopachat.dtos.DeliveryDriver.DriverDeliveryListItemDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDashboardDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
-import com.example.coopachat.dtos.DeliveryDriver.OrderDetailsForDriverDTO;
-import com.example.coopachat.dtos.DeliveryDriver.OrderItemForDriverDTO;
+import com.example.coopachat.dtos.driver.DeliveryDetailDTO;
+import com.example.coopachat.dtos.driver.DeliveryIssueDTO;
+import com.example.coopachat.dtos.driver.DriverDeliveryCardDTO;
+import com.example.coopachat.dtos.driver.DriverDeliveriesResponseDTO;
 import com.example.coopachat.entities.*;
 import com.example.coopachat.enums.DeliveryTourStatus;
 import com.example.coopachat.enums.OrderStatus;
@@ -14,10 +14,14 @@ import com.example.coopachat.enums.PaymentMethodType;
 import com.example.coopachat.enums.PaymentStatus;
 import com.example.coopachat.enums.PaymentTimingType;
 import com.example.coopachat.repositories.*;
-import com.example.coopachat.services.DriverNotificationService;
+import com.example.coopachat.services.Employee.EmployeeNotificationService;
 import com.example.coopachat.services.fee.FeeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -30,6 +34,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Implémentation du service de gestion des actions du Livreur
@@ -47,21 +52,23 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     private final DeliveryTourRepository deliveryTourRepository;
     private final FeeService feeService;
     private final PaymentRepository paymentRepository;
-    private final DriverReportRepository driverReportRepository;
     private final DriverNotificationService driverNotificationService;
+    private final EmployeeNotificationService employeeNotificationService;
     private final DriverReviewRepository driverReviewRepository;
 
 
-    //---------------------- Récupère les informations personnelles du livreur-----------
+    // ========================================
+    // INFORMATIONS PERSONNELLES DU LIVREUR
+    // ========================================
+
     @Override
     public DriverPersonalInfoDTO getPersonalInfo() {
-
+        // 1. Récupérer l'utilisateur connecté
         Users user = getCurrentUser();
-
-        // Récupérer le livreur associé à cet utilisateur
-       Driver driver = deliveryDriverRepository.findByUser(user)
-               .orElseThrow(() -> new RuntimeException("Livreur non trouvé"));
-
+        // 2. Vérifier que c'est bien un livreur (et récupérer le driver)
+        Driver driver = deliveryDriverRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Livreur non trouvé"));
+        // 3. Retourner nom, prénom, téléphone, email
         return new DriverPersonalInfoDTO(
                 user.getFirstName(),
                 user.getLastName(),
@@ -69,14 +76,13 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
                 user.getEmail()
         );
     }
-    //---------------------- Met à jour les informations personnelles du livreur-----------
+
     @Override
     @Transactional
     public void updatePersonalInfo(DriverPersonalInfoDTO updateRequest) {
-
+        // 1. Récupérer l'utilisateur connecté
         Users user = getCurrentUser();
-
-        // Mettre à jour uniquement les champs autorisés
+        // 2. Mettre à jour uniquement les champs fournis (prénom, nom, téléphone)
         if (updateRequest.getFirstName() != null) {
             user.setFirstName(updateRequest.getFirstName());
         }
@@ -86,163 +92,286 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         if (updateRequest.getPhone() != null) {
             user.setPhone(updateRequest.getPhone());
         }
-
+        // 3. Sauvegarder
         userRepository.save(user);
-        log.info("Mise à jour réussie pour le livreur : {} {}",
-                user.getFirstName(), user.getLastName());
+        log.info("Mise à jour réussie pour le livreur : {} {}", user.getFirstName(), user.getLastName());
     }
-    //---------------------- Récupère les livraisons du livreur-----------
+    @Override
+    @Transactional(readOnly = true)
+    public DriverAddressDTO getMyAddress() {
+        // 1. Récupérer le livreur connecté et retourner son adresse (formattedAddress + lat/long)
+        Driver driver = getDriverOrThrow();
+        return new DriverAddressDTO(
+                driver.getFormattedAddress(),
+                driver.getLatitude(),
+                driver.getLongitude()
+        );
+    }
 
     @Override
-    public List<DriverDeliveryListItemDTO> getMyDeliveries(LocalDate deliveryDate, OrderStatus status, String search) {
-        Users user = getCurrentUser();
-        //Récupérer le livreur associé à cet utilisateur
-        Driver driver = deliveryDriverRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Livreur non trouvé"));
+    @Transactional
+    public void updateMyAddress(DriverAddressDTO dto) {
+        // 1. Récupérer le livreur connecté
+        Driver driver = getDriverOrThrow();
+        // 2. Mettre à jour l'adresse (formattedAddress + lat/long)
+        driver.setFormattedAddress(dto.getFormattedAddress());
+        driver.setLatitude(dto.getLatitude());
+        driver.setLongitude(dto.getLongitude());
+        // 3. Sauvegarder
+        deliveryDriverRepository.save(driver);
+        log.info("Adresse livreur mise à jour pour {}", driver.getUser().getEmail());
+    }
+    // ========================================//DÉMARRER UNE TOURNÉE//========================================
+    
+    //--------------------------------LISTE DES LIVRAISONS (SIMPLIFIÉ - PAGINÉ)--------------------------------
+   
 
-        //Normaliser le terme de recherche si non null et non vide
-        String searchTerm = (search != null && !search.isBlank()) ? search.trim() : null;
+    @Override
+    @Transactional(readOnly = true)
+    public DriverDeliveriesResponseDTO getMyDeliveries(String statusFilter, int page, int size) {
+        // 1. Récupérer le livreur connecté
+        Driver driver = getDriverOrThrow();
+        // 2. Créer la pagination (tri : date livraison, tournée, id commande)
+        Pageable pageable = PageRequest.of(page, size, Sort.by("deliveryDate").ascending().and(Sort.by("deliveryTour.id").ascending()).and(Sort.by("id").ascending()));
 
+        // 3. Récupérer les commandes selon le filtre (ALL, TO_CONFIRM, IN_PROGRESS, COMPLETED)
+        Page<Order> ordersPage;
+        if (statusFilter == null || "ALL".equals(statusFilter)) {
+            ordersPage = orderRepository.findByDriverAndTourStatusIn(
+                    driver.getId(),
+                    List.of(DeliveryTourStatus.ASSIGNEE, DeliveryTourStatus.EN_COURS),
+                    pageable);
+        } else if ("TO_CONFIRM".equals(statusFilter)) {
+            ordersPage = orderRepository.findByDriverAndTourStatus(
+                    driver.getId(),
+                    DeliveryTourStatus.ASSIGNEE,
+                    pageable);
+        } else if ("IN_PROGRESS".equals(statusFilter)) {
+            ordersPage = orderRepository.findByDriverAndTourStatus(
+                    driver.getId(),
+                    DeliveryTourStatus.EN_COURS,
+                    pageable);
+        } else if ("COMPLETED".equals(statusFilter)) {
+            ordersPage = orderRepository.findByDriverAndTourStatusIn(
+                    driver.getId(),
+                    List.of(DeliveryTourStatus.TERMINEE, DeliveryTourStatus.ANNULEE),
+                    pageable);
+        } else {
+            ordersPage = orderRepository.findByDriverAndTourStatusIn(
+                    driver.getId(),
+                    List.of(DeliveryTourStatus.ASSIGNEE, DeliveryTourStatus.EN_COURS),
+                    pageable);
+        }
 
-         List<Order> orders = orderRepository.findDriverDeliveries(driver.getId(), deliveryDate, status, searchTerm);
+        // 4. Mapper les commandes vers DriverDeliveryCardDTO
+        List<DriverDeliveryCardDTO> deliveries = ordersPage.getContent().stream()
+                .map(this::mapToDriverDeliveryCardDTO)
+                .collect(Collectors.toList());
 
-
-        return orders.stream()
-            .map(this::mapOrderToDriverDeliveryListItemDTO)
-            .toList();
+        // 5. Retourner la réponse paginée
+        return new DriverDeliveriesResponseDTO(
+                deliveries,
+                ordersPage.getTotalElements(),
+                ordersPage.getTotalPages(),
+                ordersPage.getNumber(),
+                ordersPage.getSize(),
+                ordersPage.hasNext(),
+                ordersPage.hasPrevious());
     }
 
-    //---------------------- Confirme la récupération d'une tournée-----------
+    //---------------------- Indique si le livreur a une tournée en cours-----------
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasActiveTour() {
+        // 1. Récupérer le livreur connecté
+        Driver driver = getDriverOrThrow();
+        // 2. Vérifier s'il existe une tournée EN_COURS pour ce livreur
+        return deliveryTourRepository.existsByDriverAndStatus(driver, DeliveryTourStatus.EN_COURS);
+    }
+
+    //--------------------------------Confirmer la récupération des commandes par le livreur--------------------------------
     @Override
     @Transactional
     public void confirmPickup(Long tourId) {
-        Driver driver = getDriverOrThrow();
+        // 1. Charger la tournée
         DeliveryTour tour = deliveryTourRepository.findById(tourId)
                 .orElseThrow(() -> new RuntimeException("Tournée introuvable"));
+
+        // 2. Récupérer le livreur connecté
+        Users currentUser = getCurrentUser();
+        Driver driver = getDriverOrThrow();
+
+        // 3. Vérifier que le livreur est bien assigné à cette tournée
         if (!tour.getDriver().getId().equals(driver.getId())) {
-            throw new RuntimeException("Cette tournée ne vous est pas assignée");
+            throw new RuntimeException("Vous n'êtes pas assigné à cette tournée");
         }
+
+        // 4. Vérifier qu'il n'a pas déjà une tournée en cours
+        if (hasActiveTour()) {
+            throw new RuntimeException(
+                    "Vous avez déjà une tournée en cours. " +
+                            "Veuillez la terminer avant d'en commencer une nouvelle.");
+        }
+
+        // 5. Vérifier que la tournée est au statut ASSIGNEE
         if (tour.getStatus() != DeliveryTourStatus.ASSIGNEE) {
-            throw new RuntimeException("Seule une tournée au statut Assignée peut être confirmée en récupération");
+            throw new RuntimeException("Cette tournée ne peut pas être démarrée");
         }
+
+        // 6. Passer la tournée en EN_COURS et enregistrer l'heure de démarrage
         tour.setStatus(DeliveryTourStatus.EN_COURS);
         tour.setStartedAt(LocalDateTime.now());
+
+        // 7. Passer toutes les commandes VALIDEE en EN_PREPARATION
+        for (Order order : tour.getOrders()) {
+            if (order.getStatus() == OrderStatus.VALIDEE) {
+                order.setStatus(OrderStatus.EN_PREPARATION);
+                orderRepository.save(order);
+            }
+        }
+
+        // 8. Sauvegarder la tournée
         deliveryTourRepository.save(tour);
-        log.info("Livreur {} a confirmé la récupération pour la tournée {}", driver.getUser().getEmail(), tour.getTourNumber());
+
+        log.info("Tournée {} démarrée par {}", tour.getTourNumber(), currentUser.getEmail());
     }
 
-    //---------------------- Démarre la livraison d'une commande-----------
+    //--------------------------------DÉMARRER LIVRAISON d'une commande spécifique--------------------------------
+
     @Override
     @Transactional
     public void startDelivery(Long orderId) {
-        Driver driver = getDriverOrThrow();
+        // 1. Charger la commande
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        // 2. Récupérer le livreur connecté
+        Users currentUser = getCurrentUser();
+        Driver driver = getDriverOrThrow();
+
+        // 3. Vérifier que la commande appartient à une tournée assignée au livreur
         if (order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
-            throw new RuntimeException("Cette commande ne fait pas partie de vos livraisons");
+            throw new RuntimeException("Vous n'êtes pas assigné à cette commande");
         }
-        if (order.getDeliveryTour().getStatus() != DeliveryTourStatus.EN_COURS) {
-            throw new RuntimeException("La tournée doit être en cours (récupération confirmée)");
+
+        // 4. Vérifier que la commande est en EN_PREPARATION
+        if (order.getStatus() != OrderStatus.EN_PREPARATION) {
+            throw new RuntimeException("Seule une commande En préparation peut être démarrée");
         }
-        // On ne démarre que si la commande est validée (mise en tournée par le RL)
-        if (order.getStatus() != OrderStatus.VALIDEE) {
-            throw new RuntimeException("Seule une commande validée peut être démarrée");
-        }
+
+        // 5. Passer la commande en EN_COURS et enregistrer l'heure de départ
         order.setStatus(OrderStatus.EN_COURS);
         order.setDeliveryStartedAt(LocalDateTime.now());
+
+        // 6. Sauvegarder la commande
         orderRepository.save(order);
-        log.info("Livreur a démarré la livraison pour la commande {}", order.getOrderNumber());
+
+        log.info("Livraison {} démarrée par {}", order.getOrderNumber(), currentUser.getEmail());
     }
-    //---------------------- Confirme l'arrivée d'une commande-----------
+
+    //--------------------------------📍 CONFIRMER ARRIVÉE--------------------------------
 
     @Override
     @Transactional
     public void confirmArrival(Long orderId) {
-        Driver driver = getDriverOrThrow();
+        // 1. Charger la commande
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        // 2. Récupérer le livreur connecté
+        Driver driver = getDriverOrThrow();
+
+        // 3. Vérifier que la commande appartient à une tournée assignée au livreur
         if (order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
-            throw new RuntimeException("Cette commande ne fait pas partie de vos livraisons");
+            throw new RuntimeException("Vous n'êtes pas assigné à cette commande");
         }
+
+        // 4. Vérifier que la commande est en EN_COURS
         if (order.getStatus() != OrderStatus.EN_COURS) {
-            throw new RuntimeException("La commande doit être En cours pour confirmer l'arrivée");
+            throw new RuntimeException("Seule une livraison En cours peut confirmer l'arrivée");
         }
+
+        // 5. Passer la commande en ARRIVE et enregistrer l'heure d'arrivée
         order.setStatus(OrderStatus.ARRIVE);
         order.setDeliveryArrivedAt(LocalDateTime.now());
+
+        // 6. Sauvegarder la commande
         orderRepository.save(order);
-        log.info("Livreur a confirmé l'arrivée pour la commande {}", order.getOrderNumber());
+        log.info("Arrivée confirmée pour {}", order.getOrderNumber());
     }
-    //---------------------- Finalise la livraison d'une commande-----------
+
+    //--------------------------------✅ FINALISER LIVRAISON--------------------------------
 
     @Override
     @Transactional
     public void completeDelivery(Long orderId) {
-        // 1. Vérifier que l'appelant est bien le livreur connecté
-        Driver driver = getDriverOrThrow();
-        // 2. Charger la commande
+        // 1. Charger la commande
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
-        // 3. S'assurer que la commande appartient à une tournée assignée à ce livreur
+
+        // 2. Récupérer le livreur connecté
+        Driver driver = getDriverOrThrow();
+
+        // 3. Vérifier que la commande appartient à une tournée assignée au livreur
         if (order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
-            throw new RuntimeException("Cette commande ne fait pas partie de vos livraisons");
+            throw new RuntimeException("Vous n'êtes pas assigné à cette commande");
         }
-        // 4. La commande doit être au statut "Arrivé" pour pouvoir finaliser
+
+        // 4. Vérifier que la commande est au statut ARRIVE
         if (order.getStatus() != OrderStatus.ARRIVE) {
-            throw new RuntimeException("La commande doit être Arrivé pour finaliser la livraison");
+            throw new RuntimeException("Seule une livraison avec statut Arrivé peut être finalisée");
         }
-        // 5. Vérifier le statut de paiement : si un paiement existe et n'est pas payé, le livreur doit d'abord confirmer (ex. espèces)
+
+        // 5. Vérifier que la commande est payée
         Payment payment = order.getPayment();
         if (payment != null && payment.getStatus() != PaymentStatus.PAID) {
-            throw new RuntimeException("La commande doit être payée avant de finaliser la livraison. Confirmez le paiement en espèces si applicable.");
+            throw new RuntimeException("La commande doit être payée avant finalisation");
         }
-        // 6. Marquer la commande comme livrée et enregistrer l'heure
+
+        // 6. Passer la commande en LIVREE et enregistrer l'heure de remise
         order.setStatus(OrderStatus.LIVREE);
         order.setDeliveryCompletedAt(LocalDateTime.now());
         orderRepository.save(order);
-        // 7. Vérifier si toutes les commandes de la tournée sont maintenant livrées
+
+        // 7. Vérifier si toutes les commandes de la tournée sont dans un état final (LIVREE ou ECHEC_LIVRAISON)
         DeliveryTour tour = order.getDeliveryTour();
-        boolean allDelivered = tour.getOrders().stream().allMatch(o -> o.getStatus() == OrderStatus.LIVREE);
-        // 8. Si oui, clôturer la tournée et enregistrer l'heure de fin
-        if (allDelivered) {
-            tour.setStatus(DeliveryTourStatus.TERMINEE);
-            tour.setCompletedAt(LocalDateTime.now());
-            deliveryTourRepository.save(tour);
-            log.info("Tournée {} terminée (toutes les commandes livrées)", tour.getTourNumber());
-        }
-        log.info("Livraison finalisée pour la commande {}", order.getOrderNumber());
+        checkTourCompletion(tour);
+
+        log.info("Livraison {} finalisée", order.getOrderNumber());
     }
 
-    //---------------------- Confirme un paiement en espèces pour une commande-----------
+    //--------------------------------CONFIRMER PAIEMENT ESPÈCES--------------------------------
+
     @Override
     @Transactional
     public void confirmCashPayment(Long orderId) {
-
-        Driver driver = getDriverOrThrow();//On récupère le livreur connecté
-
-        //On récupère la commande
+        // 1. Récupérer le livreur connecté et charger la commande
+        Driver driver = getDriverOrThrow();
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
 
-        //On vérifie si la commande fait partie de la tournée du livreur connecté
+        // 2. Vérifier que la commande appartient à une tournée assignée au livreur
         if (order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
-            throw new RuntimeException("Cette commande ne fait pas partie de vos livraisons");
+            throw new RuntimeException("Vous n'êtes pas assigné à cette commande");
         }
 
-        //On récupère le paiement de la commande
+        // 3. Récupérer ou créer le paiement
         Payment payment = order.getPayment();
 
-        //On vérifie si le paiement est déjà payé
+        // 4. Vérifier que la commande n'est pas déjà payée
         if (payment != null && payment.getStatus() == PaymentStatus.PAID) {
             throw new RuntimeException("Cette commande est déjà payée");
         }
-        //Si le paiement est nul, on en crée un nouveau
+
+        // 5. Créer un nouveau paiement si absent
         if (payment == null) {
             payment = new Payment();
             payment.setOrder(order);
             payment.setPaymentMethod(PaymentMethodType.CASH);
             payment.setPaymentTiming(PaymentTimingType.ON_DELIVERY);
         }
-        //On génère une référence de paiement 
+
+        // 6. Générer la référence, marquer payé et enregistrer l'heure
         String ref = "ESP-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
         payment.setTransactionReference(ref);
         payment.setStatus(PaymentStatus.PAID);
@@ -252,154 +381,213 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         log.info("💵 Paiement en espèces confirmé par le livreur pour commande {} - Ref: {}", order.getOrderNumber(), ref);
     }
 
-    //---------------------- Récupère les détails d'une commande pour le livreur-----------
+    // ========================================
+    // DÉTAIL D'UNE LIVRAISON (écran livreur)
+    // ========================================
+
     @Override
-    public OrderDetailsForDriverDTO getOrderDetails(Long orderId) {
-        // 1. S'assurer que l'appelant est le livreur connecté
-        Driver driver = getDriverOrThrow();
-        // 2. Charger la commande (avec les lignes et le produit pour chaque ligne)
+    public DeliveryDetailDTO getDeliveryDetail(Long orderId) {
+        // 1. Récupérer la commande
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
-        // 3. Vérifier que cette commande fait partie d'une tournée assignée à ce livreur
+
+        // 2. Vérifier que le livreur connecté est assigné à cette commande
+        Driver driver = getDriverOrThrow();
         if (order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
-            throw new RuntimeException("Cette commande ne fait pas partie de vos livraisons");
+            throw new RuntimeException("Vous n'êtes pas assigné à cette commande");
         }
 
-        // 4. Date de commande (date de création)
-        LocalDate orderDate = order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate() : null;
-
-        // 5. Libellé du statut pour l'affichage (ex. "Livrée", "En cours")
-        String statusLabel = order.getStatus() != null ? order.getStatus().getLabel() : "";
-
-        // 6. Liste des produits commandés (nom, quantité, prix unitaire, image)
-        List<OrderItemForDriverDTO> items = new ArrayList<>();
-        if (order.getItems() != null) {
-            for (OrderItem item : order.getItems()) {
-                String productName = item.getProduct() != null ? item.getProduct().getName() : "";
-                BigDecimal unitPrice = item.getPromoPrice() != null ? item.getPromoPrice() : item.getUnitPrice();
-                String imageUrl = item.getProduct() != null ? item.getProduct().getImage() : null;
-                items.add(new OrderItemForDriverDTO(productName, item.getQuantity(), unitPrice, imageUrl));
-            }
-        }
-
-        // 7. Nom du client (employé qui a passé la commande)
-        String clientName = order.getEmployee() != null && order.getEmployee().getUser() != null
-                ? order.getEmployee().getUser().getFirstName() + " " + order.getEmployee().getUser().getLastName()
-                : "";
-
-        // 8. Adresse de livraison (adresse principale de l'employé)
-        String deliveryAddress = getDeliveryAddressFromOrder(order);
-
-        // 9. Construire le DTO avec toutes les infos + timeline (createdAt, deliveryStartedAt, etc.)
-        BigDecimal productsTotal = order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;//On récupère le sous-total de la commande
-        BigDecimal deliveryAmount = feeService.calculateTotalFees();//On calcule les frais de service
-        if (deliveryAmount == null) deliveryAmount = BigDecimal.ZERO;//Si les frais de service sont nuls, on met 0
-        BigDecimal totalToReceive = productsTotal.add(deliveryAmount);//On calcule le total à percevoir
-
-        OrderDetailsForDriverDTO dto = new OrderDetailsForDriverDTO();
+        // 3. Créer le DTO et remplir les infos principales
+        DeliveryDetailDTO dto = new DeliveryDetailDTO();
+        dto.setOrderId(order.getId());
         dto.setOrderNumber(order.getOrderNumber());
-        dto.setOrderDate(orderDate);
-        dto.setStatusLabel(statusLabel);
-        dto.setProductCount(order.getItems() != null ? order.getItems().size() : 0);
-        dto.setProductsTotal(productsTotal);
-        dto.setDeliveryAmount(deliveryAmount);
-        dto.setTotalAmount(totalToReceive);
-        dto.setItems(items);
-        dto.setClientName(clientName);
-        dto.setDeliveryAddress(deliveryAddress);
-        dto.setDeliveryDate(order.getDeliveryDate());
-        dto.setCreatedAt(order.getCreatedAt());
-        dto.setValidatedAt(order.getValidatedAt());
-        dto.setDeliveryStartedAt(order.getDeliveryStartedAt());
-        dto.setDeliveryArrivedAt(order.getDeliveryArrivedAt());
-        dto.setDeliveryCompletedAt(order.getDeliveryCompletedAt());
-        // 10. Type de paiement et statut (pour "Informations de paiement" et vérification avant finalisation)
-        if (order.getPayment() != null) {
-            dto.setPaymentMethodLabel(order.getPayment().getPaymentMethod() != null ? order.getPayment().getPaymentMethod().getLabel() : null);
-            dto.setPaymentStatusLabel(order.getPayment().getStatus() != null ? order.getPayment().getStatus().getLabel() : "Impayé");
-        } else {
-            dto.setPaymentMethodLabel(null);
-            dto.setPaymentStatusLabel("Impayé");
+        dto.setStatusLabel(order.getStatus() != null ? order.getStatus().getLabel() : "");
+
+        // 4. Infos client (employé)
+        Employee employee = order.getEmployee();
+        if (employee != null && employee.getUser() != null) {
+            String first = employee.getUser().getFirstName() != null ? employee.getUser().getFirstName() : "";
+            String last = employee.getUser().getLastName() != null ? employee.getUser().getLastName() : "";
+            dto.setCustomerName((first + " " + last).trim());
+            dto.setEmployeeId("ID: " + employee.getId());
+            dto.setCustomerPhone(employee.getUser().getPhone());
+            dto.setPhoto(employee.getUser().getProfilePhotoUrl());
         }
+
+        // 5. Adresse de livraison (texte + lat/long)
+        dto.setDeliveryAddress(getDeliveryAddressFromOrder(order));
+        Address primaryAddress = getPrimaryAddressFromOrder(order);
+        if (primaryAddress != null) {
+            dto.setDeliveryLatitude(primaryAddress.getLatitude() != null ? primaryAddress.getLatitude().doubleValue() : null);//On récupère la latitude de l'adresse principale convertie en double
+            dto.setDeliveryLongitude(primaryAddress.getLongitude() != null ? primaryAddress.getLongitude().doubleValue() : null);//On récupère la longitude de l'adresse principale convertie en double
+        }
+
+        // 6. Montant total
+        dto.setTotalAmount(order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO);
+
         return dto;
     }
 
-    //---------------------- Récupère l'adresse du livreur-----------
-    @Override
-    @Transactional(readOnly = true)
-    public DriverAddressDTO getMyAddress() {
-        Driver driver = getDriverOrThrow();
-        return new DriverAddressDTO(
-                driver.getFormattedAddress(),
-                driver.getLatitude(),
-                driver.getLongitude()
-        );
+    /**
+     * Récupère l'adresse principale de l'employé de la commande (pour lat/long).
+     */
+    private Address getPrimaryAddressFromOrder(Order order) {
+        if (order.getEmployee() == null || order.getEmployee().getAddresses() == null || order.getEmployee().getAddresses().isEmpty()) {
+            return null;
+        }
+        return order.getEmployee().getAddresses().stream()
+                .filter(Address::isPrimary)
+                .findFirst()
+                .orElse(order.getEmployee().getAddresses().stream().findFirst().orElse(null));
     }
 
-    //---------------------- Met à jour l'adresse du livreur-----------
+ 
+    //--------------------------------SIGNALER UN PROBLÈME (échec livraison)--------------------------------
     @Override
     @Transactional
-    public void updateMyAddress(DriverAddressDTO dto) {
-        Driver driver = getDriverOrThrow();
-        driver.setFormattedAddress(dto.getFormattedAddress());
-        driver.setLatitude(dto.getLatitude());
-        driver.setLongitude(dto.getLongitude());
-        deliveryDriverRepository.save(driver);
-        log.info("Adresse livreur mise à jour pour {}", driver.getUser().getEmail());
-    }
-
-    //---------------------- Signaler un problème (signalement livreur) -----------
-    @Override
-    @Transactional
-    public void submitReport(Long orderId, CreateDriverReportDTO dto) {
-        Driver driver = getDriverOrThrow();
+    public void reportDeliveryIssue(Long orderId, DeliveryIssueDTO dto) {
+        // 1. Charger la commande ou lever une exception si introuvable
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        // 2. Vérifier que le livreur connecté est bien assigné à la tournée de cette commande
+        Driver driver = getDriverOrThrow();
         if (order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
-            throw new RuntimeException("Cette commande ne fait pas partie de vos livraisons");
+            throw new RuntimeException("Vous n'êtes pas assigné à cette commande");
         }
 
-        DriverReport report = new DriverReport();
-        report.setDriver(driver);
-        report.setReportType(dto.getReportType());
-        report.setComment(dto.getComment());
-        report.setOrder(order);
-        driverReportRepository.save(report);
+        // 3. Vérifier que la commande est en cours de livraison (EN_COURS ou ARRIVE)
+        if (order.getStatus() != OrderStatus.EN_COURS && order.getStatus() != OrderStatus.ARRIVE) {
+            throw new RuntimeException("Seule une livraison en cours peut être signalée");
+        }
 
-        // Email au RL qui a créé la tournée
-        Users rlCreatedTour = order.getDeliveryTour().getCreatedBy();
-        if (rlCreatedTour != null && rlCreatedTour.getEmail() != null && !rlCreatedTour.getEmail().isBlank()) {
-            String driverName = driver.getUser().getFirstName() + " " + driver.getUser().getLastName();
-            driverNotificationService.notifyLogisticsManagerOfDriverReport(
-                    rlCreatedTour.getEmail(),
-                    driverName,
-                    dto.getReportType().getLabel(),
+        // 4. Passer la commande en échec : statut, raison (libellé), date du signalement, sauvegarde
+        String reasonLabel = dto.getReason() != null ? dto.getReason().getLabel() : "Non précisée";
+        order.setStatus(OrderStatus.ECHEC_LIVRAISON);
+        order.setFailureReason(reasonLabel);
+        order.setFailureReportedAt(LocalDateTime.now());
+        orderRepository.save(order);
+
+        // 5. Notifier le salarié (client) par email : livraison non effectuée + contact RL
+        employeeNotificationService.notifyDeliveryFailed(order, reasonLabel);
+
+        // 6. Notifier le RL (créateur de la tournée) par email : détail commande, raison, commentaire livreur
+        Users rl = order.getDeliveryTour().getCreatedBy();
+        if (rl != null && rl.getEmail() != null && !rl.getEmail().isBlank()) {
+            String deliveryAddress = getDeliveryAddressFromOrder(order);
+            driverNotificationService.notifyLogisticsManagerOfDeliveryFailure(
+                    order,
+                    reasonLabel,
                     dto.getComment() != null ? dto.getComment() : "",
-                    order.getOrderNumber()
+                    deliveryAddress != null ? deliveryAddress : "Non renseignée"
             );
         }
-        log.info("Signalement livreur enregistré, RL notifié : {} - {}", driver.getUser().getEmail(), dto.getReportType().getLabel());
+
+        // 7. Vérifier si la tournée est terminée (toutes commandes livrées ou en échec) → TERMINEE si oui
+        checkTourCompletion(order.getDeliveryTour());
+        log.info("Échec livraison {} signalé : {}", order.getOrderNumber(), reasonLabel);
     }
 
-    //---------------------- Tableau de bord livreur -----------
+    // ========================================
+    // TABLEAU DE BORD LIVREUR
+    // ========================================
     /** Livraisons aujourd'hui, total livraisons (statut LIVREE), et moyenne des notes des avis clients. */
+
     @Override
     @Transactional(readOnly = true)
     public DriverDashboardDTO getDashboard() {
+        // 1. Récupérer le livreur connecté
         Driver driver = getDriverOrThrow();
         LocalDate today = LocalDate.now();
-        // Nombre de commandes livrées aujourd'hui par ce livreur
+
+        // 2. Nombre de commandes livrées aujourd'hui par ce livreur
         long livraisonsAujourdhui = orderRepository.countByDeliveryTourDriverIdAndStatusAndDeliveryDate(
                 driver.getId(), OrderStatus.LIVREE, today);
-        // Nombre total de commandes livrées par ce livreur (toutes dates)
+
+        // 3. Nombre total de commandes livrées par ce livreur (toutes dates)
         long totalLivraisons = orderRepository.countByDeliveryTourDriverIdAndStatus(
                 driver.getId(), OrderStatus.LIVREE);
-        // Moyenne des notes (1 à 5) des avis clients ; null si aucun avis
+
+        // 4. Moyenne des notes (1 à 5) des avis clients ; null si aucun avis
         Double satisfactionMoyenne = driverReviewRepository.getAverageRatingByDriverId(driver.getId());
+
         return new DriverDashboardDTO(livraisonsAujourdhui, totalLivraisons, satisfactionMoyenne);
     }
 
-//---------------- Les méthodes Utilitaires -------------------
+    // ========================================
+    // MÉTHODES UTILITAIRES
+    // ========================================
+
+    /**
+     * Récupérer le créneau horaire
+     */
+    private String getTimeSlot(Order order) {
+        EmployeeDeliveryPreference pref =
+                order.getEmployee().getEmployeeDeliveryPreference();
+
+        if (pref != null && pref.getPreferredTimeSlot() != null) {
+            return pref.getPreferredTimeSlot().getDisplayName();
+        }
+
+        return "Toute la journée";
+    }
+    /**
+     * Vérifie si la tournée est terminée (toutes les commandes en état final : LIVREE ou ECHEC_LIVRAISON).
+     * Si oui, passe la tournée en TERMINEE et enregistre l'heure de fin.
+     */
+    private void checkTourCompletion(DeliveryTour tour) {
+        if (tour == null || tour.getOrders() == null) return;
+        long totalOrders = tour.getOrders().size();
+        long finalOrders = tour.getOrders().stream()
+                .filter(o -> o.getStatus() == OrderStatus.LIVREE || o.getStatus() == OrderStatus.ECHEC_LIVRAISON)
+                .count();
+        if (totalOrders == finalOrders) {
+            tour.setStatus(DeliveryTourStatus.TERMINEE);
+            tour.setCompletedAt(LocalDateTime.now());
+            deliveryTourRepository.save(tour);
+            log.info("Tournée {} terminée", tour.getTourNumber());
+        }
+    }
+
+    /**
+     * Mappe une commande vers DriverDeliveryCardDTO (carte liste livreur).
+     */
+    private DriverDeliveryCardDTO mapToDriverDeliveryCardDTO(Order order) {
+        
+        DriverDeliveryCardDTO dto = new DriverDeliveryCardDTO();//On crée un nouveau DriverDeliveryCardDTO
+
+        dto.setOrderId(order.getId());//Id de la commande
+        dto.setOrderNumber(order.getOrderNumber());//Numéro de la commande
+        dto.setStatusLabel(order.getStatus() != null ? order.getStatus().getLabel() : null);//Statut de la commande
+        dto.setDeliveryDate(order.getDeliveryDate());//Date de livraison estimée
+        dto.setTimeSlot(getTimeSlot(order));//créneau horaire
+        //On récupère le nom du client et le nom de la société
+        if (order.getEmployee() != null) {
+            dto.setCustomerName(
+        
+                    (order.getEmployee().getUser().getFirstName() != null ? order.getEmployee().getUser().getFirstName() : "")
+                            + " "
+                            + (order.getEmployee().getUser().getLastName() != null ? order.getEmployee().getUser().getLastName() : ""));
+            if (order.getEmployee().getCompany() != null) {
+                dto.setCompanyName(order.getEmployee().getCompany().getName());
+            }
+        }
+
+        String formattedAddr = getDeliveryAddressFromOrder(order);//On récupère l'adresse de livraison
+        dto.setFormattedAddress(formattedAddr);//On set l'adresse de livraison formatée
+       
+
+        if (order.getEmployee() != null && order.getEmployee().getAddresses() != null && !order.getEmployee().getAddresses().isEmpty()) {
+            Address addr = order.getEmployee().getAddresses().stream()
+                    .filter(Address::isPrimary)//on filtre pour avoir que les adresses principales (même si c'est une seule parmi toutes les adresses)
+                    .findFirst()//on récupère la première adresse principale
+                    .orElse(order.getEmployee().getAddresses().get(0));//sinon on prend la 1 ere adresse de l'employé
+            dto.setLatitude(addr.getLatitude() != null ? addr.getLatitude().doubleValue() : null);
+            dto.setLongitude(addr.getLongitude() != null ? addr.getLongitude().doubleValue() : null);
+        }
+        return dto;//On retourne le DriverDeliveryCardDTO
+    }
+
 
     /**
      * Récupère l'utilisateur actuellement connecté
@@ -433,10 +621,10 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
             return null;
         }
         Address addr = order.getEmployee().getAddresses().stream()
-                .filter(Address::isPrimary)
-                .findFirst()
+                .filter(Address::isPrimary)//on filtre pour avoir que les adresses principales (même si c'est une seule parmi toutes les adresses)
+                .findFirst()//on récupère la première adresse principale
                 .orElse(null);
-        if (addr == null) return null;
+        if (addr == null) return null;//si il n'y en a pas, on retourne null
         return (addr.getFormattedAddress() != null && !addr.getFormattedAddress().isBlank()) ? addr.getFormattedAddress() : null;
     }
 
@@ -445,44 +633,5 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         return deliveryDriverRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Livreur non trouvé"));
     }
-
-    /**
-     * Mappe une commande vers le DTO "Mes livraisons" (adresse = adresse principale de l'employé).
-     */
-    private DriverDeliveryListItemDTO mapOrderToDriverDeliveryListItemDTO(Order order) {
-        //Récupérer le nom du client
-        String clientName = order.getEmployee().getUser().getFirstName() + " " + order.getEmployee().getUser().getLastName();
-        //Récupérer l'adresse de livraison
-        String address = null;
-        //Récupérer la latitude de l'adresse de livraison
-        Double latitude = null;
-        //Récupérer la longitude de l'adresse de livraison
-        Double longitude = null;
-
-        // Une seule adresse principale par employé
-        // On parcourt les adresses de l'employé et on garde celle marquée "principale"
-        Address addr = order.getEmployee().getAddresses().stream()
-                .filter(Address::isPrimary)   // ne garder que l'adresse principale
-                .findFirst()                 // en prendre une seule (il n'y en a qu'une)
-                .orElse(null);               // si aucune trouvée, addr = null
-        if (addr != null) {
-            // Adresse : on utilise uniquement formattedAddress s'il est présent, sinon null
-            address = (addr.getFormattedAddress() != null && !addr.getFormattedAddress().isBlank()) ? addr.getFormattedAddress() : null;
-            // Coordonnées GPS pour la carte / navigation (null si non renseignées)
-            latitude = addr.getLatitude() != null ? addr.getLatitude().doubleValue() : null;
-            longitude = addr.getLongitude() != null ? addr.getLongitude().doubleValue() : null;
-        }
-        return new DriverDeliveryListItemDTO(
-                order.getId(),
-                order.getOrderNumber(),
-                clientName,
-                address,
-                latitude,
-                longitude,
-                order.getStatus(),
-                order.getDeliveryTour() != null ? order.getDeliveryTour().getId() : null
-        );}
-
-
 
 }

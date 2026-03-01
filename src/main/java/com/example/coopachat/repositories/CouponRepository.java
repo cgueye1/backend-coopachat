@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -92,5 +93,20 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
             ORDER BY c.startDate DESC
             """)
     List<Coupon> findActiveCouponsNotProductOrCategory(@Param("now") LocalDateTime now);
+
+    // ============================================================================
+    // Statistiques coupons panier (scope CART_TOTAL uniquement)
+    // ============================================================================
+
+    /** Nombre de coupons actifs dont la portée est CART_TOTAL (code promo panier). */
+    long countByScopeAndStatus(CouponScope scope, CouponStatus status);
+
+    /** Somme des utilisations (usageCount) pour les coupons de portée donnée. */
+    @Query("SELECT COALESCE(SUM(c.usageCount), 0) FROM Coupon c WHERE c.scope = :scope")
+    long sumUsageCountByScope(@Param("scope") CouponScope scope);
+
+    /** Somme du montant généré (totalGenerated) pour les coupons de portée donnée. */
+    @Query("SELECT COALESCE(SUM(c.totalGenerated), 0) FROM Coupon c WHERE c.scope = :scope")
+    BigDecimal sumTotalGeneratedByScope(@Param("scope") CouponScope scope);
 
 }

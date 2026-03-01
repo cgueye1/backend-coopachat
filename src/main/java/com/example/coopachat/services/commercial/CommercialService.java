@@ -1,6 +1,7 @@
 package com.example.coopachat.services.commercial;
 
 import com.example.coopachat.dtos.companies.*;
+import com.example.coopachat.dtos.coupons.CartTotalCouponStatsDTO;
 import com.example.coopachat.dtos.coupons.CouponDetailsDTO;
 import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
 import com.example.coopachat.dtos.coupons.CreateCouponDTO;
@@ -182,6 +183,12 @@ public interface CommercialService {
      * @param id L'identifiant du coupon
      */
     void deleteCoupon(Long id);
+
+    /**
+     * Statistiques des coupons "panier" (scope CART_TOTAL uniquement) :
+     * nombre de coupons actifs et nombre total d'utilisations.
+     */
+    CartTotalCouponStatsDTO getCartTotalCouponStats();
 
 }
 

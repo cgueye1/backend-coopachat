@@ -23,12 +23,12 @@ import com.example.coopachat.dtos.user.UserStatsDTO;
 import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
+import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.enums.UserRole;
+import java.util.List;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
 
 /**
  * Interface pour le service de gestion des actions de l'administrateur
@@ -251,4 +251,9 @@ public interface AdminService {
      * Effectifs pour le donut "Stocks - État global" : Normal, Sous seuil, Critique (rupture).
      */
     StockEtatGlobalDTO getStockEtatGlobal();
+
+    /**
+     * Graphique "Livraisons 7 jours" : pour chaque des 7 derniers jours, date + nbLivrees, nbAssignes, nbEnAttente.
+     */
+    List<LivraisonParJourDTO> getLivraisonsParJour();
 }

@@ -1,24 +1,19 @@
 package com.example.coopachat.controllers;
 
-import com.example.coopachat.dtos.DeliveryDriver.CreateDriverReportDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
-import com.example.coopachat.dtos.DeliveryDriver.DriverDeliveryListItemDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDashboardDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
-import com.example.coopachat.dtos.DeliveryDriver.OrderDetailsForDriverDTO;
-import com.example.coopachat.enums.OrderStatus;
+import com.example.coopachat.dtos.driver.DeliveryDetailDTO;
+import com.example.coopachat.dtos.driver.DeliveryIssueDTO;
+import com.example.coopachat.dtos.driver.DriverDeliveriesResponseDTO;
 import com.example.coopachat.services.DeliveryDriver.DeliveryDriverService;
 import com.example.coopachat.services.admin.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.time.LocalDate;
-import java.util.List;
 
 
 /**
@@ -77,24 +72,23 @@ public class DeliveryDriverController {
 
     @Operation(
             summary = "Mes livraisons",
-            description = "Liste des livraisons du livreur connecté (commandes de ses tournées). Filtres optionnels : date, statut, recherche par numéro ou nom client."
+            description = "Liste paginée des livraisons du livreur. Filtre : ALL | TO_CONFIRM | IN_PROGRESS | COMPLETED."
     )
     @GetMapping("/deliveries")
-    public ResponseEntity<List<DriverDeliveryListItemDTO>> getMyDeliveries(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate deliveryDate,
-            @RequestParam(required = false) OrderStatus status,
-            @RequestParam(required = false) String search) {
-        List<DriverDeliveryListItemDTO> list = deliveryDriverService.getMyDeliveries(deliveryDate, status, search);
-        return ResponseEntity.ok(list);
+    public ResponseEntity<DriverDeliveriesResponseDTO> getMyDeliveries(
+            @RequestParam(required = false, defaultValue = "ALL") String statusFilter,
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "20") int size) {
+        return ResponseEntity.ok(deliveryDriverService.getMyDeliveries(statusFilter, page, size));
     }
 
     @Operation(
-            summary = "Détail d'une commande",
-            description = "Détail d'une livraison pour le livreur : produits, total, client, adresse, suivi (timeline). La commande doit appartenir à une de ses tournées."
+            summary = "Détail d'une livraison",
+            description = "Détail simplifié pour le livreur : commande, client, adresse, montant. La commande doit appartenir à une de ses tournées."
     )
     @GetMapping("/deliveries/{orderId}/details")
-    public ResponseEntity<OrderDetailsForDriverDTO> getOrderDetails(@PathVariable Long orderId) {
-        return ResponseEntity.ok(deliveryDriverService.getOrderDetails(orderId));
+    public ResponseEntity<DeliveryDetailDTO> getDeliveryDetail(@PathVariable Long orderId) {
+        return ResponseEntity.ok(deliveryDriverService.getDeliveryDetail(orderId));
     }
 
     @Operation(summary = "Confirmer la récupération au dépôt", description = "Le livreur confirme avoir récupéré les colis → tournée EN_COURS.")
@@ -139,10 +133,14 @@ public class DeliveryDriverController {
             summary = "Signaler un problème",
             description = "Le livreur soumet un signalement sur une ligne de commande. Le bouton apparaît en swipant sur l’article."
     )
-    @PostMapping("/reports/{orderId}")
-    public ResponseEntity<String> submitReport(@PathVariable Long orderId, @RequestBody @Valid CreateDriverReportDTO dto) {
-        deliveryDriverService.submitReport(orderId, dto);
-        return ResponseEntity.ok("Signalement enregistré");
+    @Operation(
+            summary = "Signaler un échec de livraison",
+            description = "Le livreur signale qu'une livraison n'a pas pu être effectuée. Commande passée en ECHEC_LIVRAISON, notification au salarié et au RL (créateur de la tournée)."
+    )
+    @PostMapping("/deliveries/{orderId}/report-issue")
+    public ResponseEntity<String> reportDeliveryIssue(@PathVariable Long orderId, @RequestBody @Valid DeliveryIssueDTO dto) {
+        deliveryDriverService.reportDeliveryIssue(orderId, dto);
+        return ResponseEntity.ok("Échec de livraison signalé");
     }
 
     @Operation(

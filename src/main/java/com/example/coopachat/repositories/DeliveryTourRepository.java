@@ -1,6 +1,8 @@
 package com.example.coopachat.repositories;
 
+import com.example.coopachat.dtos.dashboard.logisticsManager.StatusCountDTO;
 import com.example.coopachat.entities.DeliveryTour;
+import com.example.coopachat.entities.Driver;
 import com.example.coopachat.enums.DeliveryTourStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -8,6 +10,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 
 @Repository
 public interface DeliveryTourRepository extends JpaRepository<DeliveryTour, Long > {
@@ -38,4 +42,15 @@ public interface DeliveryTourRepository extends JpaRepository<DeliveryTour, Long
      */
     long countByStatus(DeliveryTourStatus status);
 
+    /**
+     * Vérifie si le livreur a au moins une tournée avec le statut donné (ex. EN_COURS).
+     */
+    boolean existsByDriverAndStatus(Driver driver, DeliveryTourStatus status);
+
+    /**
+     * Compte les tournées par statut. Pour le graphique "Statut tournées" du dashboard RL.
+     * @return Liste (statut, effectif) typée
+     */
+    @Query("SELECT new StatusCountDTO(t.status, COUNT(t)) FROM DeliveryTour t GROUP BY t.status")
+    List<StatusCountDTO> countGroupByStatus();
 }

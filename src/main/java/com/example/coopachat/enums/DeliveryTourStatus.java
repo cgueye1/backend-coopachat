@@ -24,7 +24,7 @@ public enum DeliveryTourStatus {
      * Affichage Livreur : "À confirmer" avec bouton "Confirmer récupération"
      * Note : Le livreur voit la tournée mais n'a pas encore les colis
      */
-    ASSIGNEE("Assignée"),
+    ASSIGNEE("À confirmer"),
 
     /**
      * EN_COURS - Livreur a récupéré les colis et effectue les livraisons.

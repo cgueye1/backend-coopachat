@@ -1,5 +1,6 @@
 package com.example.coopachat.services.auth;
 
+import com.example.coopachat.dtos.user.UserDetailsDTO;
 import com.example.coopachat.dtos.user.UserDto;
 import com.example.coopachat.dtos.auth.LoginResponseDTO;
 import com.example.coopachat.dtos.auth.RegisterMobileDTO;
@@ -21,6 +22,8 @@ import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -558,5 +561,34 @@ public class AuthServiceImpl implements AuthService {
 
     private Optional<Users> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    @Override
+    public UserDetailsDTO getCurrentUserProfile() {
+        Users u = getCurrentUser();
+        UserDetailsDTO dto = new UserDetailsDTO();
+        dto.setId(u.getId());
+        dto.setRefUser(u.getRefUser());
+        dto.setFirstName(u.getFirstName());
+        dto.setLastName(u.getLastName());
+        dto.setEmail(u.getEmail());
+        dto.setPhoneNumber(u.getPhone());
+        dto.setRole(u.getRole());
+        dto.setRoleLabel(u.getRole() != null ? u.getRole().getLabel() : "");
+        dto.setCompanyCommercial(u.getCompanyCommercial());
+        dto.setIsActive(u.getIsActive());
+        dto.setProfilePhotoUrl(u.getProfilePhotoUrl());
+        dto.setCreatedAt(u.getCreatedAt());
+        return dto;
+    }
+
+    private Users getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+        String userEmail = authentication.getName();
+        return userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec email: " + userEmail));
     }
 }

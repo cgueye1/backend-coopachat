@@ -77,6 +77,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final FeeService feeService;
     private final PaymentRepository paymentRepository;
     private final ClaimRepository claimRepository;
+    private final EmployeeNotificationService employeeNotificationService;
 
     // ============================================================================
     // 🏠 ACCUEIL SALARIÉ
@@ -903,6 +904,10 @@ public class EmployeeServiceImpl implements EmployeeService {
            // Association du coupon à la commande
             order.setCoupon(coupon);
 
+            // Incrémenter le nombre d'utilisations et le montant généré du coupon
+            coupon.setUsageCount(coupon.getUsageCount() == null ? 1 : coupon.getUsageCount() + 1);//si le nombre d'utilisations est null, on le met à 1, sinon on l'incrémente de 1
+            coupon.setTotalGenerated(coupon.getTotalGenerated() == null ? discount : coupon.getTotalGenerated().add(discount));
+            couponRepository.save(coupon);
         }
         // 7. Sauvegarder la commande et vider le panier
         Order savedOrder = orderRepository.save(order);
@@ -916,6 +921,8 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         cartItemRepository.deleteAll(cartItems);//on vide le panier
 
+        // Notification au salarié : commande enregistrée (reçu par email)
+        employeeNotificationService.notifyOrderCreated(savedOrder);
     }
 
     // ============================================================================

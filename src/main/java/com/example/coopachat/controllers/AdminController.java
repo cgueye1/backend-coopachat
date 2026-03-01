@@ -23,6 +23,7 @@ import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
 import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
+import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.services.admin.AdminService;
@@ -606,6 +607,15 @@ public class AdminController {
     public ResponseEntity<List<CommandesVsLivraisonsDayDTO>> getCommandesVsLivraisons() {
         List<CommandesVsLivraisonsDayDTO> list = adminService.getCommandesVsLivraisons();
         return ResponseEntity.ok(list);
+    }
+
+    @Operation(
+            summary = "Livraisons par jour (7 derniers jours)",
+            description = "Pour chaque jour : date (dd/MM), nbLivrees, nbAssignes, nbEnAttente. Graphique « Livraisons » admin."
+    )
+    @GetMapping("/dashboard/livraisons-par-jour")
+    public ResponseEntity<List<LivraisonParJourDTO>> getLivraisonsParJour() {
+        return ResponseEntity.ok(adminService.getLivraisonsParJour());
     }
 
     @Operation(

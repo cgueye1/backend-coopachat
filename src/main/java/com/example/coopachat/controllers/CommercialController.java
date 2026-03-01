@@ -6,6 +6,7 @@ import com.example.coopachat.dtos.companies.CompanyDetailsDTO;
 import com.example.coopachat.dtos.companies.CompanyStatsDTO;
 import com.example.coopachat.dtos.companies.UpdateCompanyDTO;
 import com.example.coopachat.dtos.companies.UpdateCompanyStatusDTO;
+import com.example.coopachat.dtos.coupons.CartTotalCouponStatsDTO;
 import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
 import com.example.coopachat.dtos.coupons.CouponDetailsDTO;
 import com.example.coopachat.dtos.coupons.CreateCouponDTO;
@@ -241,8 +242,13 @@ public class CommercialController {
     // ============================================================================
 
     @Operation(
-            summary = "Créer un coupon",
-            description = "Permet à un commercial de créer un coupon"
+            summary = "Créer un coupon ou une promotion",
+            description = """
+                   scope=CART_TOTAL   → code promo saisi dans le panier (ex: WEEKEND20)
+                   scope=PRODUCTS     → promotion automatique sur produits (fournir productIds)
+                   scope=CATEGORIES   → promotion automatique sur catégories (fournir categoryIds)
+                   scope=ALL_PRODUCTS → promotion sur tous les produits actifs
+        ⚠️ FIXED_AMOUNT uniquement avec CART_TOTAL"""
     )
     @PostMapping("/coupons")
     public ResponseEntity<String> createCoupon(@RequestBody @Valid CreateCouponDTO createCouponDTO) {
@@ -269,10 +275,22 @@ public class CommercialController {
     }
 
     @Operation(
+            summary = "Statistiques coupons panier (CART_TOTAL)",
+            description = "Retourne le nombre de coupons actifs (scope CART_TOTAL) et le nombre total d'utilisations. Utilisé pour les cartes « Coupons actives » et « Utilisations totales »."
+    )
+    @GetMapping("/coupons/cart-total-stats")
+    public ResponseEntity<CartTotalCouponStatsDTO> getCartTotalCouponStats() {
+        CartTotalCouponStatsDTO stats = commercialService.getCartTotalCouponStats();
+        return ResponseEntity.ok(stats);
+    }
+
+    @Operation(
             summary = "Lister les coupons (paginé avec recherche et filtres)",
-            description = "Récupère la liste paginée de tous les coupons. " +
-                    "Paramètres: page (défaut 0), size (défaut 6), search (code ou nom), " +
-                    "status, scope, isActive (optionnels)."
+            description = """
+        Filtres optionnels: search, status, isActive
+        scope=CART_TOTAL   → codes promo panier uniquement
+        scope=PRODUCTS/CATEGORIES/ALL_PRODUCTS → promotions produits
+        """
     )
     @GetMapping("/coupons")
     public ResponseEntity<CouponListResponseDTO> getAllCoupons(
@@ -289,7 +307,8 @@ public class CommercialController {
 
     @Operation(
             summary = "Récupérer les détails d'un coupon",
-            description = "Récupère les détails d'un coupon par son ID, avec la liste des produits liés."
+            description = " Inclut les produits/catégories liés selon le scope\n" +
+                    " Pour CART_TOTAL : inclut le nombre d'utilisations"
     )
     @GetMapping("/coupons/{id}")
     public ResponseEntity<CouponDetailsDTO> getCouponById(@PathVariable Long id) {

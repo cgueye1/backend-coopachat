@@ -24,7 +24,7 @@ public enum OrderStatus {
      * Tournée : null (pas encore assignée)
      * Paiement : UNPAID
      */
-    EN_ATTENTE("En attente de validation"),
+    EN_ATTENTE("En attente "),
 
     /**
      * VALIDEE - Commande ajoutée à une tournée par le RL, en attente de récupération par le livreur.
@@ -50,7 +50,7 @@ public enum OrderStatus {
      * Tournée : EN_COURS
      * Paiement : UNPAID (ou PAID si paiement en ligne)
      */
-    EN_PREPARATION("En préparation"),
+    EN_PREPARATION("À livrer"),
 
     /**
      * EN_COURS - Livreur a démarré la livraison de cette commande spécifique.
@@ -63,7 +63,7 @@ public enum OrderStatus {
      * Paiement : UNPAID (ou PAID si paiement en ligne)
      * Note : À partir d'ici, la tournée ne peut plus être annulée
      */
-    EN_COURS("En cours de livraison"),
+    EN_COURS("En cours"),
 
     /**
      * ARRIVE - Livreur est arrivé chez le client.

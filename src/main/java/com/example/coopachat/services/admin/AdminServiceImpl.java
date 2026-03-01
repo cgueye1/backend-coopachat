@@ -25,6 +25,7 @@ import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
 import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
+import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.PaymentStatusItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.entities.*;
@@ -57,6 +58,8 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -1121,6 +1124,27 @@ public class AdminServiceImpl implements AdminService {
         }
 
         // Retourne la liste complète pour alimenter le graphique
+        return result;
+    }
+
+    @Override
+    public List<LivraisonParJourDTO> getLivraisonsParJour() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
+        LocalDate today = LocalDate.now();
+        List<OrderStatus> assignesStatuses = Arrays.asList(
+                OrderStatus.VALIDEE, OrderStatus.EN_PREPARATION, OrderStatus.EN_COURS, OrderStatus.ARRIVE);
+        List<LivraisonParJourDTO> result = new ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate day = today.minusDays(i);
+            LocalDateTime dayStart = day.atStartOfDay();
+            LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);
+            long nbLivrees = orderRepository.countByStatusAndDeliveryCompletedAtBetween(
+                    OrderStatus.LIVREE, dayStart, dayEnd);
+            long nbAssignes = orderRepository.countByStatusInAndDeliveryDate(assignesStatuses, day);
+            long nbEnAttente = orderRepository.countByStatusAndDeliveryDateAndDeliveryTourIsNull(
+                    OrderStatus.EN_ATTENTE, day);
+            result.add(new LivraisonParJourDTO(day.format(formatter), nbLivrees, nbAssignes, nbEnAttente));
+        }
         return result;
     }
 

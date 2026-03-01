@@ -1,5 +1,6 @@
 package com.example.coopachat.controllers;
 
+import com.example.coopachat.dtos.user.UserDetailsDTO;
 import com.example.coopachat.dtos.user.UserDto;
 import com.example.coopachat.dtos.auth.*;
 import com.example.coopachat.services.auth.AuthService;
@@ -79,6 +80,15 @@ public class AuthController {
     public ResponseEntity<String> logout(@RequestParam("token") String token) {
         authService.logout(token);
         return ResponseEntity.ok("Déconnexion réussie");
+    }
+
+    @Operation(
+            summary = "Profil de l'utilisateur connecté",
+            description = "Retourne les informations personnelles de l'utilisateur actuellement connecté (tous rôles)."
+    )
+    @GetMapping("/me")
+    public ResponseEntity<UserDetailsDTO> getCurrentUserProfile() {
+        return ResponseEntity.ok(authService.getCurrentUserProfile());
     }
 
     // ============================================================================
