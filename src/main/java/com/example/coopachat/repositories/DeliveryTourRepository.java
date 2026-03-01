@@ -51,6 +51,6 @@ public interface DeliveryTourRepository extends JpaRepository<DeliveryTour, Long
      * Compte les tournées par statut. Pour le graphique "Statut tournées" du dashboard RL.
      * @return Liste (statut, effectif) typée
      */
-    @Query("SELECT new StatusCountDTO(t.status, COUNT(t)) FROM DeliveryTour t GROUP BY t.status")
+    @Query("SELECT new com.example.coopachat.dtos.dashboard.logisticsManager.StatusCountDTO(t.status, COUNT(t)) FROM DeliveryTour t GROUP BY t.status")
     List<StatusCountDTO> countGroupByStatus();
 }
