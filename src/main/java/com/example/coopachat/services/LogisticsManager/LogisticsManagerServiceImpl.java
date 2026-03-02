@@ -1762,6 +1762,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 employeeNotificationService.notifyTourCancelled(order, dto.getReason());
                 order.setStatus(OrderStatus.EN_ATTENTE);
                 order.setDeliveryTour(null);
+                order.setValidatedAt(null);
                 order.setDeliveryStartedAt(null);
                 order.setDeliveryArrivedAt(null);
                 order.setDeliveryCompletedAt(null);
