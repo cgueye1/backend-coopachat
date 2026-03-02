@@ -8,6 +8,10 @@ import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
 import com.example.coopachat.dtos.coupons.CouponProductItemDTO;
 import com.example.coopachat.dtos.coupons.CreateCouponDTO;
 import com.example.coopachat.dtos.coupons.UpdateCouponStatusDTO;
+import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
+import com.example.coopachat.dtos.dashboard.commercial.CommandesParMoisDTO;
+import com.example.coopachat.dtos.dashboard.commercial.CommercialDashboardKpisDTO;
+import com.example.coopachat.dtos.dashboard.commercial.VentesParMoisDTO;
 import com.example.coopachat.dtos.employees.*;
 import com.example.coopachat.entities.Address;
 import com.example.coopachat.entities.Category;
@@ -35,10 +39,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -57,6 +61,7 @@ public class CommercialServiceImpl implements CommercialService {
     private final CouponRepository couponRepository;
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final OrderRepository orderRepository;
     private final FileTransferUtil fileTransferUtil;
 
     // ============================================================================
@@ -100,7 +105,8 @@ public class CommercialServiceImpl implements CommercialService {
 
     @Override
     @Transactional
-    public CompanyListResponseDTO getAllCompanies(int page, int size, String search, CompanySector sector, Boolean isActive) {
+    public CompanyListResponseDTO getAllCompanies(int page, int size, String search, CompanySector sector, Boolean isActive,
+                                                  Boolean partnerOnly, Boolean prospectOnly, CompanyStatus prospectionStatus) {
 
         Users commercial = getCurrentUser();
 
@@ -113,12 +119,22 @@ public class CommercialServiceImpl implements CommercialService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
 
         // Normaliser le terme de recherche (supprimer les espaces)
-        //Si search != null et non vide, alors on récupère le terme de recherche sinon on met null
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
 
-        // Récupérer la page d'entreprises selon les filtres fournis
-        Page<Company> companyPage;
+        // Filtre par type : partenaires uniquement ou prospects uniquement (avec option statut prospection)
+        String companyType = null;
+        if (Boolean.TRUE.equals(partnerOnly)) {
+            companyType = "partenaires";
+        } else if (Boolean.TRUE.equals(prospectOnly)) {
+            companyType = "prospects";
+        }
 
+        Page<Company> companyPage;
+        if (companyType != null) {
+            companyPage = companyRepository.findByCommercialAndOptionalFilters(
+                    commercial, companyType, prospectionStatus, searchTerm, sector, isActive, pageable);
+        } else {
+        // Récupérer la page d'entreprises selon les filtres fournis (sans filtre partenaire/prospect)
         // Cas 1 : Recherche + Secteur + isActive
         if (searchTerm != null && sector != null && isActive != null) {
             companyPage = companyRepository.findByCommercialAndNameContainingIgnoreCaseAndSectorAndIsActive(
@@ -156,6 +172,7 @@ public class CommercialServiceImpl implements CommercialService {
         else {
             companyPage = companyRepository.findByCommercial(commercial, pageable);
         }
+        }
 
         // Mapper les entités Company vers CompanyListItemDTO
         List<CompanyListItemDTO> companyList = companyPage.getContent().stream()
@@ -172,11 +189,23 @@ public class CommercialServiceImpl implements CommercialService {
         response.setHasNext(companyPage.hasNext());
         response.setHasPrevious(companyPage.hasPrevious());
 
-        log.info("Page {} de {} entreprises récupérée pour le commercial {} (total: {} entreprises, recherche: '{}', secteur: {}, isActive: {})", 
+        log.info("Page {} de {} entreprises récupérée pour le commercial {} (total: {} entreprises, recherche: '{}', secteur: {}, isActive: {}, type: {})", 
                 page + 1, companyPage.getTotalPages(), commercial.getEmail(), companyPage.getTotalElements(), 
-                searchTerm != null ? searchTerm : "aucune", sector != null ? sector : "tous", isActive != null ? isActive : "tous");
+                searchTerm != null ? searchTerm : "aucune", sector != null ? sector : "tous", isActive != null ? isActive : "tous", companyType != null ? companyType : "tous");
 
         return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CompanyListItemDTO> getLastProspects(int limit) {
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter leurs prospects");
+        }
+        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "id"));
+        List<Company> prospects = companyRepository.findByCommercialAndStatusNotOrderByIdDesc(commercial, pageable);
+        return prospects.stream().map(this::mapToCompanyListItemDTO).collect(Collectors.toList());
     }
 
     @Override
@@ -899,6 +928,133 @@ public class CommercialServiceImpl implements CommercialService {
         return new CartTotalCouponStatsDTO(activeCount, totalUsages, totalGenerated);
     }
 
+    /**
+     * KPIs du tableau de bord commercial : salariés actifs, nouveaux ce mois, commandes et ventes ce mois avec évolution %, promotions actives.
+     * Données globales (tous les salariés / toutes les commandes), sans filtre createdBy, pour ne pas restreindre la vue.
+     */
+    @Override
+    public CommercialDashboardKpisDTO getDashboardKpis() {
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter le tableau de bord");
+        }
+
+        LocalDate today = LocalDate.now();//date du jour
+        LocalDateTime monthStart = today.withDayOfMonth(1).atStartOfDay();//date du début du mois
+        LocalDateTime monthEnd = today.atTime(23, 59, 59, 999_999_999);//date de la fin du mois
+        LocalDate lastMonthDate = today.minusMonths(1);//mois précédent
+        LocalDateTime lastMonthStart = lastMonthDate.withDayOfMonth(1).atStartOfDay();//date du début du mois précédent
+        LocalDateTime lastMonthEnd = lastMonthDate.atTime(23, 59, 59, 999_999_999);//date de la fin du mois précédent
+
+        long totalSalaries = employeeRepository.countByUserIsActive(true);//nombre de salariés actifs
+        long nouveauxSalariesCeMois = employeeRepository.countByCreatedAtBetween(monthStart, monthEnd);//nombre de nouveaux salariés ce mois
+        long commandesCeMois = orderRepository.countByCreatedAtBetween(monthStart, monthEnd);//nombre de commandes créées ce mois
+        long commandesMoisDernier = orderRepository.countByCreatedAtBetween(lastMonthStart, lastMonthEnd);//nombre de commandes le mois dernier
+        Double evolutionCommandesPct = (commandesMoisDernier > 0)
+                ? ((commandesCeMois - commandesMoisDernier) * 100.0 / commandesMoisDernier)
+                : null;//((ce mois - mois dernier) / mois dernier) * 100
+
+        BigDecimal ventesCeMois = orderRepository.sumTotalPriceByStatusAndDeliveryCompletedAtBetween(
+                OrderStatus.LIVREE, monthStart, monthEnd);//sum(totalPrice) des commandes LIVREE livrées ce mois
+        if (ventesCeMois == null) {
+            ventesCeMois = BigDecimal.ZERO;
+        }
+        BigDecimal ventesMoisDernier = orderRepository.sumTotalPriceByStatusAndDeliveryCompletedAtBetween(
+                OrderStatus.LIVREE, lastMonthStart, lastMonthEnd);//sum(totalPrice) des commandes LIVREE livrées le mois dernier
+        if (ventesMoisDernier == null) {
+            ventesMoisDernier = BigDecimal.ZERO;
+        }
+        Double evolutionVentesPct = (ventesMoisDernier.compareTo(BigDecimal.ZERO) > 0)
+                ? (ventesCeMois.subtract(ventesMoisDernier).doubleValue() * 100.0 / ventesMoisDernier.doubleValue())
+                : null;//((ce mois - mois dernier) / mois dernier) * 100
+
+        long promotionsActives = couponRepository.countByIsActiveTrue();//count(coupons isActive=true)
+
+        // Graphique 1 — Ventes par mois (6 derniers mois)
+        LocalDateTime debut = today.minusMonths(5).withDayOfMonth(1).atStartOfDay();
+        LocalDateTime fin = monthEnd;
+        List<VentesParMoisDTO> evolutionVentes = buildEvolutionVentes(debut, fin);
+        // Graphique 2 — Commandes par mois (6 derniers mois)
+        List<CommandesParMoisDTO> evolutionCommandes = buildEvolutionCommandes(debut, fin);
+
+        return new CommercialDashboardKpisDTO(
+                totalSalaries,
+                nouveauxSalariesCeMois,
+                commandesCeMois,
+                evolutionCommandesPct,
+                ventesCeMois,
+                evolutionVentesPct,
+                promotionsActives,
+                evolutionVentes,
+                evolutionCommandes
+        );
+    }
+
+    /** Coupons utilisés par jour (7 derniers jours) pour le graphique « Tendance des coupons utilisés ». */
+    @Override
+    public List<CouponUsageParJourDTO> getCouponsUtilisesParJour() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
+        LocalDate today = LocalDate.now();
+        List<CouponUsageParJourDTO> result = new ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate day = today.minusDays(i);
+            LocalDateTime dayStart = day.atStartOfDay();
+            LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);
+            long nbUtilisations = orderRepository.countByCouponIsNotNullAndCreatedAtBetween(dayStart, dayEnd);
+            result.add(new CouponUsageParJourDTO(day.format(formatter), nbUtilisations));
+        }
+        return result;
+    }
+
+    private static final String[] MOIS_LABELS = {"Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"};
+
+    /** Construit la liste des 6 derniers mois avec montant des ventes (LIVREE). */
+    /**
+     * Construit la liste des 6 derniers mois avec le montant des ventes (commandes LIVREE) pour le graphique « Évolution des ventes ».
+     * Appelle orderRepository.sumVentesParMois puis remplit les 6 mois (libellé Jan, Fév, …) ; les mois sans donnée ont un montant à 0.
+     */
+    private List<VentesParMoisDTO> buildEvolutionVentes(LocalDateTime debut, LocalDateTime fin) {
+        List<Object[]> raw = orderRepository.sumVentesParMois(OrderStatus.LIVREE, debut, fin);
+        Map<String, BigDecimal> byKey = new HashMap<>();
+        for (Object[] row : raw) {
+            int year = (Integer) row[0];
+            int month = (Integer) row[1];
+            BigDecimal montant = (BigDecimal) row[2];
+            byKey.put(year + "-" + month, montant != null ? montant : BigDecimal.ZERO);
+        }
+        List<VentesParMoisDTO> result = new ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+            LocalDate m = LocalDate.now().minusMonths(5 - i);
+            String key = m.getYear() + "-" + m.getMonthValue();
+            String moisLabel = MOIS_LABELS[m.getMonthValue() - 1];
+            result.add(new VentesParMoisDTO(moisLabel, byKey.getOrDefault(key, BigDecimal.ZERO)));
+        }
+        return result;
+    }
+
+     /**
+     * Construit la liste des 6 derniers mois avec le nombre de commandes pour le graphique « Nombre de commandes ».
+     * Appelle orderRepository.countCommandesParMois puis remplit les 6 mois (libellé Jan, Fév, …) ; les mois sans donnée ont 0 commande.
+     */
+    private List<CommandesParMoisDTO> buildEvolutionCommandes(LocalDateTime debut, LocalDateTime fin) {
+        List<Object[]> raw = orderRepository.countCommandesParMois(debut, fin);
+        Map<String, Long> byKey = new HashMap<>();
+        for (Object[] row : raw) {
+            int year = (Integer) row[0];
+            int month = (Integer) row[1];
+            long count = (Long) row[2];
+            byKey.put(year + "-" + month, count);
+        }
+        List<CommandesParMoisDTO> result = new ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+            LocalDate m = LocalDate.now().minusMonths(5 - i);
+            String key = m.getYear() + "-" + m.getMonthValue();
+            String moisLabel = MOIS_LABELS[m.getMonthValue() - 1];
+            result.add(new CommandesParMoisDTO(moisLabel, byKey.getOrDefault(key, 0L)));
+        }
+        return result;
+    }
+
     // ============================================================================
     // 🔧 MÉTHODES UTILITAIRES
     // ============================================================================
@@ -1051,6 +1207,10 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setNote(company.getNote());
         dto.setLogo(company.getLogo());
         dto.setIsActive(company.getIsActive());
+        if (company.getStatus() == CompanyStatus.PARTNER_SIGNED) {
+            dto.setEmployeeCount(employeeRepository.countByCompany(company));
+            dto.setOrderCount(orderRepository.countByEmployeeCompany(company));
+        }
         return dto;
     }
 

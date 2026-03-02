@@ -11,6 +11,7 @@ import com.example.coopachat.dtos.claim.ValidateClaimDTO;
 import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.CommandesParJourDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.RLDashboardKpisDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.StatutTourneesDTO;
 import com.example.coopachat.dtos.delivery.*;
@@ -21,6 +22,7 @@ import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
+import com.example.coopachat.dtos.products.TopProductUsageDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.enums.ClaimStatus;
@@ -397,6 +399,9 @@ public interface LogisticsManagerService {
     /** Graphique "Statut tournées" : effectif par statut (ASSIGNEE, EN_COURS, TERMINEE, ANNULEE). */
     StatutTourneesDTO getStatutTournees();
 
+    /** Graphique "Commandes par jour" : 7 derniers jours (date, nbCommandes). */
+    List<CommandesParJourDTO> getCommandesParJour();
+
     /** Graphique "Commandes vs Livraisons" : 7 derniers jours (date, commandesEnAttente, livraisons). */
     List<CommandesVsLivraisonsDayDTO> getCommandesVsLivraisons();
 
@@ -405,6 +410,12 @@ public interface LogisticsManagerService {
 
     /** Graphique "Livraisons 7 jours" : pour chaque jour (date, nbLivrees, nbAssignes, nbEnAttente). */
     List<LivraisonParJourDTO> getLivraisonsParJour();
+
+    /**
+     * Top 5 produits les plus commandés avec taux d'utilisation en % (pour le graphique "Produits les plus fréquents" - Gestion des commandes).
+     * Même logique que le catalogue admin : 30 derniers jours, usagePercent = (quantité produit / total) × 100.
+     */
+    List<TopProductUsageDTO> getTop5ProductUsage();
 
 }
 

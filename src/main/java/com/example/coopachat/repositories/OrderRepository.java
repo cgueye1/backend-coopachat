@@ -2,6 +2,7 @@ package com.example.coopachat.repositories;
 
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Order;
+import com.example.coopachat.entities.Users;
 import com.example.coopachat.enums.DeliveryTourStatus;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.PaymentStatus;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Repository;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.util.List;
@@ -177,11 +179,20 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("status") OrderStatus status,
             @Param("now") LocalDate now);
 
+    /** Nombre de commandes ayant le statut donné et date de livraison avant :now (livraisons en retard). Utilisé par GET /admin/alerts. */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = :status AND o.deliveryDate < :now")
+    long countByStatusAndDeliveryDateBefore(
+            @Param("status") OrderStatus status,
+            @Param("now") LocalDate now);
+
     /** Nombre de commandes ayant le statut donné (ex. VALIDEE). */
     long countByStatus(OrderStatus status);
 
     /** Nombre de commandes créées dans la période [start, end] (tous statuts). Pour graphique "Commandes par jour". */
     long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
+    /** Nombre de commandes ayant utilisé un coupon (coupon non null), créées entre start et end. Pour graphique "Coupons utilisés par jour". */
+    long countByCouponIsNotNullAndCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 
     /** Nombre de commandes dont le statut est dans la liste et la date de livraison = day. Pour livraisons par jour (nbAssignes). */
     @Query("SELECT COUNT(o) FROM Order o WHERE o.status IN :statuses AND o.deliveryDate = :day")
@@ -214,4 +225,47 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("driverId") Long driverId,
             @Param("status") DeliveryTourStatus status,
             Pageable pageable);
+
+    // ============================================================================
+    // Dashboard commercial (commandes des employés du commercial)
+    // ============================================================================
+
+    /** Nombre de commandes passées par les employés du commercial, créées entre start et end. */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.employee.createdBy = :commercial AND o.createdAt BETWEEN :start AND :end")
+    long countByEmployeeCreatedByAndCreatedAtBetween(
+            @Param("commercial") Users commercial,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    /** Somme des totalPrice des commandes LIVREE des employées  du commercial dont deliveryCompletedAt est entre start et end. */
+    @Query("SELECT COALESCE(SUM(o.totalPrice), 0) FROM Order o WHERE o.employee.createdBy = :commercial AND o.status = :status AND o.deliveryCompletedAt BETWEEN :start AND :end")
+    BigDecimal sumTotalPriceByEmployeeCreatedByAndStatusAndDeliveryCompletedAtBetween(
+            @Param("commercial") Users commercial,
+            @Param("status") OrderStatus status,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    /** Somme des totalPrice des commandes LIVREE (toutes) dont deliveryCompletedAt est entre start et end. Dashboard commercial global. */
+    @Query("SELECT COALESCE(SUM(o.totalPrice), 0) FROM Order o WHERE o.status = :status AND o.deliveryCompletedAt BETWEEN :start AND :end")
+    BigDecimal sumTotalPriceByStatusAndDeliveryCompletedAtBetween(
+            @Param("status") OrderStatus status,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    /** Ventes par mois (année, mois, montant) pour graphique — commandes LIVREE, deliveryCompletedAt entre debut et fin. Résultat : [(year, month, sum), ...]. */
+    @Query("SELECT YEAR(o.deliveryCompletedAt), MONTH(o.deliveryCompletedAt), COALESCE(SUM(o.totalPrice), 0) FROM Order o WHERE o.status = :status AND o.deliveryCompletedAt BETWEEN :debut AND :fin GROUP BY YEAR(o.deliveryCompletedAt), MONTH(o.deliveryCompletedAt) ORDER BY YEAR(o.deliveryCompletedAt), MONTH(o.deliveryCompletedAt)")
+    List<Object[]> sumVentesParMois(
+            @Param("status") OrderStatus status,
+            @Param("debut") LocalDateTime debut,
+            @Param("fin") LocalDateTime fin);
+
+    /** Commandes par mois (année, mois, count) pour graphique — createdAt entre debut et fin. Résultat : [(year, month, count), ...]. */
+    @Query("SELECT YEAR(o.createdAt), MONTH(o.createdAt), COUNT(o) FROM Order o WHERE o.createdAt BETWEEN :debut AND :fin GROUP BY YEAR(o.createdAt), MONTH(o.createdAt) ORDER BY YEAR(o.createdAt), MONTH(o.createdAt)")
+    List<Object[]> countCommandesParMois(
+            @Param("debut") LocalDateTime debut,
+            @Param("fin") LocalDateTime fin);
+
+    /** Nombre de commandes passées par les salariés d'une entreprise (pour détails entreprise partenaire). */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.employee.company = :company")
+    long countByEmployeeCompany(@Param("company") com.example.coopachat.entities.Company company);
 }

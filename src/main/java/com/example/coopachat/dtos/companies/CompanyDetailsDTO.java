@@ -26,12 +26,17 @@ public class CompanyDetailsDTO {
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime createdAt;
     
-    private String status; // État actif/inactif de l'entreprise
+    private String status; // Libellé du statut de prospection (ex. Partenaire signé, En attente)
     private String companyCode; // Code unique de l'entreprise
     private CompanySector sector; // Secteur d'activité
     private String note; // Commentaires ou notes
     private String logo; // Nom du fichier logo (pour affichage via /api/files/{filename})
     private Boolean isActive; // Entreprise activée (toggle)
+
+    /** Nombre de salariés (uniquement pour entreprise partenaire, sinon null). */
+    private Long employeeCount;
+    /** Nombre de commandes passées par les salariés de cette entreprise (uniquement partenaire, sinon null). */
+    private Long orderCount;
 }
 
 

@@ -12,6 +12,7 @@ import com.example.coopachat.dtos.claim.ValidateClaimDTO;
 import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.CommandesParJourDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.RLDashboardKpisDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.StatutTourneesDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.StatusCountDTO;
@@ -21,6 +22,7 @@ import com.example.coopachat.dtos.products.ProductPreviewDTO;
 import com.example.coopachat.dtos.products.ProductStockListItemDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
+import com.example.coopachat.dtos.products.TopProductUsageDTO;
 import com.example.coopachat.dtos.supplierOrders.*;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.entities.*;
@@ -74,6 +76,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     private final SupplierOrderItemRepository supplierOrderItemRepository;
     private final CategoryRepository categoryRepository;
     private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
     private final DeliveryDriverRepository deliveryDriverRepository;
     private final DeliveryTourRepository deliveryTourRepository;
     private final ClaimRepository claimRepository;
@@ -2057,6 +2060,42 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         return new StatutTourneesDTO(parStatut);
     }
 
+    /** Graphique "Commandes par jour" : 7 derniers jours (date, nbCommandes). */
+    @Override
+    public List<CommandesParJourDTO> getCommandesParJour() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
+        LocalDate today = LocalDate.now();
+        List<CommandesParJourDTO> result = new ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate day = today.minusDays(i);
+            LocalDateTime dayStart = day.atStartOfDay();
+            LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);
+            long nbCommandes = orderRepository.countByCreatedAtBetween(dayStart, dayEnd);
+            result.add(new CommandesParJourDTO(day.format(formatter), nbCommandes));
+        }
+        return result;
+    }
+
+    @Override
+    public List<TopProductUsageDTO> getTop5ProductUsage() {
+        Users user = getCurrentUser();
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un Responsable Logistique peut consulter le top 5 produits.");
+        }
+        LocalDateTime dateDebut = LocalDateTime.now().minusDays(30);
+        Pageable top5 = PageRequest.of(0, 5);
+        List<Object[]> rawTop5 = orderItemRepository.findTop5ProductsByQuantitySince(dateDebut, top5);
+        long totalSum = orderItemRepository.sumQuantityByOrderCreatedAtAfter(dateDebut);
+        List<TopProductUsageDTO> result = new ArrayList<>();
+        for (Object[] row : rawTop5) {
+            String productName = (String) row[0];
+            long sumQuantity = ((Number) row[1]).longValue();
+            double usagePercent = totalSum > 0 ? (sumQuantity * 100.0 / totalSum) : 0.0;
+            result.add(new TopProductUsageDTO(productName, Math.round(usagePercent * 10) / 10.0));
+        }
+        return result;
+    }
+
     @Override
     public List<CommandesVsLivraisonsDayDTO> getCommandesVsLivraisons() {
 
@@ -2258,6 +2297,12 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             matchesPreferences = pref.isAvailableOn(dayOfWeekFr);
         }
 
+        // En retard : date de livraison prévue déjà dépassée (commande en attente)
+        Integer daysOverdue = null;
+        if (order.getDeliveryDate() != null && order.getDeliveryDate().isBefore(java.time.LocalDate.now())) {
+            daysOverdue = (int) java.time.temporal.ChronoUnit.DAYS.between(order.getDeliveryDate(), java.time.LocalDate.now());
+        }
+
         return new EligibleOrderDTO(
                 order.getId(),
                 order.getOrderNumber(),
@@ -2267,7 +2312,8 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 preferredTimeSlot,
                 preferredDeliveryMode,
                 matchesPreferences,
-                hasPreferences
+                hasPreferences,
+                daysOverdue
         );
     }
 

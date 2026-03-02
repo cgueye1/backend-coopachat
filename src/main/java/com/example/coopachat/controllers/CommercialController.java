@@ -4,6 +4,8 @@ import com.example.coopachat.dtos.companies.CreateCompanyDTO;
 import com.example.coopachat.dtos.companies.CompanyListResponseDTO;
 import com.example.coopachat.dtos.companies.CompanyDetailsDTO;
 import com.example.coopachat.dtos.companies.CompanyStatsDTO;
+import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
+import com.example.coopachat.dtos.dashboard.commercial.CommercialDashboardKpisDTO;
 import com.example.coopachat.dtos.companies.UpdateCompanyDTO;
 import com.example.coopachat.dtos.companies.UpdateCompanyStatusDTO;
 import com.example.coopachat.dtos.coupons.CartTotalCouponStatsDTO;
@@ -29,6 +31,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /**
  * Contrôleur pour la gestion des actions du commercial
@@ -70,10 +74,29 @@ public class CommercialController {
     }
 
     @Operation(
+            summary = "KPIs du tableau de bord commercial",
+            description = "Retourne les indicateurs : totalSalaries, nouveauxSalariesCeMois, commandesCeMois, " +
+                         "evolutionCommandesPct, ventesCeMois, evolutionVentesPct, promotionsActives. " +
+                         "Données limitées au périmètre du commercial connecté."
+    )
+    @GetMapping("/dashboard/kpis")
+    public ResponseEntity<CommercialDashboardKpisDTO> getDashboardKpis() {
+        return ResponseEntity.ok(commercialService.getDashboardKpis());
+    }
+
+    @Operation(
+            summary = "Coupons utilisés par jour (7 derniers jours)",
+            description = "Pour le graphique « Tendance des coupons utilisés » du tableau de bord commercial."
+    )
+    @GetMapping("/dashboard/coupons-utilises-par-jour")
+    public ResponseEntity<List<CouponUsageParJourDTO>> getCouponsUtilisesParJour() {
+        return ResponseEntity.ok(commercialService.getCouponsUtilisesParJour());
+    }
+
+    @Operation(
             summary = "Lister les entreprises (paginé avec recherche et filtres)",
             description = "Récupère la liste paginée de toutes les entreprises créées par le commercial connecté. " +
-                         "Les paramètres 'page' (défaut: 0) et 'size' (défaut: 6) permettent de contrôler la pagination. " +
-                         "Les paramètres 'search' (recherche par nom), 'sector' (filtre par secteur) et 'isActive' (filtre actif/inactif: true/false) sont optionnels."
+                         "Filtres optionnels: search, sector, isActive, partnerOnly (entreprises partenaires), prospectOnly (prospects), prospectionStatus (statut de prospection)."
     )
     @GetMapping("/companies")
     public ResponseEntity<CompanyListResponseDTO> getAllCompanies(
@@ -81,10 +104,20 @@ public class CommercialController {
             @RequestParam(defaultValue = "6") int size,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) CompanySector sector,
-            @RequestParam(required = false) Boolean isActive
+            @RequestParam(required = false) Boolean isActive,
+            @RequestParam(required = false) Boolean partnerOnly,
+            @RequestParam(required = false) Boolean prospectOnly,
+            @RequestParam(required = false) com.example.coopachat.enums.CompanyStatus prospectionStatus
     ) {
-        CompanyListResponseDTO response = commercialService.getAllCompanies(page, size, search, sector, isActive);
+        CompanyListResponseDTO response = commercialService.getAllCompanies(page, size, search, sector, isActive, partnerOnly, prospectOnly, prospectionStatus);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Derniers prospects", description = "Récupère les N derniers prospects (entreprises non partenaires).")
+    @GetMapping("/companies/last-prospects")
+    public ResponseEntity<java.util.List<com.example.coopachat.dtos.companies.CompanyListItemDTO>> getLastProspects(
+            @RequestParam(defaultValue = "3") int limit) {
+        return ResponseEntity.ok(commercialService.getLastProspects(limit));
     }
 
     @Operation(

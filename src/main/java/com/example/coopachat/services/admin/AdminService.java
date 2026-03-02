@@ -12,6 +12,7 @@ import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
 import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.ProductStatsDTO;
+import com.example.coopachat.dtos.products.TopProductUsageDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
 import com.example.coopachat.dtos.user.SaveUserDTO;
 import com.example.coopachat.dtos.user.UpdateUserStatusDTO;
@@ -22,7 +23,9 @@ import com.example.coopachat.dtos.user.UserStatsByStatusItemDTO;
 import com.example.coopachat.dtos.user.UserStatsDTO;
 import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.dtos.dashboard.admin.AdminAlertsDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
+import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.enums.UserRole;
@@ -126,6 +129,14 @@ public interface AdminService {
      */
     ProductStatsDTO getProductStats();
 
+    /**
+     * Récupère le top 5 des produits les plus commandés avec leur taux d'utilisation en %.
+     * Chaque produit est retourné avec son nom et le pourcentage que représentent ses
+     * quantités commandées par rapport au total des quantités sur la période (ex. 30 derniers jours).
+     *
+     * @return liste de TopProductUsageDTO (productName, usagePercent entre 0 et 100)
+     */
+    List<TopProductUsageDTO> getTop5ProductUsage();
 
     /**
      * Crée un nouveau fournisseur
@@ -232,10 +243,10 @@ public interface AdminService {
 
     /**
      * Statistiques du tableau de bord admin (KPIs + paiements par statut).
-     * La période détermine sur quelles dates on calcule les chiffres.
+     * Données globales, sans filtre de période.
      *
-     * @param periode "TODAY" = uniquement aujourd'hui ; "THIS_MONTH" = du 1er du mois à aujourd'hui
-     * @return DTO avec : commandes en attente, paiements échoués, réclamations ouvertes, liste paiements par statut (pour graphique)
+     * @param periode ignoré (conservé pour compatibilité signature)
+     * @return DTO avec : commandes en attente, paiements échoués, réclamations ouvertes, liste paiements par statut
      */
     AdminDashboardStatsDTO getDashboardStats(String periode);
 
@@ -256,4 +267,15 @@ public interface AdminService {
      * Graphique "Livraisons 7 jours" : pour chaque des 7 derniers jours, date + nbLivrees, nbAssignes, nbEnAttente.
      */
     List<LivraisonParJourDTO> getLivraisonsParJour();
+
+    /**
+     * Graphique "Tendance des coupons utilisés" : pour chacun des 7 derniers jours, date (dd/MM) et nombre d'utilisations (commandes avec coupon).
+     */
+    List<CouponUsageParJourDTO> getCouponsUtilisesParJour();
+
+    /**
+     * Liste des alertes pour le tableau de bord admin (livraisons en retard, stocks sous seuil).
+     * Chaque alerte contient type, message, detail, module (LIVRAISONS / STOCKS pour la navigation), date.
+     */
+    AdminAlertsDTO getAlerts();
 }

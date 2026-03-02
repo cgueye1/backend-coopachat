@@ -101,6 +101,9 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
     /** Nombre de coupons actifs dont la portée est CART_TOTAL (code promo panier). */
     long countByScopeAndStatus(CouponScope scope, CouponStatus status);
 
+    /** Nombre de promotions actives (isActive = true). Utilisé pour le KPI dashboard commercial. */
+    long countByIsActiveTrue();
+
     /** Somme des utilisations (usageCount) pour les coupons de portée donnée. */
     @Query("SELECT COALESCE(SUM(c.usageCount), 0) FROM Coupon c WHERE c.scope = :scope")
     long sumUsageCountByScope(@Param("scope") CouponScope scope);

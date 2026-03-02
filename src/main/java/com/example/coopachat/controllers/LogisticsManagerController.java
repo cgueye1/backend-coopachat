@@ -16,6 +16,7 @@ import com.example.coopachat.dtos.order.OrderEmployeeListResponseDTO;
 import com.example.coopachat.dtos.order.OrderItemDetailsDTO;
 import com.example.coopachat.dtos.products.ProductStockListResponseDTO;
 import com.example.coopachat.dtos.products.StockStatsDTO;
+import com.example.coopachat.dtos.products.TopProductUsageDTO;
 import com.example.coopachat.dtos.claim.ClaimDetailDTO;
 import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
 import com.example.coopachat.dtos.claim.ClaimStatsDTO;
@@ -637,6 +638,18 @@ public class LogisticsManagerController {
     @GetMapping("/dashboard/statut-tournees")
     public ResponseEntity<StatutTourneesDTO> getStatutTournees() {
         return ResponseEntity.ok(logisticsManagerService.getStatutTournees());
+    }
+
+    @Operation(summary = "Commandes par jour (7 derniers jours)", description = "Pour chaque jour : date, nbCommandes. Pour le graphique « Commandes par jour ».")
+    @GetMapping("/dashboard/commandes-par-jour")
+    public ResponseEntity<List<com.example.coopachat.dtos.dashboard.logisticsManager.CommandesParJourDTO>> getCommandesParJour() {
+        return ResponseEntity.ok(logisticsManagerService.getCommandesParJour());
+    }
+
+    @Operation(summary = "Top 5 produits les plus commandés (en %)", description = "Pour le graphique « Produits les plus fréquents » sur la page Gestion des commandes. Retourne productName et usagePercent (30 derniers jours).")
+    @GetMapping("/dashboard/top5-products-usage")
+    public ResponseEntity<List<TopProductUsageDTO>> getTop5ProductUsage() {
+        return ResponseEntity.ok(logisticsManagerService.getTop5ProductUsage());
     }
 
     @Operation(summary = "Commandes vs Livraisons (7 derniers jours)", description = "Pour chaque jour : date, commandesEnAttente, livraisons.")

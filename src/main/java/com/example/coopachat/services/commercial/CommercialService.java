@@ -3,11 +3,16 @@ package com.example.coopachat.services.commercial;
 import com.example.coopachat.dtos.companies.*;
 import com.example.coopachat.dtos.coupons.CartTotalCouponStatsDTO;
 import com.example.coopachat.dtos.coupons.CouponDetailsDTO;
+import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
+import com.example.coopachat.dtos.dashboard.commercial.CommercialDashboardKpisDTO;
+
+import java.util.List;
 import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
 import com.example.coopachat.dtos.coupons.CreateCouponDTO;
 import com.example.coopachat.dtos.coupons.UpdateCouponStatusDTO;
 import com.example.coopachat.dtos.employees.*;
 import com.example.coopachat.enums.CompanySector;
+import com.example.coopachat.enums.CompanyStatus;
 import com.example.coopachat.enums.CouponScope;
 import com.example.coopachat.enums.CouponStatus;
 
@@ -33,10 +38,22 @@ public interface CommercialService {
      * @param search Terme de recherche pour le nom de l'entreprise (optionnel, recherche partielle insensible à la casse)
      * @param sector Filtre par secteur d'activité (optionnel)
      * @param isActive Filtre par statut actif/inactif (optionnel, true pour actives, false pour inactives)
+     * @param partnerOnly Si true, uniquement les entreprises partenaires (statut Partenaire signé)
+     * @param prospectOnly Si true, uniquement les prospects (statut différent de Partenaire signé)
+     * @param prospectionStatus Filtre par statut de prospection (optionnel, utile avec prospectOnly)
      * @return Réponse paginée contenant la liste des entreprises et les métadonnées de pagination
      * @throws RuntimeException si le commercial n'existe pas ou si une erreur survient
      */
-    CompanyListResponseDTO getAllCompanies(int page, int size, String search, CompanySector sector, Boolean isActive);
+    CompanyListResponseDTO getAllCompanies(int page, int size, String search, CompanySector sector, Boolean isActive,
+                                          Boolean partnerOnly, Boolean prospectOnly, CompanyStatus prospectionStatus);
+
+    /**
+     * Récupère les N derniers prospects (entreprises dont le statut de prospection n'est pas Partenaire signé).
+     *
+     * @param limit Nombre maximum de prospects à retourner (ex. 3)
+     * @return Liste des derniers prospects (ordre id décroissant)
+     */
+    List<CompanyListItemDTO> getLastProspects(int limit);
 
     /**
      * Récupère les détails d'une entreprise spécifique par son ID
@@ -189,6 +206,20 @@ public interface CommercialService {
      * nombre de coupons actifs et nombre total d'utilisations.
      */
     CartTotalCouponStatsDTO getCartTotalCouponStats();
+
+    /**
+     * KPIs du tableau de bord commercial : totalSalaries, nouveauxSalariesCeMois, commandesCeMois,
+     * evolutionCommandesPct, ventesCeMois, evolutionVentesPct, promotionsActives.
+     *
+     */
+    CommercialDashboardKpisDTO getDashboardKpis();
+
+    /**
+     * Coupons utilisés par jour (7 derniers jours) pour le graphique « Tendance des coupons utilisés ».
+     *
+     * @return Liste de { date (dd/MM), nbUtilisations }
+     */
+    List<CouponUsageParJourDTO> getCouponsUtilisesParJour();
 
 }
 
