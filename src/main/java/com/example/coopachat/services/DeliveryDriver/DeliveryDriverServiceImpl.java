@@ -226,6 +226,7 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         for (Order order : tour.getOrders()) {
             if (order.getStatus() == OrderStatus.VALIDEE) {
                 order.setStatus(OrderStatus.EN_PREPARATION);
+
                 orderRepository.save(order);
             }
         }

@@ -1756,12 +1756,15 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         tour.setCancelledAt(LocalDateTime.now());
         tour.setCancelledBy(currentUser);
 
-        // 6. Notifier le salarié puis remettre chaque commande en EN_ATTENTE et détacher de la tournée
+        // 6. Notifier le salarié puis remettre chaque commande en EN_ATTENTE, détacher de la tournée et effacer l'historique de livraison
         if (tour.getOrders() != null) {
             for (Order order : tour.getOrders()) {
                 employeeNotificationService.notifyTourCancelled(order, dto.getReason());
                 order.setStatus(OrderStatus.EN_ATTENTE);
                 order.setDeliveryTour(null);
+                order.setDeliveryStartedAt(null);
+                order.setDeliveryArrivedAt(null);
+                order.setDeliveryCompletedAt(null);
                 orderRepository.save(order);
             }
         }
