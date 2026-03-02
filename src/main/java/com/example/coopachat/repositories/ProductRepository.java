@@ -149,6 +149,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT COUNT(p) FROM Product p WHERE p.currentStock > 0 AND p.currentStock < p.minThreshold")
     long countLowStock();
 
+    /**
+     * Compter les produits dont le stock est strictement inférieur au seuil (currentStock < minThreshold).
+     * Utilisé pour l'alerte "Stocks critiques" (GET /admin/alerts). Inclut ruptures (stock = 0) et sous seuil.
+     */
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.currentStock < p.minThreshold")
+    long countByCurrentStockLessThanMinThreshold();
 
 }
 

@@ -17,12 +17,15 @@ import com.example.coopachat.dtos.products.CreateProductDTO;
 import com.example.coopachat.dtos.products.ProductDetailsDTO;
 import com.example.coopachat.dtos.products.ProductListResponseDTO;
 import com.example.coopachat.dtos.products.ProductStatsDTO;
+import com.example.coopachat.dtos.products.TopProductUsageDTO;
 import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
 import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.dtos.dashboard.admin.AdminAlertsDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
 import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
+import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.enums.UserRole;
@@ -403,6 +406,15 @@ public class AdminController {
         return ResponseEntity.ok(stats);
     }
 
+    @Operation(
+            summary = "Top 5 produits par utilisation (%)",
+            description = "Retourne les 5 produits les plus commandés avec leur taux d'utilisation en % (part des quantités par rapport au total sur les 30 derniers jours)."
+    )
+    @GetMapping("/products/top5-usage")
+    public ResponseEntity<List<TopProductUsageDTO>> getTop5ProductUsage() {
+        return ResponseEntity.ok(adminService.getTop5ProductUsage());
+    }
+
     // ============================================================================
     // 🧾 GESTION DES FOURNISSEURS
     // ============================================================================
@@ -588,13 +600,11 @@ public class AdminController {
 
     @Operation(
             summary = "Statistiques du tableau de bord admin",
-            description = "Retourne les KPIs (commandes en attente, paiements échoués, réclamations ouvertes) et la répartition des paiements par statut (Payé, En attente, Échoué) pour la période demandée."
+            description = "Retourne les KPIs (commandes en attente, paiements échoués, réclamations ouvertes) et la répartition des paiements par statut (Payé, En attente, Échoué). Données globales, sans filtre de période."
     )
     @GetMapping("/dashboard/stats")
-    public ResponseEntity<AdminDashboardStatsDTO> getDashboardStats(
-            @Parameter(description = "Période : TODAY (aujourd'hui) ou THIS_MONTH (mois en cours). Par défaut : THIS_MONTH.")
-            @RequestParam(defaultValue = "THIS_MONTH") String periode) {
-        AdminDashboardStatsDTO stats = adminService.getDashboardStats(periode);
+    public ResponseEntity<AdminDashboardStatsDTO> getDashboardStats() {
+        AdminDashboardStatsDTO stats = adminService.getDashboardStats(null);
         return ResponseEntity.ok(stats);
     }
 
@@ -625,5 +635,23 @@ public class AdminController {
     @GetMapping("/dashboard/stocks-etat-global")
     public ResponseEntity<StockEtatGlobalDTO> getStockEtatGlobal() {
         return ResponseEntity.ok(adminService.getStockEtatGlobal());
+    }
+
+    @Operation(
+            summary = "Coupons utilisés par jour (7 derniers jours)",
+            description = "Pour chaque jour : date (dd/MM), nombre d'utilisations de coupon (commandes avec coupon). Graphique « Tendance des coupons utilisés »."
+    )
+    @GetMapping("/dashboard/coupons-utilises-par-jour")
+    public ResponseEntity<List<CouponUsageParJourDTO>> getCouponsUtilisesParJour() {
+        return ResponseEntity.ok(adminService.getCouponsUtilisesParJour());
+    }
+
+    @Operation(
+            summary = "Alertes du tableau de bord admin",
+            description = "Liste des alertes (livraisons en retard, stocks sous seuil). Chaque alerte a type, message, detail, module (LIVRAISONS / STOCKS) pour redirection au clic, et date."
+    )
+    @GetMapping("/alerts")
+    public ResponseEntity<AdminAlertsDTO> getAlerts() {
+        return ResponseEntity.ok(adminService.getAlerts());
     }
 }

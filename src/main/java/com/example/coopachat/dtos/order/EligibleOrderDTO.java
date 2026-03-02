@@ -21,4 +21,7 @@ public class EligibleOrderDTO {
     private String preferredDeliveryMode;     // ex: "Domicile"
     private Boolean matchesPreferences;       // true si la tournée correspond aux préférences
     private Boolean hasPreferences;           // false si le salarié n'a pas renseigné de préférences
+
+    /** Nombre de jours de retard (date de livraison prévue dépassée). null si pas en retard. */
+    private Integer daysOverdue;
 }

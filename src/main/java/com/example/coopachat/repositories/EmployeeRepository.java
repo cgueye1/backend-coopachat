@@ -5,11 +5,14 @@ import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.OrderItem;
 import com.example.coopachat.entities.Users;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -51,6 +54,22 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
      * @return Le nombre d'employés correspondant au statut
      */
     long countByCreatedByAndUserIsActive(Users commercial, Boolean isActive);
+
+    /**
+     * Compte le nombre d'employés créés par un commercial entre deux dates (ex. pour "nouveaux ce mois").
+     */
+    @Query("SELECT COUNT(e) FROM Employee e WHERE e.createdBy = :commercial AND e.createdAt BETWEEN :start AND :end")
+    long countByCreatedByAndCreatedAtBetween(
+            @Param("commercial") Users commercial,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    /** Compte tous les employés dont l'utilisateur associé est actif ou non (sans filtre commercial). */
+    long countByUserIsActive(Boolean isActive);
+
+    /** Compte tous les employés créés entre start et end (sans filtre commercial). */
+    @Query("SELECT COUNT(e) FROM Employee e WHERE e.createdAt BETWEEN :start AND :end")
+    long countByCreatedAtBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     // ============================================================================
     // 🔍 MÉTHODES DE RECHERCHE ET FILTRES
@@ -143,5 +162,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
      */
     Page<Employee> findByCreatedByAndCompanyAndUserIsActive(Users commercial, Company company, Boolean isActive, Pageable pageable);
 
-
+    /**
+     * Compte le nombre d'employés d'une entreprise (pour les détails entreprise partenaire).
+     */
+    long countByCompany(Company company);
 }

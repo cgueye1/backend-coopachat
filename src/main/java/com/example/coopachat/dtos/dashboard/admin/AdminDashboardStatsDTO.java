@@ -7,23 +7,23 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * DTO pour GET /api/admin/dashboard/stats?periode=TODAY|THIS_MONTH.
- * 3 KPIs (indicateur clé de performance) + répartition des paiements par statut.
+ * DTO pour GET /api/admin/dashboard/stats (données globales, sans filtre de période).
+ * 3 KPIs + répartition des paiements par statut.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class AdminDashboardStatsDTO {
 
-    /** KPI : nombre de commandes en attente (sur la période). */
+    /** KPI : nombre de commandes en attente. */
     private long commandesEnAttente;
 
-    /** KPI : nombre de paiements échoués (sur la période). */
+    /** KPI : nombre de paiements échoués. */
     private long paiementsEchoues;
 
     /** KPI : nombre de réclamations ouvertes (en attente). */
     private long reclamationsOuvertes;
 
-    /** Paiements par statut (suit le filtre période). Ex. Payé: 10, En attente: 2, Échoué: 1. */
+    /** Paiements par statut (Payé, En attente, Échoué). */
     private List<PaymentStatusItemDTO> paiementsParStatut;
 }

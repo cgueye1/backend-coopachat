@@ -11,8 +11,13 @@ import java.time.LocalDateTime;
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     /**
+     * Compte le nombre de paiements ayant le statut donné (sans filtre de date).
+     * Utilisé pour le dashboard admin lorsque la période n'est plus appliquée.
+     */
+    long countByStatus(PaymentStatus status);
+
+    /**
      * Compte le nombre de paiements ayant le statut donné, créés entre start et end.
-     * Utilisé pour le KPI "paiements échoués" et pour la liste "paiements par statut" du dashboard.
      */
     long countByStatusAndCreatedAtBetween(PaymentStatus status, LocalDateTime start, LocalDateTime end);
 }
