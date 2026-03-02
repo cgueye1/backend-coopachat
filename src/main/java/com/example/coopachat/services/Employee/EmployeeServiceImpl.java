@@ -752,6 +752,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                         .divide(BigDecimal.valueOf(100)); // 10% → 0.10
 
                 discount = total.multiply(pourcentage);
+                total = total.subtract(discount);
 
             } else {
                 // Montant fixe : on vérifie que la valeur du coupon ne dépasse pas le total de la commande
@@ -807,9 +808,9 @@ public class EmployeeServiceImpl implements EmployeeService {
         DeliveryOption deliveryOption = deliveryOptionRepository.findById(dto.getDeliveryOptionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Option de livraison introuvable"));
 
-        // 4. Créer la commande
+        // 4. Créer la commande (numéro unique aléatoire : pas de séquence à épuiser, pas de doublon)
         Order order = new Order();
-        order.setOrderNumber("CMD-" + (orderRepository.count() + 1));
+        order.setOrderNumber(generateUniqueOrderNumber());
         order.setEmployee(employee);
         order.setUser(currentUser);
         order.setStatus(OrderStatus.EN_ATTENTE);
@@ -1724,6 +1725,23 @@ public class EmployeeServiceImpl implements EmployeeService {
     /**
      * Calcule la date de livraison
      */
+
+    /**
+     * Génère un numéro de commande unique au format CMD-XXXXXXXX (8 caractères alphanumériques aléatoires).
+     * Pas de séquence à épuiser, risque de doublon négligeable ; retry si collision.
+     */
+    private String generateUniqueOrderNumber() {
+        final int maxAttempts = 10; // Nombre maximum d'essais pour éviter les collisions
+        for (int i = 0; i < maxAttempts; i++) {//On parcourt les essais
+            
+            String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+            String candidate = "CMD-" + suffix;
+            if (!orderRepository.existsByOrderNumber(candidate)) {
+                return candidate;
+            }
+        }
+        throw new RuntimeException("Impossible de générer un numéro de commande unique");
+    }
 
     private  LocalDate calculateDeliveryDate (DeliveryOption deliveryOption) {
         LocalDate today = LocalDate.now();
