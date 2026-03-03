@@ -777,6 +777,7 @@ public class AdminServiceImpl implements AdminService {
         if (dto.getRole() == null) {
             throw new RuntimeException("Le rôle est obligatoire");
         }
+
         if (userRepository.existsByEmail(dto.getEmail())) {
             throw new RuntimeException("Cet email est déjà utilisé");
         }
@@ -790,6 +791,7 @@ public class AdminServiceImpl implements AdminService {
         user.setEmail(dto.getEmail());
         user.setPhone(dto.getPhoneNumber());
         user.setRole(dto.getRole());
+        user.setProfilePhotoUrl(dto.getProfilePhoto());
         user.setCompanyCommercial(dto.getCompanyCommercial());
         user.setIsActive(false);
 
@@ -1001,6 +1003,9 @@ public class AdminServiceImpl implements AdminService {
         }
         if (dto.getCompanyCommercial() != null) {
             u.setCompanyCommercial(dto.getCompanyCommercial());
+        }
+        if (dto.getProfilePhoto() != null && !dto.getProfilePhoto().isBlank()) {
+            u.setProfilePhotoUrl(dto.getProfilePhoto());
         }
         userRepository.save(u);
         log.info("Utilisateur {} mis à jour par l'admin", u.getEmail());

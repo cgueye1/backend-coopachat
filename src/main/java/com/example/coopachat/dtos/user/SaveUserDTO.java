@@ -30,4 +30,7 @@ public class SaveUserDTO {
 
     /** Optionnel : entreprise liée (nom), utilisé lorsque le rôle est Commercial. */
     private String companyCommercial;
+
+    //photo de profile (Url/fichier)
+    private String profilePhoto;
 }
