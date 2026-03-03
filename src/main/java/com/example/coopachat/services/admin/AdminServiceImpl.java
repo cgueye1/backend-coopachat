@@ -1071,8 +1071,8 @@ public class AdminServiceImpl implements AdminService {
             if (oldPhoto != null && !oldPhoto.isBlank()) {
                 fileTransferUtil.deleteFile(oldPhoto);
             }
-            // Upload dans le sous-dossier "profiles" (ex. files/profiles/uuid.jpg)
-            String relativePath = fileTransferUtil.handleFileUpload(file, "profiles");
+            // Upload dans files/ directement (ex. files/uuid.jpg), comme les autres fichiers
+            String relativePath = fileTransferUtil.handleFileUpload(file);
             u.setProfilePhotoUrl(relativePath);
             userRepository.save(u);
             log.info("Photo de profil mise à jour pour l'utilisateur {}", u.getEmail());
