@@ -37,6 +37,8 @@ public class ClientOrderDetailsDTO {
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
     private LocalDateTime validatedAt;
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
+    private LocalDateTime pickupStartedAt;
+    @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
     private LocalDateTime deliveryStartedAt;
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
     private LocalDateTime deliveryArrivedAt;
