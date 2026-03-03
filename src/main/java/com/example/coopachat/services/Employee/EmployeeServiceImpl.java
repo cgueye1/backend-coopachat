@@ -1633,7 +1633,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         dto.setDeliveryDate(order.getDeliveryDate());//Date de livraison
         dto.setCreatedAt(order.getCreatedAt());//Date de création de la commande
         dto.setValidatedAt(order.getValidatedAt());//Date de validation de la commande
-        dto.setDeliveryStartedAt(order.getDeliveryStartedAt());//Date de début de livraison
+        dto.setPickupStartedAt(order.getPickupStartedAt());//Date et heure de préparation de la commande (le livreur a confirmé la récupération)
+        dto.setDeliveryStartedAt(order.getDeliveryStartedAt());//Date de début de livraison de sa commande
         dto.setDeliveryArrivedAt(order.getDeliveryArrivedAt());//Date d'arrivée de la commande
         dto.setDeliveryCompletedAt(order.getDeliveryCompletedAt());//Date de fin de livraison
         //Liste des articles commandés
