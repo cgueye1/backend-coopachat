@@ -13,6 +13,7 @@ import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.CommandesParJourDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.RLDashboardKpisDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.TauxRetoursParJourDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.StatutTourneesDTO;
 import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
@@ -401,6 +402,9 @@ public interface LogisticsManagerService {
 
     /** Graphique "Commandes par jour" : 7 derniers jours (date, nbCommandes). */
     List<CommandesParJourDTO> getCommandesParJour();
+
+    /** Graphique "Taux de retours (%)" : 7 derniers jours (date, tauxPercent). Taux = réclamations créées ce jour / commandes ce jour × 100. */
+    List<TauxRetoursParJourDTO> getTauxRetoursParJour();
 
     /** Graphique "Commandes vs Livraisons" : 7 derniers jours (date, commandesEnAttente, livraisons). */
     List<CommandesVsLivraisonsDayDTO> getCommandesVsLivraisons();

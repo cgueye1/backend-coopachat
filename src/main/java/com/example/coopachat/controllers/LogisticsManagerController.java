@@ -6,8 +6,10 @@ import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.CommandesParJourDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.RLDashboardKpisDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.StatutTourneesDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.TauxRetoursParJourDTO;
 import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.EligibleOrderDTO;
 import com.example.coopachat.dtos.order.EmployeeOrderStatsDTO;
@@ -565,21 +567,25 @@ public class LogisticsManagerController {
     }
 
     // ============================================================================
-    // 📋 GESTION DES RÉCLAMATIONS
+    // 📋 GESTION DES RETOURS ET RÉCLAMATIONS UTILISATEURS
     // ============================================================================
 
     @Operation(
-            summary = "Statistiques des retours",
-            description = "Total, Validés, Rejetés, Réintégrés, Montant remboursé "
+            summary = "Statistiques des retours et réclamations",
+            description = "Pour le tableau de bord / page Gestion des retours : total réclamations, validées, rejetées, réintégrées au stock, montant total remboursé."
     )
     @GetMapping("/claims/stats")
     public ResponseEntity<ClaimStatsDTO> getClaimStats() {
         return ResponseEntity.ok(logisticsManagerService.getClaimStats());
     }
 
+    /**
+     * Liste paginée de toutes les réclamations utilisateurs (retours), avec recherche par référence commande ou nom client,
+     * et filtre par statut : EN_ATTENTE, VALIDE, REJETE.
+     */
     @Operation(
-            summary = "Liste des réclamations",
-            description = "Liste paginée des réclamations avec recherche (référence ou client) et filtre par statut (En attente, Validé, Rejeté)."
+            summary = "Liste paginée des réclamations utilisateurs",
+            description = "Toutes les réclamations (retours) avec recherche par référence commande ou nom client, et filtre par statut : EN_ATTENTE, VALIDE, REJETE."
     )
     @GetMapping("/claims")
     public ResponseEntity<ClaimListResponseDTO> getClaims(
@@ -590,18 +596,26 @@ public class LogisticsManagerController {
         return ResponseEntity.ok(logisticsManagerService.getClaims(page, size, search, status));
     }
 
+    /**
+     * Détails complets d'une réclamation : commande, produit concerné, type de problème, commentaire,
+     * statut, décision (réintégration/remboursement), motif de rejet éventuel.
+     */
     @Operation(
-            summary = "Voir détails d'une réclamation",
-            description = "Retourne les détails complets d'une réclamation (produit, client, motif, commentaire, photos, etc.)."
+            summary = "Détail d'une réclamation",
+            description = "Détails complets d'une réclamation : commande, produit concerné, type de problème, commentaire, statut, décision (réintégration/remboursement), motif de rejet éventuel."
     )
     @GetMapping("/claims/{id}")
     public ResponseEntity<ClaimDetailDTO> getClaimById(@PathVariable Long id) {
         return ResponseEntity.ok(logisticsManagerService.getClaimById(id));
     }
 
+    /**
+     * Valider une réclamation (retour) : décision du RL soit réintégration au stock (quantité remise en stock),
+     * soit remboursement (montant obligatoire). La réclamation doit être en statut EN_ATTENTE.
+     */
     @Operation(
-            summary = "Valider une réclamation",
-            description = "Réintégration au stock (quantité remise en stock) ou remboursement (montant obligatoire). Réclamation doit être en attente."
+            summary = "Valider une réclamation (retour)",
+            description = "Décision du RL : soit réintégration au stock (quantité remise en stock), soit remboursement (montant obligatoire). La réclamation doit être en attente."
     )
     @PostMapping("/claims/{id}/validate")
     public ResponseEntity<String> validateClaim(
@@ -614,9 +628,12 @@ public class LogisticsManagerController {
                         : "Retour enregistré - Remboursement enregistré");
     }
 
+    /**
+     * Rejeter une réclamation avec un motif obligatoire. La réclamation doit être en statut EN_ATTENTE.
+     */
     @Operation(
             summary = "Rejeter une réclamation",
-            description = "Rejette la réclamation avec un motif obligatoire. Réclamation doit être en attente."
+            description = "Rejette la réclamation avec un motif obligatoire. La réclamation doit être en attente."
     )
     @PostMapping("/claims/{id}/reject")
     public ResponseEntity<String> rejectClaim(
@@ -640,10 +657,19 @@ public class LogisticsManagerController {
         return ResponseEntity.ok(logisticsManagerService.getStatutTournees());
     }
 
-    @Operation(summary = "Commandes par jour (7 derniers jours)", description = "Pour chaque jour : date, nbCommandes. Pour le graphique « Commandes par jour ».")
+    @Operation(summary = "Commandes par jour (7 derniers jours)", description = "Pour chaque jour : date (dd/MM), nbCommandes. Alimente le graphique « Commandes par jour » du tableau de bord RL.")
     @GetMapping("/dashboard/commandes-par-jour")
-    public ResponseEntity<List<com.example.coopachat.dtos.dashboard.logisticsManager.CommandesParJourDTO>> getCommandesParJour() {
+    public ResponseEntity<List<CommandesParJourDTO>> getCommandesParJour() {
         return ResponseEntity.ok(logisticsManagerService.getCommandesParJour());
+    }
+
+    @Operation(
+            summary = "Taux de retours par jour (7 derniers jours)",
+            description = "Pour chaque jour : date (dd/MM), tauxPercent = (réclamations créées ce jour / commandes ce jour) × 100. Alimente le graphique « Taux de retours (%) » du tableau de bord RL."
+    )
+    @GetMapping("/dashboard/taux-retours-par-jour")
+    public ResponseEntity<List<TauxRetoursParJourDTO>> getTauxRetoursParJour() {
+        return ResponseEntity.ok(logisticsManagerService.getTauxRetoursParJour());
     }
 
     @Operation(summary = "Top 5 produits les plus commandés (en %)", description = "Pour le graphique « Produits les plus fréquents » sur la page Gestion des commandes. Retourne productName et usagePercent (30 derniers jours).")

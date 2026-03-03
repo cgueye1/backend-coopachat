@@ -40,8 +40,8 @@ public interface DeliveryDriverService {
      */
     boolean hasActiveTour();
 
-    /** Livreur confirme la récupération des colis au dépôt → tournée EN_COURS. */
-    void confirmPickup(Long tourId);
+    /** Livreur confirme la récupération d'une commande (swipe par commande). Commande VALIDEE → EN_PREPARATION ; si première de la tournée → tournée EN_COURS et notification RL. */
+    void confirmPickup(Long tourId, Long orderId);
 
     /** Livreur lance la livraison (en route vers le client) → commande EN_COURS. */
     void startDelivery(Long orderId);

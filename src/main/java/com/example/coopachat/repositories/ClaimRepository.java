@@ -11,9 +11,16 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Repository
 public interface ClaimRepository extends JpaRepository<Claim, Long> {
+
+    /**
+     * Compte le nombre de réclamations (retours) créées entre deux dates (inclus).
+     * Utilisé pour le graphique « Taux de retours par jour » du tableau de bord RL.
+     */
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 
     /**
      * Liste paginée des réclamations pour le responsable logistique (gestion des retours).

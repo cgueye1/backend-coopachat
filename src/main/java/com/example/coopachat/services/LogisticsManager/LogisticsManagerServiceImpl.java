@@ -16,6 +16,7 @@ import com.example.coopachat.dtos.dashboard.logisticsManager.CommandesParJourDTO
 import com.example.coopachat.dtos.dashboard.logisticsManager.RLDashboardKpisDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.StatutTourneesDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.StatusCountDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.TauxRetoursParJourDTO;
 import com.example.coopachat.dtos.delivery.*;
 import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.ProductPreviewDTO;
@@ -1763,6 +1764,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 order.setStatus(OrderStatus.EN_ATTENTE);
                 order.setDeliveryTour(null);
                 order.setValidatedAt(null);
+                order.setPickupStartedAt(null);
                 order.setDeliveryStartedAt(null);
                 order.setDeliveryArrivedAt(null);
                 order.setDeliveryCompletedAt(null);
@@ -2076,6 +2078,28 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);
             long nbCommandes = orderRepository.countByCreatedAtBetween(dayStart, dayEnd);
             result.add(new CommandesParJourDTO(day.format(formatter), nbCommandes));
+        }
+        return result;
+    }
+
+    /**
+     * Graphique « Taux de retours (%) » : 7 derniers jours.
+     * Pour chaque jour : taux = (nombre de réclamations créées ce jour / nombre de commandes ce jour) × 100.
+     * Si aucune commande ce jour, le taux est 0.
+     */
+    @Override
+    public List<TauxRetoursParJourDTO> getTauxRetoursParJour() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
+        LocalDate today = LocalDate.now();
+        List<TauxRetoursParJourDTO> result = new ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate day = today.minusDays(i);
+            LocalDateTime dayStart = day.atStartOfDay();
+            LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);
+            long nbCommandes = orderRepository.countByCreatedAtBetween(dayStart, dayEnd);
+            long nbReclamations = claimRepository.countByCreatedAtBetween(dayStart, dayEnd);
+            double tauxPercent = nbCommandes > 0 ? (nbReclamations * 100.0 / nbCommandes) : 0.0;
+            result.add(new TauxRetoursParJourDTO(day.format(formatter), Math.round(tauxPercent * 100) / 100.0));
         }
         return result;
     }

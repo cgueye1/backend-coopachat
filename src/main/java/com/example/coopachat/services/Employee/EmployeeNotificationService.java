@@ -97,6 +97,37 @@ public class EmployeeNotificationService {
     }
 
     /**
+     * Notifie le salarié que le livreur a récupéré sa commande (swipe récupération) — commande en préparation.
+     */
+    public void notifyPickupConfirmed(Order order) {
+        if (order == null || order.getEmployee() == null || order.getEmployee().getUser() == null) {
+            log.warn("Order ou employee/user manquant, notification récupération ignorée");
+            return;
+        }
+        String email = order.getEmployee().getUser().getEmail();
+        if (email == null || email.isBlank()) {
+            log.warn("Pas d'email pour le salarié, notification récupération ignorée");
+            return;
+        }
+        String firstName = Optional.ofNullable(order.getEmployee().getUser().getFirstName()).orElse("Salarié");
+        String orderNumber = Optional.ofNullable(order.getOrderNumber()).orElse("-");
+        String deliveryDateStr = order.getDeliveryDate() != null
+                ? order.getDeliveryDate().format(DATE_FORMAT)
+                : "À définir";
+
+        String subject = "Commande en préparation - " + orderNumber;
+        String body = String.format(
+                "Bonjour %s,%n%nLe livreur a récupéré votre commande %s. Elle est maintenant en préparation et sera livrée à la date prévue : %s.%n%nL'équipe CoopAchat",
+                firstName, orderNumber, deliveryDateStr);
+
+        try {
+            emailService.sendEmail(email, subject, body);
+        } catch (Exception e) {
+            log.error("Erreur envoi notification 'récupération confirmée' à {}: {}", email, e.getMessage());
+        }
+    }
+
+    /**
      * Notifie le salarié qu'une livraison n'a pas pu être effectuée (échec signalé par le livreur).
      * Affiche le numéro de téléphone du RL qui a créé la tournée pour recontact.
      */

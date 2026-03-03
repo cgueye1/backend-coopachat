@@ -522,6 +522,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 userEmployee.getFirstName(),
                 userEmployee.getLastName(),
                 userEmployee.getPhone(),
+                userEmployee.getProfilePhotoUrl(),
                 userEmployee.getEmail(),
                 employee.getCompany() != null ? employee.getCompany().getName() : null
         );

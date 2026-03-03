@@ -103,6 +103,41 @@ public class DriverNotificationService {
     }
 
     /**
+     * Notifie le RL (créateur de la tournée) que la tournée a démarré (première récupération confirmée par le livreur).
+     */
+    public void notifyLogisticsManagerTourStarted(DeliveryTour tour) {
+        if (tour == null || tour.getCreatedBy() == null) {
+            log.warn("Tour ou créateur manquant, notification tournée démarrée ignorée");
+            return;
+        }
+        String rlEmail = tour.getCreatedBy().getEmail();
+        if (rlEmail == null || rlEmail.isBlank()) {
+            log.warn("Pas d'email RL pour notification tournée démarrée");
+            return;
+        }
+        String tourNumber = Optional.ofNullable(tour.getTourNumber()).orElse("-");
+        String driverName = tour.getDriver() != null && tour.getDriver().getUser() != null
+                ? (Optional.ofNullable(tour.getDriver().getUser().getFirstName()).orElse("") + " "
+                + Optional.ofNullable(tour.getDriver().getUser().getLastName()).orElse("")).trim()
+                : "Livreur";
+        if (driverName.isEmpty()) driverName = "Livreur";
+        String deliveryDateStr = tour.getDeliveryDate() != null
+                ? tour.getDeliveryDate().format(DATE_FORMAT)
+                : "À définir";
+
+        String subject = "Tournée démarrée - " + tourNumber;
+        String body = String.format(
+                "Bonjour,%n%nLa tournée %s a démarré. Le livreur %s a confirmé la récupération des colis.%n%nDate de livraison prévue : %s%n%nCordialement,%nSystème automatique",
+                tourNumber, driverName, deliveryDateStr);
+
+        try {
+            emailService.sendEmail(rlEmail, subject, body);
+        } catch (Exception e) {
+            log.error("Erreur envoi notification 'tournée démarrée' au RL {}: {}", rlEmail, e.getMessage());
+        }
+    }
+
+    /**
      * Notifie le RL (créateur de la tournée) qu'une livraison est en échec.
      * Envoi au créateur de la tournée (createdBy).
      */
