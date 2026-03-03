@@ -92,9 +92,9 @@ public class DeliveryDriverController {
     }
 
     @Operation(summary = "Confirmer la récupération au dépôt", description = "Le livreur confirme avoir récupéré les colis → tournée EN_COURS.")
-    @PostMapping("/delivery-tours/{tourId}/pickup")
-    public ResponseEntity<String> confirmPickup(@PathVariable Long tourId) {
-        deliveryDriverService.confirmPickup(tourId);
+    @PostMapping("/delivery-tours/{tourId}/orders/{orderId}/pickup")
+    public ResponseEntity<String> confirmPickup(@PathVariable Long tourId, @PathVariable Long orderId) {
+        deliveryDriverService.confirmPickup(tourId, orderId);
         return ResponseEntity.ok("Récupération confirmée");
     }
 

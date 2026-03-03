@@ -189,10 +189,10 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         return deliveryTourRepository.existsByDriverAndStatus(driver, DeliveryTourStatus.EN_COURS);
     }
 
-    //--------------------------------Confirmer la récupération des commandes par le livreur--------------------------------
+    //--------------------------------Confirmer la récupération d'une commande par le livreur (un swipe = une commande)--------------------------------
     @Override
     @Transactional
-    public void confirmPickup(Long tourId) {
+    public void confirmPickup(Long tourId, Long orderId) {
         // 1. Charger la tournée
         DeliveryTour tour = deliveryTourRepository.findById(tourId)
                 .orElseThrow(() -> new RuntimeException("Tournée introuvable"));
@@ -206,35 +206,53 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
             throw new RuntimeException("Vous n'êtes pas assigné à cette tournée");
         }
 
-        // 4. Vérifier qu'il n'a pas déjà une tournée en cours
-        if (hasActiveTour()) {
+        // 4. Si la tournée est encore ASSIGNEE, vérifier qu'il n'a pas déjà une autre tournée en cours
+        if (tour.getStatus() == DeliveryTourStatus.ASSIGNEE && hasActiveTour()) {
             throw new RuntimeException(
                     "Vous avez déjà une tournée en cours. " +
                             "Veuillez la terminer avant d'en commencer une nouvelle.");
         }
 
-        // 5. Vérifier que la tournée est au statut ASSIGNEE
-        if (tour.getStatus() != DeliveryTourStatus.ASSIGNEE) {
-            throw new RuntimeException("Cette tournée ne peut pas être démarrée");
+        // 5. Vérifier que la tournée accepte encore des confirmations : ASSIGNEE (1er swipe) ou EN_COURS (swipes suivants pour les autres commandes)
+        if (tour.getStatus() != DeliveryTourStatus.ASSIGNEE && tour.getStatus() != DeliveryTourStatus.EN_COURS) {
+            throw new RuntimeException("Cette tournée est terminée ou annulée ; aucune confirmation de récupération possible");
         }
 
-        // 6. Passer la tournée en EN_COURS et enregistrer l'heure de démarrage
-        tour.setStatus(DeliveryTourStatus.EN_COURS);
-        tour.setStartedAt(LocalDateTime.now());
-
-        // 7. Passer toutes les commandes VALIDEE en EN_PREPARATION
-        for (Order order : tour.getOrders()) {
-            if (order.getStatus() == OrderStatus.VALIDEE) {
-                order.setStatus(OrderStatus.EN_PREPARATION);
-
-                orderRepository.save(order);
-            }
+        // 6. Charger la commande et vérifier qu'elle appartient à cette tournée
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+        if (order.getDeliveryTour() == null || !order.getDeliveryTour().getId().equals(tour.getId())) {
+            throw new RuntimeException("Cette commande n'appartient pas à cette tournée");
         }
 
-        // 8. Sauvegarder la tournée
-        deliveryTourRepository.save(tour);
+        // 7. Vérifier que la commande est bien VALIDEE (sinon déjà récupérée ou plus avancée)
+        if (order.getStatus() != OrderStatus.VALIDEE) {
+            throw new RuntimeException("Cette commande n'est plus en attente de récupération");
+        }
 
-        log.info("Tournée {} démarrée par {}", tour.getTourNumber(), currentUser.getEmail());
+        // 8. Passer la commande en EN_PREPARATION et enregistrer l'heure de récupération
+        order.setStatus(OrderStatus.EN_PREPARATION);
+        order.setPickupStartedAt(LocalDateTime.now());
+        orderRepository.save(order);
+
+        // 9. Notifier le salarié que le livreur a récupéré sa commande
+        employeeNotificationService.notifyPickupConfirmed(order);
+        
+        //     On vient d'en mettre une en EN_PREPARATION → s'il n'y en a qu'une au total, c'est la première :
+        //     on passe la tournée en EN_COURS et on notifie le RL. Sinon (déjà d'autres en préparation), on ne fait que sauvegarder.
+        long nbDejaRecuperees = tour.getOrders().stream()
+                .filter(o -> o.getStatus() != OrderStatus.VALIDEE)
+                .count();
+        if (nbDejaRecuperees == 1) {
+            tour.setStatus(DeliveryTourStatus.EN_COURS);
+            tour.setStartedAt(LocalDateTime.now());
+            deliveryTourRepository.save(tour);
+            driverNotificationService.notifyLogisticsManagerTourStarted(tour);
+            log.info("Tournée {} démarrée par {} (première récupération)", tour.getTourNumber(), currentUser.getEmail());
+        } else {
+            deliveryTourRepository.save(tour);
+            log.info("Récupération commande {} confirmée par {} pour la tournée {}", order.getOrderNumber(), currentUser.getEmail(), tour.getTourNumber());
+        }
     }
 
     //--------------------------------DÉMARRER LIVRAISON d'une commande spécifique--------------------------------

@@ -766,7 +766,7 @@ public class CommercialServiceImpl implements CommercialService {
             throw new RuntimeException("Seuls les commerciaux peuvent consulter les coupons");
         }
 
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
 
         Page<Coupon> couponPage = couponRepository.findAllWithFilters(

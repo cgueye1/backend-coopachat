@@ -16,6 +16,8 @@ public class EmployeePersonalInfoDTO {
     @Setter
     private String phone;          // Modifiable
 
+    private String photoprofil;    //photoProfile
+
     private String email;          // Lecture seule (affiché mais ignoré à l'update)
     private String companyName;    // Lecture seule (affiché mais ignoré à l'update)
 }

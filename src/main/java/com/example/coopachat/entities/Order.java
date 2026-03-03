@@ -79,6 +79,11 @@ public class Order {
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
     private LocalDateTime validatedAt;
 
+    /** Heure à laquelle le livreur a confirmé la récupération des colis (statut EN_PREPARATION). */
+    @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
+    @Column(name = "pickup_started_at")
+    private LocalDateTime pickupStartedAt;
+
     /** Heure à laquelle le livreur a démarré la livraison (statut EN_COURS). Affichage heure:minute uniquement. */
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
     private LocalDateTime deliveryStartedAt;
