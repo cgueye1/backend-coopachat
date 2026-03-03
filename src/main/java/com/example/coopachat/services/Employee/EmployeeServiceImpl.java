@@ -173,6 +173,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         HomeResponseDTO response = new HomeResponseDTO();
         response.setFirstName(user.getFirstName());
+        response.setPhotoProfile(user.getProfilePhotoUrl());
         response.setProducts(productItems);
         response.setCategories(categoryItems);
         response.setActiveCoupons(promoCoupons);
