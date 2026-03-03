@@ -20,6 +20,7 @@ import java.util.List;
 public class HomeResponseDTO {
 
     private String firstName;
+    private String photoProfile;//url de l'image
     private List<ProductPromoItemDTO> products;
     private List<CategoryHomeItemDTO> categories; // max 4
     private List<CouponPromoDTO> activeCoupons; // liste des coupons "panier" / hors produit-catégorie (vide si aucun)
