@@ -485,13 +485,76 @@ public class AdminController {
 
     @Operation(
             summary = "Créer un utilisateur (agent)",
-            description = "Crée un nouvel utilisateur : Administrateur, Responsable logistique, Commercial ou Livreur. " +
-                    "Les salariés (EMPLOYEE) se créent via le flux Commercial."
+            description = "Permet à un administrateur de créer un nouvel utilisateur (Administrateur, Responsable logistique, Commercial ou Livreur). " +
+                    "Les salariés (EMPLOYEE) se créent via le flux Commercial. La photo de profil est optionnelle (formats acceptés: JPG, PNG, max 5MB)."
     )
     @PostMapping("/users")
-    public ResponseEntity<String> createUser(@RequestBody @Valid SaveUserDTO dto) {
-        adminService.createUser(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Utilisateur créé avec succès. Un code d'activation a été envoyé par email.");
+    public ResponseEntity<String> createUser(
+            @Parameter(description = "Prénom", required = true)
+            @RequestParam String firstName,
+
+            @Parameter(description = "Nom", required = true)
+            @RequestParam String lastName,
+
+            @Parameter(description = "Adresse email", required = true)
+            @RequestParam String email,
+
+            @Parameter(description = "Numéro de téléphone", required = true)
+            @RequestParam String phoneNumber,
+
+            @Parameter(description = "Rôle (ADMINISTRATOR, COMMERCIAL, LOGISTICS_MANAGER, DELIVERY_DRIVER)", required = true)
+            @RequestParam String role,
+
+            @Parameter(description = "Entreprise liée (optionnel, utilisé lorsque le rôle est Commercial)")
+            @RequestParam(required = false) String companyCommercial,
+
+            @Parameter(description = "Photo de profil (JPG, PNG, max 5MB)")
+            @RequestParam(required = false) MultipartFile profilePhoto
+    ) {
+        try {
+            // 1. Upload de la photo de profil si présente
+            String profilePhotoFileName = null;
+            if (profilePhoto != null && !profilePhoto.isEmpty()) {
+                String originalFilename = profilePhoto.getOriginalFilename();
+                if (originalFilename != null) {
+                    String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+                    if (!extension.equals("jpg") && !extension.equals("jpeg") && !extension.equals("png")) {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body("Format d'image non supporté. Formats acceptés: JPG, PNG");
+                    }
+                }
+                profilePhotoFileName = fileTransferUtil.handleFileUpload(profilePhoto, "profiles");
+            }
+
+            // 2. Convertir le rôle (libellé ou nom enum)
+            UserRole userRole = UserRole.fromString(role);
+
+            // 3. Créer le DTO avec tous les champs
+            SaveUserDTO dto = new SaveUserDTO();
+            dto.setFirstName(firstName);
+            dto.setLastName(lastName);
+            dto.setEmail(email);
+            dto.setPhoneNumber(phoneNumber);
+            dto.setRole(userRole);
+            dto.setCompanyCommercial(companyCommercial);
+            dto.setProfilePhoto(profilePhotoFileName);
+
+            // 4. Appeler le service
+            adminService.createUser(dto);
+
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body("Utilisateur créé avec succès. Un code d'activation a été envoyé par email.");
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur lors de l'upload de la photo: " + e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
+        }
     }
 
     @Operation(
@@ -562,14 +625,58 @@ public class AdminController {
     // ----- Modifier les infos de base -----
     @Operation(
             summary = "Modifier les infos de base d'un utilisateur",
-            description = "Met à jour prénom, nom, email, téléphone et (optionnel) companyCommercial. Email et téléphone doivent rester uniques."
+            description = "Met à jour prénom, nom, email, téléphone, rôle et (optionnel) companyCommercial. " +
+                    "Photo de profil optionnelle (JPG, PNG, max 5MB). Email et téléphone doivent rester uniques."
     )
     @PutMapping("/users/{id}")
     public ResponseEntity<String> updateUser(
-            @PathVariable Long id,
-            @RequestBody @Valid SaveUserDTO dto) {
-        adminService.updateUser(id, dto);
-        return ResponseEntity.ok("Utilisateur mis à jour avec succès");
+            @Parameter(description = "ID de l'utilisateur") @PathVariable Long id,
+
+            @Parameter(description = "Prénom") @RequestParam(required = false) String firstName,
+            @Parameter(description = "Nom") @RequestParam(required = false) String lastName,
+            @Parameter(description = "Adresse email") @RequestParam(required = false) String email,
+            @Parameter(description = "Numéro de téléphone") @RequestParam(required = false) String phoneNumber,
+            @Parameter(description = "Rôle") @RequestParam(required = false) String role,
+            @Parameter(description = "Entreprise liée (Commercial)") @RequestParam(required = false) String companyCommercial,
+
+            @Parameter(description = "Photo de profil (JPG, PNG, max 5MB). Si fournie, remplace l'actuelle.")
+            @RequestParam(required = false) MultipartFile profilePhoto
+    ) {
+        try {
+            String profilePhotoFileName = null;
+            if (profilePhoto != null && !profilePhoto.isEmpty()) {
+                String originalFilename = profilePhoto.getOriginalFilename();
+                if (originalFilename != null) {
+                    String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+                    if (!extension.equals("jpg") && !extension.equals("jpeg") && !extension.equals("png")) {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body("Format d'image non supporté. Formats acceptés: JPG, PNG");
+                    }
+                }
+                profilePhotoFileName = fileTransferUtil.handleFileUpload(profilePhoto, "profiles");
+            }
+
+            SaveUserDTO dto = new SaveUserDTO();
+            dto.setFirstName(firstName);
+            dto.setLastName(lastName);
+            dto.setEmail(email);
+            dto.setPhoneNumber(phoneNumber);
+            if (role != null && !role.isBlank()) {
+                dto.setRole(UserRole.fromString(role));
+            }
+            dto.setCompanyCommercial(companyCommercial);
+            dto.setProfilePhoto(profilePhotoFileName);
+
+            adminService.updateUser(id, dto);
+            return ResponseEntity.ok("Utilisateur mis à jour avec succès");
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur lors de l'upload de la photo: " + e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
     @Operation(
