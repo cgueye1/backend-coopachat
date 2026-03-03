@@ -523,7 +523,7 @@ public class AdminController {
                                 .body("Format d'image non supporté. Formats acceptés: JPG, PNG");
                     }
                 }
-                profilePhotoFileName = fileTransferUtil.handleFileUpload(profilePhoto, "profiles");
+                profilePhotoFileName = fileTransferUtil.handleFileUpload(profilePhoto);
             }
 
             // 2. Convertir le rôle (libellé ou nom enum)
@@ -650,7 +650,7 @@ public class AdminController {
                                 .body("Format d'image non supporté. Formats acceptés: JPG, PNG");
                     }
                 }
-                profilePhotoFileName = fileTransferUtil.handleFileUpload(profilePhoto, "profiles");
+                profilePhotoFileName = fileTransferUtil.handleFileUpload(profilePhoto);
             }
 
             SaveUserDTO dto = new SaveUserDTO();
@@ -671,7 +671,7 @@ public class AdminController {
                     .body("Erreur lors de l'upload de la photo: " + e.getMessage());
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } 
+        }
     }
 
     @Operation(
