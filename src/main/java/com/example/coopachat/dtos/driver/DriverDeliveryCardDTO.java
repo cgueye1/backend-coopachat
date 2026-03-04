@@ -16,6 +16,11 @@ import java.time.LocalDate;
 public class DriverDeliveryCardDTO {
 
     // ========================================
+    // INFOS TOURNEE
+    // ========================================
+    private Long tourId;
+
+    // ========================================
     // INFOS ENTREPRISE/CLIENT
     // ========================================
 
