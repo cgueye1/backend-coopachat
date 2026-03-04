@@ -48,6 +48,16 @@ public interface CommercialService {
                                           Boolean partnerOnly, Boolean prospectOnly, CompanyStatus prospectionStatus);
 
     /**
+     * Liste paginée des entreprises partenaires uniquement (status = PARTNER_SIGNED).
+     */
+    CompanyListResponseDTO getCompaniesOnly(int page, int size, String search, CompanySector sector, Boolean isActive);
+
+    /**
+     * Liste paginée des prospects uniquement (status != PARTNER_SIGNED).
+     */
+    CompanyListResponseDTO getProspectsOnly(int page, int size, String search, CompanySector sector, CompanyStatus prospectionStatus);
+
+    /**
      * Récupère les N derniers prospects (entreprises dont le statut de prospection n'est pas Partenaire signé).
      *
      * @param limit Nombre maximum de prospects à retourner (ex. 3)
@@ -97,6 +107,16 @@ public interface CommercialService {
      * @throws RuntimeException si le commercial n'existe pas ou si une erreur survient
      */
     CompanyStatsDTO getCompanyStats();
+
+    /**
+     * Récupère les statistiques de prospection (prospects uniquement, status != PARTNER_SIGNED).
+     */
+    ProspectStatsDTO getProspectStats();
+
+    /**
+     * Récupère les statistiques des entreprises partenaires (PARTNER_SIGNED uniquement).
+     */
+    CompanyStatsDTO getPartnerStats();
 
     /**
      * Crée un nouvel employé et envoie une invitation par email
