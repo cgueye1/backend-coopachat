@@ -6,6 +6,7 @@ public enum CompanyStatus {
     PENDING("En attente"),
     RELAUNCHED("Relancée"),
     INTERESTED("Intéressée"),
+    MEETING_SCHEDULED("Rendez-vous"),
     REFUSED("Refusée"),
     PARTNER_SIGNED("Partenaire signé");
 

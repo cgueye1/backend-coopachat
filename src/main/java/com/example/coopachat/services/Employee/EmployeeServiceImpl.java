@@ -79,6 +79,18 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final ClaimRepository claimRepository;
     private final EmployeeNotificationService employeeNotificationService;
 
+    /**
+     * Règle 3 : Vérifie que l'entreprise du salarié connecté est active.
+     * À appeler au début de chaque action salarié. Lance une exception si l'entreprise est inactive.
+     */
+    private void ensureCompanyActive(Users user) {
+        Employee emp = employeeRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Salarié introuvable"));
+        if (emp.getCompany() == null || !Boolean.TRUE.equals(emp.getCompany().getIsActive())) {
+            throw new RuntimeException("Votre entreprise est inactive. Vous ne pouvez pas effectuer cette action.");
+        }
+    }
+
     // ============================================================================
     // 🏠 ACCUEIL SALARIÉ
     // ============================================================================
@@ -102,6 +114,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
         Users user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        ensureCompanyActive(user);//Règle 3 : Vérifie que l'entreprise du salarié connecté est active.
 
         // --- Décider : filtre actif ou pas ? ---
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
@@ -183,6 +197,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional(readOnly = true)
     public List<CategoryListItemDTO> getAllCategories() {
+        ensureCompanyActive(getCurrentUser());
         // Liste simple des catégories (id + name)
         List<Category> categories = categoryRepository.findAll();
         return categories.stream()
@@ -196,6 +211,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public ProductCatalogueListResponseDTO getCatalogueProducts(int page, int size, String search, Long categoryId) {
+        ensureCompanyActive(getCurrentUser());
         Pageable pageable = PageRequest.of(page, size);
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
         Category category = null;
@@ -241,7 +257,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     @Transactional
     public ProductMobileDetailsDTO getProductDetailsById(Long productId) {
-
+        ensureCompanyActive(getCurrentUser());
         // Récupérer le produit par son ID
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Produit introuvable"));
@@ -261,6 +277,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 1. Récupérer l'employé concerné
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);//Règle 3 : Vérifie que l'entreprise du salarié connecté est active.
 
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
@@ -336,6 +353,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 1. Récupérer l'employé concerné
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
 
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
@@ -367,6 +385,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 1. Récupérer l'employé concerné
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
 
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
@@ -396,6 +415,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 1. Récupérer l'employé concerné
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
 
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
@@ -430,6 +450,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 1. Récupérer l'employé concerné
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
 
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
@@ -464,6 +485,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 1. Récupérer l'employé concerné
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
 
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
@@ -489,6 +511,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 1. Récupérer l'employé concerné
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
 
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
@@ -516,6 +539,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public EmployeePersonalInfoDTO getPersonalInfo() {
 
         Users userEmployee = getCurrentUser();
+        ensureCompanyActive(userEmployee);
 
         Employee employee = employeeRepository.findByUser(userEmployee)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
@@ -557,6 +581,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 1. Récupérer le user connecté
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);//Règle 3 : Vérifie que l'entreprise du salarié connecté est active.
 
         //Récupérer l'employé
         Employee employee = employeeRepository.findByUser(currentUser)
@@ -602,6 +627,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 1. Récupérer l'utilisateur connecté et son profil employé
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);//Règle 3 : Vérifie que l'entreprise du salarié connecté est active.
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
@@ -656,6 +682,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 1. Récupérer l'utilisateur connecté
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);//Règle 3 : Vérifie que l'entreprise du salarié connecté est active.
 
         // 2. Récupérer l'employé associé
         Employee employee = employeeRepository.findByUser(currentUser)
@@ -704,6 +731,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 1. Récupérer employé + panier
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
@@ -797,6 +825,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 1. Récupérer l'utilisateur et l'employé
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
@@ -939,6 +968,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public ClientOrderListResponseDTO getMyOrders(String status, String search, int page, int size) {
         // 1. Employé connecté (client = salarié)
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
@@ -975,6 +1005,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public ClientOrderDetailsDTO getOrderDetails(Long orderId) {
         // 1. Employé connecté
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
@@ -996,6 +1027,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Transactional(readOnly = true)
     public PaymentInfoDTO getPaymentInfo(Long orderId) {
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
 
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
@@ -1036,6 +1068,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Transactional
     public PaymentResponseDTO processPayment(Long orderId, ProcessPaymentDTO request) {
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
@@ -1126,6 +1159,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public List<PaymentHistoryItemDTO> getPaymentHistory() {
         // 1. Récupérer l'utilisateur connecté
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);//Règle 3 : Vérifie que l'entreprise du salarié connecté est active.
 
         // 2. Trouver l'employé associé à cet utilisateur
         Employee employee = employeeRepository.findByUser(currentUser)
@@ -1167,6 +1201,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public byte[] generateInvoicePdf(Long orderId) {
 
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
@@ -1380,6 +1415,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public void submitReview(Long orderId, SubmitReviewDTO reviewDTO) {
         // 1. Employé connecté
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
         Order order = orderRepository.findById(orderId)
@@ -1429,6 +1465,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // 1. Récupérer l'utilisateur connecté
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
@@ -1478,6 +1515,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public ClaimListResponseDTO getMyClaims(int page, int size, ClaimStatus status) {
         // Récupérer l'employé connecté (propriétaire des réclamations)
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
         // Liste paginée : uniquement les réclamations de cet employé, tri par date décroissante
@@ -1502,6 +1540,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public ClaimDetailDTO getMyClaimById(Long id) {
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
         Claim claim = claimRepository.findById(id)
@@ -1518,6 +1557,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Transactional
     public void cancelOrder(Long orderId) {
         Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
         Employee employee = employeeRepository.findByUser(currentUser)
                 .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
         Order order = orderRepository.findById(orderId)

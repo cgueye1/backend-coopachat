@@ -198,6 +198,18 @@ public class CommercialServiceImpl implements CommercialService {
 
     @Override
     @Transactional(readOnly = true)
+    public CompanyListResponseDTO getCompaniesOnly(int page, int size, String search, CompanySector sector, Boolean isActive) {
+        return getAllCompanies(page, size, search, sector, isActive, true, false, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CompanyListResponseDTO getProspectsOnly(int page, int size, String search, CompanySector sector, CompanyStatus prospectionStatus) {
+        return getAllCompanies(page, size, search, sector, null, false, true, prospectionStatus);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<CompanyListItemDTO> getLastProspects(int limit) {
         Users commercial = getCurrentUser();
         if (commercial.getRole() != UserRole.COMMERCIAL) {
@@ -310,6 +322,11 @@ public class CommercialServiceImpl implements CommercialService {
             throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
         }
 
+        // Règle 4 : impossible d'activer une entreprise si status != PARTNER_SIGNED
+        if (Boolean.TRUE.equals(updateCompanyStatusDTO.getIsActive()) && company.getStatus() != CompanyStatus.PARTNER_SIGNED) {
+            throw new RuntimeException("Seules les entreprises avec le statut « Partenaire signé » peuvent être activées.");
+        }
+
         // Sauvegarder l'ancien statut pour le log
         Boolean oldStatus = company.getIsActive();
 
@@ -386,6 +403,41 @@ public class CommercialServiceImpl implements CommercialService {
                 commercial.getEmail(), totalCompanies, activeCompanies, inactiveCompanies);
 
         return stats;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProspectStatsDTO getProspectStats() {
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter les statistiques de prospection");
+        }
+        ProspectStatsDTO dto = new ProspectStatsDTO();
+        // Comptages globaux (tous commerciaux confondus) pour ne pas restreindre la vue
+        dto.setTotal(companyRepository.countByStatusNot(CompanyStatus.PARTNER_SIGNED));
+        dto.setEnAttente(companyRepository.countByStatus(CompanyStatus.PENDING));
+        dto.setInteresses(companyRepository.countByStatus(CompanyStatus.INTERESTED));
+        dto.setARelancer(companyRepository.countByStatus(CompanyStatus.RELAUNCHED));
+        dto.setRdvPlanifie(companyRepository.countByStatus(CompanyStatus.MEETING_SCHEDULED));
+        dto.setSignes(companyRepository.countByStatus(CompanyStatus.PARTNER_SIGNED));
+        return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CompanyStatsDTO getPartnerStats() {
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter les statistiques des partenaires");
+        }
+        CompanyStatsDTO dto = new CompanyStatsDTO();
+        long total = companyRepository.countByCommercialAndStatus(commercial, CompanyStatus.PARTNER_SIGNED);
+        long active = companyRepository.countByCommercialAndStatusAndIsActive(commercial, CompanyStatus.PARTNER_SIGNED, true);
+        long inactive = companyRepository.countByCommercialAndStatusAndIsActive(commercial, CompanyStatus.PARTNER_SIGNED, false);
+        dto.setTotalCompanies(total);
+        dto.setActiveCompanies(active);
+        dto.setInactiveCompanies(inactive);
+        return dto;
     }
 
 

@@ -121,6 +121,15 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Votre compte n'est pas actif");
         }
 
+        // Règle 3 : si salarié, vérifier que son entreprise est active
+        if (user.getRole() == UserRole.EMPLOYEE) {
+            Employee employee = employeeRepository.findByUser(user)
+                    .orElseThrow(() -> new RuntimeException("Salarié introuvable"));
+            if (employee.getCompany() == null || !Boolean.TRUE.equals(employee.getCompany().getIsActive())) {
+                throw new RuntimeException("Votre entreprise est inactive. Vous ne pouvez pas vous connecter.");
+            }
+        }
+
         // Si l'utilisateur est admin, déclencher l'OTP (on envoie sur l’email du compte)
         if (user.getRole() == UserRole.ADMINISTRATOR) {
             String otpCode = activationCodeService.generateAndStoreCode(user.getEmail());
@@ -185,6 +194,15 @@ public class AuthServiceImpl implements AuthService {
         // Vérification que le compte est actif
         if (!user.getIsActive()) {
             throw new RuntimeException("Votre compte n'est pas actif");
+        }
+
+        // Règle 3 : si salarié, vérifier que son entreprise est active
+        if (user.getRole() == UserRole.EMPLOYEE) {
+            Employee employee = employeeRepository.findByUser(user)
+                    .orElseThrow(() -> new RuntimeException("Salarié introuvable"));
+            if (employee.getCompany() == null || !Boolean.TRUE.equals(employee.getCompany().getIsActive())) {
+                throw new RuntimeException("Votre entreprise est inactive. Vous ne pouvez pas vous connecter.");
+            }
         }
 
         // Cas particulier : l’administrateur doit passer par une vérification OTP

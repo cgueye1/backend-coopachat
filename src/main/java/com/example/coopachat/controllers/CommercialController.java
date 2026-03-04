@@ -7,6 +7,7 @@ import com.example.coopachat.dtos.companies.CompanyStatsDTO;
 import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
 import com.example.coopachat.dtos.dashboard.commercial.CommercialDashboardKpisDTO;
 import com.example.coopachat.dtos.companies.UpdateCompanyDTO;
+import com.example.coopachat.dtos.companies.ProspectStatsDTO;
 import com.example.coopachat.dtos.companies.UpdateCompanyStatusDTO;
 import com.example.coopachat.dtos.coupons.CartTotalCouponStatsDTO;
 import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
@@ -74,6 +75,40 @@ public class CommercialController {
     }
 
     @Operation(
+            summary = "Lister les prospects uniquement (paginé)",
+            description = "Retourne uniquement les prospects (status != Partenaire signé). Filtres : search, sector, prospectionStatus."
+    )
+    @GetMapping("/prospects")
+    public ResponseEntity<CompanyListResponseDTO> getProspects(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) CompanySector sector,
+            @RequestParam(required = false) com.example.coopachat.enums.CompanyStatus prospectionStatus
+    ) {
+        CompanyListResponseDTO response = commercialService.getProspectsOnly(page, size, search, sector, prospectionStatus);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Statistiques prospections",
+            description = "Total prospects + comptage par statut (En attente, Intéressé, Relancé, Rendez-vous, Signé)."
+    )
+    @GetMapping("/prospects/stats")
+    public ResponseEntity<ProspectStatsDTO> getProspectStats() {
+        return ResponseEntity.ok(commercialService.getProspectStats());
+    }
+
+    @Operation(
+            summary = "Statistiques entreprises partenaires",
+            description = "Total partenaires + actives + inactives (uniquement status = Partenaire signé)."
+    )
+    @GetMapping("/partners/stats")
+    public ResponseEntity<CompanyStatsDTO> getPartnerStats() {
+        return ResponseEntity.ok(commercialService.getPartnerStats());
+    }
+
+    @Operation(
             summary = "KPIs du tableau de bord commercial",
             description = "Retourne les indicateurs : totalSalaries, nouveauxSalariesCeMois, commandesCeMois, " +
                          "evolutionCommandesPct, ventesCeMois, evolutionVentesPct, promotionsActives. " +
@@ -94,22 +129,18 @@ public class CommercialController {
     }
 
     @Operation(
-            summary = "Lister les entreprises (paginé avec recherche et filtres)",
-            description = "Récupère la liste paginée de toutes les entreprises créées par le commercial connecté. " +
-                         "Filtres optionnels: search, sector, isActive, partnerOnly (entreprises partenaires), prospectOnly (prospects), prospectionStatus (statut de prospection)."
+            summary = "Lister les entreprises partenaires uniquement (paginé)",
+            description = "Retourne uniquement les entreprises partenaires (status = Partenaire signé). Filtres : search, sector, isActive."
     )
     @GetMapping("/companies")
-    public ResponseEntity<CompanyListResponseDTO> getAllCompanies(
+    public ResponseEntity<CompanyListResponseDTO> getCompanies(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "6") int size,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) CompanySector sector,
-            @RequestParam(required = false) Boolean isActive,
-            @RequestParam(required = false) Boolean partnerOnly,
-            @RequestParam(required = false) Boolean prospectOnly,
-            @RequestParam(required = false) com.example.coopachat.enums.CompanyStatus prospectionStatus
+            @RequestParam(required = false) Boolean isActive
     ) {
-        CompanyListResponseDTO response = commercialService.getAllCompanies(page, size, search, sector, isActive, partnerOnly, prospectOnly, prospectionStatus);
+        CompanyListResponseDTO response = commercialService.getCompaniesOnly(page, size, search, sector, isActive);
         return ResponseEntity.ok(response);
     }
 

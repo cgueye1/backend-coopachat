@@ -157,4 +157,33 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
      */
     @Query("SELECT c FROM Company c WHERE c.commercial = :commercial AND c.status <> com.example.coopachat.enums.CompanyStatus.PARTNER_SIGNED ORDER BY c.id DESC")
     List<Company> findByCommercialAndStatusNotOrderByIdDesc(@Param("commercial") Users commercial, Pageable pageable);
+
+    /**
+     * Compte les entreprises d'un commercial par statut de prospection.
+     */
+    long countByCommercialAndStatus(Users commercial, CompanyStatus status);
+
+    /**
+     * Compte les entreprises d'un commercial dont le statut est différent de PARTNER_SIGNED (prospects).
+     */
+    long countByCommercialAndStatusNot(Users commercial, CompanyStatus status);
+
+    /**
+     * Compte les entreprises partenaires (PARTNER_SIGNED) d'un commercial selon isActive.
+     */
+    long countByCommercialAndStatusAndIsActive(Users commercial, CompanyStatus status, Boolean isActive);
+
+    // ============================================================================
+    // 📊 COMPTAGES GLOBAUX (sans filtre commercial)
+    // ============================================================================
+
+    /**
+     * Compte toutes les entreprises par statut de prospection (tous commerciaux confondus).
+     */
+    long countByStatus(CompanyStatus status);
+
+    /**
+     * Compte toutes les entreprises dont le statut est différent de la valeur donnée.
+     */
+    long countByStatusNot(CompanyStatus status);
 }
