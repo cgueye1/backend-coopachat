@@ -576,6 +576,7 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         DriverDeliveryCardDTO dto = new DriverDeliveryCardDTO();//On crée un nouveau DriverDeliveryCardDTO
 
         dto.setOrderId(order.getId());//Id de la commande
+        dto.setTourId(order.getDeliveryTour().getId());
         dto.setOrderNumber(order.getOrderNumber());//Numéro de la commande
         dto.setStatusLabel(order.getStatus() != null ? order.getStatus().getLabel() : null);//Statut de la commande
         dto.setDeliveryDate(order.getDeliveryDate());//Date de livraison estimée
