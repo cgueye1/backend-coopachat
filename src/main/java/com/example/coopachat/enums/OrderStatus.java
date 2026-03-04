@@ -46,11 +46,11 @@ public enum OrderStatus {
      * Qui peut agir ?
      *   - RL : peut encore annuler la tournée (si aucune livraison démarrée)
      *   - Livreur : doit démarrer chaque livraison individuellement
-     * Affichage salarié : "En préparation"
+     * Affichage salarié / livreur : "En préparation" (colis récupéré, à livrer au client)
      * Tournée : EN_COURS
      * Paiement : UNPAID (ou PAID si paiement en ligne)
      */
-    EN_PREPARATION("À livrer"),
+    EN_PREPARATION("En préparation"),
 
     /**
      * EN_COURS - Livreur a démarré la livraison de cette commande spécifique.
