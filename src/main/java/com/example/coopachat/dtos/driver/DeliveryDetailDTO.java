@@ -43,6 +43,13 @@ public class DeliveryDetailDTO {
     // ========================================
     // INFOS ADRESSES
     // ========================================
+    /**
+     * Adresse de départ (entrepôt/point de collecte)
+     * Ex: "Rue 47, Pikine Ouest"
+     */
+    private String pickupAddress;
+    private Double pickupLatitude;
+    private Double pickupLongitude;
 
     /** Adresse de livraison (ex. "Dakar Sacré Cœur") */
     private String deliveryAddress;
@@ -52,6 +59,12 @@ public class DeliveryDetailDTO {
     // ========================================
     // INFOS LIVRAISON
     // ========================================
+
+    /**
+     * Temps estimé en minutes
+     * Ex: 14 (calculé par Google Maps côté mobile)
+     */
+    private Integer estimatedMinutes;
 
     /** Montant total (ex. 700 F CFA) */
     private BigDecimal totalAmount;
