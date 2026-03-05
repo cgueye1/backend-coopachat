@@ -56,7 +56,7 @@ public class Order {
     @Column(nullable = false)
     private Integer totalItems = 0; // Nombre total d'articles
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 32)
     @Enumerated(EnumType.STRING)
     private OrderStatus status = OrderStatus.EN_ATTENTE;//status de la commande , en-attente par défaut
 
