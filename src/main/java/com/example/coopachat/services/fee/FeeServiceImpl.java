@@ -26,4 +26,13 @@ public class FeeServiceImpl implements FeeService {
                 .filter(amount -> amount != null)//on filtre les montants non nuls
                 .reduce(BigDecimal.ZERO, BigDecimal::add);//on calcule la somme des montants
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getDriverRatePerDelivery() {
+        return feeRepository.findByNameAndIsActiveTrue("Tarif livreur")
+                .map(Fee::getAmount)
+                .filter(a -> a != null)
+                .orElse(BigDecimal.ZERO);
+    }
 }

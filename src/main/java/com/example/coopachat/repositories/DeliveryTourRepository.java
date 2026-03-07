@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface DeliveryTourRepository extends JpaRepository<DeliveryTour, Long > {
@@ -46,6 +47,9 @@ public interface DeliveryTourRepository extends JpaRepository<DeliveryTour, Long
      * Vérifie si le livreur a au moins une tournée avec le statut donné (ex. EN_COURS).
      */
     boolean existsByDriverAndStatus(Driver driver, DeliveryTourStatus status);
+
+    /** Première tournée du livreur avec un des statuts donnés (ex. ASSIGNEE, EN_COURS), triée par création desc. */
+    Optional<DeliveryTour> findFirstByDriverAndStatusInOrderByCreatedAtDesc(Driver driver, List<DeliveryTourStatus> statuses);
 
     /**
      * Compte les tournées par statut. Pour le graphique "Statut tournées" du dashboard RL.

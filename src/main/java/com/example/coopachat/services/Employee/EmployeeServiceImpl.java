@@ -14,7 +14,6 @@ import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.claim.ClaimDetailDTO;
 import com.example.coopachat.dtos.claim.ClaimListItemDTO;
 import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
-import com.example.coopachat.dtos.claim.CreateClaimDTO;
 import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.*;
 import com.example.coopachat.entities.*;
@@ -22,7 +21,7 @@ import com.example.coopachat.enums.*;
 import com.example.coopachat.exceptions.ResourceNotFoundException;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.fee.FeeService;
-import com.example.coopachat.services.geocoding.PlacesService;
+
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.element.Paragraph;
@@ -42,6 +41,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import com.itextpdf.layout.Document;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -72,12 +73,14 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final AddressRepository addressRepository;
     private final OrderRepository orderRepository;
     private final DeliveryOptionRepository deliveryOptionRepository;
-    private final PlacesService placesService;
     private final DriverReviewRepository driverReviewRepository;
     private final FeeService feeService;
     private final PaymentRepository paymentRepository;
     private final ClaimRepository claimRepository;
     private final EmployeeNotificationService employeeNotificationService;
+    private final DeliveryIssueReportRepository deliveryIssueReportRepository;
+    private final com.example.coopachat.services.DeliveryDriver.DriverNotificationService driverNotificationService;
+    private final com.example.coopachat.services.minio.MinioService minioService;
 
     /**
      * Règle 3 : Vérifie que l'entreprise du salarié connecté est active.
@@ -1461,7 +1464,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     // ---------- submitClaim : soumettre une réclamation sur une commande ----------
     @Override
     @Transactional
-    public void submitClaim(Long orderId, CreateClaimDTO dto) {
+    public void submitClaim(Long orderId, Long orderItemId, ClaimProblemType problemType, String comment, List<MultipartFile> images) {
 
         // 1. Récupérer l'utilisateur connecté
         Users currentUser = getCurrentUser();
@@ -1483,10 +1486,9 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new RuntimeException("Seule une commande livrée peut faire l'objet d'une réclamation");
         }
 
-        // 5. ⭐ RÉCUPÉRER LE PRODUIT CONCERNÉ
+        // 5. Récupérer le produit concerné (pour le remboursement RL)
         OrderItem concernedItem = order.getItems().stream()
-                .filter(item -> item.getId() != null &&
-                        item.getId().equals(dto.getOrderItemId()))
+                .filter(item -> item.getId() != null && item.getId().equals(orderItemId))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException(
                         "Le produit sélectionné n'appartient pas à cette commande"
@@ -1496,18 +1498,26 @@ public class EmployeeServiceImpl implements EmployeeService {
         Claim claim = new Claim();
         claim.setOrder(order);
         claim.setEmployee(employee);
-        claim.setOrderItem(concernedItem);  // ← UN seul produit
-        claim.setProblemType(dto.getProblemType());
-        claim.setComment(dto.getComment());
+        claim.setOrderItem(concernedItem);
+        claim.setProblemType(problemType);
+        claim.setComment(comment);
         claim.setStatus(ClaimStatus.EN_ATTENTE);
 
-        // 7. Sauvegarder
+        // 7. Upload des photos vers MinIO (optionnel)
+        if (images != null && !images.isEmpty()) {
+            List<String> uploadedUrls = minioService.uploadMultipleFiles(images, "claims");
+            if (uploadedUrls != null && !uploadedUrls.isEmpty()) {
+                claim.setPhotoUrls(uploadedUrls);
+            }
+        }
+
+        // 8. Sauvegarder
         claimRepository.save(claim);
 
         log.info("Réclamation créée pour la commande {} - Produit: {} (nature: {})",
                 order.getOrderNumber(),
                 concernedItem.getProduct().getName(),
-                dto.getProblemType().getLabel());
+                problemType.getLabel());
     }
 
     // ---------- getMyClaims : historique des réclamations du salarié connecté ----------
@@ -1573,7 +1583,51 @@ public class EmployeeServiceImpl implements EmployeeService {
         log.info("Commande {} annulée par le salarié", order.getOrderNumber());
     }
 
+    // ---------- reportDeliveryIssue : signaler un problème sur sa commande (salarié) ----------
+    @Override
+    @Transactional
+    public void reportDeliveryIssue(Long orderId, com.example.coopachat.dtos.employee.EmployeeDeliveryIssueDTO dto) {
+        Users currentUser = getCurrentUser();
+        ensureCompanyActive(currentUser);
+        Employee employee = employeeRepository.findByUser(currentUser)
+                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
 
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        if (!order.getEmployee().getId().equals(employee.getId())) {
+            throw new RuntimeException("Cette commande ne vous appartient pas");
+        }
+
+        if (order.getStatus() != OrderStatus.EN_PREPARATION && order.getStatus() != OrderStatus.EN_COURS && order.getStatus() != OrderStatus.ARRIVE) {
+            throw new RuntimeException("Seule une livraison en préparation ou en cours peut être signalée");
+        }
+        // 1. Créer le signalement
+        String reasonLabel = dto.getReason() != null ? dto.getReason().getLabel() : "Non précisée";
+        DeliveryIssueReport report = new DeliveryIssueReport();
+        report.setOrder(order);
+        report.setReportedBy(employee.getUser());
+        report.setReportSource(DeliveryIssueReportSource.EMPLOYEE);
+        report.setReason(reasonLabel);
+        report.setComment(dto.getComment());
+        deliveryIssueReportRepository.save(report);
+
+        // 2. Notifier le RL uniquement (pas d'échec, pas de fin de tournée)
+        Users rl = order.getDeliveryTour() != null ? order.getDeliveryTour().getCreatedBy() : null;
+        if (rl != null && rl.getEmail() != null && !rl.getEmail().isBlank()) {
+            String deliveryAddress = getDeliveryAddressFromOrder(order);
+            driverNotificationService.notifyLogisticsManagerOfDeliveryFailure(
+                    order,
+                    reasonLabel,
+                    dto.getComment() != null ? dto.getComment() : "",
+                    deliveryAddress != null ? deliveryAddress : "Non renseignée"
+            );
+        }
+
+        log.info("Problème signalé par le salarié sur {} : {}", order.getOrderNumber(), reasonLabel);
+
+
+    }
 
     // ============================================================================
     // 🔧 MÉTHODES UTILITAIRES
@@ -1593,16 +1647,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         } else {
             dto.setEmployeeName(null);
         }
-        // Produit concerné : nom, image, quantité
-        if (c.getOrderItem() != null && c.getOrderItem().getProduct() != null) {
-            dto.setProductName(c.getOrderItem().getProduct().getName());
-            dto.setProductImage(c.getOrderItem().getProduct().getImage());
-            dto.setQuantity(c.getOrderItem().getQuantity());
-        } else {
-            dto.setProductName(null);
-            dto.setProductImage(null);
-            dto.setQuantity(null);
-        }
+    
         dto.setProblemTypeLabel(c.getProblemType() != null ? c.getProblemType().getLabel() : null);
         dto.setStatus(c.getStatus() != null ? c.getStatus().getLabel() : null);
         dto.setCreatedAt(c.getCreatedAt());
@@ -1627,9 +1672,10 @@ public class EmployeeServiceImpl implements EmployeeService {
             dto.setEmployeeName(u.getFirstName() + " " + u.getLastName());
             dto.setEmployeePhone(u.getPhone());
         }
-        // Produit concerné : quantité, sous-total, id / nom / image
+        // Produit concerné : orderItemId, quantité, sous-total, id / nom / image
         if (c.getOrderItem() != null) {
             OrderItem oi = c.getOrderItem();
+            dto.setOrderItemId(oi.getId());
             dto.setQuantityOrdered(oi.getQuantity());
             dto.setSubtotalProduct(oi.getSubtotal());
             if (oi.getProduct() != null) {

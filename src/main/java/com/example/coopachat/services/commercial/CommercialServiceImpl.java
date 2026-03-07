@@ -25,7 +25,7 @@ import com.example.coopachat.enums.*;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
 import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
 import com.example.coopachat.repositories.*;
-import com.example.coopachat.util.FileTransferUtil;
+import com.example.coopachat.services.minio.MinioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -62,7 +62,7 @@ public class CommercialServiceImpl implements CommercialService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final OrderRepository orderRepository;
-    private final FileTransferUtil fileTransferUtil;
+    private final MinioService minioService;
 
     // ============================================================================
     // 🏢 GESTION DES ENTREPRISES
@@ -369,10 +369,10 @@ public class CommercialServiceImpl implements CommercialService {
             throw new RuntimeException("La taille du fichier ne doit pas dépasser 5 Mo");
         }
         try {
-            String logoFileName = fileTransferUtil.handleFileUpload(file);
+            String logoFileName = minioService.uploadFile(file, "companies");
             company.setLogo(logoFileName);
             companyRepository.save(company);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Erreur lors de l'enregistrement du logo", e);
         }
     }

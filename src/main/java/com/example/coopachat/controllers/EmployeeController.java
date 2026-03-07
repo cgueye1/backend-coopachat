@@ -8,19 +8,22 @@ import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
 import com.example.coopachat.dtos.claim.ClaimDetailDTO;
+import com.example.coopachat.enums.ClaimProblemType;
 import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
-import com.example.coopachat.dtos.claim.CreateClaimDTO;
 import com.example.coopachat.enums.ClaimStatus;
+import com.example.coopachat.dtos.employee.EmployeeDeliveryIssueDTO;
 import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
 import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
 import com.example.coopachat.services.Employee.EmployeeService;
 import com.example.coopachat.services.admin.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -354,14 +357,25 @@ public class EmployeeController {
 
     @Operation(
             summary = "Soumettre une réclamation",
-            description = "Soumet une réclamation sur une commande livrée : produit concerné, nature du problème, commentaire (optionnel)"
+            description = "Soumet une réclamation sur une commande livrée. Multipart avec orderItemId (produit concerné), problemType, comment (optionnel), images (optionnel, JPG/PNG max 5MB)."
     )
-    @PostMapping("/orders/{orderId}/claims")
+    @PostMapping(value = "/orders/{orderId}/claims", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> submitClaim(
             @PathVariable Long orderId,
-            @RequestBody @Valid CreateClaimDTO dto) {
-        employeeService.submitClaim(orderId, dto);
-        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body("Réclamation enregistrée");
+            @Parameter(description = "ID de l'article concerné (produit pour le remboursement RL)", required = true)
+            @RequestParam Long orderItemId,
+
+            @Parameter(description = "Nature du problème", required = true)
+            @RequestParam ClaimProblemType problemType,
+
+            @Parameter(description = "Commentaire optionnel")
+            @RequestParam(required = false) String comment,
+
+            @Parameter(description = "Photos (JPG, PNG, max 5MB chacune)")
+            @RequestParam(required = false) List<MultipartFile> images) {
+
+        employeeService.submitClaim(orderId, orderItemId, problemType, comment, images);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Réclamation enregistrée");
     }
 
     @Operation(
@@ -393,6 +407,18 @@ public class EmployeeController {
     public ResponseEntity<String> cancelOrder(@PathVariable Long orderId) {
         employeeService.cancelOrder(orderId);
         return ResponseEntity.ok("Commande annulée");
+    }
+
+    @Operation(
+            summary = "Signaler un problème de livraison",
+            description = "Le salarié signale un souci sur sa commande (ex. absence, adresse incorrecte). Commande doit être en cours de livraison (EN_PREPARATION,EN_COURS ou ARRIVE)."
+    )
+    @PostMapping("/orders/{orderId}/report-delivery-issue")
+    public ResponseEntity<String> reportDeliveryIssue(
+            @PathVariable Long orderId,
+            @RequestBody @Valid EmployeeDeliveryIssueDTO dto) {
+        employeeService.reportDeliveryIssue(orderId, dto);
+        return ResponseEntity.ok("Problème signalé");
     }
 
     @Operation(

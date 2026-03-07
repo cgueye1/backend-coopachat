@@ -8,8 +8,15 @@ import java.math.BigDecimal;
 public interface FeeService {
 
     /**
-     * Calcule la somme des montants des frais actifs 
+     * Calcule la somme des montants des frais actifs.
      * Utilisé pour afficher les frais sur l'écran de paiement.
      */
     BigDecimal calculateTotalFees();
+
+    /**
+     * Tarif par livraison (F CFA) configuré par l'admin.
+     * L'admin crée un frais nommé "Tarif livreur" via POST /admin/fees.
+     * @return montant ou 0 si non configuré
+     */
+    BigDecimal getDriverRatePerDelivery();
 }

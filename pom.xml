@@ -127,11 +127,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
-		<!-- se connecter à un serveur distant via SFTP (Secure File Transfer Protocol). -->
+		<!-- MinIO - stockage objet S3-compatible -->
 		<dependency>
-			<groupId>com.jcraft</groupId>
-			<artifactId>jsch</artifactId>
-			<version>0.1.55</version>
+			<groupId>io.minio</groupId>
+			<artifactId>minio</artifactId>
+			<version>8.5.7</version>
 		</dependency>
 
 		<!-- Apache POI pour générer des fichiers Excel (.xlsx) -->

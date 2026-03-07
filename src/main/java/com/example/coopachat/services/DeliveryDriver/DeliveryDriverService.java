@@ -77,7 +77,8 @@ public interface DeliveryDriverService {
     void reportDeliveryIssue(Long orderId, DeliveryIssueDTO dto);
 
     /**
-     * Tableau de bord du livreur : livraisons aujourd'hui, total livraisons, satisfaction moyenne.
+     * Tableau de bord du livreur : livraisons aujourd'hui, total livraisons, gains, satisfaction.
+     * @param period Filtre performances : SEMAINE (4 semaines), MOIS (S1-S4 du mois), ANNEE (12 mois). Défaut : MOIS.
      */
-    DriverDashboardDTO getDashboard();
+    DriverDashboardDTO getDashboard(String period);
 }

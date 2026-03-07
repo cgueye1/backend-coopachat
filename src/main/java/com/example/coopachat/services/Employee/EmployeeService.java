@@ -9,11 +9,12 @@ import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.claim.ClaimDetailDTO;
 import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
-import com.example.coopachat.dtos.claim.CreateClaimDTO;
 import com.example.coopachat.dtos.order.*;
+import com.example.coopachat.enums.ClaimProblemType;
 import com.example.coopachat.enums.ClaimStatus;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
 import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 /**
@@ -239,7 +240,7 @@ public interface EmployeeService {
      * Soumettre une réclamation sur une commande (produit concerné, nature du problème, commentaire).
      * Commande doit être livrée et appartenir au salarié connecté.
      */
-    void submitClaim(Long orderId, CreateClaimDTO dto);
+    void submitClaim(Long orderId, Long orderItemId, ClaimProblemType problemType, String comment, List<MultipartFile> images);
 
     /**
      * Historique des réclamations du salarié connecté (liste paginée). Filtre optionnel par statut.
@@ -255,4 +256,10 @@ public interface EmployeeService {
      * Annuler une commande. Uniquement si la commande appartient au salarié connecté et si le statut est EN_ATTENTE.
      */
     void cancelOrder(Long orderId);
+
+    /**
+     * Signaler un problème de livraison sur sa commande (salarié).
+     * Possible uniquement si la commande appartient au salarié et si le statut est EN_COURS ou ARRIVE.
+     */
+    void reportDeliveryIssue(Long orderId, com.example.coopachat.dtos.employee.EmployeeDeliveryIssueDTO dto);
 }

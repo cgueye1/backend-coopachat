@@ -1,6 +1,5 @@
 package com.example.coopachat.entities;
 
-import com.example.coopachat.enums.DriverReportType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -8,18 +7,19 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Signalement soumis par un livreur (formulaire "Signaler un problème").
- * Toujours lié à une commande / livraison (Order).
+ * Gains du livreur par livraison (500 F par livraison livrée).
+ * Créé automatiquement quand une commande passe en LIVREE.
  */
 @Entity
-@Table(name = "driver_reports")
+@Table(name = "driver_earnings")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class DriverReport {
+public class DriverEarning {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,20 +29,15 @@ public class DriverReport {
     @JoinColumn(name = "driver_id", nullable = false)
     private Driver driver;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "report_type", nullable = false)
-    private DriverReportType reportType;
-
-    @Column(name = "comment", columnDefinition = "TEXT")
-    private String comment;
-
-    /** Commande / livraison concernée. */
     @ManyToOne
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
+    /** Montant crédité (ex. 500 F CFA). */
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal amount;
+
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @CreationTimestamp
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    private LocalDateTime earnedAt;
 }

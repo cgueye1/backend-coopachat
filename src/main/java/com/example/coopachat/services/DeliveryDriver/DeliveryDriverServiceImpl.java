@@ -2,12 +2,14 @@ package com.example.coopachat.services.DeliveryDriver;
 
 import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDashboardDTO;
+import com.example.coopachat.dtos.DeliveryDriver.DriverPerformanceItemDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 import com.example.coopachat.dtos.driver.DeliveryDetailDTO;
 import com.example.coopachat.dtos.driver.DeliveryIssueDTO;
 import com.example.coopachat.dtos.driver.DriverDeliveryCardDTO;
 import com.example.coopachat.dtos.driver.DriverDeliveriesResponseDTO;
 import com.example.coopachat.entities.*;
+import com.example.coopachat.enums.DeliveryIssueReportSource;
 import com.example.coopachat.enums.DeliveryTourStatus;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.PaymentMethodType;
@@ -16,6 +18,7 @@ import com.example.coopachat.enums.PaymentTimingType;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.Employee.EmployeeNotificationService;
 import com.example.coopachat.services.fee.FeeService;
+import com.example.coopachat.repositories.DriverEarningRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -55,6 +59,8 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     private final DriverNotificationService driverNotificationService;
     private final EmployeeNotificationService employeeNotificationService;
     private final DriverReviewRepository driverReviewRepository;
+    private final DeliveryIssueReportRepository deliveryIssueReportRepository;
+    private final DriverEarningRepository driverEarningRepository;
 
 
     // ========================================
@@ -68,7 +74,7 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         // 2. Vérifier que c'est bien un livreur (et récupérer le driver)
         Driver driver = deliveryDriverRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Livreur non trouvé"));
-        // 3. Retourner nom, prénom, téléphone, email
+        // 3. Retourner nom, prénom, téléphone, email (vehicleType = tour assignée, pas dans le profil)
         return new DriverPersonalInfoDTO(
                 user.getFirstName(),
                 user.getLastName(),
@@ -80,8 +86,8 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     @Override
     @Transactional
     public void updatePersonalInfo(DriverPersonalInfoDTO updateRequest) {
-        // 1. Récupérer l'utilisateur connecté
         Users user = getCurrentUser();
+        Driver driver = getDriverOrThrow();
         // 2. Mettre à jour uniquement les champs fournis (prénom, nom, téléphone)
         if (updateRequest.getFirstName() != null) {
             user.setFirstName(updateRequest.getFirstName());
@@ -352,6 +358,9 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         order.setDeliveryCompletedAt(LocalDateTime.now());
         orderRepository.save(order);
 
+        // 6bis. Créditer le compte livreur (tarif par livraison, ex. 500 F)
+        creditDriverEarning(driver, order);
+
         // 7. Vérifier si toutes les commandes de la tournée sont dans un état final (LIVREE ou ECHEC_LIVRAISON)
         DeliveryTour tour = order.getDeliveryTour();
         checkTourCompletion(tour);
@@ -475,62 +484,207 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
             throw new RuntimeException("Vous n'êtes pas assigné à cette commande");
         }
 
-        // 3. Vérifier que la commande est en cours de livraison (EN_COURS ou ARRIVE)
-        if (order.getStatus() != OrderStatus.EN_COURS && order.getStatus() != OrderStatus.ARRIVE) {
-            throw new RuntimeException("Seule une livraison en cours peut être signalée");
+        // 3. Vérifier que la commande est en préparation ou en cours (EN_PREPARATION, EN_COURS ou ARRIVE)
+        if (order.getStatus() != OrderStatus.EN_PREPARATION && order.getStatus() != OrderStatus.EN_COURS && order.getStatus() != OrderStatus.ARRIVE) {
+            throw new RuntimeException("Seule une livraison en préparation ou en cours peut être signalée");
         }
 
-        // 4. Passer la commande en échec : statut, raison (libellé), date du signalement, sauvegarde
-        String reasonLabel = dto.getReason() != null ? dto.getReason().getLabel() : "Non précisée";
+        // 1. Créer le signalement
+        DeliveryIssueReport report = new DeliveryIssueReport();
+        report.setOrder(order);
+        report.setReportedBy(driver.getUser());
+        report.setReportSource(DeliveryIssueReportSource.DRIVER);
+        report.setReason(dto.getReason() != null ? dto.getReason().getLabel() : "Non précisée");
+        report.setComment(dto.getComment());
+        deliveryIssueReportRepository.save(report);
+
+        // 2. Mettre la commande en échec
         order.setStatus(OrderStatus.ECHEC_LIVRAISON);
-        order.setFailureReason(reasonLabel);
+        order.setFailureReason(dto.getReason().getLabel());
         order.setFailureReportedAt(LocalDateTime.now());
         orderRepository.save(order);
 
-        // 5. Notifier le salarié (client) par email : livraison non effectuée + contact RL
-        employeeNotificationService.notifyDeliveryFailed(order, reasonLabel);
+        // 3. Notifier le salarié
+        employeeNotificationService.notifyDeliveryFailed(order, dto.getReason().getLabel());
 
-        // 6. Notifier le RL (créateur de la tournée) par email : détail commande, raison, commentaire livreur
-        Users rl = order.getDeliveryTour().getCreatedBy();
+
+        // 4. Notifier le RL
+        Users rl = order.getDeliveryTour() != null ? order.getDeliveryTour().getCreatedBy() : null;
         if (rl != null && rl.getEmail() != null && !rl.getEmail().isBlank()) {
             String deliveryAddress = getDeliveryAddressFromOrder(order);
             driverNotificationService.notifyLogisticsManagerOfDeliveryFailure(
                     order,
-                    reasonLabel,
+                    dto.getReason().getLabel(),
                     dto.getComment() != null ? dto.getComment() : "",
                     deliveryAddress != null ? deliveryAddress : "Non renseignée"
             );
         }
 
-        // 7. Vérifier si la tournée est terminée (toutes commandes livrées ou en échec) → TERMINEE si oui
-        checkTourCompletion(order.getDeliveryTour());
-        log.info("Échec livraison {} signalé : {}", order.getOrderNumber(), reasonLabel);
+        // 5. Vérifier fin de tournée
+        if (order.getDeliveryTour() != null) {
+            checkTourCompletion(order.getDeliveryTour());
+        }
+
+        log.info("Échec livraison {} signalé par {} : {}", order.getOrderNumber(), DeliveryIssueReportSource.DRIVER,dto.getReason().getLabel());
     }
 
     // ========================================
     // TABLEAU DE BORD LIVREUR
     // ========================================
-    /** Livraisons aujourd'hui, total livraisons (statut LIVREE), et moyenne des notes des avis clients. */
 
     @Override
     @Transactional(readOnly = true)
-    public DriverDashboardDTO getDashboard() {
-        // 1. Récupérer le livreur connecté
-        Driver driver = getDriverOrThrow();
-        LocalDate today = LocalDate.now();
+    public DriverDashboardDTO getDashboard(String period) {
+        Driver driver = getDriverOrThrow(); //On récupère le livreur connecté
+        Users user = driver.getUser();//On récupère l'utilisateur connecté
+        LocalDate today = LocalDate.now();//on récupère la date d'aujourd'hui
+        LocalDateTime dayStart = today.atStartOfDay();//on récupère le début de la journée
+        LocalDateTime dayEnd = today.atTime(23, 59, 59, 999_999_999);//on récupère la fin de la journée
 
-        // 2. Nombre de commandes livrées aujourd'hui par ce livreur
-        long livraisonsAujourdhui = orderRepository.countByDeliveryTourDriverIdAndStatusAndDeliveryDate(
-                driver.getId(), OrderStatus.LIVREE, today);
-
-        // 3. Nombre total de commandes livrées par ce livreur (toutes dates)
+        // Livraisons aujourd'hui : celles effectivement complétées aujourd'hui
+        long livraisonsAujourdhui = orderRepository.countByDeliveryTourDriverIdAndStatusAndDeliveryCompletedAtBetween(
+                driver.getId(), OrderStatus.LIVREE, dayStart, dayEnd);//on compte le nombre de livraisons effectivement complétées aujourd'hui
         long totalLivraisons = orderRepository.countByDeliveryTourDriverIdAndStatus(
-                driver.getId(), OrderStatus.LIVREE);
+                driver.getId(), OrderStatus.LIVREE);//on compte le nombre total de livraisons
 
-        // 4. Moyenne des notes (1 à 5) des avis clients ; null si aucun avis
+        // Gains aujourd'hui (somme des DriverEarning du jour)
+        BigDecimal gainsAujourdhui = driverEarningRepository.sumAmountByDriverIdAndEarnedAtBetween(
+                driver.getId(), dayStart, dayEnd);//on récupère la somme des gains aujourd'hui
+        BigDecimal tarifParLivraison = feeService.getDriverRatePerDelivery();
+
         Double satisfactionMoyenne = driverReviewRepository.getAverageRatingByDriverId(driver.getId());
 
-        return new DriverDashboardDTO(livraisonsAujourdhui, totalLivraisons, satisfactionMoyenne);
+        // Performances : selon le filtre (SEMAINE=4 semaines, MOIS=S1-S4, ANNEE=12 mois)
+        List<DriverPerformanceItemDTO> performances = buildPerformances(driver.getId(), period);
+
+        DriverDashboardDTO dto = new DriverDashboardDTO();
+        dto.setFirstName(user != null ? user.getFirstName() : null);
+        dto.setLastName(user != null ? user.getLastName() : null);
+        dto.setPhotoUrl(user != null ? user.getProfilePhotoUrl() : null);
+        // En ligne / Hors ligne = user.isActive (actif/inactif)
+        dto.setIsOnline(user != null && Boolean.TRUE.equals(user.getIsActive()));
+        // Véhicule = celui de la tournée assignée (vehicleTypePlate de la tournée en cours ou assignée)
+        dto.setVehicleType(getVehicleTypeFromAssignedTour(driver));
+        dto.setLivraisonsAujourdhui(livraisonsAujourdhui);
+        dto.setTotalLivraisons(totalLivraisons);
+        dto.setGainsAujourdhui(gainsAujourdhui != null ? gainsAujourdhui : BigDecimal.ZERO);
+        dto.setTarifParLivraison(tarifParLivraison != null ? tarifParLivraison : BigDecimal.ZERO);
+        dto.setSatisfactionMoyenne(satisfactionMoyenne);
+        dto.setPerformances(performances);
+        return dto;
+    }
+
+    /**
+     * Construit les données du graphique "Performances" selon le filtre choisi.
+     * Chaque point = nombre de livraisons (DriverEarning) du livreur sur la période.
+     *
+     * @param driverId ID du livreur
+     * @param period   SEMAINE | MOIS | ANNEE (insensible à la casse, défaut MOIS si invalide)
+     * @return Liste de { label, count } pour affichage (1 barre orange par point = ses livraisons uniquement)
+     */
+    private List<DriverPerformanceItemDTO> buildPerformances(Long driverId, String period) {
+        String p = (period != null) ? period.toUpperCase() : "MOIS";
+        if ("SEMAINE".equals(p)) {
+            return buildPerformancesSemaine(driverId);
+        }
+        if ("ANNEE".equals(p)) {
+            return buildPerformancesAnnee(driverId);
+        }
+        // MOIS par défaut
+        return buildPerformancesMois(driverId);
+    }
+
+    /**
+     * SEMAINE : 4 dernières semaines (lundi → dimanche).
+     * S1 = il y a 3 semaines, S2 = il y a 2 sem, S3 = semaine dernière, S4 = semaine courante.
+     */
+    private List<DriverPerformanceItemDTO> buildPerformancesSemaine(Long driverId) {
+        LocalDate today = LocalDate.now();
+        // Lundi de la semaine courante (si aujourd'hui = lundi, on prend aujourd'hui)
+        LocalDate mondayThisWeek = today.with(DayOfWeek.MONDAY);
+        List<DriverPerformanceItemDTO> list = new ArrayList<>();
+        for (int i = 3; i >= 0; i--) {
+            // On remonte de i semaines : semaine courante (i=0), -1, -2, -3
+            LocalDate weekStart = mondayThisWeek.minusWeeks(i);
+            LocalDate weekEnd = weekStart.plusDays(6);
+            LocalDateTime start = weekStart.atStartOfDay();
+            LocalDateTime end = weekEnd.atTime(23, 59, 59, 999_999_999);
+            long count = driverEarningRepository.countByDriverIdAndEarnedAtBetween(driverId, start, end);
+            list.add(new DriverPerformanceItemDTO("S" + (4 - i), count));
+        }
+        return list;
+    }
+
+    /**
+     * MOIS : S1, S2, S3, S4 du mois en cours.
+     * Découpage par tranches de 7 jours : S1 = jours 1-7, S2 = 8-14, S3 = 15-21, S4 = 22-fin du mois.
+     */
+    private List<DriverPerformanceItemDTO> buildPerformancesMois(Long driverId) {
+        LocalDate now = LocalDate.now();
+        LocalDate firstDay = LocalDate.of(now.getYear(), now.getMonth(), 1);
+        LocalDate lastDay = firstDay.withDayOfMonth(firstDay.lengthOfMonth());
+        List<DriverPerformanceItemDTO> list = new ArrayList<>();
+        int weekNum = 1;
+        LocalDate curr = firstDay;
+        while (!curr.isAfter(lastDay)) {
+            // Fin de la tranche = curr + 6 jours, ou dernier jour du mois si on dépasse
+            LocalDate chunkEnd = curr.plusDays(6);
+            if (chunkEnd.isAfter(lastDay)) chunkEnd = lastDay;
+            LocalDateTime start = curr.atStartOfDay();
+            LocalDateTime end = chunkEnd.atTime(23, 59, 59, 999_999_999);
+            long count = driverEarningRepository.countByDriverIdAndEarnedAtBetween(driverId, start, end);
+            list.add(new DriverPerformanceItemDTO("S" + weekNum, count));
+            curr = curr.plusDays(7);
+            weekNum++;
+        }
+        return list;
+    }
+
+    /**
+     * ANNEE : 12 mois (Jan, Fév, ... Déc) de l'année en cours.
+     * Chaque point = nombre de livraisons du livreur ce mois-là.
+     */
+    private List<DriverPerformanceItemDTO> buildPerformancesAnnee(Long driverId) {
+        int year = LocalDate.now().getYear();
+        String[] moisLabels = {"Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"};
+        List<DriverPerformanceItemDTO> list = new ArrayList<>();
+        for (int m = 1; m <= 12; m++) {
+            LocalDate firstDay = LocalDate.of(year, m, 1);
+            LocalDate lastDay = firstDay.withDayOfMonth(firstDay.lengthOfMonth());
+            LocalDateTime start = firstDay.atStartOfDay();
+            LocalDateTime end = lastDay.atTime(23, 59, 59, 999_999_999);
+            long count = driverEarningRepository.countByDriverIdAndEarnedAtBetween(driverId, start, end);
+            list.add(new DriverPerformanceItemDTO(moisLabels[m - 1], count));
+        }
+        return list;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ___________GAINS_________________
+    // Méthodes liées au tarif livreur et aux gains par livraison
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Crédite le compte du livreur quand une commande passe en LIVREE.
+     * Montant = tarif par livraison (configuré par l'admin via frais "Tarif livreur").
+     */
+    private void creditDriverEarning(Driver driver, Order order) {
+        BigDecimal rate = feeService.getDriverRatePerDelivery();
+        if (rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) return;
+        DriverEarning earning = new DriverEarning();
+        earning.setDriver(driver);
+        earning.setOrder(order);
+        earning.setAmount(rate);
+        driverEarningRepository.save(earning);
+        log.info("Gain livreur +{} F pour livraison {}", rate, order.getOrderNumber());
+    }
+
+    /** Récupère le véhicule de la tournée assignée au livreur (ASSIGNEE ou EN_COURS). */
+    private String getVehicleTypeFromAssignedTour(Driver driver) {
+        return deliveryTourRepository.findFirstByDriverAndStatusInOrderByCreatedAtDesc(
+                        driver, List.of(DeliveryTourStatus.ASSIGNEE, DeliveryTourStatus.EN_COURS))
+                .map(DeliveryTour::getVehicleTypePlate)
+                .orElse(null);
     }
 
     // ========================================

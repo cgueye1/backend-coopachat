@@ -24,7 +24,8 @@ public class ClaimDetailDTO {
     private String employeeName;
     private String employeePhone;
 
-    // Produit concerné
+    // Produit concerné (orderItemId pour le remboursement RL)
+    private Long orderItemId;
     private Long productId;
     private String productName;
     private String productImage;

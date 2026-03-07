@@ -54,15 +54,7 @@ public class DeliveryDriverController {
         return ResponseEntity.ok(deliveryDriverService.getMyAddress());
     }
 
-    @Operation(
-            summary = "Tableau de bord",
-            description = "Livraisons aujourd'hui, total des livraisons, satisfaction moyenne (moyenne des notes des avis clients)."
-    )
-    @GetMapping("/dashboard")
-    public ResponseEntity<DriverDashboardDTO> getDashboard() {
-        return ResponseEntity.ok(deliveryDriverService.getDashboard());
-    }
-
+ 
     @Operation(summary = "Modifier mon adresse", description = "Met à jour l'adresse du livreur (formattedAddress + lat/long, rempli par le mobile via Google Places).")
     @PutMapping("/address")
     public ResponseEntity<String> updateMyAddress(@RequestBody @Valid DriverAddressDTO dto) {
@@ -147,5 +139,14 @@ public class DeliveryDriverController {
     public ResponseEntity<String> updateMyProfilePhoto(@RequestParam("file") MultipartFile file) {
         adminService.updateProfilePhotoForCurrentUser(file);
         return ResponseEntity.ok("Photo de profil mise à jour");
+    }
+    @Operation(
+            summary = "Tableau de bord",
+            description = "Photo, nom, en ligne, véhicule | Livraisons aujourd'hui, total, gains, tarif/livraison, note | Graphique performances. Filtre period : SEMAINE | MOIS | ANNEE (défaut : MOIS)."
+    )
+    @GetMapping("/dashboard")
+    public ResponseEntity<DriverDashboardDTO> getDashboard(
+            @RequestParam(required = false, defaultValue = "MOIS") String period) {
+        return ResponseEntity.ok(deliveryDriverService.getDashboard(period));
     }
 }

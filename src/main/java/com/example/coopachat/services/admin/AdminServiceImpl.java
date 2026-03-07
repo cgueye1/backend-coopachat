@@ -41,7 +41,7 @@ import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.auth.ActivationCodeService;
 import com.example.coopachat.services.auth.EmailService;
-import com.example.coopachat.util.FileTransferUtil;
+import com.example.coopachat.services.minio.MinioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -89,7 +89,7 @@ public class AdminServiceImpl implements AdminService {
     private final FeeRepository feeRepository;
     private final ActivationCodeService activationCodeService;
     private final EmailService emailService;
-    private final FileTransferUtil fileTransferUtil;
+    private final MinioService minioService;
     private final DeliveryDriverRepository deliveryDriverRepository;
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
@@ -1041,7 +1041,7 @@ public class AdminServiceImpl implements AdminService {
         if (file == null || file.isEmpty()) {
             throw new RuntimeException("Aucun fichier fourni");
         }
-        // Validation type MIME (ignorer paramètres ex. "image/jpeg; charset=utf-8")
+        //Validation du type de fichier
         String contentType = file.getContentType();
         if (contentType != null && contentType.contains(";")) {
             contentType = contentType.substring(0, contentType.indexOf(';')).trim();
@@ -1063,20 +1063,20 @@ public class AdminServiceImpl implements AdminService {
         if (file.getSize() > PROFILE_PHOTO_MAX_SIZE_BYTES) {
             throw new RuntimeException("La photo ne doit pas dépasser 5 Mo.");
         }
+        // Récupération de l'utilisateur
         Users u = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
         try {
-            // Supprimer l'ancienne photo si elle existe (local + SFTP)
+            //  Supprimer l'ancienne photo si elle existe 
             String oldPhoto = u.getProfilePhotoUrl();
             if (oldPhoto != null && !oldPhoto.isBlank()) {
-                fileTransferUtil.deleteFile(oldPhoto);
+                minioService.deleteFile(oldPhoto);
             }
-            // Upload dans files/ directement (ex. files/uuid.jpg), comme les autres fichiers
-            String relativePath = fileTransferUtil.handleFileUpload(file);
-            u.setProfilePhotoUrl(relativePath);
-            userRepository.save(u);
+            String relativePath = minioService.uploadFile(file, "profiles");//Upload de la nouvelle photo
+            u.setProfilePhotoUrl(relativePath);//Mise à jour de la photo de profil dans la base de données
+            userRepository.save(u);//Sauvegarde de l'utilisateur
             log.info("Photo de profil mise à jour pour l'utilisateur {}", u.getEmail());
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Erreur upload photo de profil: {}", e.getMessage());
             throw new RuntimeException("Impossible d'enregistrer la photo");
         }

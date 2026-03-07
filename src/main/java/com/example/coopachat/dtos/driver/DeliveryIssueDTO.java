@@ -6,8 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 /**
  * DTO pour signaler un problème de livraison (livreur).
  */
@@ -26,9 +24,4 @@ public class DeliveryIssueDTO {
      * Commentaire optionnel du livreur.
      */
     private String comment;
-
-    /**
-     * URLs des photos (optionnel).
-     */
-    private List<String> photoUrls;
 }

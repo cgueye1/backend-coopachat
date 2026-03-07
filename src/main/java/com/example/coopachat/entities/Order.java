@@ -103,7 +103,7 @@ public class Order {
     private String failureReason;
 
     /**
-     * Date/heure du signalement d'échec
+     * Date/heure du signalement d'échec (synthèse du premier signalement)
      */
     @Column(name = "failure_reported_at")
     private LocalDateTime failureReportedAt;
