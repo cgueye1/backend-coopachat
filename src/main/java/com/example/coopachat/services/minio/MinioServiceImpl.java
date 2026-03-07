@@ -29,22 +29,23 @@ public class MinioServiceImpl implements MinioService {
 //-----------------------------------UPLOAD d'un fichier unique-----------------------------------
     @Override
     public String uploadFile(MultipartFile file, String folder) {
-        // Upload un fichier dans le bucket, avec optionnellement un préfixe (folder).
+        // Upload à la racine du bucket coop-achat (pas de sous-dossiers).
         if (file == null || file.isEmpty()) {
             return null;
         }
         try {
-            boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build());//vérifie si le bucket existe
+            boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build());
             if (!found) {
-                minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());//crée le bucket si il n'existe pas
+                minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
             }
 
-            String originalFilename = file.getOriginalFilename();//récupère le nom du fichier
-            String extension = StringUtils.getFilenameExtension(originalFilename);//récupère l'extension du fichier
-            String fileName = UUID.randomUUID() + (extension != null ? "." + extension : "");//génère un nom de fichier unique
-            String objectKey = (StringUtils.hasText(folder)) ? folder + "/" + fileName : fileName;//ajoute le préfixe au nom du fichier
+            String originalFilename = file.getOriginalFilename();
+            String extension = StringUtils.getFilenameExtension(originalFilename);
+            String fileName = UUID.randomUUID() + (extension != null ? "." + extension : "");
+            // Toujours à la racine du bucket (folder ignoré)
+            String objectKey = fileName;
 
-          //upload le fichier dans le bucket avec les informations du fichier
+          //upload le fichier dans le bucket
             minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(bucket)
@@ -77,14 +78,18 @@ public class MinioServiceImpl implements MinioService {
     }
 
 
+    /** Extrait le nom de fichier (sans préfixe de dossier) - tout est stocké à la racine du bucket. */
+    private String toObjectKey(String path) {
+        if (path == null || path.isBlank()) return path;
+        int lastSlash = path.lastIndexOf('/');
+        return lastSlash >= 0 ? path.substring(lastSlash + 1) : path;
+    }
+
     //-----------------------------------GET l'URL d'un fichier-----------------------------------
     @Override
     public String getFileUrl(String fileName) {
-       
-        if (fileName == null || fileName.isEmpty()) {
-            return null;
-        }
-        return minioUrl + "/" + bucket + "/" + fileName;//construit l'URL publique du fichier
+        if (fileName == null || fileName.isEmpty()) return null;
+        return minioUrl + "/" + bucket + "/" + toObjectKey(fileName);
     }
 
     // Télécharge le fichier depuis MinIO et retourne son InputStream.
@@ -93,28 +98,15 @@ public class MinioServiceImpl implements MinioService {
         if (fileName == null || fileName.isBlank()) {
             throw new RuntimeException("Chemin fichier vide");
         }
+        String objectKey = toObjectKey(fileName);
         try {
             return minioClient.getObject(
                     GetObjectArgs.builder()
                             .bucket(bucket)
-                            .object(fileName)
+                            .object(objectKey)
                             .build());
         } catch (Exception e) {
-            // Fallback : si le chemin n'a pas de dossier (ex. uuid.jpg) et que l'objet n'existe pas,
-            // réessayer avec products/ (images produits souvent stockées sans préfixe en BDD)
-            if (!fileName.contains("/")) {
-                try {
-                    return minioClient.getObject(
-                            GetObjectArgs.builder()
-                                    .bucket(bucket)
-                                    .object("products/" + fileName)
-                                    .build());
-                } catch (Exception e2) {
-                    log.error("Error getting file from Minio (path={}, products/fallback failed)", fileName, e2);
-                    throw new RuntimeException("Erreur lors de la récupération du fichier : " + e.getMessage());
-                }
-            }
-            log.error("Error getting file from Minio", e);
+            log.error("Error getting file from Minio (objectKey={})", objectKey, e);
             throw new RuntimeException("Erreur lors de la récupération du fichier : " + e.getMessage());
         }
     }
@@ -123,12 +115,12 @@ public class MinioServiceImpl implements MinioService {
     //-----------------------------------DELETE un fichier-----------------------------------
     @Override
     public void deleteFile(String fileName) {
+        String objectKey = toObjectKey(fileName);
         try {
-            //supprime le fichier dans le bucket (conteneur racine)
             minioClient.removeObject(
                     RemoveObjectArgs.builder()
                             .bucket(bucket)
-                            .object(fileName)
+                            .object(objectKey)
                             .build());
         } catch (Exception e) {
             log.error("Error deleting file from Minio", e);
