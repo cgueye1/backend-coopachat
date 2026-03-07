@@ -112,7 +112,7 @@ public class SecurityConfig {
     // 🌐 CONFIGURATION CORS
     // ============================================================================
     /**
-     * Configuration CORS - Autorise les appels depuis le frontend
+     * Configuration CORS - Autorise les appels depuis le frontend(sans cette configuration, le frontend ne peut pas envoyer les requêtes à l'API).
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -127,8 +127,7 @@ public class SecurityConfig {
         // Autorise tous les headers (dont Authorization pour le Bearer token)
         configuration.setAllowedHeaders(Arrays.asList("*"));
 
-        // Credentials (cookies) : false car avec allowOriginPatterns("*") le navigateur refuse sinon ("Failed to fetch").
-        // Le JWT dans le header Authorization est quand même envoyé par le front.
+        // Credentials (cookies) : false
         configuration.setAllowCredentials(false);
 
         // Crée la "boîte à configuration" CORS

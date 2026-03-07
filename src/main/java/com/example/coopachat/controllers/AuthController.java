@@ -61,16 +61,6 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(
-            summary = "Connexion via Google",
-            description = "Permet à un utilisateur de se connecter avec un compte Google (OAuth). " +
-                    "Retourne un token JWT ou requiresOtp si admin."
-    )
-    @PostMapping("/login/google")
-    public ResponseEntity<LoginResponseDTO> loginWithGoogle(@RequestBody @Valid GoogleLoginRequestDTO requestDTO) {
-        LoginResponseDTO response = authService.authenticateWithGoogle(requestDTO.getIdToken());
-        return ResponseEntity.ok(response);
-    }
 
     @Operation(
             summary = "Déconnexion d'un utilisateur",

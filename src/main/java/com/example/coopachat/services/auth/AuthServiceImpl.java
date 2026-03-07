@@ -44,8 +44,6 @@ public class AuthServiceImpl implements AuthService {
     @Value("${activation.code.expiration.minutes:15}")
     private int expirationMinutes;  // 15 minutes
 
-    @Value("${google.client-id}")
-    private String googleClientId;
 
     // ============================================================================
     // 📦 DEPENDENCIES
@@ -150,93 +148,6 @@ public class AuthServiceImpl implements AuthService {
                 user.getProfilePhotoUrl()
         );
     }
-
-    @Override
-    public LoginResponseDTO authenticateWithGoogle(String idToken) {
-
-        // Création du vérificateur Google pour valider le token reçu du frontend
-        // Il vérifie que le token est bien émis par Google et destiné à notre application
-        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
-                new NetHttpTransport(),
-                GsonFactory.getDefaultInstance()
-        )
-                // Client ID Google autorisé (sécurité : empêche l’usage d’un token d’une autre app)
-                .setAudience(Collections.singletonList(googleClientId))
-                .build();
-
-        GoogleIdToken token;
-
-        try {
-            // Vérification du token Google reçu depuis le frontend
-            token = verifier.verify(idToken);
-        } catch (Exception e) {
-            // Exception levée si le token est mal formé ou non vérifiable
-            throw new RuntimeException("Token Google invalide");
-        }
-
-        // Si le token est null, cela signifie que Google l’a rejeté
-        if (token == null) {
-            throw new RuntimeException("Token Google invalide");
-        }
-
-        // Récupération des informations contenues dans le token Google
-        GoogleIdToken.Payload payload = token.getPayload();
-
-        // Extraction de l’email Google de l’utilisateur
-        String email = payload.getEmail();
-
-        // Recherche de l’utilisateur dans la base de données via son email
-        Users user = getUserByEmail(email)
-                .orElseThrow(() ->
-                        new RuntimeException("Utilisateur introuvable avec cet email")
-                );
-
-        // Vérification que le compte est actif
-        if (!user.getIsActive()) {
-            throw new RuntimeException("Votre compte n'est pas actif");
-        }
-
-        // Règle 3 : si salarié, vérifier que son entreprise est active
-        if (user.getRole() == UserRole.EMPLOYEE) {
-            Employee employee = employeeRepository.findByUser(user)
-                    .orElseThrow(() -> new RuntimeException("Salarié introuvable"));
-            if (employee.getCompany() == null || !Boolean.TRUE.equals(employee.getCompany().getIsActive())) {
-                throw new RuntimeException("Votre entreprise est inactive. Vous ne pouvez pas vous connecter.");
-            }
-        }
-
-        // Cas particulier : l’administrateur doit passer par une vérification OTP
-        if (user.getRole() == UserRole.ADMINISTRATOR) {
-
-            // Génération d’un code OTP temporaire
-            String otpCode = activationCodeService.generateAndStoreCode(email);
-
-            // Envoi du code OTP par email
-            emailService.sendOtpCode(email, otpCode, user.getFirstName());
-
-            // Réponse indiquant au frontend qu’un OTP est requis
-            return new LoginResponseDTO(email, true);
-        }
-
-        // Pour les autres rôles, génération directe du JWT
-        String accessToken = jwtService.generateToken(
-                user.getEmail(),
-                user.getRole().getLabel(),
-                user.getId()
-        );
-
-        // Réponse de connexion réussie avec le token JWT
-        return new LoginResponseDTO(
-                accessToken,
-                user.getEmail(),
-                user.getRole().getLabel(),
-                user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getProfilePhotoUrl()
-        );
-    }
-
 
     /**
      * Vérifie le code OTP et génère le token JWT pour un administrateur

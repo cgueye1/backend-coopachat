@@ -72,6 +72,6 @@ public interface UserRepository extends JpaRepository<Users, Long> {
     /** Nombre d'utilisateurs pour un rôle donné (pour le graphique "Utilisateurs par rôle"). */
     long countByRole(UserRole role);
 
-    /** Liste des utilisateurs actifs ayant le rôle donné (ex. tous les RL pour notification). */
+    /** Liste des utilisateurs actifs ayant le rôle donné */
     List<Users> findByRoleAndIsActiveTrue(UserRole role);
 }

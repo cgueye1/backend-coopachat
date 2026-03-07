@@ -32,13 +32,6 @@ public interface AuthService {
      */
     LoginResponseDTO authenticateCredentialsUser(String email, String phone, String password);
 
-    /**
-     * Authentifie un utilisateur via Google (OAuth)
-     *
-     * @param idToken Token Google (JWT) reçu côté frontend
-     * @return LoginResponseDTO avec token JWT ou requiresOtp si admin
-     */
-    LoginResponseDTO authenticateWithGoogle(String idToken);
 
     /**
      * Vérifie le code OTP et génère le token JWT pour un administrateur
