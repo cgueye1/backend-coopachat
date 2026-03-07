@@ -11,6 +11,8 @@ public enum DeliveryIssueReason {
     CLIENT_REFUSE("Client refuse la livraison"),
     ACCES_IMPOSSIBLE("Accès impossible (immeuble)"),
     COLIS_ENDOMMAGE("Colis endommagé"),
+    INCIDENT_ROUTE("Incident sur la route"),
+    RETARD("Retard"),
     AUTRE("Autre");
 
     private final String label;

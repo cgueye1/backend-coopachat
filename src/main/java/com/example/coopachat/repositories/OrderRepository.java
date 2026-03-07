@@ -143,6 +143,16 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("driverId") Long driverId,
             @Param("status") OrderStatus status);
 
+    /**
+     * Nombre de commandes livrées par un livreur dont deliveryCompletedAt est entre start et end.
+     * Utilisé pour "Livraisons aujourd'hui" (livraisons effectivement complétées aujourd'hui).
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.deliveryTour.driver.id = :driverId AND o.status = :status AND o.deliveryCompletedAt BETWEEN :start AND :end")
+    long countByDeliveryTourDriverIdAndStatusAndDeliveryCompletedAtBetween(
+            @Param("driverId") Long driverId,
+            @Param("status") OrderStatus status,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
 
     /**
      * Nombre de commandes avec le statut donné, créées dans la période [start, end].

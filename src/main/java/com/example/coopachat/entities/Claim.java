@@ -37,7 +37,7 @@ public class Claim {
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 
-    // ⭐ UN SEUL PRODUIT
+    /** Produit concerné (pour le remboursement RL). Nullable si réclamation sur toute la commande. */
     @ManyToOne
     @JoinColumn(name = "order_item_id")
     private OrderItem orderItem;
@@ -49,8 +49,10 @@ public class Claim {
     @Column(name = "comment", columnDefinition = "TEXT")
     private String comment;//Commentaire de la réclamation
 
-    // Photos (optionnel)
-    private List<String> photoUrls;
+    /** Chemins des photos (MinIO), servis via /api/files/{path}. */
+    @CollectionTable(name = "claim_photo_urls", joinColumns = @JoinColumn(name = "claim_id"))
+    @Column(name = "photo_url")
+    private List<String> photoUrls = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)

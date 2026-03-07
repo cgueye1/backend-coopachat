@@ -30,7 +30,7 @@ import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.services.admin.AdminService;
-import com.example.coopachat.util.FileTransferUtil;
+import com.example.coopachat.services.minio.MinioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,7 +45,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -62,7 +62,7 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
-    private final FileTransferUtil fileTransferUtil;
+    private final MinioService minioService;
 
     // ============================================================================
     // 📁 GESTION DES CATÉGORIES (inspiré du catalogue produits)
@@ -142,9 +142,9 @@ public class AdminController {
             }
         }
         try {
-            String relativePath = fileTransferUtil.handleFileUpload(file);
-            return ResponseEntity.ok(java.util.Map.of("path", relativePath));
-        } catch (IOException e) {
+            String relativePath = minioService.uploadFile(file, "categories");
+            return ResponseEntity.ok(java.util.Map.of("path", relativePath != null ? relativePath : ""));
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Erreur lors de l'upload: " + e.getMessage());
         }
@@ -201,7 +201,8 @@ public class AdminController {
                                 .body("Format d'image non supporté. Formats acceptés: JPG, PNG");
                     }
                 }
-                imageFileName = fileTransferUtil.handleFileUpload(image);
+                String uploaded = minioService.uploadFile(image, "products");
+                imageFileName = uploaded != null ? uploaded : "";
             }
 
             // 2. Créer le DTO avec tous les champs
@@ -221,12 +222,12 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body("Produit créé avec succès");
 
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erreur lors de l'upload de l'image: " + e.getMessage());
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur lors de l'upload de l'image: " + e.getMessage());
         }
     }
 
@@ -308,7 +309,8 @@ public class AdminController {
                                 .body("Format d'image non supporté. Formats acceptés: JPG, PNG");
                     }
                 }
-                imageFileName = fileTransferUtil.handleFileUpload(image);
+                String uploaded = minioService.uploadFile(image, "products");
+                imageFileName = uploaded != null ? uploaded : "";
             }
 
             // 2. Créer le DTO avec tous les champs
@@ -326,12 +328,12 @@ public class AdminController {
 
             return ResponseEntity.ok("Produit modifié avec succès");
 
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erreur lors de l'upload de l'image: " + e.getMessage());
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur lors de l'upload de l'image: " + e.getMessage());
         }
     }
 
@@ -523,7 +525,7 @@ public class AdminController {
                                 .body("Format d'image non supporté. Formats acceptés: JPG, PNG");
                     }
                 }
-                profilePhotoFileName = fileTransferUtil.handleFileUpload(profilePhoto);
+                profilePhotoFileName = minioService.uploadFile(profilePhoto, "profiles");
             }
 
             // 2. Convertir le rôle (libellé ou nom enum)
@@ -545,12 +547,12 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body("Utilisateur créé avec succès. Un code d'activation a été envoyé par email.");
 
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erreur lors de l'upload de la photo: " + e.getMessage());
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur lors de l'upload de la photo: " + e.getMessage());
         }
     }
 
@@ -650,7 +652,7 @@ public class AdminController {
                                 .body("Format d'image non supporté. Formats acceptés: JPG, PNG");
                     }
                 }
-                profilePhotoFileName = fileTransferUtil.handleFileUpload(profilePhoto);
+                profilePhotoFileName = minioService.uploadFile(profilePhoto, "profiles");
             }
 
             SaveUserDTO dto = new SaveUserDTO();
@@ -666,11 +668,11 @@ public class AdminController {
 
             adminService.updateUser(id, dto);
             return ResponseEntity.ok("Utilisateur mis à jour avec succès");
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erreur lors de l'upload de la photo: " + e.getMessage());
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur lors de l'upload de la photo: " + e.getMessage());
         }
     }
 

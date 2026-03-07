@@ -19,5 +19,4 @@ public class DriverPersonalInfoDTO {
     private String phone;          // Modifiable
 
     private String email;          // Lecture seule (affiché mais ignoré à l'update)
-
 }

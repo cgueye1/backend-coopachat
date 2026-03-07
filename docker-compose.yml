@@ -60,13 +60,8 @@ services:
       db:
         condition: service_healthy
 
-    # Variables d’environnement Nécéssaires
-    # Elles permettent de configurer :
-    # - Connexion base de données
-    # - JWT
-    # - Email
-    # - Google Auth
-    # - SFTP
+    # Variables d'environnement (valeurs depuis .env ou host)
+    # - Connexion base de données, JWT, Email, Google Auth, MinIO
     environment:
       DB_NAME: ${DB_NAME:-coopachat}
       DB_USER: ${DB_USER:-coopachat}
@@ -85,24 +80,12 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
 
-      # URLs du frontend utilisées pour redirections
-      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:4200}
-      FRONTEND_RESET_PASSWORD_URL: ${FRONTEND_RESET_PASSWORD_URL:-http://localhost:4200/reset-password?token=}
-      FRONTEND_ACTIVATE_EMPLOYEE_URL: ${FRONTEND_ACTIVATE_EMPLOYEE_URL:-http://localhost:4200/activate?token=}
-
-      # Configuration SFTP (stockage externe)
-      SFTP_HOST: ${SFTP_HOST:-}
-      SFTP_PORT: ${SFTP_PORT:-22}
-      SFTP_USER: ${SFTP_USER:-}
-      SFTP_PASSWORD: ${SFTP_PASSWORD:-}
-      SFTP_REMOTE_DIR: ${SFTP_REMOTE_DIR:-/coopacha/}
-
-      # Dossier des images (doit correspondre au volume monté ci-dessous)
-      APP_FILES_DIR: /var/coopachat/files
-
-    # Volume persistant pour les images uploadées (produits, profils, catégories)
-    volumes:
-      - app_files:/var/coopachat/files
+    
+      # Configuration MinIO
+      MINIO_URL: ${MINIO_URL:-}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-}
+      MINIO_BUCKET: ${MINIO_BUCKET:-coop-achat}
 
     # Ports
     # 8083 → Port accessible depuis mon PC
@@ -117,8 +100,6 @@ services:
 # ===============================
 # VOLUMES PERSISTANTS
 # ===============================
-# db_data : données MySQL
-# app_files : images uploadées (produits, profils, icônes catégories) – conservées après redémarrage du conteneur
+# db_data : données MySQL (les fichiers sont stockés dans MinIO)
 volumes:
   db_data:
-  app_files:

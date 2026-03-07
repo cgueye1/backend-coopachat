@@ -163,11 +163,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return true;
         }
 
-        // Fichiers publics (images)
-        if (path.startsWith("/files/") || path.startsWith("/api/files/") || path.startsWith("/uploads/")) {
-            return true;
-        }
-
         return false;
     }
 
