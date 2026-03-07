@@ -163,6 +163,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return true;
         }
 
+        // Fichiers publics (images, etc.) - les balises <img> ne peuvent pas envoyer le token
+        if (path.startsWith("/api/files/")) {
+            return true;
+        }
+
         return false;
     }
 
