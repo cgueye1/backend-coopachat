@@ -25,7 +25,7 @@ public class FileController {
 
     private final MinioService minioService;
 
-    @Operation(summary = "Récupérer un fichier", description = "Stream le fichier depuis MinIO. Chemin ex. : products/uuid.jpg, profiles/xxx.png. Si path = uuid.jpg (sans dossier), essaie products/uuid.jpg pour compatibilité.")
+    @Operation(summary = "Récupérer un fichier", description = "Stream le fichier depuis MinIO. Chemin ex. : products/uuid.jpg, profiles/xxx.png")
     @GetMapping("/{path:.+}")
     public ResponseEntity<InputStreamResource> getFile(@PathVariable String path) {
         if (path == null || path.isBlank()) {
@@ -33,10 +33,6 @@ public class FileController {
         }
         try {
             InputStream stream = minioService.getFile(path);
-            // Fallback : si path sans "/" (ex. uuid.jpg), essayer products/ pour les images produits (données legacy)
-            if (stream == null && !path.contains("/")) {
-                stream = minioService.getFile("products/" + path);
-            }
             if (stream == null) {
                 return ResponseEntity.notFound().build();
             }

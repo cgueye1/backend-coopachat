@@ -87,10 +87,12 @@ public class MinioServiceImpl implements MinioService {
         return minioUrl + "/" + bucket + "/" + fileName;//construit l'URL publique du fichier
     }
 
-    //Télécharge le fichier depuis MinIO et retourne son InputStream.
+    // Télécharge le fichier depuis MinIO et retourne son InputStream.
     @Override
     public InputStream getFile(String fileName) {
-        
+        if (fileName == null || fileName.isBlank()) {
+            throw new RuntimeException("Chemin fichier vide");
+        }
         try {
             return minioClient.getObject(
                     GetObjectArgs.builder()
@@ -98,6 +100,20 @@ public class MinioServiceImpl implements MinioService {
                             .object(fileName)
                             .build());
         } catch (Exception e) {
+            // Fallback : si le chemin n'a pas de dossier (ex. uuid.jpg) et que l'objet n'existe pas,
+            // réessayer avec products/ (images produits souvent stockées sans préfixe en BDD)
+            if (!fileName.contains("/")) {
+                try {
+                    return minioClient.getObject(
+                            GetObjectArgs.builder()
+                                    .bucket(bucket)
+                                    .object("products/" + fileName)
+                                    .build());
+                } catch (Exception e2) {
+                    log.error("Error getting file from Minio (path={}, products/fallback failed)", fileName, e2);
+                    throw new RuntimeException("Erreur lors de la récupération du fichier : " + e.getMessage());
+                }
+            }
             log.error("Error getting file from Minio", e);
             throw new RuntimeException("Erreur lors de la récupération du fichier : " + e.getMessage());
         }
