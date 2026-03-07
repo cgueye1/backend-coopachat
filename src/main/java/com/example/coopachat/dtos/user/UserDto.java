@@ -25,6 +25,5 @@ public class UserDto {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long id;
 
-    /** Nom du fichier photo de profil (ex. uuid.jpg). URL d'affichage : /api/files/{profilePhotoUrl}. */
-    private String profilePhotoUrl;
+    private String profilePhotoUrl;//Nom du fichier photo de profil
 }

@@ -69,7 +69,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // si oui , on fait :
+        // Le JWT contient le rôle ; le filtre le lit via le JwtService et le transmet à Spring Security
+        // pour appliquer les règles de SecurityConfig et vérifier que l'utilisateur a le rôle requis.
+
+
+        // on fait :
         // Extraire le token (enlever "Bearer ")
         jwt = authHeader.substring(7);
 
