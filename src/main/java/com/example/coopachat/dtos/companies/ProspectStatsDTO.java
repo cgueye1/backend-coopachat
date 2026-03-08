@@ -1,6 +1,5 @@
 package com.example.coopachat.dtos.companies;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,7 +15,6 @@ public class ProspectStatsDTO {
     private long total;
     private long enAttente;      // PENDING
     private long interesses;     // INTERESTED
-    private long aRelancer;      // RELAUNCHED
-    private long rdvPlanifie;    // MEETING_SCHEDULED
-    private long signes;         // PARTNER_SIGNED 
+    private long relancer;       // RELAUNCHED
+    private long signes;         // PARTNER_SIGNED
 }

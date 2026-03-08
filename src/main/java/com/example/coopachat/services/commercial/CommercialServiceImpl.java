@@ -460,8 +460,7 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setTotal(companyRepository.countByStatusNot(CompanyStatus.PARTNER_SIGNED));
         dto.setEnAttente(companyRepository.countByStatus(CompanyStatus.PENDING));
         dto.setInteresses(companyRepository.countByStatus(CompanyStatus.INTERESTED));
-        dto.setARelancer(companyRepository.countByStatus(CompanyStatus.RELAUNCHED));
-        dto.setRdvPlanifie(companyRepository.countByStatus(CompanyStatus.MEETING_SCHEDULED));
+        dto.setRelancer(companyRepository.countByStatus(CompanyStatus.RELAUNCHED));
         dto.setSignes(companyRepository.countByStatus(CompanyStatus.PARTNER_SIGNED));
         return dto;
     }
