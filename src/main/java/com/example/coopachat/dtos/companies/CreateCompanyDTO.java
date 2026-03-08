@@ -49,4 +49,7 @@ public class CreateCompanyDTO {
     private CompanyStatus status; // Statut de prospection
 
     private String note; // Commentaire ou note (optionnel)
+
+    /** Nom du fichier logo après upload (ex. companies/uuid.png). Renseigné par le contrôleur. */
+    private String logo;
 }

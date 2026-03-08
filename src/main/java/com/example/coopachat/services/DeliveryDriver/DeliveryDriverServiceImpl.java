@@ -576,7 +576,7 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
 
     /**
      * Construit les données du graphique "Performances" selon le filtre choisi.
-     * Chaque point = nombre de livraisons (DriverEarning) du livreur sur la période.
+     * Chaque point = nombre de livraisons du livreur sur la période.
      *
      * @param driverId ID du livreur
      * @param period   SEMAINE | MOIS | ANNEE (insensible à la casse, défaut MOIS si invalide)
@@ -595,68 +595,205 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     }
 
     /**
-     * SEMAINE : 4 dernières semaines (lundi → dimanche).
-     * S1 = il y a 3 semaines, S2 = il y a 2 sem, S3 = semaine dernière, S4 = semaine courante.
+     * SEMAINE : 4 dernières semaines (lundi → dimanche)
+     *
+     * Exemple si aujourd'hui = 20 mars
+     *
+     * S1 = 24 fév → 2 mars
+     * S2 = 3 mars → 9 mars
+     * S3 = 10 mars → 16 mars
+     * S4 = 17 mars → 23 mars
      */
     private List<DriverPerformanceItemDTO> buildPerformancesSemaine(Long driverId) {
+
+        // Date d'aujourd'hui
+        // Exemple : 20 mars 2026
         LocalDate today = LocalDate.now();
-        // Lundi de la semaine courante (si aujourd'hui = lundi, on prend aujourd'hui)
+
+        // Trouver le lundi de la semaine actuelle
+        // Exemple :
+        // today = jeudi 20 mars
+        // mondayThisWeek = lundi 17 mars
         LocalDate mondayThisWeek = today.with(DayOfWeek.MONDAY);
+
         List<DriverPerformanceItemDTO> list = new ArrayList<>();
+
+        // Boucle sur les 4 dernières semaines
+        // i = 3 → il y a 3 semaine , i = 2 → il y a 2 semaines ,i = 1 → semaine dernière ,i = 0 → semaine actuelle
         for (int i = 3; i >= 0; i--) {
-            // On remonte de i semaines : semaine courante (i=0), -1, -2, -3
+
+            // minusWeeks(i) = soustraire i semaines
+            // Exemple si mondayThisWeek = 17 mars :
+            //
+            // i = 3 → 17 mars - 3 semaines = 24 février
+            // i = 2 → 17 mars - 2 semaines = 3 mars, i = 1 → 17 mars - 1 semaine = 10 mars
+            // i = 0 → 17 mars - 0 semaine = 17 mars
             LocalDate weekStart = mondayThisWeek.minusWeeks(i);
+
+            // plusDays(6) = ajouter 6 jours
+            //
+            // Exemple: weekStart = lundi 10 mars , weekEnd = dimanche 16 mars
             LocalDate weekEnd = weekStart.plusDays(6);
+
+            // Début de la période
+            // Exemple : 10 mars 00:00
             LocalDateTime start = weekStart.atStartOfDay();
+
+            // Fin de la période
+            // Exemple : 16 mars 23:59:59
             LocalDateTime end = weekEnd.atTime(23, 59, 59, 999_999_999);
-            long count = driverEarningRepository.countByDriverIdAndEarnedAtBetween(driverId, start, end);
+
+            // Compter les livraisons du livreur entre ces dates
+            // Exemple résultat : 7 livraisons
+            long count = driverEarningRepository
+                    .countByDriverIdAndEarnedAtBetween(driverId, start, end);
+
+            // Ajouter le résultat dans la liste pour le graphique
+            // Exemple : S1 = 7
             list.add(new DriverPerformanceItemDTO("S" + (4 - i), count));
         }
+
         return list;
     }
 
     /**
-     * MOIS : S1, S2, S3, S4 du mois en cours.
-     * Découpage par tranches de 7 jours : S1 = jours 1-7, S2 = 8-14, S3 = 15-21, S4 = 22-fin du mois.
+     * MOIS : découpe le mois actuel en tranches de 7 jours
+     *
+     * Exemple pour mars :
+     *
+     * S1 = 1 mars → 7 mars
+     * S2 = 8 mars → 14 mars
+     * S3 = 15 mars → 21 mars
+     * S4 = 22 mars → 31 mars
+     *
+     * Graphique exemple :
+     *
+     * S1 | 9 livraisons
+     * S2 | 6 livraisons
+     * S3 | 12 livraisons
+     * S4 | 8 livraisons
      */
-    private List<DriverPerformanceItemDTO> buildPerformancesMois(Long driverId) {
-        LocalDate now = LocalDate.now();
-        LocalDate firstDay = LocalDate.of(now.getYear(), now.getMonth(), 1);
-        LocalDate lastDay = firstDay.withDayOfMonth(firstDay.lengthOfMonth());
-        List<DriverPerformanceItemDTO> list = new ArrayList<>();
-        int weekNum = 1;
-        LocalDate curr = firstDay;
-        while (!curr.isAfter(lastDay)) {
-            // Fin de la tranche = curr + 6 jours, ou dernier jour du mois si on dépasse
-            LocalDate chunkEnd = curr.plusDays(6);
-            if (chunkEnd.isAfter(lastDay)) chunkEnd = lastDay;
-            LocalDateTime start = curr.atStartOfDay();
-            LocalDateTime end = chunkEnd.atTime(23, 59, 59, 999_999_999);
-            long count = driverEarningRepository.countByDriverIdAndEarnedAtBetween(driverId, start, end);
-            list.add(new DriverPerformanceItemDTO("S" + weekNum, count));
-            curr = curr.plusDays(7);
-            weekNum++;
+    private List<DriverPerformanceItemDTO> buildPerformancesMois(Long idLivreur) {
+
+        // Date actuelle
+        LocalDate dateActuelle = LocalDate.now();
+
+        // Premier jour du mois
+        // Exemple : 1 mars 2026
+        LocalDate premierJourMois = LocalDate.of(dateActuelle.getYear(), dateActuelle.getMonth(), 1);
+
+        // Dernier jour du mois
+        // Exemple : 31 mars 2026
+        LocalDate dernierJourMois = premierJourMois.withDayOfMonth(premierJourMois.lengthOfMonth());
+
+        // Liste des résultats pour le graphique
+        List<DriverPerformanceItemDTO> listeResultats = new ArrayList<>();
+
+        // Numéro de la tranche (S1, S2, S3...)
+        int numeroSemaine = 1;
+
+        // On commence au premier jour du mois
+        LocalDate jourCourant = premierJourMois;
+
+        // Tant que on n'a pas dépassé la fin du mois
+        while (!jourCourant.isAfter(dernierJourMois)) {
+
+            // Fin de la tranche = jourCourant + 6 jours
+            // Exemple :  jourCourant = 1 mars , finTranche = 7 mars
+            LocalDate finTranche = jourCourant.plusDays(6);
+
+            // Si on dépasse la fin du mois
+            // Exemple : finTranche = 34 mars (impossible), on prend donc 31 mars
+            if (finTranche.isAfter(dernierJourMois)) {
+                finTranche = dernierJourMois;
+            }
+
+            // Début période : 00:00
+            LocalDateTime debutPeriode = jourCourant.atStartOfDay();
+
+            // Fin période : 23:59:59
+            LocalDateTime finPeriode = finTranche.atTime(23, 59, 59, 999_999_999);
+
+            // Compter les livraisons du livreur dans cette période
+            // Exemple : 10 livraisons
+            long nombreLivraisons = driverEarningRepository
+                    .countByDriverIdAndEarnedAtBetween(idLivreur, debutPeriode, finPeriode);
+
+            // Ajouter le résultat pour le graphique
+            // Exemple : S1 = 10
+            listeResultats.add(new DriverPerformanceItemDTO("S" + numeroSemaine, nombreLivraisons));
+
+            // Passer à la tranche suivante (on avance de 7 jours)
+            // Exemple : 1 mars → 8 mars
+            jourCourant = jourCourant.plusDays(7);
+
+            numeroSemaine++;
         }
-        return list;
+
+        return listeResultats;
     }
 
     /**
-     * ANNEE : 12 mois (Jan, Fév, ... Déc) de l'année en cours.
-     * Chaque point = nombre de livraisons du livreur ce mois-là.
+     * ANNEE : calcul des performances sur les 12 mois de l'année actuelle
+     *
+     * Exemple graphique :
+     *
+     * Jan  | 40 livraisons
+     * Fév  | 32 livraisons
+     * Mar  | 51 livraisons
+     * Avr  | 44 livraisons
+     * Mai  | 38 livraisons
+     * Juin | 46 livraisons
      */
-    private List<DriverPerformanceItemDTO> buildPerformancesAnnee(Long driverId) {
-        int year = LocalDate.now().getYear();
-        String[] moisLabels = {"Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"};
-        List<DriverPerformanceItemDTO> list = new ArrayList<>();
-        for (int m = 1; m <= 12; m++) {
-            LocalDate firstDay = LocalDate.of(year, m, 1);
-            LocalDate lastDay = firstDay.withDayOfMonth(firstDay.lengthOfMonth());
-            LocalDateTime start = firstDay.atStartOfDay();
-            LocalDateTime end = lastDay.atTime(23, 59, 59, 999_999_999);
-            long count = driverEarningRepository.countByDriverIdAndEarnedAtBetween(driverId, start, end);
-            list.add(new DriverPerformanceItemDTO(moisLabels[m - 1], count));
+    private List<DriverPerformanceItemDTO> buildPerformancesAnnee(Long idLivreur) {
+
+        // Année actuelle
+        // Exemple : 2026
+        int anneeActuelle = LocalDate.now().getYear();
+
+        // Noms des mois pour le graphique
+        String[] nomsMois = {
+                "Jan","Fév","Mar","Avr","Mai","Juin",
+                "Juil","Août","Sep","Oct","Nov","Déc"
+        };
+
+        // Liste des résultats pour le graphique
+        List<DriverPerformanceItemDTO> listeResultats = new ArrayList<>();
+
+        // Boucle sur les 12 mois
+        // m = 1 → janvier
+        // m = 2 → février
+        // ...
+        // m = 12 → décembre
+        for (int mois = 1; mois <= 12; mois++) {
+
+            // Premier jour du mois
+            // Exemple : mois = 3 → 1 mars 2026
+            LocalDate premierJourMois = LocalDate.of(anneeActuelle, mois, 1);
+
+            // Dernier jour du mois
+            // Exemple :  mars → 31 mars
+            LocalDate dernierJourMois = premierJourMois.withDayOfMonth(premierJourMois.lengthOfMonth());
+
+            // Début de la période
+            // Exemple : 1 mars 00:00
+            LocalDateTime debutPeriode = premierJourMois.atStartOfDay();
+
+            // Fin de la période
+            // Exemple : 31 mars 23:59:59
+            LocalDateTime finPeriode = dernierJourMois.atTime(23, 59, 59, 999_999_999);
+
+            // Compter les livraisons du livreur dans ce mois
+            // Exemple résultat :  mars → 52 livraisons
+            long nombreLivraisons = driverEarningRepository
+                    .countByDriverIdAndEarnedAtBetween(idLivreur, debutPeriode, finPeriode);
+
+            // Ajouter le résultat pour le graphique
+            // Exemple :  Mar → 52
+            listeResultats.add(new DriverPerformanceItemDTO(nomsMois[mois - 1], nombreLivraisons));
         }
-        return list;
+
+        return listeResultats;
     }
 
     // ═══════════════════════════════════════════════════════════════════

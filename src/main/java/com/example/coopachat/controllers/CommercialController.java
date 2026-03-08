@@ -21,10 +21,13 @@ import com.example.coopachat.dtos.employees.EmployeeStatsDTO;
 import com.example.coopachat.dtos.employees.UpdateEmployeeDTO;
 import com.example.coopachat.dtos.employees.UpdateEmployeeStatusDTO;
 import com.example.coopachat.enums.CompanySector;
+import com.example.coopachat.enums.CompanyStatus;
 import com.example.coopachat.enums.CouponScope;
 import com.example.coopachat.enums.CouponStatus;
 import com.example.coopachat.services.commercial.CommercialService;
+import com.example.coopachat.services.minio.MinioService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +49,7 @@ import java.util.List;
 public class CommercialController {
 
     private final CommercialService commercialService;
+    private final MinioService minioService;
 
     // ============================================================================
     // 🏢 GESTION DES ENTREPRISES
@@ -53,14 +57,70 @@ public class CommercialController {
 
     @Operation(
             summary = "Créer une entreprise",
-            description = "Permet à un commercial de créer une nouvelle entreprise. " +
-                         "L'entreprise est automatiquement associée au commercial connecté."
+            description = "Création via multipart/form-data. Tous les champs en request param. Logo optionnel (JPG, PNG, max 5MB)."
     )
-    @PostMapping("/companies")
-    public ResponseEntity<String> createCompany(@RequestBody @Valid CreateCompanyDTO createCompanyDTO) {
-        commercialService.createCompany(createCompanyDTO);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Entreprise créée avec succès");
+    @PostMapping(value = "/companies", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> createCompany(
+            @Parameter(description = "Nom de l'entreprise", required = true)
+            @RequestParam String name,
+
+            @Parameter(description = "Localisation (adresse ou région)", required = true)
+            @RequestParam String location,
+
+            @Parameter(description = "Nom du contact", required = true)
+            @RequestParam String contactName,
+
+            @Parameter(description = "Téléphone du contact", required = true)
+            @RequestParam String contactPhone,
+
+            @Parameter(description = "Statut de prospection (ex. En attente, Partenaire signé)", required = true)
+            @RequestParam String status,
+
+            @Parameter(description = "Secteur d'activité")
+            @RequestParam(required = false) String sector,
+
+            @Parameter(description = "Email du contact")
+            @RequestParam(required = false) String contactEmail,
+
+            @Parameter(description = "Note ou commentaire")
+            @RequestParam(required = false) String note,
+
+            @Parameter(description = "Logo (JPG, PNG, max 5MB). Si fourni, enregistré avec l'entreprise.")
+            @RequestParam(required = false) MultipartFile logo) {
+        try {
+            String logoFileName = "";
+            if (logo != null && !logo.isEmpty()) {
+                String originalFilename = logo.getOriginalFilename();
+                if (originalFilename != null) {
+                    String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+                    if (!extension.equals("jpg") && !extension.equals("jpeg") && !extension.equals("png")) {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body("Format d'image non supporté. Formats acceptés: JPG, PNG");
+                    }
+                }
+                String uploaded = minioService.uploadFile(logo, "companies");
+                logoFileName = uploaded != null ? uploaded : "";
+            }
+
+            CreateCompanyDTO dto = new CreateCompanyDTO();
+            dto.setName(name != null ? name.trim() : "");
+            dto.setLocation(location != null ? location.trim() : "");
+            dto.setContactName(contactName != null ? contactName.trim() : "");
+            dto.setContactPhone(contactPhone != null ? contactPhone.trim() : "");
+            dto.setStatus(CompanyStatus.fromLabelOrName(status));
+            dto.setSector(CompanySector.fromLabelOrName(sector));
+            dto.setContactEmail(contactEmail != null && !contactEmail.isBlank() ? contactEmail.trim() : null);
+            dto.setNote(note != null && !note.isBlank() ? note.trim() : null);
+            dto.setLogo(logoFileName);
+
+            commercialService.createCompany(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body("Entreprise créée avec succès");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur lors de l'upload du logo: " + e.getMessage());
+        }
     }
 
     @Operation(
@@ -209,6 +269,16 @@ public class CommercialController {
     ) {
         commercialService.uploadCompanyLogo(id, file);
         return ResponseEntity.ok("Logo enregistré avec succès");
+    }
+
+    @Operation(
+            summary = "Supprimer le logo d'une entreprise",
+            description = "Retire le logo associé à l'entreprise."
+    )
+    @DeleteMapping("/companies/{id}/logo")
+    public ResponseEntity<String> deleteCompanyLogo(@PathVariable Long id) {
+        commercialService.deleteCompanyLogo(id);
+        return ResponseEntity.ok("Logo supprimé");
     }
 
     // ============================================================================
