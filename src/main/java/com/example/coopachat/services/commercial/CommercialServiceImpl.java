@@ -1,13 +1,7 @@
 package com.example.coopachat.services.commercial;
 
 import com.example.coopachat.dtos.companies.*;
-import com.example.coopachat.dtos.coupons.CartTotalCouponStatsDTO;
-import com.example.coopachat.dtos.coupons.CouponDetailsDTO;
-import com.example.coopachat.dtos.coupons.CouponListItemDTO;
-import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
-import com.example.coopachat.dtos.coupons.CouponProductItemDTO;
-import com.example.coopachat.dtos.coupons.CreateCouponDTO;
-import com.example.coopachat.dtos.coupons.UpdateCouponStatusDTO;
+import com.example.coopachat.dtos.coupons.*;
 import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
 import com.example.coopachat.dtos.dashboard.commercial.CommandesParMoisDTO;
 import com.example.coopachat.dtos.dashboard.commercial.CommercialDashboardKpisDTO;
@@ -131,8 +125,8 @@ public class CommercialServiceImpl implements CommercialService {
             throw new RuntimeException("Seuls les commerciaux peuvent consulter leurs entreprises");
         }
 
-        // Créer l'objet Pageable pour la pagination (les plus récents en premier)
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+        // Créer l'objet Pageable : tri par date de modification décroissante (nouveau partenaire en 1ère ligne)
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt").and(Sort.by(Sort.Direction.DESC, "id")));
 
         // Normaliser le terme de recherche (supprimer les espaces)
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
@@ -1020,6 +1014,32 @@ public class CommercialServiceImpl implements CommercialService {
             totalGenerated = java.math.BigDecimal.ZERO;
         }
         return new CartTotalCouponStatsDTO(activeCount, totalUsages, totalGenerated);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.example.coopachat.dtos.coupons.IdNameDTO> getActiveProductsForCoupon() {
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter les produits pour coupons");
+        }
+        return productRepository.findByStatusTrueOrderByNameAsc().stream()
+                .map(p -> new IdNameDTO(p.getId(), p.getName()))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<IdNameDTO> getCategoriesForCoupon() {
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter les catégories pour coupons");
+        }
+        return categoryRepository.findAll().stream()
+    
+                .sorted(java.util.Comparator.comparing(Category::getName, String.CASE_INSENSITIVE_ORDER))
+                .map(c -> new IdNameDTO(c.getId(), c.getName()))
+                .collect(Collectors.toList());
     }
 
     /**
