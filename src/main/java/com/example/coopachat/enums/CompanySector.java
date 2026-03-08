@@ -36,4 +36,14 @@ public enum CompanySector {
     public String getLabel() {
         return label;
     }
+
+    /** Convertit un libellé (ex. "Technologie") ou le nom enum en CompanySector. */
+    public static CompanySector fromLabelOrName(String value) {
+        if (value == null || value.isBlank()) return null;
+        String v = value.trim();
+        for (CompanySector s : values()) {
+            if (s.getLabel().equalsIgnoreCase(v) || s.name().equalsIgnoreCase(v)) return s;
+        }
+        return null;
+    }
 }

@@ -36,6 +36,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -107,6 +108,9 @@ public class CommercialServiceImpl implements CommercialService {
         company.setNote(createCompanyDTO.getNote());
         company.setIsActive(false);
         company.setCommercial(commercial);
+        if (createCompanyDTO.getLogo() != null && !createCompanyDTO.getLogo().isBlank()) {
+            company.setLogo(createCompanyDTO.getLogo());
+        }
 
         // Sauvegarder l'entreprise en base
         companyRepository.save(company);
@@ -368,7 +372,7 @@ public class CommercialServiceImpl implements CommercialService {
 
     @Override
     @Transactional
-    public void uploadCompanyLogo(Long id, org.springframework.web.multipart.MultipartFile file) {
+    public void uploadCompanyLogo(Long id, MultipartFile file) {
         Users commercial = getCurrentUser();
         if (commercial.getRole() != UserRole.COMMERCIAL) {
             throw new RuntimeException("Seuls les commerciaux peuvent modifier le logo d'une entreprise");
@@ -398,6 +402,22 @@ public class CommercialServiceImpl implements CommercialService {
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors de l'enregistrement du logo", e);
         }
+    }
+
+    @Override
+    @Transactional
+    public void deleteCompanyLogo(Long id) {
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent modifier le logo d'une entreprise");
+        }
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
+        if (!company.getCommercial().getId().equals(commercial.getId())) {
+            throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
+        }
+        company.setLogo(null);
+        companyRepository.save(company);
     }
 
     @Override

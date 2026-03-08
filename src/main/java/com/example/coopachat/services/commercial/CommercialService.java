@@ -24,7 +24,7 @@ public interface CommercialService {
     /**
      * Crée une nouvelle entreprise associée au commercial connecté
      *
-     * @param createCompanyDTO Les informations de l'entreprise à créer
+     * @param createCompanyDTO Les informations de l'entreprise à créer (logo optionnel, chemin après upload)
      * @throws RuntimeException si le commercial n'existe pas ou si une erreur survient
      */
     void createCompany(CreateCompanyDTO createCompanyDTO);
@@ -99,6 +99,13 @@ public interface CommercialService {
      * @param file Fichier image
      */
     void uploadCompanyLogo(Long id, org.springframework.web.multipart.MultipartFile file);
+
+    /**
+     * Supprime le logo d'une entreprise.
+     *
+     * @param id L'identifiant de l'entreprise
+     */
+    void deleteCompanyLogo(Long id);
 
     /**
      * Récupère les statistiques des entreprises du commercial connecté

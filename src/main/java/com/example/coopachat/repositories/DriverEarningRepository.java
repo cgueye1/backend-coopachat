@@ -1,6 +1,7 @@
 package com.example.coopachat.repositories;
 
 import com.example.coopachat.entities.DriverEarning;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,7 +22,7 @@ public interface DriverEarningRepository extends JpaRepository<DriverEarning, Lo
             @Param("end") LocalDateTime end);
 
     /** Historique des gains du livreur, trié du plus récent au plus ancien. */
-    List<DriverEarning> findByDriverIdOrderByEarnedAtDesc(Long driverId, org.springframework.data.domain.Pageable pageable);
+    List<DriverEarning> findByDriverIdOrderByEarnedAtDesc(Long driverId, Pageable pageable);
 
     /** Compter les gains du livreur par période (pour performances). */
     @Query("SELECT COUNT(e) FROM DriverEarning e WHERE e.driver.id = :driverId AND e.earnedAt BETWEEN :start AND :end")
