@@ -152,7 +152,7 @@ public class CommercialController {
 
     @Operation(
             summary = "Statistiques prospections",
-            description = "Total prospects + comptage par statut (En attente, Intéressé, Relancé, Rendez-vous, Signé)."
+            description = "Total prospects + comptage par statut (En attente, Relancé, Intéressé, Signé)."
     )
     @GetMapping("/prospects/stats")
     public ResponseEntity<ProspectStatsDTO> getProspectStats() {
