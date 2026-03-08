@@ -1066,7 +1066,7 @@ public class CommercialServiceImpl implements CommercialService {
         long commandesMoisDernier = orderRepository.countByCreatedAtBetween(lastMonthStart, lastMonthEnd);//nombre de commandes le mois dernier
         Double evolutionCommandesPct = (commandesMoisDernier > 0)
                 ? ((commandesCeMois - commandesMoisDernier) * 100.0 / commandesMoisDernier)
-                : null;//((ce mois - mois dernier) / mois dernier) * 100
+                : (commandesCeMois > 0 ? 100.0 : 0.0);// si mois dernier=0 : +100% si ce mois>0, 0% sinon
 
         BigDecimal ventesCeMois = orderRepository.sumTotalPriceByStatusAndDeliveryCompletedAtBetween(
                 OrderStatus.LIVREE, monthStart, monthEnd);//sum(totalPrice) des commandes LIVREE livrées ce mois
@@ -1080,7 +1080,7 @@ public class CommercialServiceImpl implements CommercialService {
         }
         Double evolutionVentesPct = (ventesMoisDernier.compareTo(BigDecimal.ZERO) > 0)
                 ? (ventesCeMois.subtract(ventesMoisDernier).doubleValue() * 100.0 / ventesMoisDernier.doubleValue())
-                : null;//((ce mois - mois dernier) / mois dernier) * 100
+                : (ventesCeMois.compareTo(BigDecimal.ZERO) > 0 ? 100.0 : 0.0);// si mois dernier=0 : +100% si ventes ce mois>0, 0% sinon
 
         long promotionsActives = couponRepository.countByIsActiveTrue();//count(coupons isActive=true)
 
