@@ -28,6 +28,26 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
     boolean existsByCompanyCode(String companyCode);
 
     /**
+     * Vérifie si un email de contact existe déjà pour une entreprise
+     */
+    boolean existsByContactEmailIgnoreCase(String contactEmail);
+
+    /**
+     * Vérifie si un email de contact existe déjà pour une autre entreprise (exclut l'id donné)
+     */
+    boolean existsByContactEmailIgnoreCaseAndIdNot(String contactEmail, Long excludeId);
+
+    /**
+     * Vérifie si un numéro de téléphone de contact existe déjà pour une entreprise
+     */
+    boolean existsByContactPhone(String contactPhone);
+
+    /**
+     * Vérifie si un numéro de téléphone existe déjà pour une autre entreprise (exclut l'id donné)
+     */
+    boolean existsByContactPhoneAndIdNot(String contactPhone, Long excludeId);
+
+    /**
      * Récupère toutes les entreprises créées par un commercial avec pagination
      *
      * @param commercial Le commercial
