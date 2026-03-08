@@ -79,6 +79,18 @@ public class CommercialServiceImpl implements CommercialService {
             throw new RuntimeException("Seuls les commerciaux peuvent créer des entreprises");
         }
 
+        // Vérifier que l'email du contact n'existe pas déjà
+        if (createCompanyDTO.getContactEmail() != null && !createCompanyDTO.getContactEmail().trim().isEmpty()
+                && companyRepository.existsByContactEmailIgnoreCase(createCompanyDTO.getContactEmail().trim())) {
+            throw new EmailAlreadyExistsException("Cet email de contact existe déjà. Utilisez un autre email.");
+        }
+
+        // Vérifier que le téléphone du contact n'existe pas déjà
+        if (createCompanyDTO.getContactPhone() != null && !createCompanyDTO.getContactPhone().trim().isEmpty()
+                && companyRepository.existsByContactPhone(createCompanyDTO.getContactPhone().trim())) {
+            throw new PhoneAlreadyExistsException("Ce numéro de téléphone existe déjà. Utilisez un autre numéro.");
+        }
+
         // Générer le code unique de l'entreprise
         String companyCode = generateUniqueCompanyCode();
 
@@ -283,9 +295,20 @@ public class CommercialServiceImpl implements CommercialService {
             company.setContactName(updateCompanyDTO.getContactName());
         }
         if (updateCompanyDTO.getContactEmail() != null) {
+            String newEmail = updateCompanyDTO.getContactEmail().trim();
+            if (!newEmail.isEmpty()
+                // Vérifier que l'email du contact n'existe pas déjà pour une autre entreprise (exclut l'id donné)
+                    && companyRepository.existsByContactEmailIgnoreCaseAndIdNot(newEmail, id)) {
+                throw new EmailAlreadyExistsException("Cet email de contact existe déjà. Utilisez un autre email.");
+            }
             company.setContactEmail(updateCompanyDTO.getContactEmail());
         }
         if (updateCompanyDTO.getContactPhone() != null) {
+            String newPhone = updateCompanyDTO.getContactPhone().trim();
+            // Vérifier que le téléphone du contact n'existe pas déjà pour une autre entreprise (exclut l'id donné)
+            if (!newPhone.isEmpty() && companyRepository.existsByContactPhoneAndIdNot(newPhone, id)) {
+                throw new PhoneAlreadyExistsException("Ce numéro de téléphone existe déjà. Utilisez un autre numéro.");
+            }
             company.setContactPhone(updateCompanyDTO.getContactPhone());
         }
         if (updateCompanyDTO.getStatus() != null) {
