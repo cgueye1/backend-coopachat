@@ -9,6 +9,7 @@ import com.example.coopachat.dtos.dashboard.commercial.CommercialDashboardKpisDT
 import java.util.List;
 import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
 import com.example.coopachat.dtos.coupons.CreateCouponDTO;
+import com.example.coopachat.dtos.coupons.IdNameDTO;
 import com.example.coopachat.dtos.coupons.UpdateCouponStatusDTO;
 import com.example.coopachat.dtos.employees.*;
 import com.example.coopachat.enums.CompanySector;
@@ -233,6 +234,16 @@ public interface CommercialService {
      * nombre de coupons actifs et nombre total d'utilisations.
      */
     CartTotalCouponStatsDTO getCartTotalCouponStats();
+
+    /**
+     * Liste des produits actifs (id, name) pour la création de coupons.
+     */
+    List<IdNameDTO> getActiveProductsForCoupon();
+
+    /**
+     * Liste des catégories (id, name) pour la création de coupons.
+     */
+    List<IdNameDTO> getCategoriesForCoupon();
 
     /**
      * KPIs du tableau de bord commercial : totalSalaries, nouveauxSalariesCeMois, commandesCeMois,

@@ -76,7 +76,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      * Filtre par statut uniquement
      */
     Page<Product> findByStatus(Boolean status, Pageable pageable);
-    List <Product> findByStatus(Boolean status);
+    List<Product> findByStatus(Boolean status);
+
+    /**
+     * Produits actifs triés par nom (pour liste déroulante coupons).
+     */
+    List<Product> findByStatusTrueOrderByNameAsc();
 
 
     /**

@@ -10,9 +10,10 @@ import com.example.coopachat.dtos.companies.UpdateCompanyDTO;
 import com.example.coopachat.dtos.companies.ProspectStatsDTO;
 import com.example.coopachat.dtos.companies.UpdateCompanyStatusDTO;
 import com.example.coopachat.dtos.coupons.CartTotalCouponStatsDTO;
-import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
 import com.example.coopachat.dtos.coupons.CouponDetailsDTO;
+import com.example.coopachat.dtos.coupons.CouponListResponseDTO;
 import com.example.coopachat.dtos.coupons.CreateCouponDTO;
+import com.example.coopachat.dtos.coupons.IdNameDTO;
 import com.example.coopachat.dtos.coupons.UpdateCouponStatusDTO;
 import com.example.coopachat.dtos.employees.CreateEmployeeDTO;
 import com.example.coopachat.dtos.employees.EmployeeDetailsDTO;
@@ -416,6 +417,18 @@ public class CommercialController {
     public ResponseEntity<CartTotalCouponStatsDTO> getCartTotalCouponStats() {
         CartTotalCouponStatsDTO stats = commercialService.getCartTotalCouponStats();
         return ResponseEntity.ok(stats);
+    }
+
+    @Operation(summary = "Liste des produits actifs pour création de coupon", description = "Retourne id et nom des produits actifs, triés par nom.")
+    @GetMapping("/coupons/products")
+    public ResponseEntity<List<IdNameDTO>> getActiveProductsForCoupon() {
+        return ResponseEntity.ok(commercialService.getActiveProductsForCoupon());
+    }
+
+    @Operation(summary = "Liste des catégories pour création de coupon", description = "Retourne id et nom des catégories.")
+    @GetMapping("/coupons/categories")
+    public ResponseEntity<List<IdNameDTO>> getCategoriesForCoupon() {
+        return ResponseEntity.ok(commercialService.getCategoriesForCoupon());
     }
 
     @Operation(
