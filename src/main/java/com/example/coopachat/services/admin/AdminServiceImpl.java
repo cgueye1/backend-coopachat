@@ -95,6 +95,7 @@ public class AdminServiceImpl implements AdminService {
     private final PaymentRepository paymentRepository;
     private final ClaimRepository claimRepository;
     private final OrderItemRepository orderItemRepository;
+    private final EmployeeRepository employeeRepository;
 
     // ============================================================================
     // 📁 GESTION DES CATÉGORIES
@@ -892,9 +893,11 @@ public class AdminServiceImpl implements AdminService {
 
         // Parcourir tous les rôles définis dans l'enum (EMPLOYEE, COMMERCIAL, DELIVERY_DRIVER, etc.)
         for (UserRole role : UserRole.values()) {
-            // UserRole.values() renvoie toutes les valeurs de l'enum UserRole 
-            // Nombre d'utilisateurs ayant ce rôle
-            long count = userRepository.countByRole(role);
+            // Pour Salarié : compter les fiches Employee (aligné avec le commercial, tous salariés du système)
+            // Pour les autres rôles : compter les Users
+            long count = (role == UserRole.EMPLOYEE)
+                    ? employeeRepository.count()
+                    : userRepository.countByRole(role);
             // Part en % par rapport au total (0 si aucun utilisateur)
             double percentage = total > 0 ? count * 100.0 / total : 0;
             // Ajouter au résultat : rôle, libellé affichable, effectif, pourcentage

@@ -63,7 +63,7 @@ public class EmailServiceImpl implements EmailService {
             log.info("Code d'activation envoyé avec succès à: {}", email);
 
         } catch (Exception e) {
-            log.error("Erreur lors de l'envoi du code d'activation à {}: {}",
+            log.error("Erreur lors de l'envoi du code d'activation à {}: {}", 
                     email, e.getMessage(), e);
             throw new RuntimeException("Impossible d'envoyer l'email d'activation", e);
         }
@@ -96,7 +96,7 @@ public class EmailServiceImpl implements EmailService {
             log.info("Code OTP envoyé avec succès à l'administrateur: {}", email);
 
         } catch (Exception e) {
-            log.error("Erreur lors de l'envoi du code OTP à {}: {}",
+            log.error("Erreur lors de l'envoi du code OTP à {}: {}", 
                     email, e.getMessage(), e);
             throw new RuntimeException("Impossible d'envoyer l'email OTP", e);
         }
