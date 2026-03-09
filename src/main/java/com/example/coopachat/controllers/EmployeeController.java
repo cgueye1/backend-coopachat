@@ -9,6 +9,7 @@ import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
 import com.example.coopachat.dtos.claim.ClaimDetailDTO;
 import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
+import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.enums.ClaimStatus;
 import com.example.coopachat.dtos.employee.EmployeeDeliveryIssueDTO;
 import com.example.coopachat.dtos.order.*;
@@ -354,9 +355,21 @@ public class EmployeeController {
         return ResponseEntity.ok("Avis enregistré avec succès");
     }
 
+    @Operation(summary = "Types de problème pour réclamation", description = "Liste des types pour le dropdown du formulaire « Soumettre une réclamation » (id, name, description).")
+    @GetMapping("/claim-problem-types")
+    public ResponseEntity<List<ReferenceItemDTO>> getClaimProblemTypes() {
+        return ResponseEntity.ok(employeeService.getClaimProblemTypes());
+    }
+
+    @Operation(summary = "Raisons problème livraison (salarié)", description = "Liste des raisons pour le dropdown du formulaire « Signaler un problème de livraison » (id, name, description).")
+    @GetMapping("/employee-delivery-issue-reasons")
+    public ResponseEntity<List<ReferenceItemDTO>> getEmployeeDeliveryIssueReasons() {
+        return ResponseEntity.ok(employeeService.getEmployeeDeliveryIssueReasons());
+    }
+
     @Operation(
             summary = "Soumettre une réclamation",
-            description = "Soumet une réclamation sur une commande livrée. Multipart avec orderItemId (produit concerné), claimProblemTypeId (ID du type de problème, voir GET /api/admin/claim-problem-types), comment (optionnel), images (optionnel, JPG/PNG max 5MB)."
+            description = "Soumet une réclamation sur une commande livrée. Multipart avec orderItemId (produit concerné), claimProblemTypeId (ID du type, voir GET /api/employee/claim-problem-types), comment (optionnel), images (optionnel, JPG/PNG max 5MB)."
     )
     @PostMapping(value = "/orders/{orderId}/claims", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> submitClaim(

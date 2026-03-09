@@ -14,6 +14,7 @@ import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.claim.ClaimDetailDTO;
 import com.example.coopachat.dtos.claim.ClaimListItemDTO;
 import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
+import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.dtos.products.*;
 import com.example.coopachat.entities.*;
@@ -1461,6 +1462,22 @@ public class EmployeeServiceImpl implements EmployeeService {
         review.setComment(reviewDTO.getComment());//Commentaire donné par l'employé 
         driverReviewRepository.save(review);
         log.info("Avis enregistré pour la commande {} (note {}/5)", order.getOrderNumber(), reviewDTO.getRating());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReferenceItemDTO> getClaimProblemTypes() {
+        return claimProblemTypeRepository.findAll().stream()
+                .map(e -> new ReferenceItemDTO(e.getId(), e.getName(), e.getDescription()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReferenceItemDTO> getEmployeeDeliveryIssueReasons() {
+        return employeeDeliveryIssueReasonRepository.findAll().stream()
+                .map(e -> new ReferenceItemDTO(e.getId(), e.getName(), e.getDescription()))
+                .collect(Collectors.toList());
     }
 
     // ---------- submitClaim : soumettre une réclamation sur une commande ----------

@@ -6,6 +6,9 @@ import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 import com.example.coopachat.dtos.driver.DeliveryDetailDTO;
 import com.example.coopachat.dtos.driver.DeliveryIssueDTO;
 import com.example.coopachat.dtos.driver.DriverDeliveriesResponseDTO;
+import com.example.coopachat.dtos.reference.ReferenceItemDTO;
+
+import java.util.List;
 
 
 /**
@@ -69,6 +72,11 @@ public interface DeliveryDriverService {
 
     /** Met à jour l'adresse du livreur (formattedAddress + lat/long, rempli par le mobile via Google). */
     void updateMyAddress(DriverAddressDTO dto);
+
+    /**
+     * Liste des raisons d'échec livraison pour le formulaire « Signaler un problème » (dropdown, livreur).
+     */
+    List<ReferenceItemDTO> getDeliveryIssueReasons();
 
     /**
      * Signaler un problème de livraison (échec) : commande passée en ECHEC_LIVRAISON,
