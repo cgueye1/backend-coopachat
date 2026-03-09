@@ -10,6 +10,7 @@ import com.example.coopachat.dtos.employees.*;
 import com.example.coopachat.entities.Address;
 import com.example.coopachat.entities.Category;
 import com.example.coopachat.entities.Company;
+import com.example.coopachat.entities.CompanySector;
 import com.example.coopachat.entities.Coupon;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Product;
@@ -51,6 +52,7 @@ import java.util.stream.Collectors;
 public class CommercialServiceImpl implements CommercialService {
 
     private final CompanyRepository companyRepository;
+    private final CompanySectorRepository companySectorRepository;
     private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
@@ -95,7 +97,11 @@ public class CommercialServiceImpl implements CommercialService {
         Company company = new Company();
         company.setCompanyCode(companyCode);
         company.setName(createCompanyDTO.getName());
-        company.setSector(createCompanyDTO.getSector());
+        if (createCompanyDTO.getSectorId() != null) {
+            CompanySector sector = companySectorRepository.findById(createCompanyDTO.getSectorId())
+                    .orElseThrow(() -> new RuntimeException("Secteur d'activité introuvable"));
+            company.setSector(sector);
+        }
         company.setLocation(createCompanyDTO.getLocation());
         company.setContactName(createCompanyDTO.getContactName());
         company.setContactEmail(createCompanyDTO.getContactEmail());
@@ -117,7 +123,7 @@ public class CommercialServiceImpl implements CommercialService {
 
     @Override
     @Transactional
-    public CompanyListResponseDTO getAllCompanies(int page, int size, String search, CompanySector sector, Boolean isActive,
+    public CompanyListResponseDTO getAllCompanies(int page, int size, String search, Long sectorId, Boolean isActive,
                                                   Boolean partnerOnly, Boolean prospectOnly, CompanyStatus prospectionStatus) {
 
         Users commercial = getCurrentUser();
@@ -132,6 +138,12 @@ public class CommercialServiceImpl implements CommercialService {
 
         // Normaliser le terme de recherche (supprimer les espaces)
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        // Résoudre le secteur (référentiel)
+        CompanySector sector = null;
+        if (sectorId != null) {
+            sector = companySectorRepository.findById(sectorId).orElse(null);
+        }
 
         // Filtre par type : partenaires uniquement ou prospects uniquement (avec option statut prospection)
         String companyType = null;
@@ -201,23 +213,23 @@ public class CommercialServiceImpl implements CommercialService {
         response.setHasNext(companyPage.hasNext());
         response.setHasPrevious(companyPage.hasPrevious());
 
-        log.info("Page {} de {} entreprises récupérée pour le commercial {} (total: {} entreprises, recherche: '{}', secteur: {}, isActive: {}, type: {})", 
+        log.info("Page {} de {} entreprises récupérée pour le commercial {} (total: {} entreprises, recherche: '{}', secteurId: {}, isActive: {}, type: {})", 
                 page + 1, companyPage.getTotalPages(), commercial.getEmail(), companyPage.getTotalElements(), 
-                searchTerm != null ? searchTerm : "aucune", sector != null ? sector : "tous", isActive != null ? isActive : "tous", companyType != null ? companyType : "tous");
+                searchTerm != null ? searchTerm : "aucune", sectorId != null ? sectorId : "tous", isActive != null ? isActive : "tous", companyType != null ? companyType : "tous");
 
         return response;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CompanyListResponseDTO getCompaniesOnly(int page, int size, String search, CompanySector sector, Boolean isActive) {
-        return getAllCompanies(page, size, search, sector, isActive, true, false, null);
+    public CompanyListResponseDTO getCompaniesOnly(int page, int size, String search, Long sectorId, Boolean isActive) {
+        return getAllCompanies(page, size, search, sectorId, isActive, true, false, null);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CompanyListResponseDTO getProspectsOnly(int page, int size, String search, CompanySector sector, CompanyStatus prospectionStatus) {
-        return getAllCompanies(page, size, search, sector, null, false, true, prospectionStatus);
+    public CompanyListResponseDTO getProspectsOnly(int page, int size, String search, Long sectorId, CompanyStatus prospectionStatus) {
+        return getAllCompanies(page, size, search, sectorId, null, false, true, prospectionStatus);
     }
 
     @Override
@@ -285,8 +297,10 @@ public class CommercialServiceImpl implements CommercialService {
         if (updateCompanyDTO.getName() != null) {
             company.setName(updateCompanyDTO.getName());
         }
-        if (updateCompanyDTO.getSector() != null) {
-            company.setSector(updateCompanyDTO.getSector());
+        if (updateCompanyDTO.getSectorId() != null) {
+            CompanySector sector = companySectorRepository.findById(updateCompanyDTO.getSectorId())
+                    .orElseThrow(() -> new RuntimeException("Secteur d'activité introuvable"));
+            company.setSector(sector);
         }
         if (updateCompanyDTO.getLocation() != null) {
             company.setLocation(updateCompanyDTO.getLocation());
@@ -1282,7 +1296,7 @@ public class CommercialServiceImpl implements CommercialService {
         CompanyListItemDTO dto = new CompanyListItemDTO();
         dto.setId(company.getId());
         dto.setName(company.getName());
-        dto.setSector(formatSector(company.getSector()));
+        dto.setSector(company.getSector() != null ? company.getSector().getName() : null);
         dto.setLocation(company.getLocation());
         dto.setContactName(company.getContactName());
         dto.setContactPhone(company.getContactPhone());
@@ -1291,36 +1305,6 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setLogo(company.getLogo());
         dto.setIsActive(company.getIsActive());
         return dto;
-    }
-
-    private String formatSector(CompanySector sector) {
-        if (sector == null) {
-            return "Autre";
-        }
-        return switch (sector) {
-            case TECHNOLOGY -> "Technologie";
-            case FINANCE -> "Finance";
-            case HEALTHCARE -> "Santé";
-            case EDUCATION -> "Éducation";
-            case RETAIL -> "Commerce de détail";
-            case MANUFACTURING -> "Industrie manufacturière";
-            case CONSTRUCTION -> "BTP / Construction";
-            case TRANSPORTATION -> "Transport";
-            case HOSPITALITY -> "Hôtellerie / Restauration";
-            case ENERGY -> "Énergie";
-            case TELECOMMUNICATIONS -> "Télécommunications";
-            case AGRICULTURE -> "Agriculture";
-            case FOOD_AND_BEVERAGE -> "Agroalimentaire";
-            case PHARMACEUTICAL -> "Pharmaceutique";
-            case AUTOMOTIVE -> "Automobile";
-            case TEXTILE -> "Textile";
-            case CONSULTING -> "Conseil";
-            case REAL_ESTATE -> "Immobilier";
-            case MEDIA -> "Médias";
-            case GOVERNMENT -> "Secteur public";
-            case NON_PROFIT -> "Association / ONG";
-            case OTHER -> "Autre";
-        };
     }
 
     /**
@@ -1340,7 +1324,8 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setCreatedAt(company.getCreatedAt());
         dto.setStatus(company.getStatus() != null ? company.getStatus().getLabel() : null); // Libellé prospection (ex. Partenaire signé)
         dto.setCompanyCode(company.getCompanyCode());
-        dto.setSector(company.getSector());
+        dto.setSectorId(company.getSector() != null ? company.getSector().getId() : null);
+        dto.setSectorLabel(company.getSector() != null ? company.getSector().getName() : null);
         dto.setNote(company.getNote());
         dto.setLogo(company.getLogo());
         dto.setIsActive(company.getIsActive());

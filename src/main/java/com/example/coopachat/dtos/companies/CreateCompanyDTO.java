@@ -1,7 +1,6 @@
 
 package com.example.coopachat.dtos.companies;
 
-import com.example.coopachat.enums.CompanySector;
 import com.example.coopachat.enums.CompanyStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
@@ -29,7 +28,7 @@ public class CreateCompanyDTO {
     @NotBlank(message = "Le nom de l'entreprise est obligatoire")
     private String name; // Nom de l'entreprise
 
-    private CompanySector sector; // Secteur d'activité (optionnel)
+    private Long sectorId; // ID du secteur (référentiel admin, optionnel)
 
     @NotBlank(message = "La localisation est obligatoire")
     private String location; // Localisation (adresse ou région)

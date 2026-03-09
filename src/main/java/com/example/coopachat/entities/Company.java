@@ -1,6 +1,5 @@
 package com.example.coopachat.entities;
 
-import com.example.coopachat.enums.CompanySector;
 import com.example.coopachat.enums.CompanyStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
@@ -35,8 +34,9 @@ public class  Company {
     @NotBlank(message = "Le nom de l'entreprise est obligatoire")
     private String name; // Nom de l'entreprise
 
-    @Enumerated(EnumType.STRING)
-    private CompanySector sector; // Secteur d'activité
+    @ManyToOne
+    @JoinColumn(name = "company_sector_id")
+    private CompanySector sector; // Secteur d'activité (référentiel admin)
 
     @Column(nullable = false)
     @NotBlank(message = "La localisation est obligatoire")

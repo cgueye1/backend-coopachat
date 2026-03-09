@@ -2,7 +2,7 @@ package com.example.coopachat.repositories;
 
 import com.example.coopachat.entities.Company;
 import com.example.coopachat.entities.Users;
-import com.example.coopachat.enums.CompanySector;
+import com.example.coopachat.entities.CompanySector;
 import com.example.coopachat.enums.CompanyStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

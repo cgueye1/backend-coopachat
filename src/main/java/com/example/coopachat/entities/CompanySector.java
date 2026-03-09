@@ -1,0 +1,29 @@
+package com.example.coopachat.entities;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * Secteur d'activité d'une entreprise (géré par l'admin : nom + description).
+ */
+@Entity
+@Table(name = "company_sectors")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CompanySector {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @NotBlank(message = "Le nom est obligatoire")
+    @Column(nullable = false, length = 120)
+    private String name;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+}
