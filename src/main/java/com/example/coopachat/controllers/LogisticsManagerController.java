@@ -521,6 +521,15 @@ public class LogisticsManagerController {
         return ResponseEntity.ok("Tournée de livraison mis à jour avec succès");
     }
 
+    @Operation(summary = "Retirer une commande d'une tournée", description = "Retire la commande de la tournée (tournée au statut ASSIGNEE uniquement).")
+    @DeleteMapping("/delivery-tours/{tourId}/orders/{orderId}")
+    public ResponseEntity<String> removeOrderFromTour(
+            @PathVariable Long tourId,
+            @PathVariable Long orderId) {
+        logisticsManagerService.removeOrderFromTour(tourId, orderId);
+        return ResponseEntity.ok("Commande retirée de la tournée");
+    }
+
     @Operation(
             summary = "Annuler une tournée",
             description = "Annule une tournée assignée avant départ livreur (statut: ASSIGNEE → ANNULEE) "
