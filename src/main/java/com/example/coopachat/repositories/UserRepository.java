@@ -59,6 +59,21 @@ public interface UserRepository extends JpaRepository<Users, Long> {
             @Param("isActive") Boolean isActive,
             Pageable pageable);
 
+    /** Utilisateurs Salarié ayant une fiche Employee (aligné avec le graphique et la liste commercial). */
+    @Query("SELECT u FROM Users u INNER JOIN Employee e ON e.user = u WHERE u.role = :role " +
+            "AND (:search IS NULL OR :search = '' OR " +
+            "      LOWER(u.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "      LOWER(u.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "      LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "      LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "AND (:isActive IS NULL OR u.isActive = :isActive) " +
+            "ORDER BY u.createdAt DESC")
+    Page<Users> findAllSalariesWithFilters(
+            @Param("role") UserRole role,
+            @Param("search") String search,
+            @Param("isActive") Boolean isActive,
+            Pageable pageable);
+
     // ============================================================================
     // 📊 STATISTIQUES (admin)
     // ============================================================================

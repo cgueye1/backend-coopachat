@@ -829,8 +829,11 @@ public class AdminServiceImpl implements AdminService {
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
         Pageable pageable = PageRequest.of(page, size);
 
-        // Récupérer la page d'utilisateurs avec les filtres (recherche, rôle, statut actif/inactif)
-        Page<Users> userPage = userRepository.findAllWithFilters(searchTerm, role, status, pageable);
+        // Pour Salarié : uniquement les Users ayant une fiche Employee (aligné avec le graphique et la liste commercial)
+        // Pour les autres rôles : tous les Users
+        Page<Users> userPage = (role == UserRole.EMPLOYEE)
+                ? userRepository.findAllSalariesWithFilters(UserRole.EMPLOYEE, searchTerm, status, pageable)
+                : userRepository.findAllWithFilters(searchTerm, role, status, pageable);
 
         // Mapper chaque utilisateur vers un DTO de liste
         List<UserListItemDTO> content = userPage.getContent().stream()
