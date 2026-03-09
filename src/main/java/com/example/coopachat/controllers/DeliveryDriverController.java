@@ -6,6 +6,7 @@ import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 import com.example.coopachat.dtos.driver.DeliveryDetailDTO;
 import com.example.coopachat.dtos.driver.DeliveryIssueDTO;
 import com.example.coopachat.dtos.driver.DriverDeliveriesResponseDTO;
+import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.services.DeliveryDriver.DeliveryDriverService;
 import com.example.coopachat.services.admin.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 
 /**
@@ -119,6 +122,12 @@ public class DeliveryDriverController {
     public ResponseEntity<String> confirmCashPayment(@PathVariable Long orderId) {
         deliveryDriverService.confirmCashPayment(orderId);
         return ResponseEntity.ok("Paiement en espèces confirmé");
+    }
+
+    @Operation(summary = "Raisons d'échec livraison (livreur)", description = "Liste des raisons pour le dropdown du formulaire « Signaler un problème » (id, name, description).")
+    @GetMapping("/delivery-issue-reasons")
+    public ResponseEntity<List<ReferenceItemDTO>> getDeliveryIssueReasons() {
+        return ResponseEntity.ok(deliveryDriverService.getDeliveryIssueReasons());
     }
 
     @Operation(

@@ -21,6 +21,7 @@ import com.example.coopachat.dtos.employees.EmployeeListResponseDTO;
 import com.example.coopachat.dtos.employees.EmployeeStatsDTO;
 import com.example.coopachat.dtos.employees.UpdateEmployeeDTO;
 import com.example.coopachat.dtos.employees.UpdateEmployeeStatusDTO;
+import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.enums.CompanyStatus;
 import com.example.coopachat.enums.CouponScope;
 import com.example.coopachat.enums.CouponStatus;
@@ -54,6 +55,12 @@ public class CommercialController {
     // ============================================================================
     // 🏢 GESTION DES ENTREPRISES
     // ============================================================================
+
+    @Operation(summary = "Lister les secteurs d'activité", description = "Référentiel pour formulaires et filtres (lecture seule).")
+    @GetMapping("/company-sectors")
+    public ResponseEntity<List<ReferenceItemDTO>> getCompanySectors() {
+        return ResponseEntity.ok(commercialService.getCompanySectors());
+    }
 
     @Operation(
             summary = "Créer une entreprise",

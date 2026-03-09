@@ -9,6 +9,7 @@ import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.claim.ClaimDetailDTO;
 import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
+import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.dtos.order.*;
 import com.example.coopachat.enums.ClaimStatus;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
@@ -234,6 +235,16 @@ public interface EmployeeService {
      * Possible uniquement si statut = LIVREE, pas déjà noté, note 1-5.
      */
     void submitReview(Long orderId, SubmitReviewDTO dto);
+
+    /**
+     * Liste des types de problème pour le formulaire « Soumettre une réclamation » (dropdown).
+     */
+    List<ReferenceItemDTO> getClaimProblemTypes();
+
+    /**
+     * Liste des raisons pour le formulaire « Signaler un problème de livraison » (dropdown, salarié).
+     */
+    List<ReferenceItemDTO> getEmployeeDeliveryIssueReasons();
 
     /**
      * Soumettre une réclamation sur une commande (produit concerné, nature du problème, commentaire).

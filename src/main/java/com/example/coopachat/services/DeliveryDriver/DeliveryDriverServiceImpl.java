@@ -4,6 +4,7 @@ import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDashboardDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPerformanceItemDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
+import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.dtos.driver.DeliveryDetailDTO;
 import com.example.coopachat.dtos.driver.DeliveryIssueDTO;
 import com.example.coopachat.dtos.driver.DriverDeliveryCardDTO;
@@ -471,6 +472,14 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     }
 
  
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReferenceItemDTO> getDeliveryIssueReasons() {
+        return deliveryIssueReasonRepository.findAll().stream()
+                .map(e -> new ReferenceItemDTO(e.getId(), e.getName(), e.getDescription()))
+                .collect(Collectors.toList());
+    }
+
     //--------------------------------SIGNALER UN PROBLÈME (échec livraison)--------------------------------
     @Override
     @Transactional

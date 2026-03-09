@@ -1,6 +1,7 @@
 package com.example.coopachat.services.commercial;
 
 import com.example.coopachat.dtos.companies.*;
+import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.dtos.coupons.*;
 import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
 import com.example.coopachat.dtos.dashboard.commercial.CommandesParMoisDTO;
@@ -242,6 +243,14 @@ public class CommercialServiceImpl implements CommercialService {
         Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "id"));
         List<Company> prospects = companyRepository.findByCommercialAndStatusNotOrderByIdDesc(commercial, pageable);
         return prospects.stream().map(this::mapToCompanyListItemDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReferenceItemDTO> getCompanySectors() {
+        return companySectorRepository.findAll().stream()
+                .map(e -> new ReferenceItemDTO(e.getId(), e.getName(), e.getDescription()))
+                .collect(Collectors.toList());
     }
 
     @Override

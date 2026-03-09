@@ -1,6 +1,7 @@
 package com.example.coopachat.services.commercial;
 
 import com.example.coopachat.dtos.companies.*;
+import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.dtos.coupons.CartTotalCouponStatsDTO;
 import com.example.coopachat.dtos.coupons.CouponDetailsDTO;
 import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
@@ -64,6 +65,9 @@ public interface CommercialService {
      * @return Liste des derniers prospects (ordre id décroissant)
      */
     List<CompanyListItemDTO> getLastProspects(int limit);
+
+    /** Liste des secteurs d'activité (référentiel admin) pour formulaires et filtres. */
+    List<ReferenceItemDTO> getCompanySectors();
 
     /**
      * Récupère les détails d'une entreprise spécifique par son ID
