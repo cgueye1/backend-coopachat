@@ -1,7 +1,6 @@
 package com.example.coopachat.entities;
 
 import com.example.coopachat.enums.ClaimDecisionType;
-import com.example.coopachat.enums.ClaimProblemType;
 import com.example.coopachat.enums.ClaimStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
@@ -42,9 +41,10 @@ public class Claim {
     @JoinColumn(name = "order_item_id")
     private OrderItem orderItem;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "problem_type", nullable = false)
-    private ClaimProblemType problemType;//Nature du problème
+    /** Nature du problème (géré par l'admin : nom + description). */
+    @ManyToOne
+    @JoinColumn(name = "claim_problem_type_id", nullable = false)
+    private ClaimProblemType problemType;
 
     @Column(name = "comment", columnDefinition = "TEXT")
     private String comment;//Commentaire de la réclamation

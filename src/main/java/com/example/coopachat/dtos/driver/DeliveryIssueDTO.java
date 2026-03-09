@@ -1,6 +1,5 @@
 package com.example.coopachat.dtos.driver;
 
-import com.example.coopachat.enums.DeliveryIssueReason;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,10 +14,10 @@ import lombok.NoArgsConstructor;
 public class DeliveryIssueDTO {
 
     /**
-     * Raison du problème (enum : Client absent, Adresse introuvable, etc.).
+     * ID de la raison (référentiel admin : delivery-issue-reasons).
      */
     @NotNull(message = "La raison est obligatoire")
-    private DeliveryIssueReason reason;
+    private Long reasonId;
 
     /**
      * Commentaire optionnel du livreur.

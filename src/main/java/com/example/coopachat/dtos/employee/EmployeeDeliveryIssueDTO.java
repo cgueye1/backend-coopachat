@@ -1,6 +1,5 @@
 package com.example.coopachat.dtos.employee;
 
-import com.example.coopachat.enums.EmployeeDeliveryIssueReason;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,8 +13,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class EmployeeDeliveryIssueDTO {
 
+    /**
+     * ID de la raison (référentiel admin : employee-delivery-issue-reasons).
+     */
     @NotNull(message = "La raison est obligatoire")
-    private EmployeeDeliveryIssueReason reason;
+    private Long reasonId;
 
     private String comment;
 }

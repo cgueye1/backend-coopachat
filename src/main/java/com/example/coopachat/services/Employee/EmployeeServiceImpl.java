@@ -77,6 +77,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final FeeService feeService;
     private final PaymentRepository paymentRepository;
     private final ClaimRepository claimRepository;
+    private final ClaimProblemTypeRepository claimProblemTypeRepository;
+    private final EmployeeDeliveryIssueReasonRepository employeeDeliveryIssueReasonRepository;
     private final EmployeeNotificationService employeeNotificationService;
     private final DeliveryIssueReportRepository deliveryIssueReportRepository;
     private final com.example.coopachat.services.DeliveryDriver.DriverNotificationService driverNotificationService;
@@ -1464,7 +1466,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     // ---------- submitClaim : soumettre une réclamation sur une commande ----------
     @Override
     @Transactional
-    public void submitClaim(Long orderId, Long orderItemId, ClaimProblemType problemType, String comment, List<MultipartFile> images) {
+    public void submitClaim(Long orderId, Long orderItemId, Long claimProblemTypeId, String comment, List<MultipartFile> images) {
 
         // 1. Récupérer l'utilisateur connecté
         Users currentUser = getCurrentUser();
@@ -1486,7 +1488,11 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new RuntimeException("Seule une commande livrée peut faire l'objet d'une réclamation");
         }
 
-        // 5. Récupérer le produit concerné (pour le remboursement RL)
+        // 5. Type de problème (référentiel admin)
+        ClaimProblemType problemTypeEntity = claimProblemTypeRepository.findById(claimProblemTypeId)
+                .orElseThrow(() -> new RuntimeException("Type de problème introuvable"));
+
+        // 6. Récupérer le produit concerné (pour le remboursement RL)
         OrderItem concernedItem = order.getItems().stream()
                 .filter(item -> item.getId() != null && item.getId().equals(orderItemId))
                 .findFirst()
@@ -1494,16 +1500,16 @@ public class EmployeeServiceImpl implements EmployeeService {
                         "Le produit sélectionné n'appartient pas à cette commande"
                 ));
 
-        // 6. Créer la réclamation
+        // 7. Créer la réclamation
         Claim claim = new Claim();
         claim.setOrder(order);
         claim.setEmployee(employee);
         claim.setOrderItem(concernedItem);
-        claim.setProblemType(problemType);
+        claim.setProblemType(problemTypeEntity);
         claim.setComment(comment);
         claim.setStatus(ClaimStatus.EN_ATTENTE);
 
-        // 7. Upload des photos vers MinIO (optionnel)
+        // 8. Upload des photos vers MinIO (optionnel)
         if (images != null && !images.isEmpty()) {
             List<String> uploadedUrls = minioService.uploadMultipleFiles(images, "claims");
             if (uploadedUrls != null && !uploadedUrls.isEmpty()) {
@@ -1511,13 +1517,13 @@ public class EmployeeServiceImpl implements EmployeeService {
             }
         }
 
-        // 8. Sauvegarder
+        // 9. Sauvegarder
         claimRepository.save(claim);
 
         log.info("Réclamation créée pour la commande {} - Produit: {} (nature: {})",
                 order.getOrderNumber(),
                 concernedItem.getProduct().getName(),
-                problemType.getLabel());
+                problemTypeEntity.getName());
     }
 
     // ---------- getMyClaims : historique des réclamations du salarié connecté ----------
@@ -1602,12 +1608,15 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (order.getStatus() != OrderStatus.EN_PREPARATION && order.getStatus() != OrderStatus.EN_COURS && order.getStatus() != OrderStatus.ARRIVE) {
             throw new RuntimeException("Seule une livraison en préparation ou en cours peut être signalée");
         }
-        // 1. Créer le signalement
-        String reasonLabel = dto.getReason() != null ? dto.getReason().getLabel() : "Non précisée";
+        // 1. Raison (référentiel admin)
+        EmployeeDeliveryIssueReason reasonEntity = employeeDeliveryIssueReasonRepository.findById(dto.getReasonId())
+                .orElseThrow(() -> new RuntimeException("Raison introuvable"));
+        String reasonLabel = reasonEntity.getName();
         DeliveryIssueReport report = new DeliveryIssueReport();
         report.setOrder(order);
         report.setReportedBy(employee.getUser());
         report.setReportSource(DeliveryIssueReportSource.EMPLOYEE);
+        report.setEmployeeReason(reasonEntity);
         report.setReason(reasonLabel);
         report.setComment(dto.getComment());
         deliveryIssueReportRepository.save(report);
@@ -1648,7 +1657,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             dto.setEmployeeName(null);
         }
     
-        dto.setProblemTypeLabel(c.getProblemType() != null ? c.getProblemType().getLabel() : null);
+        dto.setProblemTypeLabel(c.getProblemType() != null ? c.getProblemType().getName() : null);
         dto.setStatus(c.getStatus() != null ? c.getStatus().getLabel() : null);
         dto.setCreatedAt(c.getCreatedAt());
         // Décision et montant remboursé (si la réclamation a été traitée)
@@ -1684,7 +1693,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 dto.setProductImage(oi.getProduct().getImage());
             }
         }
-        dto.setProblemTypeLabel(c.getProblemType() != null ? c.getProblemType().getLabel() : null);
+        dto.setProblemTypeLabel(c.getProblemType() != null ? c.getProblemType().getName() : null);
         dto.setComment(c.getComment());
         dto.setPhotoUrls(c.getPhotoUrls());
         // Décision (réintégration / remboursement) et motif de rejet si rejeté

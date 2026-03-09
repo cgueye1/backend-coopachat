@@ -37,8 +37,18 @@ public class DeliveryIssueReport {
     @Column(name = "report_source", nullable = false)
     private DeliveryIssueReportSource reportSource;
 
-    /** Libellé de la raison (livreur : DeliveryIssueReason, salarié : EmployeeDeliveryIssueReason). */
-    @Column(name = "reason", nullable = false, length = 100)
+    /** Raison côté livreur (référentiel admin). Rempli lorsque reportSource = DRIVER. */
+    @ManyToOne
+    @JoinColumn(name = "delivery_issue_reason_id")
+    private DeliveryIssueReason driverReason;
+
+    /** Raison côté salarié (référentiel admin). Rempli lorsque reportSource = EMPLOYEE. */
+    @ManyToOne
+    @JoinColumn(name = "employee_delivery_issue_reason_id")
+    private EmployeeDeliveryIssueReason employeeReason;
+
+    /** Libellé de la raison (copie du nom du référentiel pour affichage / historique). */
+    @Column(name = "reason", nullable = false, length = 255)
     private String reason;
 
     @Column(name = "comment", columnDefinition = "TEXT")

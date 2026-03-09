@@ -28,6 +28,8 @@ import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
 import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
+import com.example.coopachat.dtos.reference.CreateReferenceItemDTO;
+import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.enums.UserRole;
 import java.util.List;
 import org.springframework.core.io.ByteArrayResource;
@@ -278,4 +280,26 @@ public interface AdminService {
      * Chaque alerte contient type, message, detail, module (LIVRAISONS / STOCKS pour la navigation), date.
      */
     AdminAlertsDTO getAlerts();
+
+    // ============================================================================
+    // 📋 RÉFÉRENTIELS (types réclamation, raisons livraison livreur/salarié)
+    // ============================================================================
+
+    List<ReferenceItemDTO> getAllClaimProblemTypes();
+    ReferenceItemDTO getClaimProblemTypeById(Long id);
+    void createClaimProblemType(CreateReferenceItemDTO dto);
+    void updateClaimProblemType(Long id, CreateReferenceItemDTO dto);
+    void deleteClaimProblemType(Long id);
+
+    List<ReferenceItemDTO> getAllDeliveryIssueReasons();
+    ReferenceItemDTO getDeliveryIssueReasonById(Long id);
+    void createDeliveryIssueReason(CreateReferenceItemDTO dto);
+    void updateDeliveryIssueReason(Long id, CreateReferenceItemDTO dto);
+    void deleteDeliveryIssueReason(Long id);
+
+    List<ReferenceItemDTO> getAllEmployeeDeliveryIssueReasons();
+    ReferenceItemDTO getEmployeeDeliveryIssueReasonById(Long id);
+    void createEmployeeDeliveryIssueReason(CreateReferenceItemDTO dto);
+    void updateEmployeeDeliveryIssueReason(Long id, CreateReferenceItemDTO dto);
+    void deleteEmployeeDeliveryIssueReason(Long id);
 }
