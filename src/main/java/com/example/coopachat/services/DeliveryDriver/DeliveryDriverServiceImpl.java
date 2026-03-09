@@ -238,16 +238,27 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
             throw new RuntimeException("Cette commande n'est plus en attente de récupération");
         }
 
-        // 8. Passer la commande en EN_PREPARATION et enregistrer l'heure de récupération
+        // 8. Une seule commande "en cours" à la fois : pas de récupération tant qu'une autre est EN_PREPARATION, EN_COURS ou ARRIVE
+        boolean autreEnCours = tour.getOrders().stream()
+                .filter(o -> !o.getId().equals(order.getId()))
+                .anyMatch(o -> o.getStatus() == OrderStatus.EN_PREPARATION
+                        || o.getStatus() == OrderStatus.EN_COURS
+                        || o.getStatus() == OrderStatus.ARRIVE);
+        if (autreEnCours) {
+            throw new RuntimeException(
+                    "Une commande est déjà en cours (préparation, livraison ou arrivée). " +
+                            "Veuillez la livrer ou la signaler en échec avant de récupérer une autre.");
+        }
+
+        // 9. Passer la commande en EN_PREPARATION et enregistrer l'heure de récupération
         order.setStatus(OrderStatus.EN_PREPARATION);
         order.setPickupStartedAt(LocalDateTime.now());
         orderRepository.save(order);
 
-        // 9. Notifier le salarié que le livreur a récupéré sa commande
+        // 10. Notifier le salarié que le livreur a récupéré sa commande
         employeeNotificationService.notifyPickupConfirmed(order);
-        
-        //     On vient d'en mettre une en EN_PREPARATION → s'il n'y en a qu'une au total, c'est la première :
-        //     on passe la tournée en EN_COURS et on notifie le RL. Sinon (déjà d'autres en préparation), on ne fait que sauvegarder.
+
+        // Une seule commande en cours à la fois : la première récupérée fait passer la tournée en EN_COURS
         long nbDejaRecuperees = tour.getOrders().stream()
                 .filter(o -> o.getStatus() != OrderStatus.VALIDEE)
                 .count();
