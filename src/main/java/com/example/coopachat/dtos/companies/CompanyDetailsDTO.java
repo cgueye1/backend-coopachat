@@ -1,7 +1,6 @@
 package com.example.coopachat.dtos.companies;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.example.coopachat.enums.CompanySector;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -28,7 +27,8 @@ public class CompanyDetailsDTO {
     
     private String status; // Libellé du statut de prospection (ex. Partenaire signé, En attente)
     private String companyCode; // Code unique de l'entreprise
-    private CompanySector sector; // Secteur d'activité
+    private Long sectorId;
+    private String sectorLabel; // Libellé du secteur (nom)
     private String note; // Commentaires ou notes
     private String logo; // Nom du fichier logo (pour affichage via /api/files/{filename})
     private Boolean isActive; // Entreprise activée (toggle)

@@ -899,4 +899,49 @@ public class AdminController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @Operation(summary = "Lister les secteurs d'activité (entreprises)")
+    @GetMapping("/company-sectors")
+    public ResponseEntity<List<ReferenceItemDTO>> getAllCompanySectors() {
+        return ResponseEntity.ok(adminService.getAllCompanySectors());
+    }
+
+    @Operation(summary = "Détail d'un secteur d'activité")
+    @GetMapping("/company-sectors/{id}")
+    public ResponseEntity<ReferenceItemDTO> getCompanySectorById(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.getCompanySectorById(id));
+    }
+
+    @Operation(summary = "Créer un secteur d'activité")
+    @PostMapping("/company-sectors")
+    public ResponseEntity<String> createCompanySector(@RequestBody @Valid CreateReferenceItemDTO dto) {
+        try {
+            adminService.createCompanySector(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body("Secteur créé");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Modifier un secteur d'activité")
+    @PutMapping("/company-sectors/{id}")
+    public ResponseEntity<String> updateCompanySector(@PathVariable Long id, @RequestBody @Valid CreateReferenceItemDTO dto) {
+        try {
+            adminService.updateCompanySector(id, dto);
+            return ResponseEntity.ok("Secteur mis à jour");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Supprimer un secteur d'activité")
+    @DeleteMapping("/company-sectors/{id}")
+    public ResponseEntity<String> deleteCompanySector(@PathVariable Long id) {
+        try {
+            adminService.deleteCompanySector(id);
+            return ResponseEntity.ok("Secteur supprimé");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

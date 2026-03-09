@@ -1,6 +1,5 @@
 package com.example.coopachat.dtos.companies;
 
-import com.example.coopachat.enums.CompanySector;
 import com.example.coopachat.enums.CompanyStatus;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
@@ -19,7 +18,7 @@ public class UpdateCompanyDTO {
 
     private String name;
 
-    private CompanySector sector;
+    private Long sectorId;
 
     private String location;
 

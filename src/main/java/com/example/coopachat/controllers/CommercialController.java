@@ -21,7 +21,6 @@ import com.example.coopachat.dtos.employees.EmployeeListResponseDTO;
 import com.example.coopachat.dtos.employees.EmployeeStatsDTO;
 import com.example.coopachat.dtos.employees.UpdateEmployeeDTO;
 import com.example.coopachat.dtos.employees.UpdateEmployeeStatusDTO;
-import com.example.coopachat.enums.CompanySector;
 import com.example.coopachat.enums.CompanyStatus;
 import com.example.coopachat.enums.CouponScope;
 import com.example.coopachat.enums.CouponStatus;
@@ -77,8 +76,8 @@ public class CommercialController {
             @Parameter(description = "Statut de prospection (ex. En attente, Partenaire signé)", required = true)
             @RequestParam String status,
 
-            @Parameter(description = "Secteur d'activité")
-            @RequestParam(required = false) String sector,
+            @Parameter(description = "ID du secteur d'activité (référentiel GET /api/admin/company-sectors)")
+            @RequestParam(required = false) Long sectorId,
 
             @Parameter(description = "Email du contact")
             @RequestParam(required = false) String contactEmail,
@@ -109,7 +108,7 @@ public class CommercialController {
             dto.setContactName(contactName != null ? contactName.trim() : "");
             dto.setContactPhone(contactPhone != null ? contactPhone.trim() : "");
             dto.setStatus(CompanyStatus.fromLabelOrName(status));
-            dto.setSector(CompanySector.fromLabelOrName(sector));
+            dto.setSectorId(sectorId);
             dto.setContactEmail(contactEmail != null && !contactEmail.isBlank() ? contactEmail.trim() : null);
             dto.setNote(note != null && !note.isBlank() ? note.trim() : null);
             dto.setLogo(logoFileName);
@@ -144,10 +143,10 @@ public class CommercialController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "6") int size,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) CompanySector sector,
+            @RequestParam(required = false) Long sectorId,
             @RequestParam(required = false) com.example.coopachat.enums.CompanyStatus prospectionStatus
     ) {
-        CompanyListResponseDTO response = commercialService.getProspectsOnly(page, size, search, sector, prospectionStatus);
+        CompanyListResponseDTO response = commercialService.getProspectsOnly(page, size, search, sectorId, prospectionStatus);
         return ResponseEntity.ok(response);
     }
 
@@ -198,10 +197,10 @@ public class CommercialController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "6") int size,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) CompanySector sector,
+            @RequestParam(required = false) Long sectorId,
             @RequestParam(required = false) Boolean isActive
     ) {
-        CompanyListResponseDTO response = commercialService.getCompaniesOnly(page, size, search, sector, isActive);
+        CompanyListResponseDTO response = commercialService.getCompaniesOnly(page, size, search, sectorId, isActive);
         return ResponseEntity.ok(response);
     }
 

@@ -12,7 +12,6 @@ import com.example.coopachat.dtos.coupons.CreateCouponDTO;
 import com.example.coopachat.dtos.coupons.IdNameDTO;
 import com.example.coopachat.dtos.coupons.UpdateCouponStatusDTO;
 import com.example.coopachat.dtos.employees.*;
-import com.example.coopachat.enums.CompanySector;
 import com.example.coopachat.enums.CompanyStatus;
 import com.example.coopachat.enums.CouponScope;
 import com.example.coopachat.enums.CouponStatus;
@@ -45,18 +44,18 @@ public interface CommercialService {
      * @return Réponse paginée contenant la liste des entreprises et les métadonnées de pagination
      * @throws RuntimeException si le commercial n'existe pas ou si une erreur survient
      */
-    CompanyListResponseDTO getAllCompanies(int page, int size, String search, CompanySector sector, Boolean isActive,
+    CompanyListResponseDTO getAllCompanies(int page, int size, String search, Long sectorId, Boolean isActive,
                                           Boolean partnerOnly, Boolean prospectOnly, CompanyStatus prospectionStatus);
 
     /**
      * Liste paginée des entreprises partenaires uniquement (status = PARTNER_SIGNED).
      */
-    CompanyListResponseDTO getCompaniesOnly(int page, int size, String search, CompanySector sector, Boolean isActive);
+    CompanyListResponseDTO getCompaniesOnly(int page, int size, String search, Long sectorId, Boolean isActive);
 
     /**
      * Liste paginée des prospects uniquement (status != PARTNER_SIGNED).
      */
-    CompanyListResponseDTO getProspectsOnly(int page, int size, String search, CompanySector sector, CompanyStatus prospectionStatus);
+    CompanyListResponseDTO getProspectsOnly(int page, int size, String search, Long sectorId, CompanyStatus prospectionStatus);
 
     /**
      * Récupère les N derniers prospects (entreprises dont le statut de prospection n'est pas Partenaire signé).

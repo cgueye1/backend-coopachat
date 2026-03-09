@@ -302,4 +302,10 @@ public interface AdminService {
     void createEmployeeDeliveryIssueReason(CreateReferenceItemDTO dto);
     void updateEmployeeDeliveryIssueReason(Long id, CreateReferenceItemDTO dto);
     void deleteEmployeeDeliveryIssueReason(Long id);
+
+    List<ReferenceItemDTO> getAllCompanySectors();
+    ReferenceItemDTO getCompanySectorById(Long id);
+    void createCompanySector(CreateReferenceItemDTO dto);
+    void updateCompanySector(Long id, CreateReferenceItemDTO dto);
+    void deleteCompanySector(Long id);
 }

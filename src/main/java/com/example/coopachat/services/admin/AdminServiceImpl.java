@@ -101,6 +101,7 @@ public class AdminServiceImpl implements AdminService {
     private final ClaimProblemTypeRepository claimProblemTypeRepository;
     private final DeliveryIssueReasonRepository deliveryIssueReasonRepository;
     private final EmployeeDeliveryIssueReasonRepository employeeDeliveryIssueReasonRepository;
+    private final CompanySectorRepository companySectorRepository;
 
     // ============================================================================
     // 📁 GESTION DES CATÉGORIES
@@ -1395,6 +1396,50 @@ public class AdminServiceImpl implements AdminService {
             throw new RuntimeException("Raison introuvable");
         }
         employeeDeliveryIssueReasonRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReferenceItemDTO> getAllCompanySectors() {
+        return companySectorRepository.findAll().stream()
+                .map(e -> new ReferenceItemDTO(e.getId(), e.getName(), e.getDescription()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReferenceItemDTO getCompanySectorById(Long id) {
+        CompanySector e = companySectorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Secteur introuvable"));
+        return new ReferenceItemDTO(e.getId(), e.getName(), e.getDescription());
+    }
+
+    @Override
+    @Transactional
+    public void createCompanySector(CreateReferenceItemDTO dto) {
+        CompanySector e = new CompanySector();
+        e.setName(dto.getName());
+        e.setDescription(dto.getDescription());
+        companySectorRepository.save(e);
+    }
+
+    @Override
+    @Transactional
+    public void updateCompanySector(Long id, CreateReferenceItemDTO dto) {
+        CompanySector e = companySectorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Secteur introuvable"));
+        e.setName(dto.getName());
+        e.setDescription(dto.getDescription());
+        companySectorRepository.save(e);
+    }
+
+    @Override
+    @Transactional
+    public void deleteCompanySector(Long id) {
+        if (!companySectorRepository.existsById(id)) {
+            throw new RuntimeException("Secteur introuvable");
+        }
+        companySectorRepository.deleteById(id);
     }
 
     // ----------------------------------------------------------------------------
