@@ -968,6 +968,14 @@ public class AdminServiceImpl implements AdminService {
         }
         Users u = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        // Impossible d'activer un utilisateur qui n'a pas encore défini son mot de passe
+        if (Boolean.TRUE.equals(dto.getIsActive())
+                && (u.getPassword() == null || u.getPassword().isBlank())) {
+            throw new RuntimeException("Impossible d'activer cet utilisateur : il n'a pas encore défini son mot de passe. "
+                    + "L'utilisateur doit d'abord compléter l'activation de son compte (code d'activation puis création du mot de passe).");
+        }
+
         u.setIsActive(dto.getIsActive());
         userRepository.save(u);
         log.info("Statut utilisateur {} mis à jour : isActive={}", u.getEmail(), dto.getIsActive());
