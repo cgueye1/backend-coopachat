@@ -393,8 +393,10 @@ public class AdminServiceImpl implements AdminService {
             product.setCurrentStock(updateProductDTO.getCurrentStock());
         }
 
-        // Mettre à jour l'image si fournie
-        if (updateProductDTO.getImage() != null && !updateProductDTO.getImage().trim().isEmpty()) {
+        // Supprimer l'image si demandé, sinon mettre à jour si une nouvelle est fournie
+        if (Boolean.TRUE.equals(updateProductDTO.getRemoveImage())) {
+            product.setImage(null);
+        } else if (updateProductDTO.getImage() != null && !updateProductDTO.getImage().trim().isEmpty()) {
             product.setImage(updateProductDTO.getImage());
         }
 

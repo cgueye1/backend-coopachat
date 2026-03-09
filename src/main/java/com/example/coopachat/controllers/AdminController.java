@@ -296,7 +296,10 @@ public class AdminController {
             @RequestParam(required = false) Integer currentStock,
 
             @Parameter(description = "Image du produit (JPG, PNG, max 5MB)")
-            @RequestParam(required = false) MultipartFile image
+            @RequestParam(required = false) MultipartFile image,
+
+            @Parameter(description = "Si true, supprime l'image actuelle du produit (sans en envoyer une nouvelle)")
+            @RequestParam(required = false) Boolean removeImage
     ) {
         try {
             // 1. Upload de l'image si présente
@@ -324,6 +327,7 @@ public class AdminController {
             updateProductDTO.setMinThreshold(minThreshold);
             updateProductDTO.setCurrentStock(currentStock);
             updateProductDTO.setImage(imageFileName);
+            updateProductDTO.setRemoveImage(Boolean.TRUE.equals(removeImage));
 
             // 3. Appeler le service
             adminService.updateProduct(id, updateProductDTO);
