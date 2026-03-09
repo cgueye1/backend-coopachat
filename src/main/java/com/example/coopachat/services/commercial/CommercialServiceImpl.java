@@ -19,6 +19,7 @@ import com.example.coopachat.enums.*;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
 import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
 import com.example.coopachat.repositories.*;
+import com.example.coopachat.services.auth.EmailService;
 import com.example.coopachat.services.minio.MinioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,6 +59,7 @@ public class CommercialServiceImpl implements CommercialService {
     private final CategoryRepository categoryRepository;
     private final OrderRepository orderRepository;
     private final MinioService minioService;
+    private final EmailService emailService;
 
     // ============================================================================
     // 🏢 GESTION DES ENTREPRISES
@@ -529,7 +531,20 @@ public class CommercialServiceImpl implements CommercialService {
 
         employeeRepository.save(employeeEntity);
 
-        log.info("Employé créé avec succès: {} (email: {}, code: {}) par le commercial {}",
+        // Envoyer un email au salarié pour l'informer de son ajout (pas de code, il activera quand il voudra)
+        String prenom = employee.getFirstName() != null ? employee.getFirstName() : "";
+        String subject = "Votre compte salarié a été créé - " + company.getName();
+        String body = String.format(
+                "Bonjour %s,%n%nVous avez été ajouté à l'entreprise %s sur la plateforme Coop Achat.%n%n" +
+                "Votre compte a été créé par notre équipe commerciale. Vous pourrez l'activer quand vous le souhaitez " +
+                "en vous connectant à l'application et en demandant un code d'activation.%n%n" +
+                "Si vous avez des questions, n'hésitez pas à contacter votre entreprise.%n%n" +
+                "L'équipe Support Coop Achat",
+                prenom, company.getName()
+        );
+        emailService.sendEmail(employee.getEmail(), subject, body);
+
+        log.info("Employé créé avec succès: {} (email: {}, code: {}) par le commercial {}. Email de notification envoyé.",
                 employee.getFirstName() + " " + employee.getLastName(), employee.getEmail(), employeeCode, commercial.getEmail());
     }
 
@@ -788,11 +803,19 @@ public class CommercialServiceImpl implements CommercialService {
         // Sauvegarder l'ancien statut pour le log
         Boolean oldStatus = employee.getUser().getIsActive();
 
+        // Impossible d'activer un salarié qui n'a pas encore défini son mot de passe
+        Users user = employee.getUser();
+        if (Boolean.TRUE.equals(updateEmployeeStatusDTO.getIsActive())
+                && (user.getPassword() == null || user.getPassword().isBlank())) {
+            throw new RuntimeException("Impossible d'activer ce salarié : il n'a pas encore défini son mot de passe. "
+                    + "Le salarié doit d'abord compléter l'activation de son compte (code d'activation puis création du mot de passe).");
+        }
+
         // Mettre à jour le statut
-        employee.getUser().setIsActive(updateEmployeeStatusDTO.getIsActive());
+        user.setIsActive(updateEmployeeStatusDTO.getIsActive());
 
         // Sauvegarder les modifications
-        userRepository.save(employee.getUser());
+        userRepository.save(user);
 
         // Log avec l'ancien et le nouveau statut
         //si le statut est actif, on affiche "activé", sinon on affiche "désactivé"
