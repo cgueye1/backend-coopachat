@@ -30,4 +30,6 @@ public class OrderEmployeeListItemDTO {
 
     private String status; // Statut de la commande (label de l'enum)
 
+    /** Raison de l'échec de livraison (pour statut ECHEC_LIVRAISON). Visible directement dans la liste pour le RL. */
+    private String failureReason;
 }

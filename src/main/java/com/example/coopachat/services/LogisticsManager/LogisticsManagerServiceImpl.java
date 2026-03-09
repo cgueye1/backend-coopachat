@@ -1190,7 +1190,8 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                             order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate() : null,
                             display,
                             deliveryFrequency,
-                            order.getStatus().getLabel()
+                            order.getStatus().getLabel(),
+                            order.getFailureReason()
                     );
                 })
                 // Ici, on termine le parcours et on récupère la liste finale des DTO
@@ -1378,6 +1379,58 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
         }
     }
+
+    @Override
+    @Transactional
+    public void replanOrder(Long orderId) {
+        Users user = getCurrentUser();
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut replanifier une commande");
+        }
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+        if (order.getStatus() != OrderStatus.ECHEC_LIVRAISON) {
+            throw new RuntimeException("Seules les commandes en échec de livraison peuvent être replanifiées");
+        }
+        order.setStatus(OrderStatus.EN_ATTENTE);
+        order.setDeliveryTour(null);
+        order.setFailureReason(null);
+        orderRepository.save(order);
+        employeeNotificationService.notifyOrderReplanned(order);
+        log.info("Commande {} replanifiée (EN_ATTENTE) par le RL", order.getOrderNumber());
+    }
+
+    @Override
+    @Transactional
+    public void cancelOrderAfterFailure(Long orderId) {
+        Users user = getCurrentUser();
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut annuler une commande après échec");
+        }
+        Order order = orderRepository.findByIdWithItemsAndProducts(orderId)
+                .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+        if (order.getStatus() != OrderStatus.ECHEC_LIVRAISON) {
+            throw new RuntimeException("Seules les commandes en échec de livraison peuvent être annulées définitivement");
+        }
+        // Réintégration des quantités en stock pour chaque ligne de commande
+        if (order.getItems() != null) {
+            for (OrderItem item : order.getItems()) {
+                if (item.getProduct() != null && item.getQuantity() != null && item.getQuantity() > 0) {
+                    Product product = item.getProduct();
+                    int current = product.getCurrentStock() != null ? product.getCurrentStock() : 0;
+                    product.setCurrentStock(current + item.getQuantity());
+                    productRepository.save(product);
+                }
+            }
+        }
+        order.setStatus(OrderStatus.ANNULEE);
+        order.setDeliveryTour(null);
+        order.setFailureReason(null);
+        orderRepository.save(order);
+        employeeNotificationService.notifyOrderCancelledAfterFailure(order);
+        log.info("Commande {} annulée définitivement après échec (stock réintégré) par le RL", order.getOrderNumber());
+    }
+
     // ============================================================================
     // 🚚 GESTION DES TOURNÉES DE LIVRAISON
     // ============================================================================

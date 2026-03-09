@@ -270,6 +270,18 @@ public interface LogisticsManagerService {
      */
     ByteArrayResource exportEmployeeOrders(String search, OrderStatus status);
 
+    /**
+     * Replanifier une commande en échec de livraison : passage en EN_ATTENTE, retrait de la tournée, notification salarié.
+     * Réservé au RL. La commande doit être en statut ECHEC_LIVRAISON.
+     */
+    void replanOrder(Long orderId);
+
+    /**
+     * Annuler définitivement une commande après échec de livraison : ANNULEE, réintégration stock, notification salarié.
+     * Réservé au RL. La commande doit être en statut ECHEC_LIVRAISON. Action irréversible.
+     */
+    void cancelOrderAfterFailure(Long orderId);
+
     // ============================================================================
    // 🚚 GESTION DES TOURNÉES DE LIVRAISON
    // ============================================================================
