@@ -3,10 +3,13 @@ package com.example.coopachat.dtos.delivery;
 import com.example.coopachat.enums.DeliveryTourStatus;
 import lombok.Data;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 public class DeliveryTourDetailsDTO {
 
+    private Long id;
     private String tourNumber;
     private LocalDate deliveryDate;
     private DeliveryTourStatus status;
@@ -21,5 +24,7 @@ public class DeliveryTourDetailsDTO {
 
     // === COMMANDES ===
     private Integer orderCount;          // 5
+    /** Liste des commandes de la tournée (ordre, numéro, salarié, adresse). */
+    private List<OrderInTourDTO> orders = new ArrayList<>();
 
 }

@@ -327,6 +327,13 @@ public interface LogisticsManagerService {
     void updateDeliveryTour(Long tourId, UpdateDeliveryTourDTO dto);
 
     /**
+     * Retire une commande d'une tournée (la commande redevient EN_ATTENTE sans tournée).
+     * @param tourId ID de la tournée
+     * @param orderId ID de la commande
+     */
+    void removeOrderFromTour(Long tourId, Long orderId);
+
+    /**
      * Annule une tournée de livraison
      * @param tourId ID de la tournée
      * @param dto Motif d'annulation

@@ -1611,6 +1611,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         DeliveryTour deliveryTour = deliveryTourRepository.findById(tourId).orElseThrow(()->new RuntimeException("Tournée introuvable"));
 
         DeliveryTourDetailsDTO dto = new DeliveryTourDetailsDTO();
+        dto.setId(deliveryTour.getId());
         dto.setTourNumber(deliveryTour.getTourNumber());
         dto.setDeliveryDate(deliveryTour.getDeliveryDate());
         dto.setStatus(deliveryTour.getStatus());
@@ -1621,13 +1622,38 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             dto.setDriverPhone(deliveryTour.getDriver().getUser().getPhone());
         }
 
-        // Véhicule
+        // Véhicule (vehicleTypePlate contient type et plaque, ex. "Camion - DK-1234")
         dto.setVehicleType(deliveryTour.getVehicleTypePlate());
 
-        // Commandes
-        dto.setOrderCount(deliveryTour.getOrders() != null ?
-                deliveryTour.getOrders().size() : 0);
-
+        // Commandes : liste détaillée (ordre, salarié, adresse)
+        if (deliveryTour.getOrders() != null && !deliveryTour.getOrders().isEmpty()) {
+            dto.setOrderCount(deliveryTour.getOrders().size());
+            List<com.example.coopachat.dtos.delivery.OrderInTourDTO> orderDtos = new ArrayList<>();
+            for (Order order : deliveryTour.getOrders()) {
+                String empName = "";
+                String addressLabel = "—";
+                if (order.getEmployee() != null && order.getEmployee().getUser() != null) {
+                    empName = (order.getEmployee().getUser().getFirstName() != null ? order.getEmployee().getUser().getFirstName() : "")
+                            + " " + (order.getEmployee().getUser().getLastName() != null ? order.getEmployee().getUser().getLastName() : "").trim();
+                    if (order.getEmployee().getAddresses() != null && !order.getEmployee().getAddresses().isEmpty()) {
+                        addressLabel = order.getEmployee().getAddresses().stream()
+                                .filter(a -> a.getFormattedAddress() != null && !a.getFormattedAddress().isBlank())
+                                .findFirst()
+                                .map(Address::getFormattedAddress)
+                                .orElse("—");
+                    }
+                }
+                orderDtos.add(new com.example.coopachat.dtos.delivery.OrderInTourDTO(
+                        order.getId(),
+                        order.getOrderNumber() != null ? order.getOrderNumber() : "",
+                        empName.trim(),
+                        addressLabel
+                ));
+            }
+            dto.setOrders(orderDtos);
+        } else {
+            dto.setOrderCount(0);
+        }
 
         return dto;
 
@@ -1707,6 +1733,31 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // 7. Sauvegarde
         deliveryTourRepository.save(deliveryTour);
         log.info("Tournée {} mise à jour par {}", tourId, currentUser.getEmail());
+    }
+
+    // ========================================
+    // RETIRER UNE COMMANDE D'UNE TOURNÉE
+    // ========================================
+    @Override
+    @Transactional
+    public void removeOrderFromTour(Long tourId, Long orderId) {
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut retirer une commande d'une tournée");
+        }
+        DeliveryTour tour = deliveryTourRepository.findById(tourId)
+                .orElseThrow(() -> new EntityNotFoundException("Tournée non trouvée"));
+        if (tour.getStatus() != DeliveryTourStatus.ASSIGNEE) {
+            throw new IllegalStateException("Seules les tournées au statut Assignée peuvent être modifiées (retrait de commande)");
+        }
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("Commande non trouvée"));
+        if (order.getDeliveryTour() == null || !order.getDeliveryTour().getId().equals(tourId)) {
+            throw new IllegalArgumentException("Cette commande n'appartient pas à la tournée");
+        }
+        order.setDeliveryTour(null);
+        orderRepository.save(order);
+        log.info("Commande {} retirée de la tournée {} par {}", orderId, tourId, currentUser.getEmail());
     }
 
     // ========================================
