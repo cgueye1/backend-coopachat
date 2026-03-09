@@ -8,7 +8,6 @@ import com.example.coopachat.dtos.employees.EmployeePersonalInfoDTO;
 import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
 import com.example.coopachat.dtos.claim.ClaimDetailDTO;
-import com.example.coopachat.enums.ClaimProblemType;
 import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
 import com.example.coopachat.enums.ClaimStatus;
 import com.example.coopachat.dtos.employee.EmployeeDeliveryIssueDTO;
@@ -357,7 +356,7 @@ public class EmployeeController {
 
     @Operation(
             summary = "Soumettre une réclamation",
-            description = "Soumet une réclamation sur une commande livrée. Multipart avec orderItemId (produit concerné), problemType, comment (optionnel), images (optionnel, JPG/PNG max 5MB)."
+            description = "Soumet une réclamation sur une commande livrée. Multipart avec orderItemId (produit concerné), claimProblemTypeId (ID du type de problème, voir GET /api/admin/claim-problem-types), comment (optionnel), images (optionnel, JPG/PNG max 5MB)."
     )
     @PostMapping(value = "/orders/{orderId}/claims", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> submitClaim(
@@ -365,8 +364,8 @@ public class EmployeeController {
             @Parameter(description = "ID de l'article concerné (produit pour le remboursement RL)", required = true)
             @RequestParam Long orderItemId,
 
-            @Parameter(description = "Nature du problème", required = true)
-            @RequestParam ClaimProblemType problemType,
+            @Parameter(description = "ID du type de problème (référentiel admin)", required = true)
+            @RequestParam Long claimProblemTypeId,
 
             @Parameter(description = "Commentaire optionnel")
             @RequestParam(required = false) String comment,
@@ -374,7 +373,7 @@ public class EmployeeController {
             @Parameter(description = "Photos (JPG, PNG, max 5MB chacune)")
             @RequestParam(required = false) List<MultipartFile> images) {
 
-        employeeService.submitClaim(orderId, orderItemId, problemType, comment, images);
+        employeeService.submitClaim(orderId, orderItemId, claimProblemTypeId, comment, images);
         return ResponseEntity.status(HttpStatus.CREATED).body("Réclamation enregistrée");
     }
 

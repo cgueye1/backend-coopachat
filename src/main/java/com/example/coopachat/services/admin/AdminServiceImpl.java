@@ -32,6 +32,8 @@ import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.PaymentStatusItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
+import com.example.coopachat.dtos.reference.CreateReferenceItemDTO;
+import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.entities.*;
 import com.example.coopachat.enums.ClaimStatus;
 import com.example.coopachat.enums.EtatStock;
@@ -96,6 +98,9 @@ public class AdminServiceImpl implements AdminService {
     private final ClaimRepository claimRepository;
     private final OrderItemRepository orderItemRepository;
     private final EmployeeRepository employeeRepository;
+    private final ClaimProblemTypeRepository claimProblemTypeRepository;
+    private final DeliveryIssueReasonRepository deliveryIssueReasonRepository;
+    private final EmployeeDeliveryIssueReasonRepository employeeDeliveryIssueReasonRepository;
 
     // ============================================================================
     // 📁 GESTION DES CATÉGORIES
@@ -1254,6 +1259,142 @@ public class AdminServiceImpl implements AdminService {
         }
 
         return new AdminAlertsDTO(alerts);
+    }
+
+    // ============================================================================
+    // 📋 RÉFÉRENTIELS (types réclamation, raisons livraison)
+    // ============================================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReferenceItemDTO> getAllClaimProblemTypes() {
+        return claimProblemTypeRepository.findAll().stream()
+                .map(e -> new ReferenceItemDTO(e.getId(), e.getName(), e.getDescription()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReferenceItemDTO getClaimProblemTypeById(Long id) {
+        ClaimProblemType e = claimProblemTypeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Type de réclamation introuvable"));
+        return new ReferenceItemDTO(e.getId(), e.getName(), e.getDescription());
+    }
+
+    @Override
+    @Transactional
+    public void createClaimProblemType(CreateReferenceItemDTO dto) {
+        ClaimProblemType e = new ClaimProblemType();
+        e.setName(dto.getName());
+        e.setDescription(dto.getDescription());
+        claimProblemTypeRepository.save(e);
+    }
+
+    @Override
+    @Transactional
+    public void updateClaimProblemType(Long id, CreateReferenceItemDTO dto) {
+        ClaimProblemType e = claimProblemTypeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Type de réclamation introuvable"));
+        e.setName(dto.getName());
+        e.setDescription(dto.getDescription());
+        claimProblemTypeRepository.save(e);
+    }
+
+    @Override
+    @Transactional
+    public void deleteClaimProblemType(Long id) {
+        if (!claimProblemTypeRepository.existsById(id)) {
+            throw new RuntimeException("Type de réclamation introuvable");
+        }
+        claimProblemTypeRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReferenceItemDTO> getAllDeliveryIssueReasons() {
+        return deliveryIssueReasonRepository.findAll().stream()
+                .map(e -> new ReferenceItemDTO(e.getId(), e.getName(), e.getDescription()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReferenceItemDTO getDeliveryIssueReasonById(Long id) {
+        DeliveryIssueReason e = deliveryIssueReasonRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Raison introuvable"));
+        return new ReferenceItemDTO(e.getId(), e.getName(), e.getDescription());
+    }
+
+    @Override
+    @Transactional
+    public void createDeliveryIssueReason(CreateReferenceItemDTO dto) {
+        DeliveryIssueReason e = new DeliveryIssueReason();
+        e.setName(dto.getName());
+        e.setDescription(dto.getDescription());
+        deliveryIssueReasonRepository.save(e);
+    }
+
+    @Override
+    @Transactional
+    public void updateDeliveryIssueReason(Long id, CreateReferenceItemDTO dto) {
+        DeliveryIssueReason e = deliveryIssueReasonRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Raison introuvable"));
+        e.setName(dto.getName());
+        e.setDescription(dto.getDescription());
+        deliveryIssueReasonRepository.save(e);
+    }
+
+    @Override
+    @Transactional
+    public void deleteDeliveryIssueReason(Long id) {
+        if (!deliveryIssueReasonRepository.existsById(id)) {
+            throw new RuntimeException("Raison introuvable");
+        }
+        deliveryIssueReasonRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReferenceItemDTO> getAllEmployeeDeliveryIssueReasons() {
+        return employeeDeliveryIssueReasonRepository.findAll().stream()
+                .map(e -> new ReferenceItemDTO(e.getId(), e.getName(), e.getDescription()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReferenceItemDTO getEmployeeDeliveryIssueReasonById(Long id) {
+        EmployeeDeliveryIssueReason e = employeeDeliveryIssueReasonRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Raison introuvable"));
+        return new ReferenceItemDTO(e.getId(), e.getName(), e.getDescription());
+    }
+
+    @Override
+    @Transactional
+    public void createEmployeeDeliveryIssueReason(CreateReferenceItemDTO dto) {
+        EmployeeDeliveryIssueReason e = new EmployeeDeliveryIssueReason();
+        e.setName(dto.getName());
+        e.setDescription(dto.getDescription());
+        employeeDeliveryIssueReasonRepository.save(e);
+    }
+
+    @Override
+    @Transactional
+    public void updateEmployeeDeliveryIssueReason(Long id, CreateReferenceItemDTO dto) {
+        EmployeeDeliveryIssueReason e = employeeDeliveryIssueReasonRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Raison introuvable"));
+        e.setName(dto.getName());
+        e.setDescription(dto.getDescription());
+        employeeDeliveryIssueReasonRepository.save(e);
+    }
+
+    @Override
+    @Transactional
+    public void deleteEmployeeDeliveryIssueReason(Long id) {
+        if (!employeeDeliveryIssueReasonRepository.existsById(id)) {
+            throw new RuntimeException("Raison introuvable");
+        }
+        employeeDeliveryIssueReasonRepository.deleteById(id);
     }
 
     // ----------------------------------------------------------------------------

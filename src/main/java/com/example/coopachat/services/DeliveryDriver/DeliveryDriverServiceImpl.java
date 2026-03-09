@@ -60,6 +60,7 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     private final EmployeeNotificationService employeeNotificationService;
     private final DriverReviewRepository driverReviewRepository;
     private final DeliveryIssueReportRepository deliveryIssueReportRepository;
+    private final DeliveryIssueReasonRepository deliveryIssueReasonRepository;
     private final DriverEarningRepository driverEarningRepository;
 
 
@@ -489,43 +490,48 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
             throw new RuntimeException("Seule une livraison en préparation ou en cours peut être signalée");
         }
 
-        // 1. Créer le signalement
+        // 4. Raison (référentiel admin)
+        DeliveryIssueReason reasonEntity = deliveryIssueReasonRepository.findById(dto.getReasonId())
+                .orElseThrow(() -> new RuntimeException("Raison introuvable"));
+        String reasonLabel = reasonEntity.getName();
+
+        // 5. Créer le signalement
         DeliveryIssueReport report = new DeliveryIssueReport();
         report.setOrder(order);
         report.setReportedBy(driver.getUser());
         report.setReportSource(DeliveryIssueReportSource.DRIVER);
-        report.setReason(dto.getReason() != null ? dto.getReason().getLabel() : "Non précisée");
+        report.setDriverReason(reasonEntity);
+        report.setReason(reasonLabel);
         report.setComment(dto.getComment());
         deliveryIssueReportRepository.save(report);
 
-        // 2. Mettre la commande en échec
+        // 6. Mettre la commande en échec
         order.setStatus(OrderStatus.ECHEC_LIVRAISON);
-        order.setFailureReason(dto.getReason().getLabel());
+        order.setFailureReason(reasonLabel);
         order.setFailureReportedAt(LocalDateTime.now());
         orderRepository.save(order);
 
-        // 3. Notifier le salarié
-        employeeNotificationService.notifyDeliveryFailed(order, dto.getReason().getLabel());
+        // 7. Notifier le salarié
+        employeeNotificationService.notifyDeliveryFailed(order, reasonLabel);
 
-
-        // 4. Notifier le RL
+        // 8. Notifier le RL
         Users rl = order.getDeliveryTour() != null ? order.getDeliveryTour().getCreatedBy() : null;
         if (rl != null && rl.getEmail() != null && !rl.getEmail().isBlank()) {
             String deliveryAddress = getDeliveryAddressFromOrder(order);
             driverNotificationService.notifyLogisticsManagerOfDeliveryFailure(
                     order,
-                    dto.getReason().getLabel(),
+                    reasonLabel,
                     dto.getComment() != null ? dto.getComment() : "",
                     deliveryAddress != null ? deliveryAddress : "Non renseignée"
             );
         }
 
-        // 5. Vérifier fin de tournée
+        // 9. Vérifier fin de tournée
         if (order.getDeliveryTour() != null) {
             checkTourCompletion(order.getDeliveryTour());
         }
 
-        log.info("Échec livraison {} signalé par {} : {}", order.getOrderNumber(), DeliveryIssueReportSource.DRIVER,dto.getReason().getLabel());
+        log.info("Échec livraison {} signalé par {} : {}", order.getOrderNumber(), DeliveryIssueReportSource.DRIVER, reasonLabel);
     }
 
     // ========================================

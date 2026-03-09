@@ -10,7 +10,6 @@ import com.example.coopachat.dtos.home.HomeResponseDTO;
 import com.example.coopachat.dtos.claim.ClaimDetailDTO;
 import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
 import com.example.coopachat.dtos.order.*;
-import com.example.coopachat.enums.ClaimProblemType;
 import com.example.coopachat.enums.ClaimStatus;
 import com.example.coopachat.dtos.products.ProductCatalogueListResponseDTO;
 import com.example.coopachat.dtos.products.ProductMobileDetailsDTO;
@@ -240,7 +239,7 @@ public interface EmployeeService {
      * Soumettre une réclamation sur une commande (produit concerné, nature du problème, commentaire).
      * Commande doit être livrée et appartenir au salarié connecté.
      */
-    void submitClaim(Long orderId, Long orderItemId, ClaimProblemType problemType, String comment, List<MultipartFile> images);
+    void submitClaim(Long orderId, Long orderItemId, Long claimProblemTypeId, String comment, List<MultipartFile> images);
 
     /**
      * Historique des réclamations du salarié connecté (liste paginée). Filtre optionnel par statut.

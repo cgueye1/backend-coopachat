@@ -28,6 +28,8 @@ import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
 import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
+import com.example.coopachat.dtos.reference.CreateReferenceItemDTO;
+import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.services.admin.AdminService;
 import com.example.coopachat.services.minio.MinioService;
@@ -757,5 +759,144 @@ public class AdminController {
     @GetMapping("/alerts")
     public ResponseEntity<AdminAlertsDTO> getAlerts() {
         return ResponseEntity.ok(adminService.getAlerts());
+    }
+
+    // ============================================================================
+    // 📋 RÉFÉRENTIELS (types réclamation, raisons livraison) — nom + description
+    // ============================================================================
+
+    @Operation(summary = "Lister les types de réclamation (nom + description)")
+    @GetMapping("/claim-problem-types")
+    public ResponseEntity<List<ReferenceItemDTO>> getAllClaimProblemTypes() {
+        return ResponseEntity.ok(adminService.getAllClaimProblemTypes());
+    }
+
+    @Operation(summary = "Détail d'un type de réclamation")
+    @GetMapping("/claim-problem-types/{id}")
+    public ResponseEntity<ReferenceItemDTO> getClaimProblemTypeById(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.getClaimProblemTypeById(id));
+    }
+
+    @Operation(summary = "Créer un type de réclamation")
+    @PostMapping("/claim-problem-types")
+    public ResponseEntity<String> createClaimProblemType(@RequestBody @Valid CreateReferenceItemDTO dto) {
+        try {
+            adminService.createClaimProblemType(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body("Type de réclamation créé");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Modifier un type de réclamation")
+    @PutMapping("/claim-problem-types/{id}")
+    public ResponseEntity<String> updateClaimProblemType(@PathVariable Long id, @RequestBody @Valid CreateReferenceItemDTO dto) {
+        try {
+            adminService.updateClaimProblemType(id, dto);
+            return ResponseEntity.ok("Type de réclamation mis à jour");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Supprimer un type de réclamation")
+    @DeleteMapping("/claim-problem-types/{id}")
+    public ResponseEntity<String> deleteClaimProblemType(@PathVariable Long id) {
+        try {
+            adminService.deleteClaimProblemType(id);
+            return ResponseEntity.ok("Type de réclamation supprimé");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Lister les raisons d'échec livraison (livreur)")
+    @GetMapping("/delivery-issue-reasons")
+    public ResponseEntity<List<ReferenceItemDTO>> getAllDeliveryIssueReasons() {
+        return ResponseEntity.ok(adminService.getAllDeliveryIssueReasons());
+    }
+
+    @Operation(summary = "Détail d'une raison livreur")
+    @GetMapping("/delivery-issue-reasons/{id}")
+    public ResponseEntity<ReferenceItemDTO> getDeliveryIssueReasonById(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.getDeliveryIssueReasonById(id));
+    }
+
+    @Operation(summary = "Créer une raison livreur")
+    @PostMapping("/delivery-issue-reasons")
+    public ResponseEntity<String> createDeliveryIssueReason(@RequestBody @Valid CreateReferenceItemDTO dto) {
+        try {
+            adminService.createDeliveryIssueReason(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body("Raison créée");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Modifier une raison livreur")
+    @PutMapping("/delivery-issue-reasons/{id}")
+    public ResponseEntity<String> updateDeliveryIssueReason(@PathVariable Long id, @RequestBody @Valid CreateReferenceItemDTO dto) {
+        try {
+            adminService.updateDeliveryIssueReason(id, dto);
+            return ResponseEntity.ok("Raison mise à jour");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Supprimer une raison livreur")
+    @DeleteMapping("/delivery-issue-reasons/{id}")
+    public ResponseEntity<String> deleteDeliveryIssueReason(@PathVariable Long id) {
+        try {
+            adminService.deleteDeliveryIssueReason(id);
+            return ResponseEntity.ok("Raison supprimée");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Lister les raisons d'échec livraison (salarié)")
+    @GetMapping("/employee-delivery-issue-reasons")
+    public ResponseEntity<List<ReferenceItemDTO>> getAllEmployeeDeliveryIssueReasons() {
+        return ResponseEntity.ok(adminService.getAllEmployeeDeliveryIssueReasons());
+    }
+
+    @Operation(summary = "Détail d'une raison salarié")
+    @GetMapping("/employee-delivery-issue-reasons/{id}")
+    public ResponseEntity<ReferenceItemDTO> getEmployeeDeliveryIssueReasonById(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.getEmployeeDeliveryIssueReasonById(id));
+    }
+
+    @Operation(summary = "Créer une raison salarié")
+    @PostMapping("/employee-delivery-issue-reasons")
+    public ResponseEntity<String> createEmployeeDeliveryIssueReason(@RequestBody @Valid CreateReferenceItemDTO dto) {
+        try {
+            adminService.createEmployeeDeliveryIssueReason(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body("Raison créée");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Modifier une raison salarié")
+    @PutMapping("/employee-delivery-issue-reasons/{id}")
+    public ResponseEntity<String> updateEmployeeDeliveryIssueReason(@PathVariable Long id, @RequestBody @Valid CreateReferenceItemDTO dto) {
+        try {
+            adminService.updateEmployeeDeliveryIssueReason(id, dto);
+            return ResponseEntity.ok("Raison mise à jour");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Supprimer une raison salarié")
+    @DeleteMapping("/employee-delivery-issue-reasons/{id}")
+    public ResponseEntity<String> deleteEmployeeDeliveryIssueReason(@PathVariable Long id) {
+        try {
+            adminService.deleteEmployeeDeliveryIssueReason(id);
+            return ResponseEntity.ok("Raison supprimée");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

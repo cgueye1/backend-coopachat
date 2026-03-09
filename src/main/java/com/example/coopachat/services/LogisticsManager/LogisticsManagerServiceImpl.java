@@ -2344,7 +2344,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             dto.setQuantity(null);
         }
         // Type de problème : label du type de problème
-        dto.setProblemTypeLabel(c.getProblemType() != null ? c.getProblemType().getLabel() : null);
+        dto.setProblemTypeLabel(c.getProblemType() != null ? c.getProblemType().getName() : null);
         // Statut : label du statut
         dto.setStatus(c.getStatus() != null ? c.getStatus().getLabel() : null);
         // Date de création
@@ -2383,7 +2383,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             }
         }
         // Type de problème : label du type de problème
-        dto.setProblemTypeLabel(c.getProblemType() != null ? c.getProblemType().getLabel() : null);
+        dto.setProblemTypeLabel(c.getProblemType() != null ? c.getProblemType().getName() : null);
         // Commentaire
         dto.setComment(c.getComment());
         // URLs des photos
