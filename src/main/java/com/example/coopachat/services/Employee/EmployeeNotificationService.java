@@ -212,6 +212,58 @@ public class EmployeeNotificationService {
         }
     }
 
+    /**
+     * Notifie le salarié que sa commande en échec a été replanifiée (RL a cliqué Replanifier).
+     */
+    public void notifyOrderReplanned(Order order) {
+        if (order == null || order.getEmployee() == null || order.getEmployee().getUser() == null) {
+            log.warn("Order ou employee/user manquant, notification replanification ignorée");
+            return;
+        }
+        String email = order.getEmployee().getUser().getEmail();
+        if (email == null || email.isBlank()) {
+            log.warn("Pas d'email pour le salarié, notification replanification ignorée");
+            return;
+        }
+        String firstName = Optional.ofNullable(order.getEmployee().getUser().getFirstName()).orElse("Salarié");
+        String orderNumber = Optional.ofNullable(order.getOrderNumber()).orElse("-");
+        String subject = "Commande replanifiée - " + orderNumber;
+        String body = String.format(
+                "Bonjour %s,%n%nVotre commande %s a été replanifiée.%nVous serez livré prochainement.%n%nL'équipe CoopAchat",
+                firstName, orderNumber);
+        try {
+            emailService.sendEmail(email, subject, body);
+        } catch (Exception e) {
+            log.error("Erreur envoi notification 'commande replanifiée' à {}: {}", email, e.getMessage());
+        }
+    }
+
+    /**
+     * Notifie le salarié que sa commande en échec a été définitivement annulée (RL a cliqué Annuler).
+     */
+    public void notifyOrderCancelledAfterFailure(Order order) {
+        if (order == null || order.getEmployee() == null || order.getEmployee().getUser() == null) {
+            log.warn("Order ou employee/user manquant, notification annulation après échec ignorée");
+            return;
+        }
+        String email = order.getEmployee().getUser().getEmail();
+        if (email == null || email.isBlank()) {
+            log.warn("Pas d'email pour le salarié, notification annulation après échec ignorée");
+            return;
+        }
+        String firstName = Optional.ofNullable(order.getEmployee().getUser().getFirstName()).orElse("Salarié");
+        String orderNumber = Optional.ofNullable(order.getOrderNumber()).orElse("-");
+        String subject = "Commande annulée - " + orderNumber;
+        String body = String.format(
+                "Bonjour %s,%n%nVotre commande %s a été annulée.%n%nL'équipe CoopAchat",
+                firstName, orderNumber);
+        try {
+            emailService.sendEmail(email, subject, body);
+        } catch (Exception e) {
+            log.error("Erreur envoi notification 'commande annulée après échec' à {}: {}", email, e.getMessage());
+        }
+    }
+
     private String formatAmount(BigDecimal totalPrice) {
         if (totalPrice == null) return "0 FCFA";
         return String.format("%.0f FCFA", totalPrice);

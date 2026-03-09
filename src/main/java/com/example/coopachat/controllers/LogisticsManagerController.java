@@ -412,6 +412,34 @@ public class LogisticsManagerController {
     }
 
     @Operation(
+            summary = "Replanifier une commande en échec",
+            description = "Passe la commande en EN_ATTENTE, la retire de la tournée et notifie le salarié. Réservé au RL."
+    )
+    @PatchMapping("/employee-orders/{orderId}/replan")
+    public ResponseEntity<String> replanOrder(@PathVariable Long orderId) {
+        try {
+            logisticsManagerService.replanOrder(orderId);
+            return ResponseEntity.ok("Commande replanifiée. Elle réapparaîtra dans les commandes éligibles.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @Operation(
+            summary = "Annuler définitivement une commande après échec",
+            description = "Passe la commande en ANNULEE, réintègre les produits en stock et notifie le salarié. Irréversible. Réservé au RL."
+    )
+    @PatchMapping("/employee-orders/{orderId}/cancel-after-failure")
+    public ResponseEntity<String> cancelOrderAfterFailure(@PathVariable Long orderId) {
+        try {
+            logisticsManagerService.cancelOrderAfterFailure(orderId);
+            return ResponseEntity.ok("Commande annulée. Stock réintégré.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @Operation(
             summary = "Exporter les commandes salariés",
             description = "Exporte la liste des commandes salariés en fichier Excel (une ligne par commande)."
     )
