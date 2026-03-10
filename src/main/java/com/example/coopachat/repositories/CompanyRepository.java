@@ -171,6 +171,21 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
             @Param("isActive") Boolean isActive,
             Pageable pageable);
 
+    /** Même critères que findByCommercialAndOptionalFilters, pour aligner les stats (Actives/Inactives) sur la liste. */
+    @Query("SELECT COUNT(c) FROM Company c WHERE c.commercial = :commercial " +
+            "AND (:companyType IS NULL OR (:companyType = 'partenaires' AND c.status = com.example.coopachat.enums.CompanyStatus.PARTNER_SIGNED) " +
+            "     OR (:companyType = 'prospects' AND c.status <> com.example.coopachat.enums.CompanyStatus.PARTNER_SIGNED AND (:prospectionStatus IS NULL OR c.status = :prospectionStatus))) " +
+            "AND (:search IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "AND (:sector IS NULL OR c.sector = :sector) " +
+            "AND (:isActive IS NULL OR c.isActive = :isActive)")
+    long countByCommercialAndOptionalFilters(
+            @Param("commercial") Users commercial,
+            @Param("companyType") String companyType,
+            @Param("prospectionStatus") CompanyStatus prospectionStatus,
+            @Param("search") String search,
+            @Param("sector") CompanySector sector,
+            @Param("isActive") Boolean isActive);
+
     /**
      * Récupère les N dernières entreprises en prospection (status != PARTNER_SIGNED) du commercial, tri par id décroissant.
      * Utiliser Pageable pour limiter (ex. PageRequest.of(0, 3, Sort.by(DESC, "id"))).
@@ -194,11 +209,11 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
     long countByCommercialAndStatusAndIsActive(Users commercial, CompanyStatus status, Boolean isActive);
 
     // ============================================================================
-    // 📊 COMPTAGES GLOBAUX (sans filtre commercial)
+    // 📊 COMPTAGES ET LISTES GLOBAUX (tous les commerciaux)
     // ============================================================================
 
     /**
-     * Compte toutes les entreprises par statut de prospection (tous commerciaux confondus).
+     * Compte toutes les entreprises par statut (tous commerciaux confondus).
      */
     long countByStatus(CompanyStatus status);
 
@@ -206,4 +221,22 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
      * Compte toutes les entreprises dont le statut est différent de la valeur donnée.
      */
     long countByStatusNot(CompanyStatus status);
+
+    /**
+     * Compte les entreprises partenaires (PARTNER_SIGNED) selon isActive (tous commerciaux).
+     */
+    long countByStatusAndIsActive(CompanyStatus status, Boolean isActive);
+
+    /**
+     * Liste des entreprises partenaires (PARTNER_SIGNED) avec filtres optionnels, sans filtre commercial.
+     */
+    @Query("SELECT c FROM Company c WHERE c.status = com.example.coopachat.enums.CompanyStatus.PARTNER_SIGNED " +
+            "AND (:search IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "AND (:sector IS NULL OR c.sector = :sector) " +
+            "AND (:isActive IS NULL OR c.isActive = :isActive)")
+    Page<Company> findPartnersByOptionalFilters(
+            @Param("search") String search,
+            @Param("sector") CompanySector sector,
+            @Param("isActive") Boolean isActive,
+            Pageable pageable);
 }
