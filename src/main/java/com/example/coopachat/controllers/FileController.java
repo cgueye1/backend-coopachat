@@ -14,20 +14,30 @@ import java.io.InputStream;
 
 /**
  * Sert les fichiers (images, etc.) stockés dans MinIO.
- * URL : GET /api/files/{path} (ex. /api/files/products/uuid.jpg)
+ * - GET /api/files/{path} (ex. /api/files/uuid.jpg)
+ * - GET /uploads/{path} (alias pour le mobile qui utilise /uploads/ au lieu de /api/files/)
  * Public (permitAll) car les balises img ne peuvent pas envoyer le token JWT.
  */
 @RestController
-@RequestMapping("/api/files")
 @RequiredArgsConstructor
 @Tag(name = "Fichiers", description = "Accès public aux fichiers (images produits, photos, etc.)")
 public class FileController {
 
     private final MinioService minioService;
 
-    @Operation(summary = "Récupérer un fichier", description = "Stream le fichier depuis MinIO. Chemin ex. : products/uuid.jpg, profiles/xxx.png")
-    @GetMapping("/{path:.+}")
-    public ResponseEntity<InputStreamResource> getFile(@PathVariable String path) {
+    @Operation(summary = "Récupérer un fichier (API)", description = "Stream le fichier depuis MinIO. URL : /api/files/{path}")
+    @GetMapping("/api/files/{path:.+}")
+    public ResponseEntity<InputStreamResource> getFileApi(@PathVariable String path) {
+        return serveFile(path);
+    }
+
+    @Operation(summary = "Récupérer un fichier (uploads, mobile)", description = "Alias pour le mobile : /uploads/{path} → même contenu que /api/files/{path}")
+    @GetMapping("/uploads/{path:.+}")
+    public ResponseEntity<InputStreamResource> getFileUploads(@PathVariable String path) {
+        return serveFile(path);
+    }
+
+    private ResponseEntity<InputStreamResource> serveFile(String path) {
         if (path == null || path.isBlank()) {
             return ResponseEntity.notFound().build();
         }

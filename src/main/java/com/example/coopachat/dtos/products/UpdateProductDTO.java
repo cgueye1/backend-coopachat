@@ -35,5 +35,8 @@ public class UpdateProductDTO {
     private Integer currentStock; // Stock actuel (optionnel)
 
     private String image; // Image du produit (URL/fichier) (optionnel)
+
+    /** Si true, supprime l'image actuelle du produit (prioritaire sur image). */
+    private Boolean removeImage;
 }
 
