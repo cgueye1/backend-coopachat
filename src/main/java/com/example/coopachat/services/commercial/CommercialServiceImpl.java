@@ -155,7 +155,10 @@ public class CommercialServiceImpl implements CommercialService {
         }
 
         Page<Company> companyPage;
-        if (companyType != null) {
+        if (Boolean.TRUE.equals(partnerOnly)) {
+            // Partenaires : liste globale (tous les commerciaux)
+            companyPage = companyRepository.findPartnersByOptionalFilters(searchTerm, sector, isActive, pageable);
+        } else if (companyType != null) {
             companyPage = companyRepository.findByCommercialAndOptionalFilters(
                     commercial, companyType, prospectionStatus, searchTerm, sector, isActive, pageable);
         } else {
@@ -492,9 +495,10 @@ public class CommercialServiceImpl implements CommercialService {
             throw new RuntimeException("Seuls les commerciaux peuvent consulter les statistiques des partenaires");
         }
         CompanyStatsDTO dto = new CompanyStatsDTO();
-        long total = companyRepository.countByCommercialAndStatus(commercial, CompanyStatus.PARTNER_SIGNED);
-        long active = companyRepository.countByCommercialAndStatusAndIsActive(commercial, CompanyStatus.PARTNER_SIGNED, true);
-        long inactive = companyRepository.countByCommercialAndStatusAndIsActive(commercial, CompanyStatus.PARTNER_SIGNED, false);
+        // Comptage global (tous les partenaires, tous commerciaux) pour aligner avec la liste globale
+        long total = companyRepository.countByStatus(CompanyStatus.PARTNER_SIGNED);
+        long active = companyRepository.countByStatusAndIsActive(CompanyStatus.PARTNER_SIGNED, true);
+        long inactive = companyRepository.countByStatusAndIsActive(CompanyStatus.PARTNER_SIGNED, false);
         dto.setTotalCompanies(total);
         dto.setActiveCompanies(active);
         dto.setInactiveCompanies(inactive);

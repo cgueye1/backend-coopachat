@@ -43,6 +43,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -353,8 +354,8 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // Normaliser le terme de recherche (supprimer les espaces)
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
 
-        // Créer l'objet Pageable pour la pagination
-        Pageable pageable = PageRequest.of(page, size);
+        // Créer l'objet Pageable : tri par date de commande décroissante (dernière créée en haut)
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "orderDate"));
 
         // Récupérer les commandes selon les différents cas (recherche + filtres)
         Page<SupplierOrder> supplierOrderPage;
@@ -1715,8 +1716,12 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             dto.setDriverPhone(deliveryTour.getDriver().getUser().getPhone());
         }
 
-        // Véhicule (vehicleTypePlate contient type et plaque, ex. "Camion - DK-1234")
-        dto.setVehicleType(deliveryTour.getVehicleTypePlate());
+        // Véhicule (type + plaque dans un seul champ côté entité)
+        String vehicleTypePlate = deliveryTour.getVehicleTypePlate();
+        if (vehicleTypePlate != null && !vehicleTypePlate.isBlank()) {
+            dto.setVehicleType(vehicleTypePlate);
+            dto.setVehiclePlate(vehicleTypePlate);
+        }
 
         if (deliveryTour.getNotes() != null && !deliveryTour.getNotes().isBlank()) {
             dto.setNotes(deliveryTour.getNotes());
@@ -1822,12 +1827,33 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             deliveryTour.setNotes(dto.getNotes());
         }
 
-        // 6. Mise à jour statut (si changée ET différente de l'actuelle)
+        // 6. Liste des commandes à conserver (décocher = retirer de la tournée)
+        if (dto.getOrderIds() != null) {
+            java.util.Set<Long> idsToKeep = new java.util.HashSet<>(dto.getOrderIds());
+            if (idsToKeep.isEmpty()) {
+                throw new IllegalArgumentException("Pas de tournée sans commande");
+            }
+            if (deliveryTour.getOrders() != null) {
+                for (Order order : new java.util.ArrayList<>(deliveryTour.getOrders())) {
+                    if (!idsToKeep.contains(order.getId())) {
+                        order.setDeliveryTour(null);
+                        orderRepository.save(order);
+                    }
+                }
+            }
+            // Vérifier qu'il reste au moins une commande
+            deliveryTour = deliveryTourRepository.findById(tourId).orElseThrow();
+            if (deliveryTour.getOrders() == null || deliveryTour.getOrders().isEmpty()) {
+                throw new IllegalArgumentException("Pas de tournée sans commande");
+            }
+        }
+
+        // 7. Mise à jour statut (si fourni)
         if (dto.getStatus() != null && dto.getStatus() != deliveryTour.getStatus()) {
             deliveryTour.setStatus(dto.getStatus());
         }
 
-        // 7. Sauvegarde
+        // 8. Sauvegarde
         deliveryTourRepository.save(deliveryTour);
         log.info("Tournée {} mise à jour par {}", tourId, currentUser.getEmail());
     }

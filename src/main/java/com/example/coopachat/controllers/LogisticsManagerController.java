@@ -538,15 +538,20 @@ public class LogisticsManagerController {
     }
     @Operation(
             summary = "Modifier une tournée",
-            description = "Met à jour les informations d'une tournée (véhicule, notes, statut)"
+            description = "Met à jour les informations d'une tournée (véhicule, notes, liste des commandes). PUT et PATCH acceptés."
     )
+    @PutMapping("/delivery-tours/{tourId}")
     @PatchMapping("/delivery-tours/{tourId}")
-    public ResponseEntity<String> updateDeliveryTour(
+    public ResponseEntity<?> updateDeliveryTour(
             @PathVariable Long tourId,
             @RequestBody @Valid UpdateDeliveryTourDTO dto) {
 
-        logisticsManagerService.updateDeliveryTour(tourId, dto);
-        return ResponseEntity.ok("Tournée de livraison mis à jour avec succès");
+        try {
+            logisticsManagerService.updateDeliveryTour(tourId, dto);
+            return ResponseEntity.ok("Tournée de livraison mis à jour avec succès");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
     @Operation(summary = "Retirer une commande d'une tournée", description = "Retire la commande de la tournée (tournée au statut ASSIGNEE uniquement).")
