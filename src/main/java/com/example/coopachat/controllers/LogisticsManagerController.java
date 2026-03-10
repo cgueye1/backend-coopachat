@@ -112,7 +112,6 @@ public class LogisticsManagerController {
     @Operation(
             summary = "Modifier une commande fournisseur",
             description = "Met à jour les informations d'une commande fournisseur existante. " +
-                         "Seules les commandes avec le statut 'En attente' peuvent être modifiées. " +
                          "Tous les champs sont optionnels - seuls les champs fournis seront mis à jour. " +
                          "Si 'items' est fourni, il remplace toute la liste des produits."
     )

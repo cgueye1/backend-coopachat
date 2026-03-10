@@ -256,11 +256,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         SupplierOrder supplierOrder = supplierOrderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Commande fournisseur introuvable"));
 
-        // Vérifier que le statut permet la modification (seulement "En attente")
-        if (supplierOrder.getStatus() != SupplierOrderStatus.EN_ATTENTE) {
-            throw new RuntimeException("Seules les commandes en attente peuvent être modifiées");
-        }
-
         // Mettre à jour la date prévue si fournie
         if (updateSupplierOrderDTO.getExpectedDate() != null) {
             supplierOrder.setExpectedDate(updateSupplierOrderDTO.getExpectedDate());
