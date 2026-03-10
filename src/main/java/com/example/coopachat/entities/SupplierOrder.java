@@ -47,9 +47,9 @@ public class SupplierOrder {
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime expectedDate; // Date prévue de livraison
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 32, columnDefinition = "VARCHAR(32) NOT NULL")
     @Enumerated(EnumType.STRING)
-    private SupplierOrderStatus status; // Statut de la commande
+    private SupplierOrderStatus status; // Statut de la commande (valeurs: EN_ATTENTE, EN_COURS, LIVREE, ANNULEE)
 
     @Column(columnDefinition = "TEXT")
     private String notes; // Note optionnelle
