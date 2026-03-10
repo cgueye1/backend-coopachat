@@ -21,8 +21,13 @@ public class OrderEmployeeListItemDTO {
     private String orderNumber; // Numéro de commande (CMD-XXX)
     private String employeeName; // Nom complet du salarié
 
+    /** Date à laquelle le salarié a passé la commande (createdAt). */
     @JsonFormat(pattern = "dd-MM-yyyy")
-    private LocalDate validationDate; // Date de validation/création
+    private LocalDate orderDate;
+
+    /** Date à laquelle la commande est passée à son statut actuel (ex. date de validation, de livraison, d'échec). */
+    @JsonFormat(pattern = "dd-MM-yyyy")
+    private LocalDate statusDate;
 
     private List<String> products; // Liste des produits concernés
 

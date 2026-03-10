@@ -433,13 +433,30 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
         // Mettre à jour le statut
         SupplierOrderStatus oldStatus = supplierOrder.getStatus();
-        supplierOrder.setStatus(updateSupplierOrderStatusDTO.getStatus());
+        SupplierOrderStatus newStatus = updateSupplierOrderStatusDTO.getStatus();
+        supplierOrder.setStatus(newStatus);
+
+        // Quand le statut passe à LIVRÉE : enregistrer la date de réception et mettre à jour le stock des produits
+        if (newStatus == SupplierOrderStatus.LIVREE && oldStatus != SupplierOrderStatus.LIVREE) {
+            supplierOrder.setReceivedDate(LocalDateTime.now());
+            for (SupplierOrderItem item : supplierOrder.getItems()) {
+                Product product = item.getProduct();
+                int quantity = item.getQuantity() != null ? item.getQuantity() : 0;
+                if (product != null && quantity > 0) {
+                    int newStock = product.getCurrentStock() != null ? product.getCurrentStock() + quantity : quantity;
+                    product.setCurrentStock(newStock);
+                    productRepository.save(product);
+                    log.info("Stock mis à jour: produit {} (id={}) +{} → stock={}",
+                            product.getName(), product.getId(), quantity, newStock);
+                }
+            }
+        }
 
         // Sauvegarder la commande
         supplierOrderRepository.save(supplierOrder);
 
         log.info("Commande fournisseur {}: statut changé de {} à {} par {}",
-                supplierOrder.getOrderNumber(), oldStatus, updateSupplierOrderStatusDTO.getStatus(), user.getEmail());
+                supplierOrder.getOrderNumber(), oldStatus, newStatus, user.getEmail());
     }
 
     @Override
@@ -1182,12 +1199,16 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                             ? order.getDeliveryOption().getName()
                             : "—";
 
+                    LocalDate orderDate = order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate() : null;
+                    LocalDate statusDate = getOrderStatusDate(order);
+
                     return new OrderEmployeeListItemDTO(
                             order.getId(),
                             order.getOrderNumber(),
                             order.getEmployee().getUser().getFirstName() + " "
                                     + order.getEmployee().getUser().getLastName(),
-                            order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate() : null,
+                            orderDate,
+                            statusDate,
                             display,
                             deliveryFrequency,
                             order.getStatus().getLabel(),
@@ -1210,6 +1231,25 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 orderPage.hasPrevious()       // Y a-t-il une page précédente ?
         );
 
+    }
+
+    /** Date à laquelle la commande est passée à son statut actuel (pour affichage "Passé à ce statut le ..."). */
+    private LocalDate getOrderStatusDate(Order order) {
+        if (order == null) return null;
+        LocalDateTime dateTime = null;
+        switch (order.getStatus()) {
+            case EN_ATTENTE -> dateTime = order.getCreatedAt();
+            case VALIDEE -> dateTime = order.getValidatedAt();
+            case EN_PREPARATION -> dateTime = order.getPickupStartedAt();
+            case EN_COURS -> dateTime = order.getDeliveryStartedAt();
+            case ARRIVE -> dateTime = order.getDeliveryArrivedAt();
+            case LIVREE -> dateTime = order.getDeliveryCompletedAt();
+            case ECHEC_LIVRAISON -> dateTime = order.getFailureReportedAt();
+            case ANNULEE -> dateTime = order.getUpdatedAt();
+            default -> dateTime = order.getCreatedAt();
+        }
+        if (dateTime == null) dateTime = order.getCreatedAt();
+        return dateTime != null ? dateTime.toLocalDate() : null;
     }
 
     @Transactional(readOnly = true)
@@ -1677,6 +1717,10 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
         // Véhicule (vehicleTypePlate contient type et plaque, ex. "Camion - DK-1234")
         dto.setVehicleType(deliveryTour.getVehicleTypePlate());
+
+        if (deliveryTour.getNotes() != null && !deliveryTour.getNotes().isBlank()) {
+            dto.setNotes(deliveryTour.getNotes());
+        }
 
         // Commandes : liste détaillée (ordre, salarié, adresse)
         if (deliveryTour.getOrders() != null && !deliveryTour.getOrders().isEmpty()) {
