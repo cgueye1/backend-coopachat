@@ -269,7 +269,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("debut") LocalDateTime debut,
             @Param("fin") LocalDateTime fin);
 
-    /** Commandes par mois (année, mois, count) pour graphique — createdAt entre debut et fin. Résultat : [(year, month, count), ...]. */
+    /** Commandes par mois (année, mois, count) pour graphique — toutes les commandes (tous statuts), createdAt entre debut et fin. Résultat : [(year, month, count), ...]. */
     @Query("SELECT YEAR(o.createdAt), MONTH(o.createdAt), COUNT(o) FROM Order o WHERE o.createdAt BETWEEN :debut AND :fin GROUP BY YEAR(o.createdAt), MONTH(o.createdAt) ORDER BY YEAR(o.createdAt), MONTH(o.createdAt)")
     List<Object[]> countCommandesParMois(
             @Param("debut") LocalDateTime debut,

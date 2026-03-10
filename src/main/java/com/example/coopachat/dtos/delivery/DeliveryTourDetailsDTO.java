@@ -27,4 +27,7 @@ public class DeliveryTourDetailsDTO {
     /** Liste des commandes de la tournée (ordre, numéro, salarié, adresse). */
     private List<OrderInTourDTO> orders = new ArrayList<>();
 
+    /** Note / commentaire sur la tournée (optionnel). */
+    private String notes;
+
 }

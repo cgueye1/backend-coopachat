@@ -1108,6 +1108,7 @@ public class CommercialServiceImpl implements CommercialService {
 
         long totalSalaries = employeeRepository.countByUserIsActive(true);//nombre de salariés actifs
         long nouveauxSalariesCeMois = employeeRepository.countByCreatedAtBetween(monthStart, monthEnd);//nombre de nouveaux salariés ce mois
+        // Toutes les commandes du mois (tous statuts : en attente, validée, livrée, etc.), pas seulement les en attente
         long commandesCeMois = orderRepository.countByCreatedAtBetween(monthStart, monthEnd);//nombre de commandes créées ce mois
         long commandesMoisDernier = orderRepository.countByCreatedAtBetween(lastMonthStart, lastMonthEnd);//nombre de commandes le mois dernier
         Double evolutionCommandesPct = (commandesMoisDernier > 0)
