@@ -14,6 +14,11 @@ import lombok.NoArgsConstructor;
 public class DriverInfoForClientDTO {
     private String name;
     private String phone;
+    /**
+     * Satisfaction moyenne : somme des rating (1 à 5) ÷ nombre d'avis.
+     * Null si le livreur n'a encore aucun avis (DriverAvis).
+     */
+    private Double satisfactionMoyenne;
     /** URL de la photo du livreur (null si non renseignée). */
     private String photo;
 }
