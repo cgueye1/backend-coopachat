@@ -18,10 +18,9 @@ public interface DriverReviewRepository extends JpaRepository<DriverAvis, Long> 
 
     /**
      * Calcule la moyenne des notes (1 à 5) pour un livreur.
-     * La base fait : somme des {rating} de tous les avis (DriverReview) de ce livreur,divisée par le nombre d'avis.
      * @param driverId id du livreur
-     * @return la moyenne ou {null} si le livreur n'a encore aucun avis
+     * @return la moyenne ou null si le livreur n'a encore aucun avis
      */
-    @Query("SELECT AVG(dr.rating) FROM DriverAvis dr WHERE dr.driver.id = :driverId")
+    @Query(value = "SELECT AVG(rating) FROM driver_reviews WHERE driver_id = :driverId", nativeQuery = true)
     Double getAverageRatingByDriverId(@Param("driverId") Long driverId);
 }
