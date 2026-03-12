@@ -34,7 +34,7 @@ public class DriverAvis {
     private Driver driver;
 
     @Column(nullable = false)
-    private Integer notes; // 1 à 5 étoiles
+    private Integer rating; // 1 à 5 étoiles
 
     /** Tags (ex. Ponctuel, Professionnel, Sympathique) stockés en liste. */
     @ElementCollection

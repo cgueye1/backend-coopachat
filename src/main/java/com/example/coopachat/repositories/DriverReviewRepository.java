@@ -22,6 +22,6 @@ public interface DriverReviewRepository extends JpaRepository<DriverAvis, Long> 
      * @param driverId id du livreur
      * @return la moyenne ou {null} si le livreur n'a encore aucun avis
      */
-    @Query("SELECT AVG(dr.notes) FROM DriverAvis dr WHERE dr.driver.id = :driverId")
+    @Query("SELECT AVG(dr.rating) FROM DriverAvis dr WHERE dr.driver.id = :driverId")
     Double getAverageRatingByDriverId(@Param("driverId") Long driverId);
 }
