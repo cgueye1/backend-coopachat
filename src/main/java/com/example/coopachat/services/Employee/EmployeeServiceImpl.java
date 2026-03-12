@@ -1757,7 +1757,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (order.getItems() != null) {
             for (OrderItem oi : order.getItems()) {
                 ClientOrderItemDTO itemDto = new ClientOrderItemDTO();
-                itemDto.setProductId(oi.getProduct().getId());
+                itemDto.setOrderItemId(oi.getId());
                 itemDto.setProductName(oi.getProduct() != null ? oi.getProduct().getName() : "");
                 itemDto.setQuantity(oi.getQuantity());
                 itemDto.setUnitPrice(oi.getUnitPrice());
