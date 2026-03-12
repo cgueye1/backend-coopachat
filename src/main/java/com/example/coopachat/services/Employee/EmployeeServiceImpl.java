@@ -1457,7 +1457,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         DriverAvis review = new DriverAvis();
         review.setOrder(order);
         review.setDriver(driver);
-        review.setNotes(reviewDTO.getRating());//Note donnée par l'employé (Les étoiles)
+        review.setRating(reviewDTO.getRating());//Note donnée par l'employé (Les étoiles)
         review.setTags(reviewDTO.getTags() != null ? new ArrayList<>(reviewDTO.getTags()) : new ArrayList<>());//Tags donnés par l'employé(Les boutons qu’ils cliquent remplissent la liste)
         review.setComment(reviewDTO.getComment());//Commentaire donné par l'employé 
         driverReviewRepository.save(review);
@@ -1804,7 +1804,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (order.getStatus() == OrderStatus.LIVREE) {
             Optional<DriverAvis> existingReview = driverReviewRepository.findByOrder(order);// Récupérer l'avis si déjà noté
             if (existingReview.isPresent()) {
-                dto.setRating(existingReview.get().getNotes());//Note donnée par l'employé
+                dto.setRating(existingReview.get().getRating());//Note donnée par l'employé
                 dto.setCanRate(false);//Pas de bouton "Noter"
             } else {
                 dto.setRating(null);//Pas de note
