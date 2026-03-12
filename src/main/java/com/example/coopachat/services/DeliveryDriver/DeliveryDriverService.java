@@ -62,6 +62,12 @@ public interface DeliveryDriverService {
     void confirmCashPayment(Long orderId);
 
     /**
+     * Livreur confirme le paiement en ligne : vérifie que le salarié a bien payé (status = PAID).
+     * Si oui → succès ; sinon → erreur. Bouton "Confirmer paiement" côté livreur pour paiement en ligne.
+     */
+    void confirmOnlinePayment(Long orderId);
+
+    /**
      * Détail simplifié d'une livraison pour l'écran livreur (commande, client, adresse, montant).
      * La commande doit appartenir à une tournée assignée au livreur connecté.
      */

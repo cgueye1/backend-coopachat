@@ -124,6 +124,16 @@ public class DeliveryDriverController {
         return ResponseEntity.ok("Paiement en espèces confirmé");
     }
 
+    @Operation(
+            summary = "Confirmer le paiement en ligne",
+            description = "Le livreur vérifie que le salarié a payé en ligne (bouton \"Confirmer paiement\"). Si status = PAID → succès, sinon erreur."
+    )
+    @PostMapping("/deliveries/{orderId}/confirm-online-payment")
+    public ResponseEntity<String> confirmOnlinePayment(@PathVariable Long orderId) {
+        deliveryDriverService.confirmOnlinePayment(orderId);
+        return ResponseEntity.ok("Paiement en ligne confirmé");
+    }
+
     @Operation(summary = "Raisons d'échec livraison (livreur)", description = "Liste des raisons pour le dropdown du formulaire « Signaler un problème » (id, name, description).")
     @GetMapping("/delivery-issue-reasons")
     public ResponseEntity<List<ReferenceItemDTO>> getDeliveryIssueReasons() {

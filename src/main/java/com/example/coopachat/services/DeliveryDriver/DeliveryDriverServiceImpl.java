@@ -422,6 +422,30 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         log.info("💵 Paiement en espèces confirmé par le livreur pour commande {} - Ref: {}", order.getOrderNumber(), ref);
     }
 
+    //--------------------------------CONFIRMER PAIEMENT EN LIGNE--------------------------------
+
+    @Override
+    @Transactional(readOnly = true)
+    public void confirmOnlinePayment(Long orderId) {
+        // 1. Livreur connecté et commande
+        Driver driver = getDriverOrThrow();
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        // 2. La commande doit appartenir à une tournée assignée au livreur
+        if (order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
+            throw new RuntimeException("Vous n'êtes pas assigné à cette commande");
+        }
+
+        // 3. Vérifier que le salarié a payé en ligne (status = PAID)
+        Payment payment = order.getPayment();
+        if (payment == null || payment.getStatus() != PaymentStatus.PAID) {
+            throw new RuntimeException("Le salarié n'a pas encore effectué le paiement en ligne.");
+        }
+
+        // Succès : rien à modifier, le contrôleur renverra un message de succès
+    }
+
     // ========================================
     // DÉTAIL D'UNE LIVRAISON (écran livreur)
     // ========================================
