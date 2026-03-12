@@ -19,7 +19,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class DriverReview {
+public class DriverAvis {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,7 +34,7 @@ public class DriverReview {
     private Driver driver;
 
     @Column(nullable = false)
-    private Integer rating; // 1 à 5
+    private Integer notes; // 1 à 5 étoiles
 
     /** Tags (ex. Ponctuel, Professionnel, Sympathique) stockés en liste. */
     @ElementCollection

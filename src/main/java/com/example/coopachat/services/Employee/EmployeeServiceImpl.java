@@ -1454,10 +1454,10 @@ public class EmployeeServiceImpl implements EmployeeService {
         Driver driver = order.getDeliveryTour().getDriver();
 
         // 7. Créer l'avis (tags et comment optionnels)
-        DriverReview review = new DriverReview();
+        DriverAvis review = new DriverAvis();
         review.setOrder(order);
         review.setDriver(driver);
-        review.setRating(reviewDTO.getRating());//Note donnée par l'employé (Les étoiles)
+        review.setNotes(reviewDTO.getRating());//Note donnée par l'employé (Les étoiles)
         review.setTags(reviewDTO.getTags() != null ? new ArrayList<>(reviewDTO.getTags()) : new ArrayList<>());//Tags donnés par l'employé(Les boutons qu’ils cliquent remplissent la liste)
         review.setComment(reviewDTO.getComment());//Commentaire donné par l'employé 
         driverReviewRepository.save(review);
@@ -1802,9 +1802,9 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         // Si commande livrée : afficher les étoiles si déjà noté, sinon canRate = true (bouton "Noter")
         if (order.getStatus() == OrderStatus.LIVREE) {
-            Optional<DriverReview> existingReview = driverReviewRepository.findByOrder(order);// Récupérer l'avis si déjà noté
+            Optional<DriverAvis> existingReview = driverReviewRepository.findByOrder(order);// Récupérer l'avis si déjà noté
             if (existingReview.isPresent()) {
-                dto.setRating(existingReview.get().getRating());//Note donnée par l'employé
+                dto.setRating(existingReview.get().getNotes());//Note donnée par l'employé
                 dto.setCanRate(false);//Pas de bouton "Noter"
             } else {
                 dto.setRating(null);//Pas de note
@@ -1823,7 +1823,10 @@ public class EmployeeServiceImpl implements EmployeeService {
         Users user = driver.getUser();
         if (user == null) return null;
         String name = (user.getFirstName() != null ? user.getFirstName() : "") + " " + (user.getLastName() != null ? user.getLastName() : "");
-        return new DriverInfoForClientDTO(name.trim(), user.getPhone(), user.getProfilePhotoUrl());
+        //La moyenne des notes reçue par le livreur
+         Double satisfactionMoyenne = driverReviewRepository.getAverageRatingByDriverId(driver.getId());
+        return new DriverInfoForClientDTO(name.trim(), user.getPhone(),satisfactionMoyenne, user.getProfilePhotoUrl());
+
     }
 
     /** Adresse de livraison : on utilise uniquement formattedAddress s'il est présent, sinon null. */
