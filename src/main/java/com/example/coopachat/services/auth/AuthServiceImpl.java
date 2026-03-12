@@ -128,12 +128,12 @@ public class AuthServiceImpl implements AuthService {
             }
         }
 
-        // Si l'utilisateur est admin, déclencher l'OTP (on envoie sur l’email du compte)
+        /** Si l'utilisateur est admin, déclencher l'OTP (on envoie sur l’email du compte)
         if (user.getRole() == UserRole.ADMINISTRATOR) {
             String otpCode = activationCodeService.generateAndStoreCode(user.getEmail());
             emailService.sendOtpCode(user.getEmail(), otpCode, user.getFirstName());
             return new LoginResponseDTO(user.getEmail(), true);
-        }
+        }**/
 
         // Générer le token
         String accessToken = jwtService.generateToken(user.getEmail(), user.getRole().name(), user.getId());
