@@ -1757,6 +1757,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (order.getItems() != null) {
             for (OrderItem oi : order.getItems()) {
                 ClientOrderItemDTO itemDto = new ClientOrderItemDTO();
+                itemDto.setProductId(oi.getProduct().getId());
                 itemDto.setProductName(oi.getProduct() != null ? oi.getProduct().getName() : "");
                 itemDto.setQuantity(oi.getQuantity());
                 itemDto.setUnitPrice(oi.getUnitPrice());
@@ -1781,7 +1782,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     /**
      * Mappe une commande vers un item de la liste "Mes commandes".
      * - driver : renseigné uniquement si statut = EN_COURS ou ARRIVE (en cours de livraison → afficher nom + téléphone).
-     * - Noter / canRate : si LIVREE, afficher la note si déjà noté, sinon canRate = true (bouton "Noter").
+     * - Noter / canRate : si LIVREE (il peut noter si statut = LIVREE), afficher la note si déjà noté, sinon canRate = true (bouton "Noter").
      */
     private ClientOrderListItemDTO mapOrderToClientOrderListItemDTO(Order order) {
         ClientOrderListItemDTO dto = new ClientOrderListItemDTO();
@@ -1822,7 +1823,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         Users user = driver.getUser();
         if (user == null) return null;
         String name = (user.getFirstName() != null ? user.getFirstName() : "") + " " + (user.getLastName() != null ? user.getLastName() : "");
-        return new DriverInfoForClientDTO(name.trim(), user.getPhone(), null);
+        return new DriverInfoForClientDTO(name.trim(), user.getPhone(), user.getProfilePhotoUrl());
     }
 
     /** Adresse de livraison : on utilise uniquement formattedAddress s'il est présent, sinon null. */
