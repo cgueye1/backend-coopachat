@@ -54,6 +54,11 @@ export class ProductService {
         return this.http.get(`${this.apiUrl}/admin/products/stats`);
     }
 
+    /** Top 5 produits les plus commandés (en % d'utilisation), pour le graphique catalogue. */
+    getTop5ProductsUsage(): Observable<{ productName: string; usagePercent: number }[]> {
+        return this.http.get<{ productName: string; usagePercent: number }[]>(`${this.apiUrl}/admin/products/top5-usage`);
+    }
+
     // Lister les catégories
     getCategories(): Observable<any> {
         return this.http.get(`${this.apiUrl}/admin/categories`);

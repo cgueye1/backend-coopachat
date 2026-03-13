@@ -6,6 +6,7 @@ import { HeaderComponent } from '../../../core/layouts/header/header.component';
 import { Product } from '../../../shared/services/product.service';
 import { environment } from '../../../../environments/environment';
 import { LogisticsService } from '../../../shared/services/logistics.service';
+import { PAGE_SIZE_OPTIONS } from '../../../shared/constants/pagination';
 import Swal from 'sweetalert2';
 
 interface MetricCard {
@@ -53,6 +54,8 @@ export class FournisseurComponent {
   showDetailModal = false;
   isEditMode = false;
   editingOrderId: string | null = null;
+  /** Statut de la commande à l'ouverture du modal (pour savoir si on peut appeler le PUT ou seulement le PATCH). */
+  initialEditStatus: string | null = null;
   pendingSupplierName: string | null = null;
   selectedCommande: Commande | null = null;
   allProducts: Product[] = [];
@@ -129,6 +132,7 @@ export class FournisseurComponent {
   currentPage = 1;
   totalPages = 1;
   itemsPerPage = 6;
+  pageSizeOptions = PAGE_SIZE_OPTIONS;
 
   getStatusClass(status: string): string {
     switch (status) {
@@ -191,20 +195,33 @@ export class FournisseurComponent {
   editCommande(orderId: string): void {
     this.isEditMode = true;
     this.editingOrderId = orderId;
+    this.initialEditStatus = null;
+    this.errors = { fournisseur: '', quantite: '', eta: '' };
     this.logisticsService.getSupplierOrderDetails(orderId).subscribe({
       next: (details) => {
-        this.pendingSupplierName = details?.supplierName ?? null;
-        this.setSupplierFromName();
         const firstItem = (details?.items ?? [])[0];
         const statusLabel = this.normalizeOrderStatus(details?.status);
+        this.initialEditStatus = statusLabel;
+        let fournisseurId: number | null = null;
+        if (details?.supplierId != null) {
+          fournisseurId = Number(details.supplierId);
+        } else {
+          this.pendingSupplierName = details?.supplierName ?? null;
+          this.setSupplierFromName();
+          fournisseurId = this.newCommande.fournisseur;
+        }
         this.newCommande = {
-          fournisseur: this.newCommande.fournisseur,
-          produit: firstItem?.productId?.toString() ?? '',
-          quantite: firstItem?.quantite ?? '',
+          fournisseur: fournisseurId,
+          produit: firstItem?.productId != null ? String(firstItem.productId) : '',
+          quantite: firstItem?.quantite != null ? String(firstItem.quantite) : '',
           eta: this.formatDateForInput(details?.expectedDate),
           note: details?.notes ?? '',
           statut: statusLabel
         };
+        if (fournisseurId == null && details?.supplierName) {
+          const match = this.suppliers.find(s => s.name === details.supplierName);
+          if (match) this.newCommande.fournisseur = match.id;
+        }
         this.showModal = true;
       },
       error: (error) => {
@@ -216,11 +233,31 @@ export class FournisseurComponent {
   nouvelleCommande(): void {
     this.isEditMode = false;
     this.editingOrderId = null;
+    this.errors = { fournisseur: '', quantite: '', eta: '' };
+    this.newCommande = {
+      fournisseur: null,
+      produit: '',
+      quantite: '',
+      eta: '',
+      note: '',
+      statut: 'En attente'
+    };
     this.showModal = true;
   }
 
   closeModal(): void {
     this.showModal = false;
+    this.isEditMode = false;
+    this.editingOrderId = null;
+    this.initialEditStatus = null;
+    this.newCommande = {
+      fournisseur: null,
+      produit: '',
+      quantite: '',
+      eta: '',
+      note: '',
+      statut: 'En attente'
+    };
   }
 
   saveCommande(): void {
@@ -239,21 +276,21 @@ export class FournisseurComponent {
       isValid = false;
     }
 
-    // Validation Quantité
-    if (!this.newCommande.quantite) {
+    // Validation Quantité (0 autorisé)
+    const q = this.newCommande.quantite;
+    if (q === '' || q === null || q === undefined) {
       this.errors.quantite = 'La quantité est obligatoire';
       isValid = false;
-    } else if (isNaN(Number(this.newCommande.quantite))) {
-      this.errors.quantite = 'La quantité doit être un nombre';
+    } else if (isNaN(Number(q)) || Number(q) < 0) {
+      this.errors.quantite = 'La quantité doit être un nombre positif';
       isValid = false;
     }
 
-    // Validation Date (ETA)
-    if (this.newCommande.eta) {
+    // Validation Date (ETA) : en édition, la date prévue peut être dans le passé
+    if (this.newCommande.eta && !this.isEditMode) {
       const selectedDate = new Date(this.newCommande.eta);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-
       if (selectedDate < today) {
         this.errors.eta = 'La date ne peut pas être dans le passé';
         isValid = false;
@@ -276,6 +313,43 @@ export class FournisseurComponent {
       const orderId = this.editingOrderId;
       const desiredStatus = this.newCommande.statut;
       const apiStatus = this.mapStatusToApi(desiredStatus);
+      const isPendingOrder = this.initialEditStatus === 'En attente';
+
+      // Si la commande n'est pas "En attente", on ne peut pas modifier les données (PUT) ; on peut seulement changer le statut (PATCH).
+      if (!isPendingOrder) {
+        if (desiredStatus === this.initialEditStatus) {
+          Swal.fire({
+            title: 'Modification limitée',
+            text: 'Seules les commandes en attente permettent de modifier fournisseur, produit, quantité ou date. Vous pouvez uniquement changer le statut ici.',
+            icon: 'info',
+            confirmButtonText: 'OK'
+          });
+          return;
+        }
+        if (!apiStatus) {
+          Swal.fire({
+            title: 'Erreur',
+            text: 'Statut invalide, impossible de mettre à jour la commande.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+          });
+          return;
+        }
+        this.logisticsService.updateSupplierOrderStatus(orderId, apiStatus).subscribe({
+          next: () => {
+            this.closeModal();
+            this.loadOrders();
+            this.loadOrderStats();
+            this.showSuccessPopup('Statut mis à jour avec succès');
+          },
+          error: (err) => {
+            const msg = this.getApiErrorMessage(err);
+            Swal.fire({ title: 'Erreur', text: msg, icon: 'error', confirmButtonText: 'OK' });
+          }
+        });
+        return;
+      }
+
       const updatePayload = {
         expectedDate: expectedDate || undefined,
         notes: this.newCommande.note || undefined,
@@ -291,8 +365,9 @@ export class FournisseurComponent {
                 this.loadOrderStats();
                 this.showSuccessPopup('Commande modifiée avec succès');
               },
-              error: (error) => {
-                console.error('Erreur lors de la mise à jour du statut:', error);
+              error: (err) => {
+                const msg = this.getApiErrorMessage(err);
+                Swal.fire({ title: 'Erreur', text: msg, icon: 'error', confirmButtonText: 'OK' });
               }
             });
           } else {
@@ -302,8 +377,9 @@ export class FournisseurComponent {
             this.showSuccessPopup('Commande modifiée avec succès');
           }
         },
-        error: (error) => {
-          console.error('Erreur lors de la modification:', error);
+        error: (err) => {
+          const msg = this.getApiErrorMessage(err);
+          Swal.fire({ title: 'Erreur', text: msg, icon: 'error', confirmButtonText: 'OK' });
         }
       });
     } else {
@@ -320,21 +396,27 @@ export class FournisseurComponent {
           this.loadOrderStats();
           this.showSuccessPopup('Commande ajoutée avec succès');
         },
-        error: (error) => {
-          console.error('Erreur lors de la création de la commande:', error);
+        error: (err) => {
+          const msg = this.getApiErrorMessage(err);
+          Swal.fire({ title: 'Erreur', text: msg, icon: 'error', confirmButtonText: 'OK' });
         }
       });
     }
+  }
 
-    // Reset form
-    this.newCommande = {
-      fournisseur: null,
-      produit: '',
-      quantite: '',
-      eta: '',
-      note: '',
-      statut: 'En attente'
-    };
+  /** Extrait le message d'erreur de la réponse API (body texte ou objet avec message). */
+  private getApiErrorMessage(err: unknown): string {
+    const e = err as { error?: string | { message?: string }; message?: string };
+    if (typeof e?.error === 'string') return e.error;
+    if (e?.error?.message) return e.error.message;
+    if (e?.message) return e.message;
+    return 'Une erreur est survenue. Réessayez ou contactez le support.';
+  }
+
+  onPageSizeChange(size: number): void {
+    this.itemsPerPage = size;
+    this.currentPage = 1;
+    this.loadOrders();
   }
 
   previousPage(): void {
@@ -476,10 +558,10 @@ export class FournisseurComponent {
   }
 
   private mapStatusToApi(status: string): string | undefined {
-    if (status === 'En attente') return 'En attente';
-    if (status === 'En cours') return 'En cours de livraison';
-    if (status === 'Livrée') return 'Livrée';
-    if (status === 'Annulée') return 'Annulée';
+    if (status === 'En attente') return 'EN_ATTENTE';
+    if (status === 'En cours') return 'EN_COURS';
+    if (status === 'Livrée') return 'LIVREE';
+    if (status === 'Annulée') return 'ANNULEE';
     return undefined;
   }
 
@@ -510,10 +592,14 @@ export class FournisseurComponent {
 
   private formatDateForInput(dateValue: string | undefined): string {
     if (!dateValue) return '';
-    const datePart = dateValue.split(' ')[0];
-    const [day, month, year] = datePart.split('-');
-    if (!day || !month || !year) return '';
-    return `${year}-${month}-${day}`;
+    const datePart = (dateValue.split('T')[0] || dateValue).split(' ')[0];
+    const parts = datePart.split('-');
+    if (parts.length === 3) {
+      const [a, b, c] = parts;
+      if (a.length === 4) return `${a}-${b}-${c}`;
+      return `${c}-${b}-${a}`;
+    }
+    return '';
   }
 
   private loadAllProducts(): void {
@@ -565,7 +651,9 @@ export class FournisseurComponent {
 
   private buildImageUrl(image: string | undefined): string {
     if (!image) return '/icones/default-product.svg';
+    if (image.startsWith('file://')) return '/icones/default-product.svg';
     if (image.startsWith('http') || image.startsWith('/')) return image;
-    return `${environment.apiUrl}/files/${image}`;
+    const base = environment.imageServerUrl;
+    return `${base}/files/${image}`;
   }
 }

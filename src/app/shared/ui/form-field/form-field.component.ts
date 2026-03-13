@@ -17,6 +17,8 @@ export class FormFieldComponent {
   @Input() placeholder = '';
   @Input() required = false;
   @Input() error = '';
+  /** Texte d'aide sous le champ (si fourni). Ne pas utiliser pour le champ Code du modal coupon. */
+  @Input() hint = '';
   @Input() control!: AbstractControl;
   @Input() rows = 1;
   @Input() options?: { value: string, label: string }[] = [];

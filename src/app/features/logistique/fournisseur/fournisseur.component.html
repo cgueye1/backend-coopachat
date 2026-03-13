@@ -222,7 +222,16 @@
                 <!-- Pagination -->
                 <div
                     class="bg-white rounded-xl shadow flex flex-col sm:flex-row justify-between items-center p-4 gap-4">
-                    <p class="text-gray-500 text-sm mb-2 sm:mb-0">Page {{ currentPage }} sur {{ totalPages }}</p>
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-gray-500 text-sm mb-2 sm:mb-0">
+                        <span>Afficher</span>
+                        <select [ngModel]="itemsPerPage" (ngModelChange)="onPageSizeChange($event)"
+                            class="pl-2 pr-8 py-1.5 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:border-[#2d3561] appearance-none bg-[length:12px_12px] bg-[right_0.4rem_center] bg-no-repeat"
+                            style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%236B7280%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22 d=%22M19 9l-7 7-7-7%22/%3E%3C/svg%3E');">
+                            <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt">{{ opt }}</option>
+                        </select>
+                        <span>par page</span>
+                        <span>· Page {{ currentPage }} sur {{ totalPages }}</span>
+                    </div>
                     <div class="flex gap-2 w-full sm:w-auto">
                         <button
                             class="w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#2d3561] hover:text-[#2d3561]"
@@ -301,7 +310,7 @@
                         <div class="space-y-2 px-1 sm:px-2">
                             <label class="text-[15px] font-medium text-gray-700">ETA (date prévue)</label>
                             <div class="relative">
-                                <input type="date" [(ngModel)]="newCommande.eta" [min]="minDate" #dateInput
+                                <input type="date" [(ngModel)]="newCommande.eta" [min]="isEditMode ? null : minDate" #dateInput
                                     [class.border-red-500]="errors.eta"
                                     class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-gray-600 placeholder:text-gray-400 appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0">
                                 <img src="/icones/date.svg" alt="calendar"

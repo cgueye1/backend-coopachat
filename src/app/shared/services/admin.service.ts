@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+
 /**
  * Un élément "Paiements par statut" renvoyé par l'API (ex. Payé: 10, Échoué: 1).
  */
@@ -12,7 +13,7 @@ export interface PaymentStatusItemDTO {
 }
 
 /**
- * Réponse de GET /api/admin/dashboard/stats?periode=TODAY|THIS_MONTH
+ * Réponse de GET /api/admin/dashboard/stats (données globales, sans filtre de période).
  * Les 3 KPIs + la liste pour le graphique "Paiements par statut".
  */
 export interface AdminDashboardStatsDTO {
@@ -22,9 +23,30 @@ export interface AdminDashboardStatsDTO {
   paiementsParStatut: PaymentStatusItemDTO[];
 }
 
+/** Un jour du graphique "Tendance des coupons utilisés" (7 derniers jours). */
+export interface CouponUsageParJourDTO {
+  date: string;
+  nbUtilisations: number;
+}
+
+/** Une alerte du tableau de bord admin (GET /api/admin/alerts). */
+export interface AlertItemDTO {
+  type: string;
+  message: string;
+  detail: string;
+  module: string;
+  date: string;
+}
+
+export interface AdminAlertsDTO {
+  alerts: AlertItemDTO[];
+}
+
 /**
  * Un jour du graphique "Commandes vs Livraisons" (7 derniers jours).
- * Livré = LIVREE, En attente = EN_ATTENTE.
+ * - date : libellé court (ex. "05/02")
+ * - commandesEnAttente : nombre de commandes EN_ATTENTE créées ce jour
+ * - livraisons : nombre de commandes LIVREE finalisées ce jour
  */
 export interface CommandesVsLivraisonsDayDTO {
   date: string;
@@ -33,17 +55,110 @@ export interface CommandesVsLivraisonsDayDTO {
 }
 
 /**
- * Réponse de GET /api/admin/dashboard/commandes-vs-livraisons
+ * Forme alternative si on veut wrapper la liste (ex. pour le template).
+ * L’API retourne directement un tableau ; on peut faire { derniersJours: list } côté composant.
  */
 export interface CommandesVsLivraisonsDTO {
   derniersJours: CommandesVsLivraisonsDayDTO[];
+}
+
+/**
+ * Un jour du graphique "Livraisons" (7 derniers jours) : nbLivrees, nbAssignes, nbEnAttente.
+ * GET /admin/dashboard/livraisons-par-jour
+ */
+export interface LivraisonParJourDTO {
+  date: string;
+  nbLivrees: number;
+  nbAssignes: number;
+  nbEnAttente: number;
+}
+
+/** Un rôle du graphique "Utilisateurs par rôle" (API GET /admin/users/stats/by-role). */
+export interface UserStatsByRoleItemDTO {
+  role: string;
+  roleLabel: string;
+  count: number;
+  percentage: number;
+}
+
+// --- Page Gestion des utilisateurs (GET/POST /admin/users, stats, etc.) ---
+
+export interface UserListItemDTO {
+  id: number;
+  reference: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  roleLabel: string;
+  profilePhotoUrl?: string | null;
+  createdAt: string;
+  isActive: boolean;
+}
+
+export interface UserListResponseDTO {
+  content: UserListItemDTO[];
+  totalElements: number;
+  totalPages: number;
+  currentPage: number;
+  pageSize: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export interface UserStatsDTO {
+  totalUsers: number;
+  activeUsers: number;
+  inactiveUsers: number;
+}
+
+export interface UserStatsByStatusItemDTO {
+  label: string;
+  count: number;
+  percentage: number;
+}
+
+export interface UserDetailsDTO {
+  id: number;
+  refUser: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string | null;
+  role: string;
+  roleLabel: string;
+  companyCommercial?: string | null;
+  isActive: boolean;
+  profilePhotoUrl?: string | null;
+  createdAt: string;
+}
+
+/** Création / modification utilisateur (POST /users, PUT /users/{id}). */
+export interface SaveUserDTO {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  role: string;
+  companyCommercial?: string | null;
+}
+
+/** Toggle statut (PATCH /users/{id}/status). */
+export interface UpdateUserStatusDTO {
+  isActive: boolean;
+}
+
+/** Réponse GET /admin/dashboard/stocks-etat-global pour le donut "Stocks - État global". */
+export interface StockEtatGlobalDTO {
+  normal: number;
+  sousSeuil: number;
+  critique: number;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class AdminService {
-  private apiUrl = environment.apiUrl;//URL de base
+  private apiUrl = environment.apiUrl; 
 
   constructor(private http: HttpClient) {}
 
@@ -51,8 +166,187 @@ export class AdminService {
    * Récupère les stats du tableau de bord admin (3 KPIs + paiements par statut).
    * @param periode "TODAY" (aujourd'hui) ou "THIS_MONTH" (mois en cours)
    */
-  getDashboardStats(periode: 'TODAY' | 'THIS_MONTH' = 'THIS_MONTH'): Observable<AdminDashboardStatsDTO> {
-    const params = new HttpParams().set('periode', periode);//le paramètre à passer 
-    return this.http.get<AdminDashboardStatsDTO>(`${this.apiUrl}/admin/dashboard/stats`, { params });
+  getDashboardStats(): Observable<AdminDashboardStatsDTO> {
+    return this.http.get<AdminDashboardStatsDTO>(`${this.apiUrl}/admin/dashboard/stats`);
   }
+
+  /**
+   * Récupère les 7 derniers jours pour le graphique "Commandes vs Livraisons".
+   * Exemple de réponse API : [{ date: "05/02", commandesEnAttente: 3, livraisons: 12 }, ...]
+   * 
+   */
+  getCommandesVsLivraisons(): Observable<CommandesVsLivraisonsDayDTO[]> {
+    return this.http.get<CommandesVsLivraisonsDayDTO[]>(`${this.apiUrl}/admin/dashboard/commandes-vs-livraisons`);
+  }
+
+  /**
+   * 7 derniers jours : date (dd/MM), nbLivrees, nbAssignes, nbEnAttente.
+   * Graphique « Livraisons » (barres empilées : Livrés, Planifiés, Retard).
+   */
+  getLivraisonsParJour(): Observable<LivraisonParJourDTO[]> {
+    return this.http.get<LivraisonParJourDTO[]>(`${this.apiUrl}/admin/dashboard/livraisons-par-jour`);
+  }
+
+  /**
+   * Récupère les effectifs par rôle pour le graphique "Utilisateurs par rôle".
+   * GET /admin/users/stats/by-role → [{ roleLabel: "Salariés", count: 40, ... }, ...]
+   */
+  getUsersStatsByRole(): Observable<UserStatsByRoleItemDTO[]> {
+    return this.http.get<UserStatsByRoleItemDTO[]>(`${this.apiUrl}/admin/users/stats/by-role`);
+  }
+
+  /** Liste paginée des utilisateurs (filtres optionnels). */
+  getUsers(params: { page: number; size: number; search?: string; role?: string; status?: boolean }): Observable<UserListResponseDTO> {
+    let httpParams = new HttpParams()
+      .set('page', params.page.toString())
+      .set('size', params.size.toString());
+    if (params.search != null && params.search.trim() !== '') {
+      httpParams = httpParams.set('search', params.search.trim());
+    }
+    if (params.role != null && params.role !== '') {
+      httpParams = httpParams.set('role', params.role);
+    }
+    if (params.status != null) {
+      httpParams = httpParams.set('status', params.status.toString());
+    }
+    return this.http.get<UserListResponseDTO>(`${this.apiUrl}/admin/users`, { params: httpParams });
+  }
+
+  getUsersStats(): Observable<UserStatsDTO> {
+    return this.http.get<UserStatsDTO>(`${this.apiUrl}/admin/users/stats`);
+  }
+
+  getUsersStatsByStatus(): Observable<UserStatsByStatusItemDTO[]> {
+    return this.http.get<UserStatsByStatusItemDTO[]>(`${this.apiUrl}/admin/users/stats/by-status`);
+  }
+
+  getUserById(id: number): Observable<UserDetailsDTO> {
+    return this.http.get<UserDetailsDTO>(`${this.apiUrl}/admin/users/${id}`);
+  }
+
+  updateUserStatus(id: number, dto: UpdateUserStatusDTO): Observable<string> {
+    return this.http.patch(`${this.apiUrl}/admin/users/${id}/status`, dto, { responseType: 'text' });
+  }
+
+  /**
+   * Met à jour un utilisateur via multipart/form-data (request params + photo optionnelle).
+   * Tous les champs sont optionnels ; si profilePhoto est fourni, il remplace la photo actuelle.
+   */
+  updateUser(id: number, params: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phoneNumber?: string;
+    role?: string;
+    companyCommercial?: string;
+    profilePhoto?: File;
+  }): Observable<string> {
+    const form = new FormData();
+    if (params.firstName != null) form.append('firstName', params.firstName);
+    if (params.lastName != null) form.append('lastName', params.lastName);
+    if (params.email != null) form.append('email', params.email);
+    if (params.phoneNumber != null) form.append('phoneNumber', params.phoneNumber);
+    if (params.role != null) form.append('role', params.role);
+    if (params.companyCommercial != null && params.companyCommercial !== '') {
+      form.append('companyCommercial', params.companyCommercial);
+    }
+    if (params.profilePhoto) {
+      form.append('profilePhoto', params.profilePhoto, params.profilePhoto.name);
+    }
+    return this.http.put(`${this.apiUrl}/admin/users/${id}`, form, { responseType: 'text' });
+  }
+
+  /**
+   * Crée un utilisateur via multipart/form-data (request params + photo optionnelle).
+   * Paramètres : firstName, lastName, email, phoneNumber, role, companyCommercial (optionnel), profilePhoto (optionnel).
+   */
+  createUser(params: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    role: string;
+    companyCommercial?: string;
+    profilePhoto?: File;
+  }): Observable<string> {
+    const form = new FormData();
+    form.append('firstName', params.firstName);
+    form.append('lastName', params.lastName);
+    form.append('email', params.email);
+    form.append('phoneNumber', params.phoneNumber);
+    form.append('role', params.role);
+    if (params.companyCommercial != null && params.companyCommercial !== '') {
+      form.append('companyCommercial', params.companyCommercial);
+    }
+    if (params.profilePhoto) {
+      form.append('profilePhoto', params.profilePhoto, params.profilePhoto.name);
+    }
+    return this.http.post(`${this.apiUrl}/admin/users`, form, { responseType: 'text' });
+  }
+
+  /** Met à jour la photo de profil d'un utilisateur (PUT /admin/users/{id}/profile-photo). */
+  updateUserProfilePhoto(userId: number, file: File): Observable<string> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http.put(`${this.apiUrl}/admin/users/${userId}/profile-photo`, form, { responseType: 'text' });
+  }
+
+  /** Retourne l'URL complète pour afficher une photo de profil (ex. /api/files/profiles/xxx.jpg). */
+  getProfilePhotoUrl(profilePhotoUrl: string | null | undefined): string | null {
+    if (!profilePhotoUrl?.trim()) return null;
+    const base = profilePhotoUrl.startsWith('http') ? '' : (environment.imageServerUrl ?? '').replace(/\/$/, '');
+    return base ? `${base}/files/${profilePhotoUrl}` : `/files/${profilePhotoUrl}`;
+  }
+
+  /**
+   * Récupère les effectifs Normal, Sous seuil, Critique pour le donut "Stocks - État global".
+   * GET /admin/dashboard/stocks-etat-global
+   */
+  getStockEtatGlobal(): Observable<StockEtatGlobalDTO> {
+    return this.http.get<StockEtatGlobalDTO>(`${this.apiUrl}/admin/dashboard/stocks-etat-global`);
+  }
+
+  /**
+   * 7 derniers jours : date (dd/MM), nbUtilisations (commandes avec coupon). GET /admin/dashboard/coupons-utilises-par-jour
+   */
+  getCouponsUtilisesParJour(): Observable<CouponUsageParJourDTO[]> {
+    return this.http.get<CouponUsageParJourDTO[]>(`${this.apiUrl}/admin/dashboard/coupons-utilises-par-jour`);
+  }
+
+  /** GET /api/admin/alerts — alertes (livraisons en retard, stocks critiques). module = LIVRAISONS | STOCKS pour la navigation. */
+  getAlerts(): Observable<AdminAlertsDTO> {
+    return this.http.get<AdminAlertsDTO>(`${this.apiUrl}/admin/alerts`);
+  }
+
+  // --- Catégories (id + nom + icon) ---
+  /** @param noCache si true, ajoute un paramètre pour éviter le cache navigateur (après création/modification). */
+  getCategories(noCache?: boolean): Observable<CategoryListItemDTO[]> {
+    const options = noCache ? { params: { _: Date.now().toString() } } : {};
+    return this.http.get<CategoryListItemDTO[]>(`${this.apiUrl}/admin/categories`, options);
+  }
+
+  getCategoryById(id: number): Observable<CategoryListItemDTO> {
+    return this.http.get<CategoryListItemDTO>(`${this.apiUrl}/admin/categories/${id}`);
+  }
+
+  createCategory(body: { name: string; icon?: string }): Observable<string> {
+    return this.http.post(`${this.apiUrl}/admin/categories`, body, { responseType: 'text' });
+  }
+
+  updateCategory(id: number, body: { name?: string; icon?: string }): Observable<string> {
+    return this.http.put(`${this.apiUrl}/admin/categories/${id}`, body, { responseType: 'text' });
+  }
+
+  /** Upload une icône (SVG, PNG, etc.) pour une catégorie. Retourne le chemin à mettre dans le champ icon. */
+  uploadCategoryIcon(file: File): Observable<{ path: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<{ path: string }>(`${this.apiUrl}/admin/categories/upload-icon`, formData);
+  }
+}
+
+export interface CategoryListItemDTO {
+  id: number;
+  name: string;
+  icon?: string | null;
 }

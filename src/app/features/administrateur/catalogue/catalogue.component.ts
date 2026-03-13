@@ -1,7 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
@@ -9,6 +12,7 @@ import { NgChartsModule } from 'ng2-charts';
 import { ChartConfiguration } from 'chart.js';
 import Swal from 'sweetalert2';
 import { ProductService } from '../../../shared/services/product.service';
+import { PAGE_SIZE_OPTIONS } from '../../../shared/constants/pagination';
 
 interface MetricCard {
   title: string;
@@ -27,6 +31,8 @@ interface Product {
   status: 'Actif' | 'Inactif';
   icon: string;
   description?: string;
+  /** "En stock" ou "Rupture" selon le stock (aligné sur le DTO détail backend). */
+  currentStockStatus?: string;
 }
 
 @Component({
@@ -36,7 +42,10 @@ interface Product {
   templateUrl: './catalogue.component.html',
   styles: ``
 })
-export class CatalogueComponent implements OnInit {
+export class CatalogueComponent implements OnInit, OnDestroy {
+  isBrowser = false;
+  private routerSub?: Subscription;
+
   searchText = '';
   selectedCategory = 'Toutes les catégories';
   selectedCategoryId: number | null = null;
@@ -45,20 +54,28 @@ export class CatalogueComponent implements OnInit {
   showStatusDropdown = false;
   currentPage = 1;
   itemsPerPage = 6;
+  pageSizeOptions = PAGE_SIZE_OPTIONS;
   totalPages = 1;
   totalElements = 0;
   showProductModal = false;
   selectedProduct: Product | null = null;
   categories: { id: number; name: string }[] = [];
 
-  constructor(private router: Router, private productService: ProductService) { }
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private productService: ProductService,
+    @Inject(PLATFORM_ID) private platformId: object
+  ) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+  }
 
-  // Bar Chart Configuration - Utilisateurs par rôle
+  // Bar Chart Configuration - Top 5 Produits commandés (utilisation en %)
   public barChartData: ChartConfiguration<'bar'>['data'] = {
-    labels: ['Riz parfumé 25kg', 'Eau 1.5L (x6)', 'Huile 5L', 'Thon boîte'],
+    labels: [],
     datasets: [
       {
-        data: [450, 350, 250, 200],
+        data: [],
         backgroundColor: (ctx) => {
           const { chart } = ctx;
           const { ctx: c, chartArea } = chart as any;
@@ -89,48 +106,33 @@ export class CatalogueComponent implements OnInit {
           boxWidth: 40,
           boxHeight: 12,
           padding: 15,
-          font: {
-            size: 12
-          },
+          font: { size: 12 },
           generateLabels: () => [
-            {
-              text: 'Utilisation(%)',
-              fillStyle: '#FF6B00',
-              strokeStyle: '#FF6B00',
-              lineWidth: 0
-            }
+            { text: 'Utilisation (%)', fillStyle: '#FF6B00', strokeStyle: '#FF6B00', lineWidth: 0 }
           ]
         }
       },
       tooltip: {
-        enabled: true
+        enabled: true,
+        callbacks: {
+          label: (context) => `Utilisation : ${Number(context.parsed.x).toFixed(1)} %`
+        }
       }
     },
     scales: {
       x: {
         beginAtZero: true,
-        max: 500,
+        max: 100,
         ticks: {
-          stepSize: 50,
-          font: {
-            size: 12
-          }
+          stepSize: 10,
+          callback: (value) => value + ' %',
+          font: { size: 12 }
         },
-        grid: {
-          display: true,
-          color: '#F2F5F9'
-        }
+        grid: { display: true, color: '#F2F5F9' }
       },
       y: {
-        ticks: {
-          font: {
-            size: 12
-          }
-        },
-        grid: {
-          display: true,
-          color: '#F2F5F9'
-        }
+        ticks: { font: { size: 12 } },
+        grid: { display: true, color: '#F2F5F9' }
       }
     }
   };
@@ -186,7 +188,7 @@ export class CatalogueComponent implements OnInit {
         enabled: true,
         callbacks: {
           label: (context) => {
-            return `${context.label}: ${context.parsed}%`;
+            return `${context.label}: ${Number(context.parsed).toFixed(1)}%`;
           }
         }
       }
@@ -197,6 +199,50 @@ export class CatalogueComponent implements OnInit {
     this.loadCategories();
     this.loadProducts();
     this.loadProductStats();
+    this.loadTop5ProductUsage();
+
+    // Au premier chargement avec ?refresh=1 (retour après ajout/modif produit), recharger puis retirer le param
+    if (this.route.snapshot.queryParamMap.get('refresh') === '1') {
+      this.loadProducts();
+      this.loadProductStats();
+      this.loadTop5ProductUsage();
+      this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
+    }
+
+    // Si le routeur réutilise le composant, NavigationEnd permet de recharger quand on revient avec ?refresh=1
+    this.routerSub = this.router.events.pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd)
+    ).subscribe(() => {
+      if (this.route.snapshot.queryParamMap.get('refresh') === '1') {
+        this.loadProducts();
+        this.loadProductStats();
+        this.loadTop5ProductUsage();
+        this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    this.routerSub?.unsubscribe();
+  }
+
+  /** Charge le top 5 des produits les plus commandés (en % d'utilisation) pour le graphique. */
+  loadTop5ProductUsage(): void {
+    this.productService.getTop5ProductsUsage().subscribe({
+      next: (list) => {
+        if (list && list.length) {
+          this.barChartData.labels = list.map((x: { productName: string }) => x.productName);
+          this.barChartData.datasets[0].data = list.map((x: { usagePercent: number }) => x.usagePercent);
+        } else {
+          this.barChartData.labels = [];
+          this.barChartData.datasets[0].data = [];
+        }
+      },
+      error: () => {
+        this.barChartData.labels = [];
+        this.barChartData.datasets[0].data = [];
+      }
+    });
   }
 
   metricsData: MetricCard[] = [];
@@ -422,6 +468,12 @@ export class CatalogueComponent implements OnInit {
     this.loadProducts();
   }
 
+  onPageSizeChange(size: number) {
+    this.itemsPerPage = size;
+    this.currentPage = 1;
+    this.loadProducts();
+  }
+
   private loadProducts() {
     const statusFilter = this.getStatusFilter();
 
@@ -444,6 +496,18 @@ export class CatalogueComponent implements OnInit {
     this.productService.getProductStats().subscribe({
       next: (stats) => {
         this.updateMetrics(stats);
+        const total = stats?.totalProducts ?? 0;
+        const actifs = stats?.activeProducts ?? 0;
+        const inactifs = stats?.inactiveProducts ?? 0;
+        const pctActifs = total > 0 ? Math.round((actifs / total) * 1000) / 10 : 0;
+        const pctInactifs = total > 0 ? Math.round((inactifs / total) * 1000) / 10 : 0;
+        this.doughnutChartData = {
+          ...this.doughnutChartData,
+          datasets: [{
+            ...this.doughnutChartData.datasets[0],
+            data: [pctActifs, pctInactifs]
+          }]
+        };
       },
       error: (error) => {
         console.error('Erreur lors du chargement des statistiques:', error);
@@ -469,30 +533,36 @@ export class CatalogueComponent implements OnInit {
   }
 
   private mapApiProductToFrontend(item: any): Product {
+    const stock = item.currentStock ?? 0;
     return {
       id: item.id?.toString() ?? '',
       name: item.name ?? '',
       reference: item.productCode ?? '',
       category: item.categoryName ?? '',
       price: this.formatPrice(item.price),
-      stock: item.currentStock ?? 0,
+      stock,
       updatedAt: this.formatDate(item.updatedAt),
       status: this.normalizeStatus(item.status),
       icon: this.buildImageUrl(item.image),
-      description: item.description
+      description: item.description,
+      currentStockStatus: stock > 0 ? 'En stock' : 'Rupture'
     };
   }
 
   private mapProductDetailsToProduct(base: Product, details: any): Product {
+    const stock = details?.currentStock ?? base.stock ?? 0;
+    const currentStockStatus = details?.currentStockStatus ?? (stock > 0 ? 'En stock' : 'Rupture');
     return {
       ...base,
       name: details?.name ?? base.name,
       reference: details?.productCode ?? base.reference,
       category: details?.categoryName ?? base.category,
       price: this.formatPrice(details?.price) || base.price,
+      stock,
       status: details?.status === true ? 'Actif' : details?.status === false ? 'Inactif' : base.status,
       icon: this.buildImageUrl(details?.image) || base.icon,
-      description: details?.description ?? base.description
+      description: details?.description ?? base.description,
+      currentStockStatus
     };
   }
 
@@ -517,7 +587,9 @@ export class CatalogueComponent implements OnInit {
 
   private buildImageUrl(image: string | undefined): string {
     if (!image) return '/icones/default-product.svg';
+    if (image.startsWith('file://')) return '/icones/default-product.svg'; // chemin local → pas servable par l’API
     if (image.startsWith('http') || image.startsWith('/')) return image;
-    return `${environment.apiUrl}/files/${image}`;
+    const base = environment.imageServerUrl;
+    return `${base}/files/${image}`;
   }
 }

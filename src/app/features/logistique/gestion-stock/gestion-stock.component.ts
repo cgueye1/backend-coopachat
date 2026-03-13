@@ -439,6 +439,22 @@ export class GestionStockComponent implements OnInit {
       this.logisticsService.updateMinThreshold(this.selectedStockItem.id, this.thresholdValue).subscribe({
         next: () => {
           this.closeThresholdModal();
+          Swal.fire({
+            title: 'Seuil mis à jour avec succès',
+            iconHtml: `<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="40" cy="40" r="37.5" stroke="#388E3C" stroke-width="5"/>
+              <path d="M22.5 40L35 52.5L57.5 30" stroke="#388E3C" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>`,
+            showConfirmButton: false,
+            timer: 2000,
+            customClass: {
+              popup: 'rounded-3xl p-4',
+              title: 'text-xl font-medium text-gray-900',
+              icon: 'border-none'
+            },
+            backdrop: `rgba(0,0,0,0.2)`,
+            width: '500px'
+          });
           this.loadStockStats();
           this.loadStockList();
           this.loadStockAlerts();
@@ -628,7 +644,8 @@ export class GestionStockComponent implements OnInit {
         this.metricsData = [
           { title: 'Total', value: String(stats.total), subtitle: 'Catalogue suivi', icon: 'box-blue' },
           { title: 'Stocks sous seuil', value: String(stats.lowStock), subtitle: 'À réapprovisionner', icon: 'warning-yellow' },
-          { title: 'Ruptures', value: String(stats.outOfStock), subtitle: 'Stock = 0', icon: 'box-red' }
+          { title: 'Ruptures', value: String(stats.outOfStock), subtitle: 'Stock = 0', icon: 'box-red' },
+          { title: 'Suffisant', value: String(stats.sufficient ?? 0), subtitle: 'Stock ≥ seuil', icon: 'box-green' }
         ];
       },
       error: (error) => {
@@ -718,8 +735,10 @@ export class GestionStockComponent implements OnInit {
 
   private buildImageUrl(image: string | undefined): string {
     if (!image) return '/icones/default-product.svg';
+    if (image.startsWith('file://')) return '/icones/default-product.svg';
     if (image.startsWith('http') || image.startsWith('/')) return image;
-    return `${environment.apiUrl}/files/${image}`;
+    const base = environment.imageServerUrl;
+    return `${base}/files/${image}`;
   }
 
   private findCategoryIdByName(name: string): number | null {

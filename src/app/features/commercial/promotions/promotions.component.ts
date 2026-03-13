@@ -3,29 +3,17 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
-import { CouponModalComponent, CouponFormData } from '../../../shared/components/coupon-modal/coupon-modal.component';
-import { ProductService, Product } from '../../../shared/services/product.service';
-import { environment } from '../../../../environments/environment';
+import { CouponModalComponent, CouponFormData, ProductOption, CategoryOption } from '../../../shared/components/coupon-modal/coupon-modal.component';
+import { CommercialService, CouponListResponse, CouponListItem, CouponDetails } from '../../../shared/services/commercial.service';
+import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 
 interface StatCard {
   title: string;
   value: string | number;
   icon: string;
-  method?: string;
-}
-
-interface Promotion {
-  id: number;
-  nom: string;
-  reduction: string;
-  produits: string;
-  validite: string;
-  icon: string;
-  statut: 'Actif' | 'Expiré' | 'Planifié';
-  utilisations: number;
-  montantGenere: string;
-  produitsIds?: string[];
+  /** Texte affiché sous le chiffre (ex. précision ou formule). */
+  subtitle?: string;
 }
 
 @Component({
@@ -39,117 +27,101 @@ export class PromotionsManagementComponent {
   searchTerm: string = '';
   selectedStatusFilter: string = '';
   currentPage: number = 1;
-  itemsPerPage: number = 4;
+  itemsPerPage: number = 6;
   Math = Math;
 
-  // Propriétés pour le modal
-  isModalOpen: boolean = false;
-  isSubmitting: boolean = false;
+  listResponse: CouponListResponse | null = null;
+  loading = false;
+  loadingDetail = false;
 
-  // Propriétés pour le dropdown de statut
-  showStatusDropdown: boolean = false;
+  isModalOpen = false;
+  isSubmitting = false;
+  showStatusDropdown = false;
+  showDetailModal = false;
+  selectedCouponDetail: CouponDetails | null = null;
 
-  // Propriétés pour le modal de détails
-  showDetailModal: boolean = false;
-  selectedPromotion: Promotion | null = null;
-  allProducts: Product[] = [];
+  couponModalProducts: ProductOption[] = [];
+  couponModalCategories: CategoryOption[] = [];
 
   statsCards: StatCard[] = [
-    {
-      title: 'Promotions actives',
-      value: 0,
-      icon: '/icones/label.svg',
-      method: 'getActivePromotions'
-    },
-    {
-      title: 'Utilisations totales',
-      value: 0,
-      icon: '/icones/cart.svg',
-      method: 'getTotalUtilisations'
-    },
-    {
-      title: 'Montant généré',
-      value: '',
-      icon: '/icones/money-filled.svg',
-      method: 'getTotalMontant'
-    },
-    {
-      title: 'Panier moyen',
-      value: '',
-      icon: '/icones/money-filled-orange.svg',
-      method: 'getPanierMoyen'
-    }
+    { title: 'Coupons actives', value: 0, icon: '/icones/label.svg' },
+    { title: 'Utilisations totales', value: 0, icon: '/icones/cart.svg' },
+    { title: 'Montant généré', value: '', icon: '/icones/money-filled.svg', subtitle: 'Montant total des réductions appliquées' },
+    { title: 'Panier moyen', value: '', icon: '/icones/money-filled-orange.svg', subtitle: 'totalGenerated / totalUsages' }
   ];
 
-  promotions: Promotion[] = [
-    {
-      id: 1,
-      nom: 'Rentrée 2023',
-      reduction: '5%',
-      produits: 'Tous les produits',
-      validite: '01/09/2023 - 15/09/2023',
-      icon: "/icones/actif.svg",
-      statut: 'Actif',
-      utilisations: 124,
-      montantGenere: '8 700 Fcfa',
-      produitsIds: ['1', '2', '3', '4']
-    },
-    {
-      id: 2,
-      nom: 'Été 2023',
-      reduction: '5%',
-      produits: 'Électroménager',
-      validite: '15/06/2023 - 31/07/2023',
-      icon: "/icones/inactif.svg",
-      statut: 'Expiré',
-      utilisations: 215,
-      montantGenere: '15 000 Fcfa',
-      produitsIds: ['2', '3']
-    },
-    {
-      id: 3,
-      nom: 'Bienvenue Entreprise ABC',
-      reduction: '5%',
-      produits: 'Tous les produits',
-      validite: '01/07/2023 - 31/07/2023',
-      icon: "/icones/inactif.svg",
-      statut: 'Expiré',
-      utilisations: 45,
-      montantGenere: '3 200 Fcfa',
-      produitsIds: ['1', '4']
-    },
-    {
-      id: 4,
-      nom: 'Black Friday 2023',
-      reduction: '5%',
-      produits: 'Tous les produits',
-      validite: '24/11/2023 - 27/11/2023',
-      icon: "/icones/attente.svg",
-      statut: 'Planifié',
-      utilisations: 0,
-      montantGenere: '- Fcfa',
-      produitsIds: ['1', '2', '3', '4', '5']
-    }
-  ];
-
-  filteredPromotions: Promotion[] = [...this.promotions];
-
-  constructor(private productService: ProductService) {
-    this.loadAllProducts();
-    this.filterPromotions();
-    this.updateStatsCards();
+  constructor(
+    private commercialService: CommercialService
+  ) {
+    this.loadCoupons();
+    this.loadProductsForModal();
+    this.loadCategoriesForModal();
   }
 
-  updateStatsCards(): void {
-    this.statsCards[0].value = this.getActivePromotions();
-    this.statsCards[1].value = this.getTotalUtilisations();
-    this.statsCards[2].value = this.getTotalMontant();
-    this.statsCards[3].value = this.getPanierMoyen();
+  get content(): CouponListItem[] {
+    return this.listResponse?.content ?? [];
   }
 
-  // Méthodes pour le modal
+  get totalPages(): number {
+    return Math.max(1, this.listResponse?.totalPages ?? 0);
+  }
+
+  get totalElements(): number {
+    return this.listResponse?.totalElements ?? 0;
+  }
+
+  loadCoupons(): void {
+    this.loading = true;
+    const page = this.currentPage - 1;
+    const status = this.selectedStatusFilter === 'Actif' ? 'ACTIVE' : this.selectedStatusFilter === 'Inactif' ? 'DISABLED' : this.selectedStatusFilter === 'Expiré' ? 'EXPIRED' : this.selectedStatusFilter === 'Planifié' ? 'PLANNED' : undefined;
+    forkJoin({
+      list: this.commercialService.getCoupons(page, this.itemsPerPage, this.searchTerm || undefined, status, undefined, undefined),
+      stats: this.commercialService.getCartTotalCouponStats()
+    }).subscribe({
+      next: ({ list, stats }) => {
+        this.listResponse = list;
+        this.statsCards[0].value = stats.activeCouponsCount;
+        this.statsCards[1].value = stats.totalUsages;
+        const totalGen = Number(stats.totalGenerated) || 0;
+        this.statsCards[2].value = totalGen > 0 ? `${totalGen.toLocaleString('fr-FR')} F` : '-';
+        this.statsCards[3].value = stats.totalUsages > 0 ? `${Math.round(totalGen / stats.totalUsages).toLocaleString('fr-FR')} F` : '-';
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+      }
+    });
+  }
+
+  loadProductsForModal(): void {
+    this.commercialService.getActiveProductsForCoupon().subscribe({
+      next: (list) => {
+        this.couponModalProducts = (list || []).map((p) => ({ id: p.id, name: p.name }));
+      }
+    });
+  }
+
+  loadCategoriesForModal(): void {
+    this.commercialService.getCategoriesForCoupon().subscribe({
+      next: (list) => {
+        this.couponModalCategories = (list || []).map((c) => ({ id: c.id, name: c.name }));
+      }
+    });
+  }
+
+  /** Met à jour la carte « Panier moyen » à partir de la liste (utilisée si on ne passe pas par les stats API). */
+  updateStatsCardsFromList(): void {
+    const list = this.listResponse?.content ?? [];
+    const couponsOnly = list.filter(c => c.scope === 'CART_TOTAL');
+    const totalUsage = couponsOnly.reduce((s, c) => s + (c.usageCount ?? 0), 0);
+    const totalGen = couponsOnly.reduce((s, c) => s + (Number(c.totalGenerated) || 0), 0);
+    this.statsCards[3].value = totalUsage > 0 ? `${Math.round(totalGen / totalUsage).toLocaleString('fr-FR')} F` : '-';
+  }
+
   openCouponModal(): void {
     this.isModalOpen = true;
+    this.loadProductsForModal();
+    this.loadCategoriesForModal();
   }
 
   closeCouponModal(): void {
@@ -158,398 +130,280 @@ export class PromotionsManagementComponent {
 
   onSubmitCoupon(couponData: CouponFormData): void {
     this.isSubmitting = true;
-
-    // Simuler un appel API
-    setTimeout(() => {
-      console.log('Nouveau coupon créé:', couponData);
-
-      // Créer une nouvelle promotion à partir des données du formulaire
-      const newPromotion: Promotion = {
-        id: this.promotions.length + 1,
-        nom: couponData.nom,
-        reduction: couponData.taux,
-        produits: couponData.produits.length > 0 ? `${couponData.produits.length} produit(s) sélectionné(s)` : 'Tous les produits',
-        validite: `${couponData.dateDebut} - ${couponData.dateFin}`,
-        icon: '/icones/attente.svg',
-        statut: 'Planifié',
-        utilisations: 0,
-        montantGenere: '- Fcfa'
-      };
-
-      // Ajouter la nouvelle promotion
-      this.promotions.push(newPromotion);
-      this.filterPromotions();
-
-      // Fermer le modal
-      this.isSubmitting = false;
-      this.closeCouponModal();
-
-      // Afficher un message de succès
-      this.showCreateSuccessMessage();
-    }, 2000);
+    const payload = {
+      ...couponData,
+      code: couponData.code.trim().toUpperCase(),
+      status: 'PLANNED' as const
+    };
+    this.commercialService.createCoupon(payload).subscribe({
+      next: () => {
+        this.isSubmitting = false;
+        this.closeCouponModal();
+        this.loadCoupons();
+        this.showCreateSuccessMessage();
+      },
+      error: (err) => {
+        this.isSubmitting = false;
+        const msg = err?.error?.message || err?.message || 'Erreur lors de la création du coupon.';
+        Swal.fire({ title: 'Erreur', text: msg, icon: 'error' });
+      }
+    });
   }
 
-  getActivePromotions(): number {
-    return this.promotions.filter(promo => promo.statut === 'Actif').length;
+  formatReduction(item: CouponListItem): string {
+    if (item.discountType === 'FIXED_AMOUNT') return `${Number(item.value).toLocaleString('fr-FR')} F CFA`;
+    return `${item.value}%`;
   }
 
-  getTotalUtilisations(): number {
-    return this.promotions.reduce((total, promo) => total + promo.utilisations, 0);
+  formatScope(item: CouponListItem): string {
+    const map: Record<string, string> = {
+      CART_TOTAL: 'Total du panier',
+      ALL_PRODUCTS: 'Tous les produits',
+      PRODUCTS: 'Produits spécifiques',
+      CATEGORIES: 'Catégories spécifiques'
+    };
+    return map[item.scope] || item.scope;
   }
 
-  getTotalMontant(): string {
-    return '451 090 F';
+  /** True si c'est un coupon (code panier), false si promotion (catégorie/produits). */
+  isCoupon(item: CouponListItem): boolean {
+    return item.scope === 'CART_TOTAL';
   }
 
-  getPanierMoyen(): string {
-    return '23 000 F';
+  /** Label type pour affichage : Coupon ou Promotion */
+  getTypeLabel(item: CouponListItem): string {
+    return this.isCoupon(item) ? 'Coupon' : 'Promotion';
+  }
+
+  formatStatut(status: string): string {
+    const map: Record<string, string> = {
+      PLANNED: 'Planifié',
+      ACTIVE: 'Actif',
+      EXPIRED: 'Expiré',
+      DISABLED: 'Inactif'
+    };
+    return map[status] || status;
+  }
+
+  formatValidite(item: CouponListItem): string {
+    const from = item.validFrom ? this.fmtDate(item.validFrom) : '';
+    const to = item.validTo ? this.fmtDate(item.validTo) : '';
+    return from && to ? `${from} → ${to}` : (from || to || '-');
+  }
+
+  fmtDate(d: string): string {
+    if (!d) return '';
+    const parts = d.split('-');
+    if (parts.length >= 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return d;
+  }
+
+  formatMontant(item: CouponListItem): string {
+    const v = item.totalGenerated;
+    if (v == null || Number(v) === 0) return '- Fcfa';
+    return `${Number(v).toLocaleString('fr-FR')} Fcfa`;
   }
 
   toggleStatusDropdown(): void {
     this.showStatusDropdown = !this.showStatusDropdown;
   }
 
+  onSearchInput(): void {
+    this.currentPage = 1;
+    this.loadCoupons();
+  }
+
   selectStatus(status: string): void {
     this.selectedStatusFilter = status;
     this.showStatusDropdown = false;
-    this.filterPromotions();
     this.currentPage = 1;
+    this.loadCoupons();
   }
 
   getSelectedStatusLabel(): string {
     return this.selectedStatusFilter || 'Tous les statuts';
   }
 
-  get availableStatuses(): string[] {
-    const statuses = new Set(this.promotions.map(p => p.statut));
-    return Array.from(statuses);
-  }
-
-  filterPromotions(): void {
-    this.filteredPromotions = this.promotions.filter(promotion => {
-      const matchesSearch = promotion.nom.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        promotion.produits.toLowerCase().includes(this.searchTerm.toLowerCase());
-
-      const matchesStatus = !this.selectedStatusFilter || promotion.statut === this.selectedStatusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-
-    this.currentPage = 1;
-  }
-
-  getTotalPages(): number {
-    return Math.ceil(this.filteredPromotions.length / this.itemsPerPage);
-  }
+  readonly availableStatuses = ['Actif', 'Inactif', 'Expiré', 'Planifié'];
 
   previousPage(): void {
     if (this.currentPage > 1) {
       this.currentPage--;
+      this.loadCoupons();
     }
   }
 
   nextPage(): void {
-    if (this.currentPage < this.getTotalPages()) {
+    if (this.currentPage < this.totalPages) {
       this.currentPage++;
+      this.loadCoupons();
     }
   }
 
   viewDetails(id: number): void {
-    const promotion = this.promotions.find(p => p.id === id);
-    if (promotion) {
-      this.selectedPromotion = promotion;
-      this.showDetailModal = true;
-    }
+    this.loadingDetail = true;
+    this.showDetailModal = true;
+    this.selectedCouponDetail = null;
+    this.commercialService.getCouponById(id).subscribe({
+      next: (detail) => {
+        this.selectedCouponDetail = detail;
+        this.loadingDetail = false;
+      },
+      error: () => {
+        this.loadingDetail = false;
+        this.showDetailModal = false;
+      }
+    });
   }
 
   closeDetailModal(): void {
     this.showDetailModal = false;
-    this.selectedPromotion = null;
-  }
-
-  toggleProductSelection(productId: string): void {
-    if (!this.selectedPromotion) return;
-
-    if (!this.selectedPromotion.produitsIds) {
-      this.selectedPromotion.produitsIds = [];
-    }
-
-    const index = this.selectedPromotion.produitsIds.indexOf(productId);
-    if (index > -1) {
-      this.selectedPromotion.produitsIds.splice(index, 1);
-    } else {
-      this.selectedPromotion.produitsIds.push(productId);
-    }
-  }
-
-  isProductSelected(productId: string): boolean {
-    return this.selectedPromotion?.produitsIds?.includes(productId) || false;
-  }
-
-  getPromotionProducts(): Product[] {
-    if (!this.selectedPromotion?.produitsIds) return [];
-    return this.allProducts.filter(p => this.selectedPromotion!.produitsIds!.includes(p.id));
+    this.selectedCouponDetail = null;
   }
 
   modifierCoupon(): void {
-    console.log('Modifier coupon:', this.selectedPromotion);
+    // TODO: édition coupon si backend exposé
     this.closeDetailModal();
   }
 
   toggleCouponStatus(action: 'activer' | 'desactiver'): void {
-    if (!this.selectedPromotion) return;
+    const c = this.selectedCouponDetail;
+    if (!c) return;
+    const isActive = action === 'activer';
+    Swal.fire({
+      title: isActive ? 'Activer ce coupon' : 'Désactiver ce coupon',
+      text: isActive ? 'Le coupon sera utilisable par les salariés.' : 'Le coupon ne sera plus utilisable.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: isActive ? 'Activer' : 'Désactiver',
+      cancelButtonText: 'Annuler'
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+      this.commercialService.updateCouponStatus(c.id, isActive).subscribe({
+        next: () => {
+          this.loadCoupons();
+          this.commercialService.getCouponById(c.id).subscribe(d => this.selectedCouponDetail = d);
+          isActive ? this.showActivateSuccessMessage() : this.showDeactivateSuccessMessage();
+        },
+        error: (err) => Swal.fire({ title: 'Erreur', text: err?.error || 'Action impossible', icon: 'error' })
+      });
+    });
+  }
 
-    if (action === 'activer') {
-      this.activateCoupon(this.selectedPromotion);
-    } else {
-      this.deactivateCoupon(this.selectedPromotion);
+  togglePromotionStatus(promotionId: number, action: 'activer' | 'desactiver'): void {
+    const item = this.content.find(p => p.id === promotionId);
+    if (!item) return;
+    const isActive = action === 'activer';
+    Swal.fire({
+      title: isActive ? 'Activer ce coupon' : 'Désactiver ce coupon',
+      showCancelButton: true,
+      confirmButtonText: isActive ? 'Activer' : 'Désactiver',
+      cancelButtonText: 'Annuler'
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+      this.commercialService.updateCouponStatus(item.id, isActive).subscribe({
+        next: () => {
+          this.loadCoupons();
+          isActive ? this.showActivateSuccessMessage() : this.showDeactivateSuccessMessage();
+        },
+        error: (err) => Swal.fire({ title: 'Erreur', text: err?.error || 'Action impossible', icon: 'error' })
+      });
+    });
+  }
+
+  deleteCoupon(): void {
+    const c = this.selectedCouponDetail;
+    if (!c) return;
+    Swal.fire({
+      title: 'Supprimer ce coupon ?',
+      text: 'Cette action est irréversible.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Supprimer',
+      cancelButtonText: 'Annuler',
+      confirmButtonColor: '#dc2626'
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+      this.commercialService.deleteCoupon(c.id).subscribe({
+        next: () => {
+          this.closeDetailModal();
+          this.loadCoupons();
+          Swal.fire({ title: 'Coupon supprimé', icon: 'success', timer: 1500, showConfirmButton: false });
+        },
+        error: (err) => Swal.fire({ title: 'Erreur', text: err?.error || 'Suppression impossible', icon: 'error' })
+      });
+    });
+  }
+
+  getDetailReduction(d: CouponDetails): string {
+    if (d.discountType === 'FIXED_AMOUNT') return `${Number(d.value).toLocaleString('fr-FR')} F CFA`;
+    return `${d.value}%`;
+  }
+
+  getDetailScopeLabel(d: CouponDetails): string {
+    const map: Record<string, string> = {
+      CART_TOTAL: 'Total du panier',
+      ALL_PRODUCTS: 'Tous les produits',
+      PRODUCTS: 'Produits spécifiques',
+      CATEGORIES: 'Catégories spécifiques'
+    };
+    return map[d.scope] || d.scope;
+  }
+
+  getDetailStatutLabel(d: CouponDetails): string {
+    return this.formatStatut(d.status);
+  }
+
+  getDetailPeriod(d: CouponDetails): string {
+    return `${this.fmtDate(d.validFrom)} → ${this.fmtDate(d.validTo)}`;
+  }
+
+  getDetailStatusDotClass(d: CouponDetails): string {
+    switch (d.status) {
+      case 'ACTIVE': return 'bg-[#0A9748]';
+      case 'EXPIRED': return 'bg-[#2C3E50]';
+      case 'PLANNED': return 'bg-[#1E40AF]';
+      case 'DISABLED': return 'bg-[#DC2626]';
+      default: return 'bg-gray-400';
     }
   }
 
-  // Expose String constructor for template
   String = String;
 
-  // Et ajouter cette méthode dans la classe du composant :
-  togglePromotionStatus(promotionId: number, action: 'activer' | 'desactiver'): void {
-    const promotion = this.promotions.find(p => p.id === promotionId);
-    if (promotion) {
-      if (action === 'activer') {
-        this.activateCoupon(promotion);
-      } else if (action === 'desactiver') {
-        this.deactivateCoupon(promotion);
-      }
-    }
-  }
-
-  activateCoupon(promotion: Promotion): void {
-    Swal.fire({
-      title: 'Activer ce coupon',
-      text: 'Lorem ipsum has been the industry\'s standard dummy text ever since the 1500',
-      iconHtml: `<img src="/icones/alerte.svg" alt="alert" style="width: 95px; height: 95px; margin: 0 auto;" />`,
-      showCancelButton: true,
-      confirmButtonText: 'Activer',
-      cancelButtonText: 'Annuler',
-      buttonsStyling: false,
-      customClass: {
-        popup: 'rounded-2xl p-3 sm:p-6 w-[85vw] max-w-[420px] sm:max-w-[580px]',
-        title: 'text-lg sm:text-2xl font-medium text-gray-900',
-        htmlContainer: 'text-sm sm:text-lg text-gray-600',
-        confirmButton: 'bg-[#22C55E] hover:bg-[#16A34A] text-white px-4 sm:px-8 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base shadow-none border-none',
-        cancelButton: 'bg-[#F3F4F6] hover:bg-gray-200 text-gray-700 px-4 sm:px-8 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base shadow-none border-none',
-        actions: 'flex justify-center w-full gap-2',
-        icon: 'border-none'
-      },
-      backdrop: `rgba(0,0,0,0.2)`,
-      width: '85vw',
-      showClass: {
-        popup: 'animate__animated animate__fadeIn animate__faster'
-      }
-    }).then((result) => {
-      if (result.isConfirmed) {
-        promotion.statut = 'Actif';
-        promotion.icon = '/icones/actif.svg';
-        this.filterPromotions();
-        this.updateStatsCards();
-        this.showActivateSuccessMessage();
-      }
-    });
-  }
-
-  deactivateCoupon(promotion: Promotion): void {
-    Swal.fire({
-      title: 'Désactiver ce coupon',
-      text: 'Lorem ipsum has been the industry\'s standard dummy text ever since the 1500',
-      iconHtml: `<img src="/icones/alerte.svg" alt="alert" style="width: 95px; height: 95px; margin: 0 auto;" />`,
-      showCancelButton: true,
-      confirmButtonText: 'Désactiver',
-      cancelButtonText: 'Annuler',
-      buttonsStyling: false,
-      customClass: {
-        popup: 'rounded-2xl p-3 sm:p-6 w-[85vw] max-w-[420px] sm:max-w-[580px]',
-        title: 'text-lg sm:text-2xl font-medium text-gray-900',
-        htmlContainer: 'text-sm sm:text-lg text-gray-600',
-        confirmButton: 'bg-[#EF4444] hover:bg-[#DC2626] text-white px-4 sm:px-8 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base shadow-none border-none',
-        cancelButton: 'bg-[#F3F4F6] hover:bg-gray-200 text-gray-700 px-4 sm:px-8 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base shadow-none border-none',
-        actions: 'flex justify-center w-full gap-2',
-        icon: 'border-none'
-      },
-      backdrop: `rgba(0,0,0,0.2)`,
-      width: '85vw',
-      showClass: {
-        popup: 'animate__animated animate__fadeIn animate__faster'
-      }
-    }).then((result) => {
-      if (result.isConfirmed) {
-        promotion.statut = 'Planifié';
-        promotion.icon = '/icones/attente.svg';
-        this.filterPromotions();
-        this.updateStatsCards();
-        this.showDeactivateSuccessMessage();
-      }
-    });
-  }
-
   showDeactivateSuccessMessage(): void {
-    Swal.fire({
-      title: 'Coupon désactivé',
-      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
-      showConfirmButton: false,
-      timer: 1500,
-      buttonsStyling: false,
-      customClass: {
-        popup: 'rounded-2xl p-3 sm:p-6 w-[85vw] max-w-[420px] sm:max-w-[580px]',
-        title: 'text-base sm:text-xl font-medium text-gray-900',
-        icon: 'border-none'
-      },
-      backdrop: `rgba(0,0,0,0.2)`,
-      width: '85vw',
-      showClass: {
-        popup: 'animate__animated animate__fadeIn animate__faster'
-      },
-      hideClass: {
-        popup: 'animate__animated animate__fadeOut animate__faster'
-      }
-    });
+    Swal.fire({ title: 'Coupon désactivé', icon: 'success', timer: 1500, showConfirmButton: false });
   }
 
   showActivateSuccessMessage(): void {
-    Swal.fire({
-      title: 'Coupon activé',
-      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
-      showConfirmButton: false,
-      timer: 1500,
-      buttonsStyling: false,
-      customClass: {
-        popup: 'rounded-2xl p-3 sm:p-6 w-[85vw] max-w-[420px] sm:max-w-[580px]',
-        title: 'text-base sm:text-xl font-medium text-gray-900',
-        icon: 'border-none'
-      },
-      backdrop: `rgba(0,0,0,0.2)`,
-      width: '85vw',
-      showClass: {
-        popup: 'animate__animated animate__fadeIn animate__faster'
-      },
-      hideClass: {
-        popup: 'animate__animated animate__fadeOut animate__faster'
-      }
-    });
+    Swal.fire({ title: 'Coupon activé', icon: 'success', timer: 1500, showConfirmButton: false });
   }
 
   showCreateSuccessMessage(): void {
-    Swal.fire({
-      title: 'Coupon créé avec succès',
-      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
-      showConfirmButton: false,
-      timer: 1500,
-      buttonsStyling: false,
-      customClass: {
-        popup: 'rounded-2xl p-3 sm:p-6 w-[85vw] max-w-[420px] sm:max-w-[580px]',
-        title: 'text-base sm:text-xl font-medium text-gray-900',
-        icon: 'border-none'
-      },
-      backdrop: `rgba(0,0,0,0.2)`,
-      width: '85vw',
-      showClass: {
-        popup: 'animate__animated animate__fadeIn animate__faster'
-      },
-      hideClass: {
-        popup: 'animate__animated animate__fadeOut animate__faster'
-      }
-    });
+    Swal.fire({ title: 'Coupon créé avec succès', icon: 'success', timer: 1500, showConfirmButton: false });
   }
 
   getStatusClass(status: string): string {
     switch (status) {
-      case 'Actif':
-        return 'bg-[#0A97480F] text-[#0A9748]';
-      case 'Expiré':
-        return 'bg-[#F2F2F2] text-[#2C3E50]';
-      case 'Planifié':
-        return 'bg-[#1E40AF0F] text-[#1E40AF]';
-      default:
-        return 'bg-gray-50 text-gray-600';
+      case 'ACTIVE': return 'bg-[#0A97480F] text-[#0A9748]';
+      case 'EXPIRED': return 'bg-[#F2F2F2] text-[#2C3E50]';
+      case 'PLANNED': return 'bg-[#1E40AF0F] text-[#1E40AF]';
+      case 'DISABLED': return 'bg-[#FEE2E2] text-[#DC2626]';
+      default: return 'bg-gray-50 text-gray-600';
     }
   }
 
   getStatusDotClass(status: string): string {
     switch (status) {
-      case 'Actif':
-        return 'bg-[#0A9748]';
-      case 'Expiré':
-        return 'bg-[#2C3E50]';
-      case 'Planifié':
-        return 'bg-[#1E40AF]';
-      default:
-        return 'bg-gray-400';
+      case 'ACTIVE': return 'bg-[#0A9748]';
+      case 'EXPIRED': return 'bg-[#2C3E50]';
+      case 'PLANNED': return 'bg-[#1E40AF]';
+      case 'DISABLED': return 'bg-[#DC2626]';
+      default: return 'bg-gray-400';
     }
-  }
-
-  getCurrentPagePromotions(): Promotion[] {
-    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    const endIndex = startIndex + this.itemsPerPage;
-    return this.filteredPromotions.slice(startIndex, endIndex);
-  }
-
-  get totalPages(): number {
-    return Math.max(1, Math.ceil(this.filteredPromotions.length / this.itemsPerPage));
   }
 
   @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent) {
-    if (this.showStatusDropdown) {
-      this.showStatusDropdown = false;
-    }
-  }
-
-  private loadAllProducts(): void {
-    this.productService.getProducts(0, 1000).subscribe({
-      next: (response) => {
-        const products = response?.content ?? [];
-        this.allProducts = products.map((item: any) => this.mapApiProductToFrontend(item));
-      },
-      error: (error) => {
-        console.error('Erreur lors du chargement des produits:', error);
-      }
-    });
-  }
-
-  private mapApiProductToFrontend(item: any): Product {
-    return {
-      id: item.id?.toString() ?? '',
-      name: item.name ?? '',
-      reference: item.productCode ?? '',
-      category: item.categoryName ?? '',
-      price: this.formatPrice(item.price),
-      stock: item.currentStock ?? 0,
-      updatedAt: this.formatDate(item.updatedAt),
-      status: this.normalizeStatus(item.status),
-      icon: this.buildImageUrl(item.image),
-      description: item.description
-    };
-  }
-
-  private normalizeStatus(status: string | boolean | undefined): 'Actif' | 'Inactif' {
-    if (status === true || status === 'ACTIF' || status === 'ACTIVE' || status === 'Actif') return 'Actif';
-    if (status === false || status === 'INACTIF' || status === 'INACTIVE' || status === 'Inactif') return 'Inactif';
-    return 'Inactif';
-  }
-
-  private formatPrice(price: any): string {
-    if (price === null || price === undefined || price === '') return '';
-    const value = typeof price === 'number' ? price : Number(price);
-    if (Number.isNaN(value)) return `${price}`;
-    return `${value.toLocaleString('fr-FR')} F`;
-  }
-
-  private formatDate(updatedAt: string | undefined): string {
-    if (!updatedAt) return '';
-    const datePart = updatedAt.split(' ')[0];
-    return datePart ? datePart.replace(/-/g, '/') : updatedAt;
-  }
-
-  private buildImageUrl(image: string | undefined): string {
-    if (!image) return '/icones/default-product.svg';
-    if (image.startsWith('http') || image.startsWith('/')) return image;
-    return `${environment.apiUrl}/files/${image}`;
+  onDocumentClick(): void {
+    if (this.showStatusDropdown) this.showStatusDropdown = false;
   }
 }

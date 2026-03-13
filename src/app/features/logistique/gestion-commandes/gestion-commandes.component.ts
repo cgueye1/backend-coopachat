@@ -1,12 +1,15 @@
-import { Component, HostListener, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, HostListener, ViewChild, ElementRef, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { ProductService, Product } from '../../../shared/services/product.service';
-import { LogisticsService } from '../../../shared/services/logistics.service';
+import { LogisticsService, EmployeeOrderDetails } from '../../../shared/services/logistics.service';
+import { PAGE_SIZE_OPTIONS } from '../../../shared/constants/pagination';
 import { environment } from '../../../../environments/environment';
+import { isPlatformBrowser } from '@angular/common';
+import Swal from 'sweetalert2';
 
 Chart.register(...registerables);
 
@@ -19,15 +22,22 @@ interface MetricCard {
 }
 
 interface Commande {
+  id: number;
   numero: string;
   salarie: string;
-  dateValidation: string;
-  produits: string;
+  /** Date à laquelle le salarié a passé la commande. */
+  dateCommande: string;
+  /** Date à laquelle la commande est passée à son statut actuel. */
+  dateStatut?: string;
+  /** Liste des noms de produits (chaque produit dans son propre bloc) */
+  produitsList: string[];
   frequence: string;
-  statut: 'En cours' | 'Livrée' | 'En attente' | 'Annulée';
+  statut: 'En cours' | 'Livrée' | 'En attente' | 'Validée' | 'Annulée' | 'Échec';
   reference: string;
   note?: string;
   produitsDetails?: { productId: string; quantity: number }[];
+  /** Raison de l'échec de livraison (affichée dans la liste pour le RL). */
+  failureReason?: string | null;
 }
 
 @Component({
@@ -43,37 +53,27 @@ export class GestionCommandesComponent implements AfterViewInit {
 
   private frequentProductsChartInstance?: Chart;
   private dailyOrdersChartInstance?: Chart;
+  private readonly isBrowser: boolean;
 
   showDetailModal = false;
   selectedCommande: Commande | null = null;
+  /** Détails de la commande (produits avec image) chargés via API à l'ouverture du modal */
+  selectedOrderDetails: EmployeeOrderDetails | null = null;
+  loadingOrderDetails = false;
+  loadOrderDetailsError = false;
   allProducts: Product[] = [];
+  loadingStats = false;
+  statsError = false;
 
-  metricsData: MetricCard[] = [
-    {
-      title: 'Total commandes',
-      value: '43',
-      icon: '/icones/commandefour.svg',
-      subtitle: '24 commandes cette semaine'
-    },
-    {
-      title: 'Temps moyen de préparation',
-      value: '18 min',
-      icon: '/icones/minuteur.svg',
-      description: '3 % vs le mois dernier'
-    },
-    {
-      title: 'Taux de satisfaction',
-      value: '94%',
-      icon: '/icones/zigzag.svg',
-      description: '3 % vs le mois dernier'
-    }
-  ];
+  /** Cartes de stats (EN ATTENTE, EN RETARD, EN COURS, LIVRÉES) chargées via API. */
+  metricsData: MetricCard[] = [];
 
   searchTerm = '';
   selectedStatutFilter = 'Tous les statuts';
   showStatutDropdown = false;
   currentPage = 1;
   itemsPerPage = 10;
+  pageSizeOptions = PAGE_SIZE_OPTIONS;
   totalPages = 1;
   totalElements = 0;
   loadingList = false;
@@ -83,19 +83,58 @@ export class GestionCommandesComponent implements AfterViewInit {
   constructor(
     private router: Router,
     private productService: ProductService,
-    private logisticsService: LogisticsService
+    private logisticsService: LogisticsService,
+    @Inject(PLATFORM_ID) platformId: Object
   ) {
+    this.isBrowser = isPlatformBrowser(platformId);
     this.loadAllProducts();
     this.loadCommandes();
+    this.loadStats();
+  }
+
+  private loadStats(): void {
+    this.loadingStats = true;
+    this.statsError = false;
+    this.logisticsService.getEmployeeOrderStats().subscribe({
+      next: (stats) => {
+        this.metricsData = [
+          { title: 'EN ATTENTE', value: String(stats.enAttente), icon: '/icones/attente.svg', subtitle: 'À planifier' },
+          { title: 'EN RETARD', value: String(stats.enRetard), icon: '/icones/alerte.svg', subtitle: 'date dépassée' },
+          { title: 'EN COURS', value: String(stats.enCours), icon: '/icones/temps.svg', subtitle: 'tournées actives' },
+          { title: 'VALIDÉES', value: String(stats.validees), icon: '/icones/confirmer.svg', subtitle: 'affectées à une tournée' },
+          { title: 'LIVRÉES', value: String(stats.livreesCeMois), icon: '/icones/zigzag.svg', subtitle: 'ce mois' }
+        ];
+        this.loadingStats = false;
+      },
+      error: () => {
+        this.statsError = true;
+        this.loadingStats = false;
+        this.metricsData = [];
+      }
+    });
   }
 
   ngAfterViewInit(): void {
-    this.initFrequentProductsChart();
-    this.initDailyOrdersChart();
+    if (!this.isBrowser) return;
+    this.loadFrequentProductsChart();
+    this.loadDailyOrdersChart();
   }
 
-  private initFrequentProductsChart(): void {
-    const ctx = this.frequentProductsChart.nativeElement.getContext('2d');
+  private loadFrequentProductsChart(): void {
+    this.logisticsService.getTop5ProductsUsage().subscribe({
+      next: (list) => {
+        const labels = (list ?? []).map((x) => x.productName);
+        const data = (list ?? []).map((x) => x.usagePercent);
+        this.initFrequentProductsChart(labels, data);
+      },
+      error: () => {
+        this.initFrequentProductsChart([], []);
+      }
+    });
+  }
+
+  private initFrequentProductsChart(labels: string[], data: number[]): void {
+    const ctx = this.frequentProductsChart?.nativeElement?.getContext('2d');
     if (!ctx) return;
 
     const gradient = ctx.createLinearGradient(0, 0, 500, 0);
@@ -105,10 +144,10 @@ export class GestionCommandesComponent implements AfterViewInit {
     const config: ChartConfiguration = {
       type: 'bar',
       data: {
-        labels: ['Riz parfumé 25kg', 'Lait 1L', 'Huile', 'Savon'],
+        labels: labels.length ? labels : [],
         datasets: [{
-          label: 'Utilisation(%)',
-          data: [50, 40, 32, 25],
+          label: 'Utilisation (%)',
+          data: data.length ? data : [],
           backgroundColor: gradient,
           borderRadius: 4,
           barThickness: 24,
@@ -127,10 +166,7 @@ export class GestionCommandesComponent implements AfterViewInit {
               usePointStyle: true,
               pointStyle: 'rect',
               padding: 15,
-              font: {
-                size: 11,
-                family: 'Inter, sans-serif'
-              },
+              font: { size: 11, family: 'Inter, sans-serif' },
               color: '#6B7280',
               boxWidth: 20,
               boxHeight: 12
@@ -141,41 +177,28 @@ export class GestionCommandesComponent implements AfterViewInit {
             backgroundColor: 'rgba(0, 0, 0, 0.8)',
             padding: 10,
             cornerRadius: 8,
-            titleFont: {
-              size: 12
-            },
-            bodyFont: {
-              size: 12
+            titleFont: { size: 12 },
+            bodyFont: { size: 12 },
+            callbacks: {
+              label: (c) => `Utilisation : ${Number(c.parsed.x).toFixed(1)} %`
             }
           }
         },
         scales: {
           x: {
             beginAtZero: true,
-            max: 50,
+            max: 100,
             ticks: {
-              stepSize: 5,
-              font: {
-                size: 11
-              },
+              stepSize: 10,
+              callback: (value) => value + ' %',
+              font: { size: 11 },
               color: '#6B7280'
             },
-            grid: {
-              display: true,
-              color: '#F3F4F6',
-              drawBorder: false
-            }
+            grid: { display: true, color: '#F3F4F6', drawBorder: false }
           },
           y: {
-            ticks: {
-              font: {
-                size: 11
-              },
-              color: '#4B4848'
-            },
-            grid: {
-              display: false
-            }
+            ticks: { font: { size: 11 }, color: '#4B4848' },
+            grid: { display: false }
           }
         }
       }
@@ -184,17 +207,44 @@ export class GestionCommandesComponent implements AfterViewInit {
     this.frequentProductsChartInstance = new Chart(ctx, config);
   }
 
-  private initDailyOrdersChart(): void {
-    const ctx = this.dailyOrdersChart.nativeElement.getContext('2d');
+  /** Charge les 7 derniers jours via l’API puis initialise le graphique « Commandes par jour ». */
+  private loadDailyOrdersChart(): void {
+    // Pas de données par défaut : si l'API échoue, le graphique reste vide.
+    this.dailyOrdersChartInstance?.destroy();
+    this.dailyOrdersChartInstance = undefined;
+
+    this.logisticsService.getCommandesParJour().subscribe({
+      next: (list) => {
+        const labels = (list ?? []).map((x) => x.date);
+        const data = (list ?? []).map((x) => x.nbCommandes);
+        // Si aucune donnée, on laisse le canvas vide (pas de barres statiques).
+        if (!labels.length || !data.length) return;
+        this.initDailyOrdersChart(labels, data);
+      },
+      error: () => {
+        // On ne montre rien si l'API est en erreur.
+      }
+    });
+  }
+
+  private initDailyOrdersChart(labels: string[], data: number[]): void {
+    const ctx = this.dailyOrdersChart?.nativeElement?.getContext('2d');
     if (!ctx) return;
+
+    // Assure qu'on ne superpose jamais un graphique sur l'ancien.
+    this.dailyOrdersChartInstance?.destroy();
+    this.dailyOrdersChartInstance = undefined;
+
+    const maxVal = data.length ? Math.max(...data, 1) : 1;
+    const suggestedMax = Math.max(10, (Math.floor(maxVal / 5) + 1) * 5);
 
     const config: ChartConfiguration = {
       type: 'bar',
       data: {
-        labels: ['Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.', 'Dim.'],
+        labels: labels.length ? labels : [],
         datasets: [{
           label: 'Commandes',
-          data: [13, 21, 17, 19, 25, 12, 7],
+          data: data.length ? data : [],
           backgroundColor: '#318F3F',
           borderRadius: 4,
           barThickness: 32,
@@ -212,41 +262,24 @@ export class GestionCommandesComponent implements AfterViewInit {
             backgroundColor: 'rgba(0, 0, 0, 0.8)',
             padding: 10,
             cornerRadius: 8,
-            titleFont: {
-              size: 12
-            },
-            bodyFont: {
-              size: 12
-            }
+            titleFont: { size: 12 },
+            bodyFont: { size: 12 }
           }
         },
         scales: {
           x: {
-            ticks: {
-              font: {
-                size: 11
-              },
-              color: '#6B7280'
-            },
-            grid: {
-              display: false
-            }
+            ticks: { font: { size: 11 }, color: '#6B7280' },
+            grid: { display: false }
           },
           y: {
             beginAtZero: true,
-            max: 25,
+            suggestedMax,
             ticks: {
               stepSize: 5,
-              font: {
-                size: 11
-              },
+              font: { size: 11 },
               color: '#6B7280'
             },
-            grid: {
-              display: true,
-              color: '#F3F4F6',
-              drawBorder: false
-            }
+            grid: { display: true, color: '#F3F4F6', drawBorder: false }
           }
         }
       }
@@ -256,7 +289,7 @@ export class GestionCommandesComponent implements AfterViewInit {
   }
 
   get uniqueStatuts(): string[] {
-    return ['Tous les statuts', 'En attente', 'Validée', 'En cours', 'Livrée', 'Annulée'];
+    return ['Tous les statuts', 'En attente', 'Validée', 'En cours', 'Livrée', 'Échec', 'Annulée'];
   }
 
   get filteredCommandes(): Commande[] {
@@ -296,6 +329,12 @@ export class GestionCommandesComponent implements AfterViewInit {
     }
   }
 
+  onPageSizeChange(size: number): void {
+    this.itemsPerPage = size;
+    this.currentPage = 1;
+    this.loadCommandes();
+  }
+
   loadCommandes(): void {
     this.loadingList = true;
     const statusParam = this.mapStatutToApi(this.selectedStatutFilter);
@@ -327,6 +366,7 @@ export class GestionCommandesComponent implements AfterViewInit {
       'Validée': 'VALIDEE',
       'En cours': 'EN_COURS_DE_LIVRAISON',
       'Livrée': 'LIVREE',
+      'Échec': 'ECHEC_LIVRAISON',
       'Annulée': 'ANNULEE'
     };
     return map[statut];
@@ -336,52 +376,111 @@ export class GestionCommandesComponent implements AfterViewInit {
     id: number;
     orderNumber: string;
     employeeName: string;
-    validationDate: string;
+    orderDate?: string;
+    statusDate?: string;
     products: string[];
     deliveryFrequency: string | null;
     status: string;
+    failureReason?: string | null;
   }): Commande {
-    const produitsStr = (item.products || []).join('    ');
     let statut: Commande['statut'] = 'En attente';
     if (item.status === 'Livrée') statut = 'Livrée';
     else if (item.status === 'Annulée') statut = 'Annulée';
+    else if (item.status === 'Échec de livraison' || item.status === 'ECHEC_LIVRAISON') statut = 'Échec';
     else if (item.status === 'En cours de livraison' || item.status === 'En cours') statut = 'En cours';
-    else if (item.status === 'En attente' || item.status === 'Validée') statut = 'En attente';
+    else if (item.status === 'Validée' || item.status === 'VALIDEE') statut = 'Validée';
+    else if (item.status === 'En attente' || item.status === 'EN_ATTENTE') statut = 'En attente';
     return {
+      id: item.id,
       numero: item.orderNumber,
       salarie: item.employeeName ?? '',
-      dateValidation: item.validationDate ?? '',
-      produits: produitsStr,
+      dateCommande: item.orderDate ?? '',
+      dateStatut: item.statusDate ?? undefined,
+      produitsList: item.products ?? [],
       frequence: item.deliveryFrequency ?? '—',
       statut,
-      reference: item.orderNumber
+      reference: item.orderNumber,
+      failureReason: item.failureReason ?? null
     };
   }
 
+  /** Comme fournisseur : ouvrir le modal tout de suite avec les infos liste, charger les produits en arrière-plan. */
   viewCommande(numero: string): void {
     const commande = this.commandes.find(c => c.numero === numero);
-    if (commande) {
-      this.selectedCommande = commande;
-      this.showDetailModal = true;
-    }
+    if (!commande) return;
+    this.selectedCommande = commande;
+    this.showDetailModal = true;
+    this.selectedOrderDetails = null;
+    this.loadingOrderDetails = true;
+    this.loadOrderDetailsError = false;
+    this.logisticsService.getEmployeeOrderDetails(commande.id).subscribe({
+      next: (details) => {
+        this.selectedOrderDetails = details;
+        this.loadingOrderDetails = false;
+        this.loadOrderDetailsError = false;
+      },
+      error: () => {
+        this.loadingOrderDetails = false;
+        this.loadOrderDetailsError = true;
+      }
+    });
   }
 
   closeDetailModal(): void {
     this.showDetailModal = false;
     this.selectedCommande = null;
+    this.selectedOrderDetails = null;
+    this.loadOrderDetailsError = false;
   }
 
-  getCommandeProducts(): Product[] {
-    if (!this.selectedCommande?.produitsDetails) return [];
-    return this.allProducts.filter(p =>
-      this.selectedCommande!.produitsDetails!.some(pd => pd.productId === p.id)
-    );
+  /** Replanifier une commande en échec : EN_ATTENTE, notifie le salarié. */
+  replanOrder(commande: Commande): void {
+    this.logisticsService.replanOrder(commande.id).subscribe({
+      next: () => {
+        Swal.fire({ title: 'Succès', text: 'Commande replanifiée. Elle réapparaît dans En attente.', icon: 'success', timer: 2500, showConfirmButton: false });
+        this.loadCommandes();
+        this.loadStats();
+      },
+      error: (err) => {
+        const msg = err?.error ?? err?.message ?? 'Impossible de replanifier la commande';
+        Swal.fire({ title: 'Erreur', text: String(msg), icon: 'error', confirmButtonText: 'OK' });
+      }
+    });
   }
 
-  getProductQuantity(productId: string): number {
-    if (!this.selectedCommande?.produitsDetails) return 0;
-    const detail = this.selectedCommande.produitsDetails.find(pd => pd.productId === productId);
-    return detail?.quantity || 0;
+  /** Annuler définitivement une commande après échec (avec confirmation). */
+  cancelOrderAfterFailure(commande: Commande): void {
+    Swal.fire({
+      title: 'Annuler ' + commande.numero + ' ?',
+      html: 'Cette action est irréversible. La commande de <strong>' + commande.salarie + '</strong> sera définitivement annulée.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#DC2626',
+      cancelButtonText: 'Retour',
+      confirmButtonText: 'Confirmer l\'annulation'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.logisticsService.cancelOrderAfterFailure(commande.id).subscribe({
+          next: () => {
+            Swal.fire({ title: 'Succès', text: 'Commande annulée. Stock réintégré.', icon: 'success', timer: 2500, showConfirmButton: false });
+            this.loadCommandes();
+            this.loadStats();
+          },
+          error: (err) => {
+            const msg = err?.error ?? err?.message ?? 'Impossible d\'annuler la commande';
+            Swal.fire({ title: 'Erreur', text: String(msg), icon: 'error', confirmButtonText: 'OK' });
+          }
+        });
+      }
+    });
+  }
+
+  /** URL complète pour l'image produit (backend renvoie souvent un chemin relatif). */
+  getProductImageUrl(image: string | null | undefined): string {
+    if (!image) return '';
+    if (image.startsWith('http://') || image.startsWith('https://')) return image;
+    const base = environment.imageServerUrl;
+    return `${base}/files/${image}`;
   }
 
   exportData(): void {
@@ -394,8 +493,12 @@ export class GestionCommandesComponent implements AfterViewInit {
         return 'bg-[#EAB3080F] text-[#EAB308]';
       case 'Livrée':
         return 'bg-[#0A97480F] text-[#0A9748]';
+      case 'Validée':
+        return 'bg-[#2B36740F] text-[#2B3674]';
       case 'En attente':
         return 'bg-[#F2F2F2] text-[#2C3E50]';
+      case 'Échec':
+        return 'bg-[#DC26260F] text-[#DC2626]';
       case 'Annulée':
         return 'bg-[#FF09090F] text-[#FF0909]';
       default:
@@ -409,8 +512,12 @@ export class GestionCommandesComponent implements AfterViewInit {
         return 'bg-[#EAB308]';
       case 'Livrée':
         return 'bg-[#0A9748]';
+      case 'Validée':
+        return 'bg-[#2B3674]';
       case 'En attente':
         return 'bg-[#2C3E50]';
+      case 'Échec':
+        return 'bg-[#DC2626]';
       case 'Annulée':
         return 'bg-[#FF0909]';
       default:
@@ -484,7 +591,9 @@ export class GestionCommandesComponent implements AfterViewInit {
 
   private buildImageUrl(image: string | undefined): string {
     if (!image) return '/icones/default-product.svg';
+    if (image.startsWith('file://')) return '/icones/default-product.svg';
     if (image.startsWith('http') || image.startsWith('/')) return image;
-    return `${environment.apiUrl}/files/${image}`;
+    const base = environment.imageServerUrl;
+    return `${base}/files/${image}`;
   }
 }

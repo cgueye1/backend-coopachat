@@ -1,7 +1,7 @@
 <app-main-layout role="com">
   <div class="space-y-6">
     <!-- Header Section -->
-    <app-header [title]="'Gestion des Promotions'" [breadcrumb]="'Pages / Gestion des Promotions'" [type]="'simple'"
+    <app-header [title]="'Gestion des Coupons'" [breadcrumb]="'Pages / Gestion des Coupons'" [type]="'simple'"
       [buttonLabel]="'Créer un coupon'" (actionClick)="openCouponModal()">
     </app-header>
 
@@ -12,6 +12,7 @@
           <div class="flex-1">
             <div class="text-xs text-[#6B7280] mb-1">{{ stat.title }}</div>
             <div class="text-2xl font-semibold text-[#2B3674]">{{ stat.value }}</div>
+            <div *ngIf="stat.subtitle" class="text-xs text-[#6B7280] mt-1.5">{{ stat.subtitle }}</div>
           </div>
           <div class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0">
             <img [src]="stat.icon" alt="icon" class="w-8 h-8">
@@ -31,7 +32,7 @@
               d="M13.1539 12.2073L10.6806 9.75393C11.6407 8.55687 12.1056 7.03747 11.9798 5.50813C11.854 3.9788 11.147 2.55579 10.0043 1.5317C8.86151 0.507604 7.3698 -0.0397263 5.83588 0.00224731C4.30196 0.0442209 2.84241 0.672308 1.75736 1.75736C0.672308 2.84241 0.0442209 4.30196 0.00224731 5.83588C-0.0397263 7.3698 0.507604 8.86151 1.5317 10.0043C2.55579 11.147 3.9788 11.854 5.50813 11.9798C7.03747 12.1056 8.55687 11.6407 9.75393 10.6806L12.2073 13.1339C12.2692 13.1964 12.343 13.246 12.4242 13.2799C12.5055 13.3137 12.5926 13.3311 12.6806 13.3311C12.7686 13.3311 12.8557 13.3137 12.937 13.2799C13.0182 13.246 13.092 13.1964 13.1539 13.1339C13.2741 13.0096 13.3413 12.8435 13.3413 12.6706C13.3413 12.4977 13.2741 12.3316 13.1539 12.2073ZM6.01393 10.6806C5.09095 10.6806 4.1887 10.4069 3.42127 9.89412C2.65384 9.38134 2.0557 8.65251 1.7025 7.79979C1.34929 6.94707 1.25687 6.00876 1.43694 5.10351C1.617 4.19827 2.06146 3.36675 2.7141 2.7141C3.36675 2.06146 4.19827 1.617 5.10351 1.43694C6.00876 1.25687 6.94707 1.34929 7.79979 1.7025C8.65251 2.0557 9.38134 2.65384 9.89412 3.42127C10.4069 4.1887 10.6806 5.09095 10.6806 6.01393C10.6806 7.25161 10.1889 8.43859 9.31376 9.31376C8.43859 10.1889 7.25161 10.6806 6.01393 10.6806Z"
               fill="#777777" />
           </svg>
-          <input type="text" placeholder="Rechercher un coupon..." [(ngModel)]="searchTerm" (input)="filterPromotions()"
+          <input type="text" placeholder="Recherchez un coupon promotion" [(ngModel)]="searchTerm" (input)="onSearchInput()"
             class="w-full pl-12 pr-4 py-3 border border-[#EEEEEE] rounded-lg focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm bg-white placeholder-[#777777]">
         </div>
 
@@ -70,7 +71,8 @@
         <table class="w-full">
           <thead class="bg-[#F4F7FE]">
             <tr>
-              <th class="text-left text-xs text-[#2C3E50] py-4 px-4">Nom du coupon</th>
+              <th class="text-left text-xs text-[#2C3E50] py-4 px-4">Type</th>
+              <th class="text-left text-xs text-[#2C3E50] py-4 px-4">Nom</th>
               <th class="text-left text-xs text-[#2C3E50] py-4 px-4">Réduction</th>
               <th class="text-left text-xs text-[#2C3E50] py-4 px-4">Produits</th>
               <th class="text-left text-xs text-[#2C3E50] py-4 px-26">Validité</th>
@@ -81,18 +83,25 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
-            <tr *ngFor="let promotion of getCurrentPagePromotions()" class="hover:bg-gray-50 transition-colors">
-              <td class="py-3 px-4 text-sm text-[#4B4848]">{{ promotion.nom }}</td>
-              <td class="py-3 px-4 text-sm text-[#4B4848]">{{ promotion.reduction }}</td>
-              <td class="py-3 px-4 text-sm text-[#4B4848]">{{ promotion.produits }}</td>
-              <td class="py-3 px-26 text-sm text-[#4B4848]">{{ promotion.validite }}</td>
-              <td class="py-3 px-8 text-sm text-[#4B4848]">{{ promotion.utilisations }}</td>
-              <td class="py-3 px-4 text-sm text-[#4B4848]">{{ promotion.montantGenere }}</td>
+            <tr *ngIf="loading" class="text-center py-8"><td colspan="9" class="text-gray-500">Chargement...</td></tr>
+            <tr *ngIf="!loading && content.length === 0"><td colspan="9" class="text-center py-8 text-gray-500">Aucun coupon.</td></tr>
+            <tr *ngFor="let promotion of content" class="hover:bg-gray-50 transition-colors">
+              <td class="py-3 px-4">
+                <span [class]="isCoupon(promotion) ? 'inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-[#1E40AF0F] text-[#1E40AF]' : 'inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-[#F59E0B0F] text-[#D97706]'">
+                  {{ getTypeLabel(promotion) }}
+                </span>
+              </td>
+              <td class="py-3 px-4 text-sm text-[#4B4848]">{{ promotion.name }}</td>
+              <td class="py-3 px-4 text-sm text-[#4B4848]">{{ formatReduction(promotion) }}</td>
+              <td class="py-3 px-4 text-sm text-[#4B4848]">{{ formatScope(promotion) }}</td>
+              <td class="py-3 px-26 text-sm text-[#4B4848]">{{ formatValidite(promotion) }}</td>
+              <td class="py-3 px-8 text-sm text-[#4B4848]">{{ isCoupon(promotion) ? (promotion.usageCount ?? 0) : '–' }}</td>
+              <td class="py-3 px-4 text-sm text-[#4B4848]">{{ isCoupon(promotion) ? formatMontant(promotion) : '–' }}</td>
               <td class="py-3 px-4">
                 <span
-                  [class]="'inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ' + getStatusClass(promotion.statut)">
-                  <span [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(promotion.statut)"></span>
-                  {{ promotion.statut }}
+                  [class]="'inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ' + getStatusClass(promotion.status)">
+                  <span [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(promotion.status)"></span>
+                  {{ formatStatut(promotion.status) }}
                 </span>
               </td>
               <td class="py-3 px-2">
@@ -108,20 +117,22 @@
                         fill="#4B4848" />
                     </svg>
                   </button>
-                  <!-- toggle actif-->
-                  <button *ngIf="promotion.statut === 'Actif'"
+                  <!-- Désactiver (si actif) -->
+                  <button *ngIf="promotion.status === 'ACTIVE'"
                     (click)="togglePromotionStatus(promotion.id, 'desactiver')"
-                    class="p-2.5 hover:bg-gray-100 bg-white rounded-lg border border-[#E5E7EB] transition-colors">
+                    class="p-2.5 hover:bg-gray-100 bg-white rounded-lg border border-[#E5E7EB] transition-colors"
+                    title="Désactiver">
                     <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path fill-rule="evenodd" clip-rule="evenodd"
                         d="M6 0C7.06087 0 8.07828 0.421427 8.82843 1.17157C9.57857 1.92172 10 2.93913 10 4V6.05C10.5647 6.16527 11.0722 6.47209 11.4367 6.91855C11.8011 7.36501 12.0001 7.92367 12 8.5V13.5C12 14.163 11.7366 14.7989 11.2678 15.2678C10.7989 15.7366 10.163 16 9.5 16H2.5C1.83696 16 1.20107 15.7366 0.732233 15.2678C0.263392 14.7989 5.21142e-08 14.163 5.21142e-08 13.5V8.5C-0.000117575 7.92367 0.198892 7.36501 0.563347 6.91855C0.927802 6.47209 1.43532 6.16527 2 6.05V4C2 2.93913 2.42143 1.92172 3.17157 1.17157C3.92172 0.421427 4.93913 0 6 0ZM2.5 7C2.10218 7 1.72064 7.15804 1.43934 7.43934C1.15804 7.72064 1 8.10218 1 8.5V13.5C1 13.8978 1.15804 14.2794 1.43934 14.5607C1.72064 14.842 2.10218 15 2.5 15H9.5C9.89782 15 10.2794 14.842 10.5607 14.5607C10.842 14.2794 11 13.8978 11 13.5V8.5C11 8.10218 10.842 7.72064 10.5607 7.43934C10.2794 7.15804 9.89782 7 9.5 7H2.5ZM6 1C5.20435 1 4.44129 1.31607 3.87868 1.87868C3.31607 2.44129 3 3.20435 3 4V6H9V4C9 3.20435 8.68393 2.44129 8.12132 1.87868C7.55871 1.31607 6.79565 1 6 1Z"
                         fill="#FF0909" />
                     </svg>
                   </button>
-                  <!-- toggle planifié -->
-                  <button *ngIf="promotion.statut === 'Planifié'"
+                  <!-- Réactiver (si planifié ou inactif) -->
+                  <button *ngIf="promotion.status === 'PLANNED' || promotion.status === 'DISABLED'"
                     (click)="togglePromotionStatus(promotion.id, 'activer')"
-                    class="p-2.5 hover:bg-gray-100 bg-white rounded-lg border border-[#E5E7EB] transition-colors">
+                    class="p-2.5 hover:bg-gray-100 bg-white rounded-lg border border-[#E5E7EB] transition-colors"
+                    [title]="promotion.status === 'DISABLED' ? 'Réactiver' : 'Activer'">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path fill-rule="evenodd" clip-rule="evenodd"
                         d="M12 0C13.0609 0 14.0783 0.421427 14.8284 1.17157C15.5786 1.92172 16 2.93913 16 4V6.5H15V4C15 3.20435 14.6839 2.44129 14.1213 1.87868C13.5587 1.31607 12.7956 1 12 1C11.2044 1 10.4413 1.31607 9.87868 1.87868C9.31607 2.44129 9 3.20435 9 4V6H9.5C9.8283 6 10.1534 6.06466 10.4567 6.1903C10.76 6.31594 11.0356 6.50009 11.2678 6.73223C11.4999 6.96438 11.6841 7.23998 11.8097 7.54329C11.9353 7.84661 12 8.1717 12 8.5V13.5C12 13.8283 11.9353 14.1534 11.8097 14.4567C11.6841 14.76 11.4999 15.0356 11.2678 15.2678C11.0356 15.4999 10.76 15.6841 10.4567 15.8097C10.1534 15.9353 9.8283 16 9.5 16H2.5C1.83696 16 1.20107 15.7366 0.732233 15.2678C0.263392 14.7989 0 14.163 0 13.5L0 8.5C0 7.83696 0.263392 7.20107 0.732233 6.73223C1.20107 6.26339 1.83696 6 2.5 6H8V4C8 2.93913 8.42143 1.92172 9.17157 1.17157C9.92172 0.421427 10.9391 0 12 0ZM2.5 7C2.10218 7 1.72064 7.15804 1.43934 7.43934C1.15804 7.72064 1 8.10218 1 8.5V13.5C1 13.8978 1.15804 14.2794 1.43934 14.5607C1.72064 14.842 2.10218 15 2.5 15H9.5C9.89782 15 10.2794 14.842 10.5607 14.5607C10.842 14.2794 11 13.8978 11 13.5V8.5C11 8.10218 10.842 7.72064 10.5607 7.43934C10.2794 7.15804 9.89782 7 9.5 7H2.5Z"
@@ -139,7 +150,7 @@
       <div
         class="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 2xl:p-5 border-t border-gray-100">
         <div class="text-xs sm:text-sm text-[#4B4848]">
-          Page {{ currentPage }} sur {{ totalPages }}
+          Page {{ currentPage }} sur {{ totalPages }} ({{ totalElements }} coupon(s))
         </div>
         <div class="flex gap-2">
           <button (click)="previousPage()" [disabled]="currentPage === 1"
@@ -156,170 +167,51 @@
   </div>
 
   <!-- Modal de création de coupon -->
-  <app-coupon-modal [isOpen]="isModalOpen" [isSubmitting]="isSubmitting" (close)="closeCouponModal()"
-    (submitCoupon)="onSubmitCoupon($event)"></app-coupon-modal>
+  <app-coupon-modal [isOpen]="isModalOpen" [isSubmitting]="isSubmitting"
+    [products]="couponModalProducts" [categories]="couponModalCategories"
+    (close)="closeCouponModal()" (submitCoupon)="onSubmitCoupon($event)"></app-coupon-modal>
 
-  <!-- Modal de détails du coupon -->
-  <div *ngIf="showDetailModal && selectedPromotion"
-    class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/30 transition-opacity duration-300"
+  <!-- Modal de détails du coupon (Coupon — CODE, Nom, Code, Réduction, Applicable, Période, Statut, Produits liés, Activer/Désactiver/Supprimer) -->
+  <div *ngIf="showDetailModal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/30"
     (click)="closeDetailModal()">
-    <div
-      class="bg-white rounded-2xl shadow-xl w-full max-w-full sm:max-w-2xl md:max-w-3xl 2xl:max-w-4xl max-h-[90vh] overflow-y-auto"
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
       (click)="$event.stopPropagation()">
-      <!-- Header -->
-      <div
-        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 sm:p-6 border-b border-gray-100">
-        <h2 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Coupon N° 2025-{{
-          String(selectedPromotion.id).padStart(2, '0') }}
-        </h2>
-        <button (click)="closeDetailModal()"
-          class="self-end sm:self-auto text-gray-400 hover:text-gray-600 transition-colors">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round" />
-          </svg>
+      <div class="flex items-center justify-between p-4 border-b border-gray-100">
+        <h2 class="text-xl font-bold text-gray-900">Coupon — {{ selectedCouponDetail?.code ?? '…' }}</h2>
+        <button (click)="closeDetailModal()" class="text-gray-400 hover:text-gray-600">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6L18 18"/></svg>
         </button>
       </div>
-
-      <!-- Body -->
-      <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
-        <!-- Informations du coupon -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-4 sm:gap-6">
-          <div>
-            <div class="text-xs sm:text-sm text-[#6B7280] mb-1">Nom du coupon</div>
-            <div class="text-sm sm:text-base font-medium text-[#4B4848]">{{ selectedPromotion.nom }}</div>
-          </div>
-          <div>
-            <div class="text-xs sm:text-sm text-[#6B7280] mb-1">Taux de réduction</div>
-            <div class="text-sm sm:text-base font-medium text-[#4B4848]">{{ selectedPromotion.reduction }}</div>
-          </div>
-          <div>
-            <div class="text-xs sm:text-sm text-[#6B7280] mb-1">Période</div>
-            <div class="text-sm sm:text-base font-medium text-[#4B4848]">{{ selectedPromotion.validite }}</div>
-          </div>
-          <div>
-            <div class="text-xs sm:text-sm text-[#6B7280] mb-1">Statut</div>
-            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
-              [class.bg-[#0A97480F]]="selectedPromotion.statut === 'Actif'"
-              [class.bg-[#F2F2F2]]="selectedPromotion.statut === 'Expiré'"
-              [class.bg-[#1E40AF0F]]="selectedPromotion.statut === 'Planifié'">
-              <span [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(selectedPromotion.statut)"></span>
-              <span [class]="'text-xs font-medium ' + 
-                (selectedPromotion.statut === 'Actif' ? 'text-[#0A9748]' : 
-                 selectedPromotion.statut === 'Expiré' ? 'text-[#2C3E50]' : 'text-[#1E40AF]')">
-                {{ selectedPromotion.statut }}
-              </span>
-            </div>
+      <div *ngIf="loadingDetail" class="p-6 text-center text-gray-500">Chargement…</div>
+      <ng-container *ngIf="!loadingDetail && selectedCouponDetail as d">
+        <div class="p-4 space-y-3 text-sm">
+          <div><span class="text-gray-500">Nom</span><span class="ml-2 font-medium">: {{ d.name }}</span></div>
+          <div><span class="text-gray-500">Code</span><span class="ml-2 font-medium">: {{ d.code }}</span></div>
+          <div><span class="text-gray-500">Réduction</span><span class="ml-2 font-medium">: {{ getDetailReduction(d) }}</span></div>
+          <div><span class="text-gray-500">Applicable</span><span class="ml-2 font-medium">: {{ getDetailScopeLabel(d) }}</span></div>
+          <div><span class="text-gray-500">Période</span><span class="ml-2 font-medium">: {{ getDetailPeriod(d) }}</span></div>
+          <div class="flex items-center gap-2">
+            <span class="text-gray-500">Statut</span>
+            <span [class]="'w-2 h-2 rounded-full ' + getDetailStatusDotClass(d)"></span>
+            <span class="font-medium">{{ getDetailStatutLabel(d) }}</span>
           </div>
         </div>
-
-        <!-- Produits Section -->
-        <div>
-          <h3 class="text-sm sm:text-base font-bold text-[#374151] mb-2 sm:mb-4">Produits</h3>
-
-          <!-- Table des produits -->
-          <div class="bg-[#F8F9FC] rounded-lg overflow-x-auto">
-            <table class="w-full min-w-[400px]">
-              <thead>
-                <tr class="bg-[#F8F9FC]">
-                  <th class="text-left text-xs sm:text-sm font-medium text-gray-700 py-2 sm:py-3 px-2 sm:px-4 w-12">
-                    <div class="w-5 h-5 rounded bg-[#FF6B00] flex items-center justify-center">
-                      <svg width="12" height="9" viewBox="0 0 12 9" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M1 4.5L4.5 8L11 1" stroke="white" stroke-width="2" stroke-linecap="round"
-                          stroke-linejoin="round" />
-                      </svg>
-                    </div>
-                  </th>
-                  <th class="text-left text-xs sm:text-sm font-medium text-gray-700 py-2 sm:py-3 px-2 sm:px-4">Produit
-                  </th>
-                  <th class="text-left text-xs sm:text-sm font-medium text-gray-700 py-2 sm:py-3 px-2 sm:px-4">
-                    Description</th>
-                  <th class="text-left text-xs sm:text-sm font-medium text-gray-700 py-2 sm:py-3 px-2 sm:px-4">Stock
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="bg-white">
-                <tr *ngFor="let product of allProducts"
-                  class="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                  <td class="py-2 sm:py-3 px-2 sm:px-4">
-                    <button (click)="toggleProductSelection(product.id)" type="button"
-                      class="w-5 h-5 rounded border-2 flex items-center justify-center transition-all"
-                      [class.bg-[#FF6B00]]="isProductSelected(product.id)"
-                      [class.border-[#FF6B00]]="isProductSelected(product.id)"
-                      [class.border-gray-300]="!isProductSelected(product.id)">
-                      <svg *ngIf="isProductSelected(product.id)" width="12" height="9" viewBox="0 0 12 9" fill="none"
-                        xmlns="http://www.w3.org/2000/svg">
-                        <path d="M1 4.5L4.5 8L11 1" stroke="white" stroke-width="2" stroke-linecap="round"
-                          stroke-linejoin="round" />
-                      </svg>
-                    </button>
-                  </td>
-                  <td class="py-2 sm:py-3 px-2 sm:px-4">
-                    <div class="flex items-center gap-2 sm:gap-3">
-                      <div
-                        class="w-10 h-10 sm:w-12 sm:h-12 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        <img [src]="product.icon" [alt]="product.name" class="w-7 h-7 sm:w-8 sm:h-8 object-contain">
-                      </div>
-                      <div>
-                        <div class="text-xs sm:text-sm font-medium text-gray-900">{{ product.name }}</div>
-                        <div class="text-[10px] sm:text-xs text-gray-500">{{ product.category }}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="py-2 sm:py-3 px-2 sm:px-4">
-                    <div class="text-xs sm:text-sm text-gray-600">
-                      {{ product.description || 'Lorem Ipsum has been the industry\'s standard dummy text ever since the
-                      1500' }}
-                    </div>
-                  </td>
-                  <td class="py-2 sm:py-3 px-2 sm:px-4">
-                    <div class="text-xs sm:text-sm font-medium text-gray-900">{{ product.stock }}</div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        <div class="px-4 pb-3">
+          <div class="text-gray-500 text-xs mb-1">Produits liés</div>
+          <div *ngIf="d.products?.length" class="space-y-1">
+            <span *ngFor="let p of d.products" class="block text-sm text-gray-700">{{ p.name }}</span>
           </div>
+          <div *ngIf="!d.products?.length || d.scope === 'CART_TOTAL'" class="text-sm text-gray-600">Aucun (total panier)</div>
         </div>
-      </div>
-
-      <!-- Footer -->
-      <div
-        class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between px-4 sm:px-6 pb-4 sm:pb-6 gap-2 sm:gap-4">
-        <button (click)="modifierCoupon()"
-          class="w-full sm:w-auto bg-white border border-[#E5E7EB] text-[#666666] px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M8.33301 1.66333H2.49967C2.05765 1.66333 1.63372 1.83892 1.32116 2.15149C1.0086 2.46405 0.833008 2.88797 0.833008 3.33V14.9967C0.833008 15.4387 1.0086 15.8626 1.32116 16.1752C1.63372 16.4877 2.05765 16.6633 2.49967 16.6633H14.1663C14.6084 16.6633 15.0323 16.4877 15.3449 16.1752C15.6574 15.8626 15.833 15.4387 15.833 14.9967V9.16333"
-              stroke="#666666" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round" />
-            <path
-              d="M13.6453 1.35102C13.9768 1.0195 14.4264 0.833252 14.8953 0.833252C15.3641 0.833252 15.8137 1.0195 16.1453 1.35102C16.4768 1.68254 16.663 2.13218 16.663 2.60102C16.663 3.06986 16.4768 3.5195 16.1453 3.85102L8.63443 11.3627C8.43655 11.5604 8.1921 11.7051 7.92359 11.7835L5.52943 12.4835C5.45772 12.5044 5.38171 12.5057 5.30935 12.4871C5.23699 12.4686 5.17095 12.431 5.11813 12.3781C5.06532 12.3253 5.02767 12.2593 5.00913 12.1869C4.99059 12.1146 4.99185 12.0386 5.01276 11.9669L5.71276 9.57269C5.79153 9.30439 5.93654 9.06023 6.13443 8.86269L13.6453 1.35102Z"
-              stroke="#666666" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-          Modifier
-        </button>
-        <button *ngIf="selectedPromotion.statut === 'Actif'" (click)="toggleCouponStatus('desactiver')"
-          class="w-full sm:w-auto bg-white border border-[#E5E7EB] text-[#EF4444] px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
-          <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path fill-rule="evenodd" clip-rule="evenodd"
-              d="M6 0C7.06087 0 8.07828 0.421427 8.82843 1.17157C9.57857 1.92172 10 2.93913 10 4V6.05C10.5647 6.16527 11.0722 6.47209 11.4367 6.91855C11.8011 7.36501 12.0001 7.92367 12 8.5V13.5C12 14.163 11.7366 14.7989 11.2678 15.2678C10.7989 15.7366 10.163 16 9.5 16H2.5C1.83696 16 1.20107 15.7366 0.732233 15.2678C0.263392 14.7989 5.21142e-08 14.163 5.21142e-08 13.5V8.5C-0.000117575 7.92367 0.198892 7.36501 0.563347 6.91855C0.927802 6.47209 1.43532 6.16527 2 6.05V4C2 2.93913 2.42143 1.92172 3.17157 1.17157C3.92172 0.421427 4.93913 0 6 0ZM2.5 7C2.10218 7 1.72064 7.15804 1.43934 7.43934C1.15804 7.72064 1 8.10218 1 8.5V13.5C1 13.8978 1.15804 14.2794 1.43934 14.5607C1.72064 14.842 2.10218 15 2.5 15H9.5C9.89782 15 10.2794 14.842 10.5607 14.5607C10.842 14.2794 11 13.8978 11 13.5V8.5C11 8.10218 10.842 7.72064 10.5607 7.43934C10.2794 7.15804 9.89782 7 9.5 7H2.5ZM6 1C5.20435 1 4.44129 1.31607 3.87868 1.87868C3.31607 2.44129 3 3.20435 3 4V6H9V4C9 3.20435 8.68393 2.44129 8.12132 1.87868C7.55871 1.31607 6.79565 1 6 1Z"
-              fill="#EF4444" />
-          </svg>
-          Désactiver
-        </button>
-        <button *ngIf="selectedPromotion.statut === 'Planifié'" (click)="toggleCouponStatus('activer')"
-          class="w-full sm:w-auto bg-white border border-[#E5E7EB] text-[#16A34A] px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base hover:bg-green-50 transition-colors flex items-center justify-center gap-2">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path fill-rule="evenodd" clip-rule="evenodd"
-              d="M12 0C13.0609 0 14.0783 0.421427 14.8284 1.17157C15.5786 1.92172 16 2.93913 16 4V6.5H15V4C15 3.20435 14.6839 2.44129 14.1213 1.87868C13.5587 1.31607 12.7956 1 12 1C11.2044 1 10.4413 1.31607 9.87868 1.87868C9.31607 2.44129 9 3.20435 9 4V6H9.5C9.8283 6 10.1534 6.06466 10.4567 6.1903C10.76 6.31594 11.0356 6.50009 11.2678 6.73223C11.4999 6.96438 11.6841 7.23998 11.8097 7.54329C11.9353 7.84661 12 8.1717 12 8.5V13.5C12 13.8283 11.9353 14.1534 11.8097 14.4567C11.6841 14.76 11.4999 15.0356 11.2678 15.2678C11.0356 15.4999 10.76 15.6841 10.4567 15.8097C10.1534 15.9353 9.8283 16 9.5 16H2.5C1.83696 16 1.20107 15.7366 0.732233 15.2678C0.263392 14.7989 0 14.163 0 13.5L0 8.5C0 7.83696 0.263392 7.20107 0.732233 6.73223C1.20107 6.26339 1.83696 6 2.5 6H8V4C8 2.93913 8.42143 1.92172 9.17157 1.17157C9.92172 0.421427 10.9391 0 12 0ZM2.5 7C2.10218 7 1.72064 7.15804 1.43934 7.43934C1.15804 7.72064 1 8.10218 1 8.5V13.5C1 13.8978 1.15804 14.2794 1.43934 14.5607C1.72064 14.842 2.10218 15 2.5 15H9.5C9.89782 15 10.2794 14.842 10.5607 14.5607C10.842 14.2794 11 13.8978 11 13.5V8.5C11 8.10218 10.842 7.72064 10.5607 7.43934C10.2794 7.15804 9.89782 7 9.5 7H2.5Z"
-              fill="#16A34A" />
-          </svg>
-          Activer
-        </button>
-        <button (click)="closeDetailModal()"
-          class="w-full sm:w-auto bg-[#DDE2E433] text-[#646B78] px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-colors">
-          Fermer
-        </button>
-      </div>
+        <div class="flex flex-wrap gap-2 p-4 border-t border-gray-100">
+          <button *ngIf="d.status === 'PLANNED' || d.status === 'DISABLED'" (click)="toggleCouponStatus('activer')"
+            class="px-4 py-2 rounded-lg font-medium text-sm bg-green-50 text-green-700 hover:bg-green-100">{{ d.status === 'DISABLED' ? 'Réactiver' : 'Activer' }}</button>
+          <button *ngIf="d.isActive" (click)="toggleCouponStatus('desactiver')"
+            class="px-4 py-2 rounded-lg font-medium text-sm bg-red-50 text-red-700 hover:bg-red-100">Désactiver</button>
+          <button (click)="deleteCoupon()" class="px-4 py-2 rounded-lg font-medium text-sm border border-red-200 text-red-600 hover:bg-red-50">Supprimer</button>
+        </div>
+      </ng-container>
     </div>
   </div>
 </app-main-layout>

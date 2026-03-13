@@ -1,4 +1,3 @@
-<!-- ===================== LAYOUT PRINCIPAL ===================== -->
 <app-main-layout role="com">
 
   <!-- ===================== HEADER DE LA PAGE =====================
@@ -10,30 +9,34 @@
        - Quand on clique sur le bouton, Angular appelle openCreateModal() -->
 
   <app-header
-    [title]="'Gestion des Prospections'"
-    [breadcrumb]="'Pages / Gestion des Prospections'"
+    [title]="routeMode === 'prospects' ? 'Prospections' : 'Entreprises'"
+    [breadcrumb]="routeMode === 'prospects' ? 'Pages / Prospections' : 'Pages / Entreprises'"
     [type]="'simple'"
     [buttonLabel]="'Nouvelle entreprise'"
     (actionClick)="openCreateModal()">
   </app-header>
 
-  <!-- ===================== MODAL ENTREPRISE =====================
-       <app-company-modal> est une fenêtre modale (popup).
-       Elle sert à :
-       - ajouter une entreprise
-       - ou modifier une entreprise existante
-  -->
-  <!-- isOpen : true = visible, false = fermé -->
-  <!-- initialData : données à modifier (sinon création) -->
-  <!-- Titre : change selon création/modification -->
-  <!-- close : fermeture du modal -->
-  <!-- submit : envoie le formulaire -->
+  <!-- ===================== MODAL CRÉATION ENTREPRISE ===================== -->
   <app-company-modal
-    [isOpen]="isCompanyModalOpen"
+    [isOpen]="isCreateModalOpen"
+    [initialData]="null"
+    [sectorOptions]="sectorOptions"
+    [isSubmitting]="isCompanySubmitting"
+    [title]="'Ajouter une nouvelle entreprise'"
+    (close)="onCloseCreateModal()"
+    (submit)="onCompanyCreate($event)">
+  </app-company-modal>
+
+  <!-- ===================== MODAL MODIFICATION ENTREPRISE ===================== -->
+  <app-company-modal
+    [isOpen]="isEditModalOpen"
     [initialData]="editingCompanyData"
-    [title]="editingCompanyId ? 'Modifier une entreprise' : 'Ajouter une nouvelle entreprise'"
-    (close)="onCloseCompanyModal()"
-    (submit)="onCompanySubmit($event)">
+    [logoPreviewUrl]="editingCompanyLogoUrl"
+    [sectorOptions]="sectorOptions"
+    [isSubmitting]="isCompanySubmitting"
+    [title]="'Modifier une entreprise'"
+    (close)="onCloseEditModal()"
+    (submit)="onCompanyEdit($event)">
   </app-company-modal>
 
   <!-- ===================== CARTES STATISTIQUES =====================
@@ -100,7 +103,7 @@
       <!-- Filtres -->
       <div class="flex flex-wrap gap-2 sm:gap-3">
         <!-- Filtre secteur -->
-        <div class="relative">
+        <div class="relative" (click)="$event.stopPropagation()">
           <button (click)="toggleSectorDropdown()"
                   class="px-3 py-2 border border-[#EEEEEE] rounded-lg text-xs 2xl:text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 flex items-center gap-2 bg-white transition-all">
             <svg class="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -120,8 +123,8 @@
           </div>
         </div>
 
-        <!-- Filtre statut -->
-        <div class="relative">
+        <!-- Filtre statut compte (Actif/Inactif) — visible uniquement sur page Entreprises -->
+        <div class="relative" *ngIf="routeMode === 'partenaires'" (click)="$event.stopPropagation()">
           <button (click)="toggleStatusDropdown()"
                   class="px-3 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
             <svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -140,6 +143,22 @@
             </button>
           </div>
         </div>
+
+        <!-- Filtre statut prospection — visible uniquement sur page Prospections -->
+        <div class="relative" *ngIf="routeMode === 'prospects'" (click)="$event.stopPropagation()">
+          <button (click)="toggleProspectionStatusDropdown()"
+                  class="px-3 py-2 border border-[#EEEEEE] rounded-lg text-xs 2xl:text-sm font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-all">
+            {{ selectedProspectionStatusLabel }}
+          </button>
+          <div *ngIf="showProspectionStatusDropdown"
+               class="absolute top-full right-0 mt-1 min-w-[200px] bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-20">
+            <button *ngFor="let opt of prospectionStatusOptions"
+                    (click)="selectProspectionStatus(opt.value)"
+                    class="w-full text-left px-4 py-2 text-xs 2xl:text-sm text-gray-700 hover:bg-gray-50 hover:text-[#2B3674] transition-all">
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -154,23 +173,31 @@
             <th class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">Adresse</th>
             <th class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">Nom du contact</th>
             <th class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">Date inscription</th>
+            <th class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">État prospection</th>
             <th class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">Statut</th>
             <th class="text-left text-xs 2xl:text-sm text-[#2C3E50] font-semibold py-3 lg:py-4 px-4 lg:px-6 whitespace-nowrap">Actions</th>
           </tr>
         </thead>
 
         <!-- Corps du tableau -->
-        <tbody class="divide-y divide-gray-100">
+        <tbody class="divide-y divide-gray-100 select-none cursor-default">
 
-          <!-- *ngFor :
-               Angular affiche une ligne par prospect
-               getCurrentPageProspects() gère la pagination -->
+          <!-- Message si aucun résultat (filtre, recherche) -->
+          <tr *ngIf="getCurrentPageProspects().length === 0">
+            <td colspan="7" class="py-12 px-4 text-center">
+              <p class="text-[#6B7280] text-sm font-medium">Élément introuvable</p>
+              <p class="text-[#9CA3AF] text-xs mt-1">Modifiez vos filtres ou votre recherche pour afficher des résultats</p>
+            </td>
+          </tr>
+
+          <!-- Lignes prospects -->
           <tr *ngFor="let prospect of getCurrentPageProspects()" class="hover:bg-gray-50 transition-colors">
             <!-- Nom + secteur -->
             <td class="py-3 px-4 2xl:px-6">
               <div class="flex items-center gap-3">
-                <div class="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-[#F2F2F2] flex items-center justify-center text-sm lg:text-base font-semibold text-[#4B4848] flex-shrink-0">
-                  {{ prospect.initials }}
+                <div class="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-[#F2F2F2] flex items-center justify-center text-sm lg:text-base font-semibold text-[#4B4848] flex-shrink-0 overflow-hidden">
+                  <img *ngIf="prospect.logo" [src]="prospect.logo" [alt]="prospect.entreprise" class="w-full h-full object-contain" />
+                  <span *ngIf="!prospect.logo">{{ prospect.initials }}</span>
                 </div>
                 <div class="min-w-0">
                   <div class="text-xs lg:text-sm font-medium text-[#4B4848] truncate">{{ prospect.entreprise }}</div>
@@ -190,6 +217,21 @@
 
             <!-- Date de création -->
             <td class="py-3 px-4 lg:px-6 text-xs lg:text-sm text-[#4B4848] whitespace-nowrap">{{ prospect.date }}</td>
+
+            <!-- État de prospection (distinct du compte Actif/Inactif) — différencié par couleurs -->
+            <td class="py-3 px-4 lg:px-6 whitespace-nowrap">
+              <span
+                *ngIf="prospect.prospectionStatus"
+                class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium"
+                [ngClass]="getProspectionStatusClasses(prospect.prospectionStatus)">
+                <span
+                  class="w-2 h-2 rounded-full shrink-0"
+                  [ngClass]="getProspectionStatusDotClasses(prospect.prospectionStatus)">
+                </span>
+                {{ prospect.prospectionStatus }}
+              </span>
+              <span *ngIf="!prospect.prospectionStatus" class="text-xs lg:text-sm text-[#4B4848]">—</span>
+            </td>
 
             <!-- Statut du prospect -->
             <td class="py-3 px-4 lg:px-6 whitespace-nowrap">
@@ -227,7 +269,7 @@
                       fill="#F68647" />
                   </svg>
                 </button>
-                <button (click)="toggleProspectStatus(prospect)"
+                <button *ngIf="routeMode === 'partenaires'" (click)="toggleProspectStatus(prospect)"
                         class="p-2 hover:bg-gray-100 rounded-lg transition-all">
                   <div
                     [class]="'w-6 h-3.5 rounded-full relative transition-all duration-200 ' + (prospect.statut === 'Actif' ? 'bg-gradient-to-r from-[#FF6B00] to-[#FF914D]' : 'bg-gray-300')">
@@ -263,15 +305,15 @@
 
   <!-- Prospect Detail Modal -->
   <div *ngIf="showProspectModal && selectedProspect"
-    class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/30">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-full sm:max-w-lg 2xl:max-w-xl overflow-hidden">
+    class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/30 select-none cursor-default">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-full sm:max-w-lg 2xl:max-w-xl overflow-hidden select-none cursor-default">
       <!-- Header -->
       <div
         class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 sm:p-6 border-b border-gray-100">
         <h2 class="text-lg sm:text-xl font-bold text-gray-900">
           Entreprise N°{{ selectedProspect.companyCode || selectedProspect.id }}
         </h2>
-        <button (click)="closeProspectModal()" class="self-end sm:self-auto transition-colors">
+        <button (click)="closeProspectModal()" class="self-end sm:self-auto transition-colors cursor-pointer">
           <!-- Close icon SVG -->
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
@@ -281,27 +323,28 @@
         </button>
       </div>
       <!-- Body -->
-      <div class="px-3 sm:px-6 pt-3 sm:pt-4 space-y-4 sm:space-y-6">
+      <div class="px-3 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-8 space-y-4 sm:space-y-6">
         <!-- Prospect Avatar and Info -->
         <div class="flex flex-col items-center text-center">
           <div
-            class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#F2F2F2] flex items-center justify-center text-3xl sm:text-4xl font-semibold text-[#4B4848] mb-4 sm:mb-6 relative">
-            {{ selectedProspect.initials }}
+            class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#F2F2F2] flex items-center justify-center text-3xl sm:text-4xl font-semibold text-[#4B4848] mb-4 sm:mb-6 relative overflow-hidden">
+            <img *ngIf="selectedProspect.logo" [src]="selectedProspect.logo" [alt]="selectedProspect.entreprise" class="w-full h-full object-contain" />
+            <span *ngIf="!selectedProspect.logo">{{ selectedProspect.initials }}</span>
             <span class="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white"
               [class.bg-green-500]="selectedProspect.statut === 'Actif'"
               [class.bg-red-500]="selectedProspect.statut === 'Inactif'">
             </span>
           </div>
           <h3 class="text-base sm:text-lg text-[#4B4848] mb-1">{{ selectedProspect.entreprise }}</h3>
-          <p class="text-xs text-gray-600">{{ selectedProspect.note || selectedProspect.secteur || '' }}</p>
+          <p class="text-xs text-gray-600">{{ selectedProspect.note || '' }}</p>
         </div>
 
         <!-- Prospect Details -->
         <div class="space-y-4 sm:space-y-6">
-          <!-- Note -->
+          <!-- Secteur d'activité -->
           <div class="flex items-center gap-2 sm:gap-3">
             <div class="flex-shrink-0">
-              <!-- Briefcase icon SVG -->
+              <!-- SVG -->
               <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
                   d="M11.6667 2H9.33333V1.33333C9.3328 0.979874 9.19216 0.641042 8.94222 0.391109C8.69229 0.141175 8.35346 0.000529 8 0H5.33333C4.97987 0.000529 4.64104 0.141175 4.39111 0.391109C4.14117 0.641042 4.00053 0.979874 4 1.33333V2H1.66667C1.22464 2 0.800716 2.17559 0.488155 2.48816C0.175595 2.80072 0 3.22464 0 3.66667V10.3333C0 10.7754 0.175595 11.1993 0.488155 11.5118C0.800716 11.8244 1.22464 12 1.66667 12H11.6667C12.1087 12 12.5326 11.8244 12.8452 11.5118C13.1577 11.1993 13.3333 10.7754 13.3333 10.3333V3.66667C13.3333 3.22464 13.1577 2.80072 12.8452 2.48816C12.5326 2.17559 12.1087 2 11.6667 2ZM4.66667 1.33333C4.66667 1.15652 4.7369 0.986953 4.86193 0.861929C4.98695 0.736905 5.15652 0.666667 5.33333 0.666667H8C8.17681 0.666667 8.34638 0.736905 8.4714 0.861929C8.59643 0.986953 8.66667 1.15652 8.66667 1.33333V2H4.66667V1.33333ZM12.6667 10.3333C12.6667 10.5985 12.5613 10.8529 12.3738 11.0404C12.1862 11.228 11.9319 11.3333 11.6667 11.3333H1.66667C1.40145 11.3333 1.1471 11.228 0.95956 11.0404C0.772023 10.8529 0.666667 10.5985 0.666667 10.3333V6.018L4.56133 7.31667C4.59532 7.32784 4.63089 7.33347 4.66667 7.33333H8.66667C8.70244 7.33347 8.73801 7.32784 8.772 7.31667L12.6667 6.018V10.3333ZM12.6667 5.33733C12.6311 5.33612 12.5955 5.34062 12.5613 5.35067L8.61267 6.66667H4.72067L0.772 5.35C0.737827 5.33996 0.702265 5.33545 0.666667 5.33667V3.66667C0.666667 3.40145 0.772023 3.1471 0.95956 2.95956C1.1471 2.77202 1.40145 2.66667 1.66667 2.66667H11.6667C11.9319 2.66667 12.1862 2.77202 12.3738 2.95956C12.5613 3.1471 12.6667 3.40145 12.6667 3.66667V5.33733Z"
@@ -309,8 +352,8 @@
               </svg>
             </div>
             <div class="flex justify-between items-center w-full">
-              <p class="text-sm text-[#333333]">{{ selectedProspect.note || selectedProspect.secteur || '' }}</p>
-              <p class="text-xs text-[#64748B]">Note</p>
+              <p class="text-sm text-[#333333]">{{ selectedProspect.secteur || '—' }}</p>
+              <p class="text-xs text-[#64748B]">Secteur d'activité</p>
             </div>
           </div>
           <div class="flex items-center gap-3">
@@ -330,7 +373,7 @@
           <!-- Localisation -->
           <div class="flex items-center gap-3">
             <div class="flex-shrink-0">
-              <!-- Location icon SVG -->
+              <!-- SVG -->
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path fill-rule="evenodd" clip-rule="evenodd"
                   d="M3.1 11.1995C3.14657 11.1374 3.20697 11.087 3.27639 11.0523C3.34582 11.0176 3.42238 10.9995 3.5 10.9995H6C6.13261 10.9995 6.25979 11.0522 6.35355 11.146C6.44732 11.2397 6.5 11.3669 6.5 11.4995C6.5 11.6321 6.44732 11.7593 6.35355 11.8531C6.25979 11.9468 6.13261 11.9995 6 11.9995H3.75L1.5 14.9995H14.5L12.25 11.9995H10C9.86739 11.9995 9.74021 11.9468 9.64645 11.8531C9.55268 11.7593 9.5 11.6321 9.5 11.4995C9.5 11.3669 9.55268 11.2397 9.64645 11.146C9.74021 11.0522 9.86739 10.9995 10 10.9995H12.5C12.5776 10.9995 12.6542 11.0176 12.7236 11.0523C12.793 11.087 12.8534 11.1374 12.9 11.1995L15.9 15.1995C15.9557 15.2738 15.9896 15.3621 15.998 15.4546C16.0063 15.5471 15.9887 15.6401 15.9472 15.7231C15.9057 15.8062 15.8419 15.876 15.7629 15.9248C15.6839 15.9737 15.5929 15.9995 15.5 15.9995H0.5C0.407144 15.9995 0.316123 15.9737 0.237135 15.9248C0.158147 15.876 0.0943131 15.8062 0.0527866 15.7231C0.0112602 15.6401 -0.00631841 15.5471 0.00202058 15.4546C0.0103596 15.3621 0.0442867 15.2738 0.1 15.1995L3.1 11.1995Z"
@@ -394,10 +437,28 @@
             </div>
           </div>
 
-          <!-- Status Toggle -->
-          <div class="flex items-center pt-2">
+          <!-- Nombre de salariés et commandes (entreprises partenaires uniquement) -->
+          <ng-container *ngIf="selectedProspect.employeeCount != null">
+            <div class="flex items-center gap-3">
+              <div class="flex-shrink-0 w-4 h-4 flex items-center justify-center text-[#64748B] font-semibold text-sm">#</div>
+              <div class="flex justify-between items-center w-full">
+                <p class="text-sm text-[#333333]">{{ selectedProspect.employeeCount }}</p>
+                <p class="text-xs text-[#64748B]">Nombre de salariés</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="flex-shrink-0 w-4 h-4 flex items-center justify-center text-[#64748B] font-semibold text-sm">#</div>
+              <div class="flex justify-between items-center w-full">
+                <p class="text-sm text-[#333333]">{{ selectedProspect.orderCount ?? 0 }}</p>
+                <p class="text-xs text-[#64748B]">Nombre de commandes (salariés)</p>
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- Status Toggle — visible uniquement sur la page Entreprises -->
+          <div *ngIf="routeMode === 'partenaires'" class="flex items-center pt-2">
             <button (click)="toggleProspectStatus(selectedProspect)"
-              class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              class="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
               <div
                 [class]="'w-6 h-3.5 rounded-full relative transition-colors ' + (selectedProspect.statut === 'Actif' ? 'bg-[#FF6A3D]' : 'bg-gray-300')">
                 <div
@@ -405,19 +466,19 @@
                 </div>
               </div>
             </button>
-            <span class="text-sm text-[#333333]">Entreprise activé</span>
+            <span class="text-sm text-[#333333]">{{ selectedProspect.statut === 'Actif' ? 'Entreprise activée' : 'Entreprise désactivée' }}</span>
           </div>
         </div>
       </div>
 
       <!-- Footer -->
-      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 px-3 sm:px-6 pb-3 sm:pb-4">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-5 px-3 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-t border-gray-100">
         <button (click)="modifierProspect()"
-          class="flex-1 py-3 sm:py-4 bg-[#2C2D5B] hover:bg-[#232447] text-white rounded-md font-medium text-sm sm:text-base transition-colors">
+          class="flex-1 py-3 sm:py-4 bg-[#2C2D5B] hover:bg-[#232447] text-white rounded-md font-medium text-sm sm:text-base transition-colors cursor-pointer">
           Modifier
         </button>
         <button (click)="annulerProspect()"
-          class="flex-1 py-3 sm:py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-100 hover:text-gray-800 rounded-lg font-medium text-sm sm:text-base transition-colors">
+          class="flex-1 py-3 sm:py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-100 hover:text-gray-800 rounded-lg font-medium text-sm sm:text-base transition-colors cursor-pointer">
           Annuler
         </button>
       </div>

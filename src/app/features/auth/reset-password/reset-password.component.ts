@@ -44,10 +44,10 @@ export class ResetPasswordComponent implements OnInit {
       this.contactMethod = params['method'] || 'email';
       this.contact = params['contact'] || '';
 
-      // Vérifier que le token est présent
+      // Vérifier que le token est présent (page réservée au lien reçu par email)
       if (!this.verificationToken) {
         console.warn('Token de vérification manquant');
-        this.router.navigate(['/forgot-password']);
+       this.router.navigate(['/forgot-password'])
       }
     });
   }
@@ -136,7 +136,7 @@ export class ResetPasswordComponent implements OnInit {
       this.isLoading = false;
 
       // Simuler le succès de la réinitialisation
-      const isResetSuccessful = true; // Remplacer par votre logique
+      const isResetSuccessful = true;
 
       if (isResetSuccessful) {
         console.log('Mot de passe réinitialisé avec succès');

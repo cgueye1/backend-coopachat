@@ -5,6 +5,8 @@ import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layo
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
 import { EmployeeModalComponent, EmployeeFormData, Company } from '../../../shared/components/employee-modal/employee-modal.component';
 import { CommercialService } from '../../../shared/services/commercial.service';
+import { PAGE_SIZE_OPTIONS } from '../../../shared/constants/pagination';
+import { environment } from '../../../../environments/environment';
 import Swal from 'sweetalert2';
 
 // ==================================================
@@ -22,6 +24,7 @@ interface Employee {
   dateInscription: string;
   initials: string;
   code: string;
+  profilePhotoUrl?: string;
 }
 
 interface MetricCard {
@@ -52,6 +55,8 @@ export class EmployeeManagementComponent implements OnInit {
   selectedStatusFilter = '';
   currentPage = 1;
   itemsPerPage = 6;
+  totalPages = 1;
+  pageSizeOptions = PAGE_SIZE_OPTIONS;
   isModalOpen = false;
   isSubmitting = false;
   showCompanyDropdown = false;
@@ -156,6 +161,7 @@ export class EmployeeManagementComponent implements OnInit {
           this.employees = items.map((item: any) => this.mapEmployeeListItemToEmployee(item));
           this.filteredEmployees = [...this.employees];
           this.totalElements = response?.totalElements ?? this.employees.length;
+          this.totalPages = Math.max(1, response?.totalPages ?? 1);
         },
         error: (error) => {
           console.error('Erreur lors du chargement des salariés:', error);
@@ -192,7 +198,7 @@ export class EmployeeManagementComponent implements OnInit {
   }
 
   loadCompaniesForEmployees(): void {
-    this.commercialService.getCompanies(0, 1000).subscribe({
+    this.commercialService.getCompanies(0, 1000, undefined, undefined, true).subscribe({
       next: (response) => {
         const list = response?.content ?? [];
         this.companies = list.map((company: any) => ({
@@ -246,8 +252,9 @@ export class EmployeeManagementComponent implements OnInit {
 
   modifierEmployee(): void {
     if (!this.selectedEmployee) return;
+    const id = this.selectedEmployee.id;
     this.closeEmployeeModal();
-    this.editEmployee(this.selectedEmployee.id);
+    this.editEmployee(id);
   }
 
   annulerEmployee(): void {
@@ -256,15 +263,67 @@ export class EmployeeManagementComponent implements OnInit {
 
   toggleEmployeeStatus(employee: Employee): void {
     const nextIsActive = employee.statut !== 'Actif';
-    this.commercialService.updateEmployeeStatus(employee.id, nextIsActive).subscribe({
-      next: () => {
-        employee.statut = nextIsActive ? 'Actif' : 'Inactif';
-        this.loadEmployees();
-        this.loadEmployeeStats();
+    const titleText = nextIsActive ? 'Activer ce salarié' : 'Désactiver ce salarié ?';
+    const descriptionText = nextIsActive ? 'Le salarié pourra se connecter au portail.' : 'Le salarié ne pourra plus se connecter.';
+    const confirmButtonText = nextIsActive ? 'Activer' : 'Oui';
+    const confirmButtonClass = nextIsActive
+      ? 'bg-[#16A34A] hover:bg-[#16A34A] text-white px-8 py-3 rounded-lg font-medium text-base shadow-none border-none'
+      : 'bg-[#EF4444] hover:bg-[#DC2626] text-white px-8 py-3 rounded-lg font-medium text-base shadow-none border-none';
+
+    Swal.fire({
+      title: titleText,
+      text: descriptionText,
+      iconHtml: `<img src="/icones/alerte.svg" alt="alert" style="margin: 0 auto;" />`,
+      showCancelButton: true,
+      confirmButtonText: confirmButtonText,
+      cancelButtonText: 'Annuler',
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-2xl font-medium text-gray-900',
+        htmlContainer: 'text-lg text-gray-600',
+        confirmButton: confirmButtonClass,
+        cancelButton: 'bg-[#F3F4F6] hover:bg-gray-200 text-gray-700 px-8 py-3 rounded-lg font-medium text-base shadow-none border-none',
+        actions: 'flex justify-center w-full gap-2',
+        icon: 'border-none'
       },
-      error: (error) => {
-        console.error("Erreur lors de la mise à jour du statut salarié:", error);
+      backdrop: 'rgba(0,0,0,0.2)',
+      width: '580px',
+      showClass: { popup: 'animate__animated animate__fadeIn animate__faster' }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.commercialService.updateEmployeeStatus(employee.id, nextIsActive).subscribe({
+          next: () => {
+            employee.statut = nextIsActive ? 'Actif' : 'Inactif';
+            this.loadEmployees();
+            this.loadEmployeeStats();
+            this.showToggleSuccessMessage(employee.statut);
+          },
+          error: (error) => {
+            const msg = error?.error?.message || error?.message || 'Erreur lors de la mise à jour du statut.';
+            Swal.fire({ title: 'Erreur', text: msg, icon: 'error', confirmButtonText: 'OK' });
+          }
+        });
       }
+    });
+  }
+
+  private showToggleSuccessMessage(newStatus: 'Actif' | 'Inactif'): void {
+    Swal.fire({
+      title: newStatus === 'Inactif' ? 'Le salarié a été désactivé' : 'Le salarié a été activé',
+      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
+      showConfirmButton: false,
+      timer: 2000,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-xl font-medium text-gray-900',
+        icon: 'border-none'
+      },
+      backdrop: 'rgba(0,0,0,0.2)',
+      width: '580px',
+      showClass: { popup: 'animate__animated animate__fadeIn animate__faster' },
+      hideClass: { popup: 'animate__animated animate__fadeOut animate__faster' }
     });
   }
 
@@ -310,6 +369,12 @@ export class EmployeeManagementComponent implements OnInit {
   // ==================================================
   // PAGINATION
   // ==================================================
+  onPageSizeChange(size: number): void {
+    this.itemsPerPage = size;
+    this.currentPage = 1;
+    this.loadEmployees();
+  }
+
   previousPage(): void {
     if (this.currentPage > 1) {
       this.currentPage--;
@@ -324,17 +389,13 @@ export class EmployeeManagementComponent implements OnInit {
     }
   }
 
-  getCurrentPageEmployees(): Employee[] {
-    // Les donnees sont deja paginees par le backend
-    return this.filteredEmployees;
-  }
-
   get totalResults(): number {
     return this.totalElements > 0 ? this.totalElements : this.filteredEmployees.length;
   }
 
-  get totalPages(): number {
-    return Math.max(1, Math.ceil(this.totalResults / this.itemsPerPage));
+  getCurrentPageEmployees(): Employee[] {
+    // Les donnees sont deja paginees par le backend
+    return this.filteredEmployees;
   }
 
   // ==================================================
@@ -348,6 +409,12 @@ export class EmployeeManagementComponent implements OnInit {
 
   getStatusDotClass(status: string): string {
     return status === 'Actif' ? 'bg-[#0A9748]' : 'bg-[#FF0909]';
+  }
+
+  getEmployeePhotoUrl(profilePhotoUrl: string): string {
+    if (!profilePhotoUrl) return '';
+    const base = (environment as any).imageServerUrl ?? '';
+    return base ? base.replace(/\/$/, '') + '/files/' + profilePhotoUrl : '/files/' + profilePhotoUrl;
   }
 
   private mapEmployeeListItemToEmployee(item: any): Employee {
@@ -367,7 +434,8 @@ export class EmployeeManagementComponent implements OnInit {
       statut: this.normalizeStatus(item?.status),
       dateInscription: this.formatCreatedAt(item?.createdAt),
       initials,
-      code: item?.employeeCode ?? ''
+      code: item?.employeeCode ?? '',
+      profilePhotoUrl: item?.profilePhotoUrl ?? undefined
     };
   }
 

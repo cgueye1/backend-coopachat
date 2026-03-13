@@ -2,6 +2,11 @@
     <!-- Header Section -->
     <app-header [title]="'Tableau de bord'" [breadcrumb]="'Pages / Tableau de bord'" [type]="'filter'"></app-header>
 
+    <p *ngIf="dashboardLoading" class="mb-4 text-gray-500 text-sm">Chargement du tableau de bord…</p>
+    <div *ngIf="dashboardError" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        {{ dashboardError }}
+    </div>
+
     <!-- Metrics Cards -->
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-4 mb-3 sm:mb-6 2xl:mb-8">
         <div *ngFor="let metric of metricsData"
@@ -26,12 +31,12 @@
         <!-- Commandes vs Livraisons Chart -->
         <div
             class="order-1 xl:col-span-2 bg-white rounded-lg p-3 sm:p-6 hover:shadow-sm transition-shadow">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 sm:mb-4">
                 <h3 class="text-base sm:text-lg font-semibold text-gray-900">Commandes vs Livraisons</h3>
-                <button
-                    class="self-start text-xs sm:text-sm text-gray-600 hover:text-gray-900 px-3 py-1 border border-gray-300 rounded-full flex-shrink-0">
+                <a routerLink="/log/commandes"
+                    class="self-start text-xs sm:text-sm text-gray-600 px-3 py-1.5 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
                     Voir détails
-                </button>
+                </a>
             </div>
             <div class="relative h-56 sm:h-80">
                 <canvas #commandesChart></canvas>
@@ -40,10 +45,10 @@
 
         <!-- Stocks - État global -->
         <div class="order-2 bg-white rounded-lg p-3 sm:p-6 hover:shadow-sm transition-shadow">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 sm:mb-4">
                 <h3 class="text-base sm:text-lg font-semibold text-gray-900">Stocks - État global</h3>
                 <a routerLink="/log/stocks"
-                    class="self-start text-xs sm:text-sm text-gray-600 hover:text-gray-900 px-3 py-1 border border-gray-300 rounded-full flex-shrink-0">
+                    class="self-start text-xs sm:text-sm text-gray-600 px-3 py-1.5 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
                     Voir détails
                 </a>
             </div>
@@ -57,17 +62,7 @@
     </div>
 
     <!-- Graphiques de statistiques -->
-    <div class="flex flex-col gap-3 sm:gap-4 lg:grid lg:grid-cols-3 lg:gap-6 mb-3 sm:mb-4">
-        <!-- Stocks sous seuil -->
-        <div class="bg-white rounded-lg p-3 sm:p-5 hover:shadow-sm transition-shadow">
-            <div class="flex items-center justify-between mb-3 sm:mb-4">
-                <h3 class="text-sm sm:text-base font-semibold text-gray-900">Stocks sous seuil — par catégorie</h3>
-            </div>
-            <div class="relative h-48 sm:h-64 2xl:h-80">
-                <canvas #stockCategoryChart></canvas>
-            </div>
-        </div>
-
+    <div class="flex flex-col gap-3 sm:gap-4 lg:grid lg:grid-cols-2 lg:gap-6 mb-3 sm:mb-4">
         <!-- Statut des livraisons -->
         <div class="bg-white rounded-lg p-3 sm:p-5 hover:shadow-sm transition-shadow">
             <div class="flex flex-col sm:flex-row  sm:items-center sm:justify-between mb-3 sm:mb-4">
@@ -84,17 +79,17 @@
             </div>
         </div>
 
-        <!-- Taux de retours -->
-        <div class="bg-white rounded-lg p-3 sm:p-6 hover:shadow-sm transition-shadow">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4">
+        <!-- Taux de retours (%) - même niveau que le donut -->
+        <div class="bg-white rounded-lg p-3 sm:p-6 hover:shadow-sm transition-shadow flex flex-col">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 sm:mb-4">
                 <h3 class="text-sm sm:text-base font-semibold text-gray-900">Taux de retours (%)</h3>
                 <a routerLink="/log/retours"
-                    class="text-xs text-gray-600 px-3 py-1.5 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
+                    class="self-start text-xs sm:text-sm text-gray-600 px-3 py-1.5 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
                     Voir détails
                 </a>
             </div>
-            <div class="relative h-48 sm:h-64">
-                <canvas #returnRateChart></canvas>
+            <div class="relative flex-1 min-h-[280px] h-72 2xl:h-96">
+                <canvas #returnRateChart class="w-full h-full block"></canvas>
             </div>
         </div>
     </div>

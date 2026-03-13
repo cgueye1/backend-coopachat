@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -35,17 +35,23 @@ export class AddProduitComponent implements OnInit {
   };
 
   categories: { id: number; name: string }[] = [];
+  categorySearchText = '';
   showCategoryDropdown = false;
   selectedFile: File | null = null;
   imagePreview: string | null = null;
+  /** En mode édition : true si l'utilisateur a cliqué sur X pour retirer l'image (on enverra removeImage au backend). */
+  imageRemoved = false;
 
   isEditMode = false;
   editingProductId: string | null = null;
+  /** true pendant l'envoi du formulaire (création/modification produit + image). */
+  saving = false;
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private productService: ProductService
+    private productService: ProductService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit(): void {
@@ -78,9 +84,13 @@ export class AddProduitComponent implements OnInit {
           this.newProduct.description = details?.description ?? this.newProduct.description;
           this.newProduct.categoryName = details?.categoryName ?? this.newProduct.categoryName;
           this.newProduct.categoryId = this.findCategoryIdByName(this.newProduct.categoryName);
+          this.categorySearchText = this.newProduct.categoryName ?? '';
           this.newProduct.price = details?.price ?? this.newProduct.price;
+          this.imageRemoved = false;
           if (details?.image) {
             this.imagePreview = this.buildImageUrl(details.image);
+          } else {
+            this.imagePreview = null;
           }
         },
         error: (error) => {
@@ -94,15 +104,50 @@ export class AddProduitComponent implements OnInit {
     this.router.navigate(['/admin/catalogue']);
   }
 
+  get filteredCategories(): { id: number; name: string }[] {
+    const q = (this.categorySearchText || '').trim().toLowerCase();
+    if (!q) return this.categories;
+    return this.categories.filter(c => c.name.toLowerCase().includes(q));
+  }
+
+  openCategoryDropdown() {
+    this.showCategoryDropdown = true;
+    if (this.newProduct.categoryName && !this.categorySearchText) {
+      this.categorySearchText = this.newProduct.categoryName;
+    }
+  }
+
   toggleCategoryDropdown() {
     this.showCategoryDropdown = !this.showCategoryDropdown;
+    if (this.showCategoryDropdown && this.newProduct.categoryName && !this.categorySearchText) {
+      this.categorySearchText = this.newProduct.categoryName;
+    }
   }
 
   selectCategory(category: { id: number; name: string }) {
     this.newProduct.categoryId = category.id;
     this.newProduct.categoryName = category.name;
+    this.categorySearchText = category.name;
     this.showCategoryDropdown = false;
     this.errors.category = '';
+  }
+
+  onCategoryInputBlur() {
+    setTimeout(() => {
+      const q = (this.categorySearchText || '').trim();
+      if (!q) {
+        this.newProduct.categoryId = null;
+        this.newProduct.categoryName = '';
+      } else if (this.newProduct.categoryId && this.categorySearchText !== this.newProduct.categoryName) {
+        const match = this.categories.find(c => c.name.toLowerCase() === q.toLowerCase());
+        if (match) {
+          this.selectCategory(match);
+        } else {
+          this.categorySearchText = this.newProduct.categoryName;
+        }
+      }
+      this.showCategoryDropdown = false;
+    }, 200);
   }
 
   onFileSelected(event: Event) {
@@ -127,6 +172,7 @@ export class AddProduitComponent implements OnInit {
   }
 
   handleFile(file: File) {
+    this.imageRemoved = false;
     // Validate file type
     if (!file.type.match(/image\/(jpeg|png)/)) {
       this.errors.image = 'Format de fichier non accepté. Utilisez JPG ou PNG.';
@@ -142,10 +188,11 @@ export class AddProduitComponent implements OnInit {
     this.selectedFile = file;
     this.errors.image = '';
 
-    // Generate preview
+    // Generate preview (FileReader est asynchrone - forcer la détection des changements)
     const reader = new FileReader();
     reader.onload = (e) => {
       this.imagePreview = e.target?.result as string;
+      this.cdr.detectChanges();
     };
     reader.readAsDataURL(file);
   }
@@ -154,6 +201,9 @@ export class AddProduitComponent implements OnInit {
     event.stopPropagation();
     this.selectedFile = null;
     this.imagePreview = null;
+    if (this.isEditMode) {
+      this.imageRemoved = true;
+    }
   }
 
   formatFileSize(bytes: number): string {
@@ -226,6 +276,9 @@ export class AddProduitComponent implements OnInit {
           formData.append('description', this.newProduct.description);
         }
         formData.append('minThreshold', '0');
+        if (this.imageRemoved) {
+          formData.append('removeImage', 'true');
+        }
       }
 
       if (this.selectedFile) {
@@ -236,10 +289,17 @@ export class AddProduitComponent implements OnInit {
         ? this.productService.updateProduct(this.editingProductId, formData)
         : this.productService.createProduct(formData);
 
+      this.saving = true;
       request$.subscribe({
-        next: () => this.showSuccessMessage(),
+        next: () => {
+          this.saving = false;
+          this.showSuccessMessage();
+        },
         error: (error) => {
+          this.saving = false;
           console.error('Erreur lors de la sauvegarde:', error);
+          const msg = typeof error?.error === 'string' ? error.error : (error?.message || 'Erreur lors de l\'enregistrement du produit.');
+          Swal.fire({ title: 'Erreur', text: msg, icon: 'error', confirmButtonText: 'OK' });
         }
       });
     }
@@ -250,7 +310,8 @@ export class AddProduitComponent implements OnInit {
       iconHtml: '<img src="/icones/message success.svg" style="width: 95px; height: 95px; margin: 0 auto;" />',
       title: this.isEditMode ? 'Produit modifié avec succès' : 'Produit ajouté avec succès',
       showConfirmButton: false,
-      timer: 800,
+      timer: 1800,
+      timerProgressBar: true,
       buttonsStyling: false,
       customClass: {
         popup: 'rounded-3xl p-6',
@@ -266,7 +327,7 @@ export class AddProduitComponent implements OnInit {
         popup: 'animate__animated animate__fadeOut animate__faster'
       }
     }).then(() => {
-      this.router.navigate(['/admin/catalogue']);
+      this.router.navigate(['/admin/catalogue'], { queryParams: { refresh: '1' } });
     });
   }
 
@@ -288,8 +349,10 @@ export class AddProduitComponent implements OnInit {
 
   private buildImageUrl(image: string): string {
     if (!image) return '';
+    if (image.startsWith('file://')) return ''; // chemin local → pas servable par l’API
     if (image.startsWith('http') || image.startsWith('/')) return image;
-    return `${environment.apiUrl}/files/${image}`;
+    const base = environment.imageServerUrl;
+    return `${base}/files/${image}`;
   }
 
   private loadCategories(): void {
@@ -298,6 +361,9 @@ export class AddProduitComponent implements OnInit {
         this.categories = Array.isArray(categories) ? categories : [];
         if (this.newProduct.categoryName && !this.newProduct.categoryId) {
           this.newProduct.categoryId = this.findCategoryIdByName(this.newProduct.categoryName);
+        }
+        if (this.newProduct.categoryName) {
+          this.categorySearchText = this.newProduct.categoryName;
         }
       },
       error: (error) => {

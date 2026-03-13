@@ -1,11 +1,20 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
-import { UserService } from '../../../shared/services/user.service';
+import { AdminService } from '../../../shared/services/admin.service';
 import Swal from 'sweetalert2';
+
+/** Libellé affiché → enum backend (POST/PUT /users). */
+const ROLE_LABEL_TO_ENUM: Record<string, string> = {
+    'Administrateur': 'ADMINISTRATOR',
+    'Commercial': 'COMMERCIAL',
+    'Livreur': 'DELIVERY_DRIVER',
+    'Salarié': 'EMPLOYEE',
+    'Responsable Logistique': 'LOGISTICS_MANAGER'
+};
 
 @Component({
     selector: 'app-add-user',
@@ -14,7 +23,7 @@ import Swal from 'sweetalert2';
     templateUrl: './add-user.component.html',
     styles: ``
 })
-export class AddUserComponent {
+export class AddUserComponent implements OnInit {
     newUser = {
         prenom: '',
         nom: '',
@@ -31,10 +40,47 @@ export class AddUserComponent {
         role: ''
     };
 
-    roles = ['Administrateur', 'Commercial', 'Livreur', 'Salarié'];
-    showRoleDropdown = false;
+    /** Fichier photo de profil sélectionné (création ou modification). */
+    profilePhotoFile: File | null = null;
+    /** URL de prévisualisation (object URL) pour la photo. */
+    profilePhotoPreview: string | null = null;
+    /** URL actuelle de la photo en mode édition (affichée si pas de nouvelle sélection). */
+    currentProfilePhotoUrl: string | null = null;
 
-    constructor(private router: Router, private userService: UserService) { }
+    roles = ['Administrateur', 'Commercial', 'Livreur', 'Salarié', 'Responsable Logistique'];
+    showRoleDropdown = false;
+    editId: number | null = null;
+    saving = false;
+
+    constructor(
+        private router: Router,
+        private route: ActivatedRoute,
+        private adminService: AdminService
+    ) { }
+
+    ngOnInit() {
+        const id = this.route.snapshot.paramMap.get('id');
+        if (id) {
+            this.editId = +id;
+            if (!isNaN(this.editId)) {
+                this.adminService.getUserById(this.editId).subscribe({
+                    next: (u) => {
+                        this.newUser = {
+                            prenom: u.firstName ?? '',
+                            nom: u.lastName ?? '',
+                            email: u.email ?? '',
+                            telephone: u.phoneNumber ?? '',
+                            role: u.roleLabel ?? ''
+                        };
+                        if (u.profilePhotoUrl) {
+                            this.currentProfilePhotoUrl = this.adminService.getProfilePhotoUrl(u.profilePhotoUrl);
+                        }
+                    },
+                    error: () => this.router.navigate(['/admin/users'])
+                });
+            }
+        }
+    }
 
     goBack() {
         this.router.navigate(['/admin/users']);
@@ -48,6 +94,29 @@ export class AddUserComponent {
         this.newUser.role = role;
         this.showRoleDropdown = false;
         this.errors.role = '';
+    }
+
+    onProfilePhotoChange(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        const file = input?.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            return;
+        }
+        if (this.profilePhotoPreview) {
+            URL.revokeObjectURL(this.profilePhotoPreview);
+        }
+        this.profilePhotoFile = file;
+        this.profilePhotoPreview = URL.createObjectURL(file);
+    }
+
+    clearProfilePhoto(input?: HTMLInputElement): void {
+        if (this.profilePhotoPreview) {
+            URL.revokeObjectURL(this.profilePhotoPreview);
+        }
+        this.profilePhotoFile = null;
+        this.profilePhotoPreview = null;
+        if (input) input.value = '';
     }
 
     validateForm(): boolean {
@@ -92,15 +161,68 @@ export class AddUserComponent {
     }
 
     enregistrer() {
-        if (this.validateForm()) {
-            this.userService.addUser(this.newUser);
-            this.showSuccessMessage();
+        if (!this.validateForm() || this.saving) return;
+        const roleEnum = ROLE_LABEL_TO_ENUM[this.newUser.role];
+        if (!roleEnum) {
+            this.errors.role = 'Rôle invalide';
+            return;
+        }
+        this.saving = true;
+        if (this.editId != null) {
+            this.adminService.updateUser(this.editId, {
+                firstName: this.newUser.prenom.trim(),
+                lastName: this.newUser.nom.trim(),
+                email: this.newUser.email.trim(),
+                phoneNumber: this.newUser.telephone.trim(),
+                role: this.newUser.role,
+                profilePhoto: this.profilePhotoFile ?? undefined
+            }).subscribe({
+                next: () => {
+                    this.saving = false;
+                    const msg = this.profilePhotoFile
+                        ? 'Utilisateur mis à jour avec succès. La photo de profil sera visible pour cet utilisateur après qu\'il ait rechargé sa page ou se soit reconnecté.'
+                        : 'Utilisateur mis à jour avec succès';
+                    this.showSuccessMessage(msg);
+                },
+                error: (err) => {
+                    this.saving = false;
+                    this.showApiError(err);
+                }
+            });
+        } else {
+            this.adminService.createUser({
+                firstName: this.newUser.prenom.trim(),
+                lastName: this.newUser.nom.trim(),
+                email: this.newUser.email.trim(),
+                phoneNumber: this.newUser.telephone.trim(),
+                role: roleEnum,
+                profilePhoto: this.profilePhotoFile ?? undefined
+            }).subscribe({
+                next: () => {
+                    this.saving = false;
+                    this.showSuccessMessage('Utilisateur créé avec succès. Un code d\'activation a été envoyé par email.');
+                },
+                error: (err) => {
+                    this.saving = false;
+                    this.showApiError(err);
+                }
+            });
         }
     }
 
-    showSuccessMessage() {
+    private showApiError(err: { error?: string; message?: string; status?: number }) {
+        const msg = typeof err.error === 'string' ? err.error : (err.message || 'Erreur lors de l\'enregistrement');
         Swal.fire({
-            title: 'Utilisateur ajouté avec succès',
+            title: 'Erreur',
+            text: msg,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+
+    showSuccessMessage(title: string) {
+        Swal.fire({
+            title,
             iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
             showConfirmButton: false,
             timer: 1500,

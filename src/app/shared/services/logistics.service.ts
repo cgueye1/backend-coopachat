@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -33,10 +33,12 @@ export class LogisticsService {
             id: number;
             orderNumber: string;
             employeeName: string;
-            validationDate: string;
+            orderDate?: string;
+            statusDate?: string;
             products: string[];
             deliveryFrequency: string | null;
             status: string;
+            failureReason?: string | null;
         }>;
         totalElements: number;
         totalPages: number;
@@ -59,10 +61,12 @@ export class LogisticsService {
                 id: number;
                 orderNumber: string;
                 employeeName: string;
-                validationDate: string;
+                orderDate?: string;
+                statusDate?: string;
                 products: string[];
                 deliveryFrequency: string | null;
                 status: string;
+                failureReason?: string | null;
             }>;
             totalElements: number;
             totalPages: number;
@@ -71,6 +75,35 @@ export class LogisticsService {
             hasNext: boolean;
             hasPrevious: boolean;
         }>(`${this.apiUrl}/logistics/employee-orders`, { params });
+    }
+
+    /** Replanifier une commande en échec (RL). Passe en EN_ATTENTE, notifie le salarié. */
+    replanOrder(orderId: number): Observable<string> {
+        return this.http.patch(`${this.apiUrl}/logistics/employee-orders/${orderId}/replan`, {}, { responseType: 'text' });
+    }
+
+    /** Annuler définitivement une commande après échec (RL). ANNULEE + réintégration stock, notifie le salarié. */
+    cancelOrderAfterFailure(orderId: number): Observable<string> {
+        return this.http.patch(`${this.apiUrl}/logistics/employee-orders/${orderId}/cancel-after-failure`, {}, { responseType: 'text' });
+    }
+
+    /**
+     * Statistiques pour la page Gestion des commandes : EN ATTENTE, EN RETARD, EN COURS, VALIDÉES, LIVRÉES ce mois.
+     */
+    getEmployeeOrderStats(): Observable<{ enAttente: number; enRetard: number; enCours: number; validees: number; livreesCeMois: number }> {
+        return this.http.get<{ enAttente: number; enRetard: number; enCours: number; validees: number; livreesCeMois: number }>(
+            `${this.apiUrl}/logistics/employee-orders/stats`
+        );
+    }
+
+    /**
+     * Détails d'une commande salarié (avec liste des produits : image, nom, catégorie, stock).
+     * GET /logistics/employee-order/{id}
+     * Accept: application/json pour éviter 406 Not Acceptable.
+     */
+    getEmployeeOrderDetails(orderId: number): Observable<EmployeeOrderDetails> {
+        const headers = new HttpHeaders({ 'Accept': 'application/json' });
+        return this.http.get<EmployeeOrderDetails>(`${this.apiUrl}/logistics/employee-order/${orderId}`, { headers });
     }
 
     // Statistiques des commandes fournisseurs
@@ -327,6 +360,262 @@ export class LogisticsService {
             { responseType: 'text' }
         ) as Observable<string>;
     }
+
+    /**
+     * Liste paginée des tournées de livraison (N° Tour | Date | Chauffeur | Véhicule | Nb Cmd | Statut | Actions).
+     * @param page 0-based
+     * @param size nombre par page
+     * @param tourNumber filtre optionnel par numéro de tour
+     * @param status ASSIGNEE | EN_COURS | TERMINEE | ANNULEE (optionnel)
+     */
+    getDeliveryTours(
+        page: number,//
+        size: number,//
+        tourNumber?: string,
+        status?: string
+    ): Observable<DeliveryTourListResponse> {
+        //on définit les paramètres de la requête
+        let params = new HttpParams()
+            .set('page', page.toString())
+            .set('size', size.toString());
+        if (tourNumber && tourNumber.trim()) {
+            params = params.set('tourNumber', tourNumber.trim());
+        }
+        if (status) {
+            params = params.set('status', status);
+        }
+        return this.http.get<DeliveryTourListResponse>(`${this.apiUrl}/logistics/delivery-tours`, { params });
+    }
+
+    /** Statistiques des tournées par statut (Assignées, En cours, Terminées, Annulées). */
+    getDeliveryTourStats(): Observable<DeliveryTourStats> {
+        return this.http.get<DeliveryTourStats>(`${this.apiUrl}/logistics/delivery-tours/stats`);
+    }
+
+    /** Détails d'une tournée (GET /logistics/delivery-tours/{tourId}). */
+    getDeliveryTourDetails(tourId: number): Observable<DeliveryTourDetails> {
+        return this.http.get<DeliveryTourDetails>(`${this.apiUrl}/logistics/delivery-tours/${tourId}`);
+    }
+
+    /** Mettre à jour une tournée (PUT /logistics/delivery-tours/{tourId}). vehicleInfo, notes, orderIds (commandes à garder). */
+    updateDeliveryTour(tourId: number, body: { vehicleInfo?: string; notes?: string | null; orderIds?: number[] }): Observable<string> {
+        return this.http.put(
+            `${this.apiUrl}/logistics/delivery-tours/${tourId}`,
+            body,
+            { responseType: 'text' }
+        ) as Observable<string>;
+    }
+
+    /** Retirer une commande d'une tournée (DELETE /logistics/delivery-tours/{tourId}/orders/{orderId}). */
+    removeOrderFromTour(tourId: number, orderId: number): Observable<string> {
+        return this.http.delete(
+            `${this.apiUrl}/logistics/delivery-tours/${tourId}/orders/${orderId}`,
+            { responseType: 'text' }
+        ) as Observable<string>;
+    }
+
+    /** Annuler une tournée (POST /logistics/delivery-tours/{tourId}/cancel). Motif obligatoire. */
+    cancelDeliveryTour(tourId: number, body: { reason: string }): Observable<string> {
+        return this.http.post(
+            `${this.apiUrl}/logistics/delivery-tours/${tourId}/cancel`,
+            body,
+            { responseType: 'text' }
+        ) as Observable<string>;
+    }
+
+    // ========== GESTION DES RETOURS (RÉCLAMATIONS) ==========
+
+    /** Statistiques des retours : total, validés, rejetés, réintégrés, montant remboursé. */
+    getClaimStats(): Observable<ClaimStats> {
+        return this.http.get<ClaimStats>(`${this.apiUrl}/logistics/claims/stats`);
+    }
+
+    /** Liste paginée des réclamations (retours). search = référence ou client, status = EN_ATTENTE | VALIDE | REJETE */
+    getClaims(
+        page: number,
+        size: number,
+        search?: string,
+        status?: string
+    ): Observable<ClaimListResponse> {
+        let params = new HttpParams()
+            .set('page', page.toString())
+            .set('size', size.toString());
+        if (search && search.trim()) {
+            params = params.set('search', search.trim());
+        }
+        if (status) {
+            params = params.set('status', status);
+        }
+        return this.http.get<ClaimListResponse>(`${this.apiUrl}/logistics/claims`, { params });
+    }
+
+    /** Détails d'une réclamation (retour). */
+    getClaimById(id: number): Observable<ClaimDetail> {
+        return this.http.get<ClaimDetail>(`${this.apiUrl}/logistics/claims/${id}`);
+    }
+
+    /** Valider une réclamation : réintégration au stock ou remboursement. */
+    validateClaim(id: number, payload: ValidateClaimPayload): Observable<string> {
+        return this.http.post(
+            `${this.apiUrl}/logistics/claims/${id}/validate`,
+            payload,
+            { responseType: 'text' }
+        ) as Observable<string>;
+    }
+
+    /** Rejeter une réclamation (motif obligatoire). */
+    rejectClaim(id: number, payload: RejectClaimPayload): Observable<string> {
+        return this.http.post(
+            `${this.apiUrl}/logistics/claims/${id}/reject`,
+            payload,
+            { responseType: 'text' }
+        ) as Observable<string>;
+    }
+
+    // ----------- Tableau de bord RL -----------
+
+    /** KPIs : commandes en attente, en retard, tournées actives, livrées ce mois. */
+    getDashboardKpis(): Observable<RLDashboardKpis> {
+        return this.http.get<RLDashboardKpis>(`${this.apiUrl}/logistics/dashboard/kpis`);
+    }
+
+    /** Graphique Statut tournées : { ASSIGNEE: n, EN_COURS: n, TERMINEE: n, ANNULEE: n }. */
+    getStatutTournees(): Observable<StatutTournees> {
+        return this.http.get<StatutTournees>(`${this.apiUrl}/logistics/dashboard/statut-tournees`);
+    }
+
+    /** Graphique Commandes par jour (7 derniers jours) : date (dd/MM), nbCommandes. */
+    getCommandesParJour(): Observable<CommandesParJourItem[]> {
+        return this.http.get<CommandesParJourItem[]>(`${this.apiUrl}/logistics/dashboard/commandes-par-jour`);
+    }
+
+    /** Graphique Taux de retours (%) : 7 derniers jours, date (dd/MM) et tauxPercent (réclamations/commandes × 100). */
+    getTauxRetoursParJour(): Observable<TauxRetoursParJourItem[]> {
+        return this.http.get<TauxRetoursParJourItem[]>(`${this.apiUrl}/logistics/dashboard/taux-retours-par-jour`);
+    }
+
+    /** Top 5 produits les plus commandés (en % d'utilisation) pour le graphique « Produits les plus fréquents » (Gestion des commandes). */
+    getTop5ProductsUsage(): Observable<{ productName: string; usagePercent: number }[]> {
+        return this.http.get<{ productName: string; usagePercent: number }[]>(`${this.apiUrl}/logistics/dashboard/top5-products-usage`);
+    }
+
+    /** Graphique Livraisons par jour (7 derniers jours) : date, nbLivrees, nbAssignes, nbEnAttente. */
+    getLivraisonsParJour(): Observable<LivraisonParJourItem[]> {
+        return this.http.get<LivraisonParJourItem[]>(`${this.apiUrl}/logistics/dashboard/livraisons-par-jour`);
+    }
+
+    /** Graphique Commandes vs Livraisons (7 derniers jours) : date (dd/MM), commandesEnAttente, livraisons — sans montant. */
+    getCommandesVsLivraisons(): Observable<CommandesVsLivraisonsDayDTO[]> {
+        return this.http.get<CommandesVsLivraisonsDayDTO[]>(`${this.apiUrl}/logistics/dashboard/commandes-vs-livraisons`);
+    }
+
+    /** Donut Stocks - État global : effectifs normal, sousSeuil, critique (GET /logistics/dashboard/stock-etat-global). */
+    getStockEtatGlobal(): Observable<StockEtatGlobalDTO> {
+        return this.http.get<StockEtatGlobalDTO>(`${this.apiUrl}/logistics/dashboard/stock-etat-global`);
+    }
+}
+
+export interface RLDashboardKpis {
+    commandesEnAttente: number;
+    commandesEnRetard: number;
+    tourneesActives: number;
+    livreesCeMois: number;
+}
+
+export interface StatutTournees {
+    parStatut: Record<string, number>;
+}
+
+export interface CommandesParJourItem {
+    date: string;
+    nbCommandes: number;
+}
+
+export interface TauxRetoursParJourItem {
+    date: string;
+    tauxPercent: number;
+}
+
+export interface LivraisonParJourItem {
+    date: string;
+    nbLivrees: number;
+    nbAssignes: number;
+    nbEnAttente: number;
+}
+
+export interface StockEtatGlobalDTO {
+    normal: number;
+    sousSeuil: number;
+    critique: number;
+}
+
+export interface CommandesVsLivraisonsDayDTO {
+    date: string;
+    commandesEnAttente: number;
+    livraisons: number;
+}
+
+// --- Types pour les retours (claims) ---
+export interface ClaimStats {
+    total: number;
+    validatedCount: number;
+    rejectedCount: number;
+    reintegratedCount: number;
+    totalRefundAmount: number;
+}
+
+export interface ClaimListItem {
+    claimId: number;
+    orderNumber: string;
+    employeeName: string;
+    productName: string;
+    productImage: string | null;
+    quantity: number;
+    problemTypeLabel: string;
+    status: string;
+    createdAt: string;
+    decisionLabel: string | null;
+    refundAmount: number | null;
+}
+
+export interface ClaimListResponse {
+    content: ClaimListItem[];
+    totalElements: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+}
+
+export interface ClaimDetail {
+    claimId: number;
+    orderNumber: string;
+    status: string;
+    createdAt: string;
+    employeeName: string;
+    employeePhone: string | null;
+    productId: number;
+    productName: string;
+    productImage: string | null;
+    quantityOrdered: number;
+    subtotalProduct: number;
+    problemTypeLabel: string;
+    comment: string | null;
+    photoUrls: string[];
+    decisionTypeLabel: string | null;
+    refundAmount: number | null;
+    rejectionReason: string | null;
+}
+
+export interface ValidateClaimPayload {
+    decisionType: 'REINTEGRATION' | 'REMBOURSEMENT';
+    quantityToReintegrate?: number;
+    refundAmount?: number;
+}
+
+export interface RejectClaimPayload {
+    rejectionReason: string;
 }
 
 export interface EligibleOrder {
@@ -334,6 +623,18 @@ export interface EligibleOrder {
     orderNumber: string;
     customerName: string;
     formattedAddress: string;
+    /** Jours préférés (ex: ["LUNDI", "MARDI"]) — informatif pour le RL */
+    preferredDays?: string[] | null;
+    /** Créneau préféré (ex: "Matin (8h-12h)") */
+    preferredTimeSlot?: string | null;
+    /** Mode livraison (ex: "Domicile", "Bureau") */
+    preferredDeliveryMode?: string | null;
+    /** true si la tournée correspond aux préférences */
+    matchesPreferences?: boolean | null;
+    /** false si le salarié n'a pas renseigné de préférences */
+    hasPreferences?: boolean | null;
+    /** Nombre de jours de retard (date de livraison prévue dépassée). null si pas en retard. */
+    daysOverdue?: number | null;
 }
 
 export interface EligibleOrderLot {
@@ -355,5 +656,73 @@ export interface CreateDeliveryTourPayload {
     vehicleType: string;
     orderIds: number[];
     notes?: string;
+}
+
+/** Un élément de la liste des tournées (aligné sur le backend DeliveryTourListDTO). */
+export interface DeliveryTourListItem {
+    id: number;
+    tourNumber: string;
+    deliveryDate: string;
+    driverName: string;
+    vehicle: string;
+    orderCount: number;
+    status: string;  // ASSIGNEE | EN_COURS | TERMINEE | ANNULEE
+}
+
+/** Une commande dans la liste des commandes d'une tournée. */
+export interface OrderInTour {
+    orderId: number;
+    orderNumber: string;
+    employeeName: string;
+    deliveryAddress: string;
+}
+
+/** Détails d'une tournée (GET /logistics/delivery-tours/{tourId}). */
+export interface DeliveryTourDetails {
+    id: number;
+    tourNumber?: string;
+    deliveryDate?: string;
+    driverName?: string;
+    vehicle?: string;
+    vehicleType?: string;
+    vehiclePlate?: string;
+    orderCount?: number;
+    status?: string;
+    orders?: OrderInTour[];
+    /** Note / commentaire (affiché en modification si présent). */
+    notes?: string;
+}
+
+/** Réponse GET /api/logistics/employee-order/{id} (détails commande + produits avec image) */
+export interface EmployeeOrderDetails {
+    orderNumber: string;
+    validationDate: string;
+    employeeName: string;
+    status: string;
+    listProducts: Array<{
+        image: string;
+        name: string;
+        categoryName: string;
+        currentStock: number;
+    }>;
+}
+
+/** Réponse GET /api/logistics/delivery-tours/stats */
+export interface DeliveryTourStats {
+    assignedTours: number;
+    inProgressTours: number;
+    completedTours: number;
+    cancelledTours: number;
+}
+
+/** Réponse paginée GET /api/logistics/delivery-tours */
+export interface DeliveryTourListResponse {
+    content: DeliveryTourListItem[];
+    totalElements: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
 }
 

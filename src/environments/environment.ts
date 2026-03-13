@@ -1,9 +1,8 @@
 export const environment = {
-  production: false,
-  apiUrl: 'http://localhost:8082/api',
-  googleClientId: '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'
-
-} ;
+  production: false, 
+  apiUrl: 'http://86.106.181.31:8083/api',// URL de l'API backend
+  imageServerUrl: 'http://86.106.181.31:8083/api',// URL du serveur d'images 
+};
 
 
 

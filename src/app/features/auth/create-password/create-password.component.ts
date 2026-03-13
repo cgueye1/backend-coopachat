@@ -5,6 +5,15 @@ import { Router } from '@angular/router';
 import { AuthLayoutComponent } from '../auth-layout/auth-layout.component';
 import Swal from 'sweetalert2';
 
+// ============================================================
+// CE QUE FAIT CE FICHIER
+// ============================================================
+// Page "Créer un mot de passe" affichée après la vérification OTP
+// (flux inscription Commercial / Logistique).
+// L'utilisateur définit son mot de passe (min 8 caractères, 1 majuscule),
+// confirme, puis est redirigé vers la page de connexion.
+// ============================================================
+
 @Component({
   selector: 'app-create-password',
   standalone: true,
@@ -12,10 +21,20 @@ import Swal from 'sweetalert2';
   templateUrl: './create-password.component.html'
 })
 export class CreatePasswordComponent {
+
+  // ============================================================
+  // LES VARIABLES DE CE COMPOSANT
+  // ============================================================
+
   passwordForm: FormGroup;
+
+  // true = afficher le mot de passe en clair, false = masquer
   showPassword = false;
   showConfirmPassword = false;
 
+  // ============================================================
+  // CONSTRUCTEUR
+  // ============================================================
   constructor(private fb: FormBuilder, private router: Router) {
     this.passwordForm = this.fb.group({
       newPassword: ['', [Validators.required, Validators.minLength(8), this.passwordValidator]],
@@ -38,7 +57,7 @@ export class CreatePasswordComponent {
     return !passwordValid ? { passwordInvalid: true } : null;
   }
 
-  // Validator to check if passwords match
+  // Vérifie que newPassword et confirmPassword sont identiques
   passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
     const password = control.get('newPassword');
     const confirmPassword = control.get('confirmPassword');
@@ -50,6 +69,10 @@ export class CreatePasswordComponent {
     return password.value !== confirmPassword.value ? { passwordMismatch: true } : null;
   }
 
+  // ============================================================
+  // PROPRIÉTÉS CALCULÉES (pour l'affichage des critères)
+  // ============================================================
+
   get hasMinLength(): boolean {
     const password = this.passwordForm.get('newPassword')?.value || '';
     return password.length >= 8;
@@ -60,6 +83,10 @@ export class CreatePasswordComponent {
     return /[A-Z]/.test(password);
   }
 
+  // ============================================================
+  // BASKULE AFFICHAGE MOT DE PASSE
+  // ============================================================
+
   togglePassword(): void {
     this.showPassword = !this.showPassword;
   }
@@ -68,20 +95,27 @@ export class CreatePasswordComponent {
     this.showConfirmPassword = !this.showConfirmPassword;
   }
 
+  // ============================================================
+  // SOUMISSION DU FORMULAIRE
+  // ============================================================
+  // Si valide → popup de succès puis redirection login
+  // Si invalide → marque les champs touchés pour afficher les erreurs
   onSubmit(): void {
     if (this.passwordForm.valid) {
       console.log('Password created successfully:', this.passwordForm.value);
-      // Ici vous pouvez ajouter la logique pour sauvegarder le mot de passe
       this.showSuccessMessage();
     } else {
       console.log('Form is invalid');
-      // Marquer tous les champs comme touchés pour afficher les erreurs
       Object.keys(this.passwordForm.controls).forEach(key => {
         this.passwordForm.get(key)?.markAsTouched();
       });
     }
   }
 
+  // ============================================================
+  // POPUP DE SUCCÈS
+  // ============================================================
+  // Affiche un message de confirmation puis redirige vers la connexion
   showSuccessMessage(): void {
     Swal.fire({
       title: 'Mot de passe défini',
@@ -111,6 +145,9 @@ export class CreatePasswordComponent {
     });
   }
 
+  // ============================================================
+  // RETOUR À LA CONNEXION
+  // ============================================================
   goBackToLogin(): void {
     this.router.navigate(['/login']);
   }

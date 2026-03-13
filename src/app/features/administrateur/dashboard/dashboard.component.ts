@@ -1,8 +1,9 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, PLATFORM_ID, Inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { Router } from '@angular/router';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
-import { AdminService } from '../../../shared/services/admin.service';
+import { AdminService, AlertItemDTO, CommandesVsLivraisonsDayDTO, LivraisonParJourDTO, StockEtatGlobalDTO, UserStatsByRoleItemDTO } from '../../../shared/services/admin.service';
 
 
  
@@ -20,11 +21,11 @@ interface PaymentStatusSlice {
 }
 
 
+/**Interface pour les données du tableau commande/Livraison  */
 interface CommandRevenuePoint {
   date: string;
   commandes: number;
   livraisons: number;
-  montantEncaisse: number;
 }
 
 interface LivraisonStackPoint {
@@ -59,9 +60,6 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
   @ViewChild('couponsChart') couponsChartRef!: ElementRef<HTMLCanvasElement>;
 
   role: 'admin' = 'admin';
-
-  /** Période envoyée à l'API dashboard (TODAY = aujourd'hui, THIS_MONTH = mois en cours). */
-  periode: 'TODAY' | 'THIS_MONTH' = 'THIS_MONTH';
 
   /**
    * Données des 3 cartes KPI en haut de page.
@@ -98,49 +96,28 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
 
 
   /** Données du graphique "Commandes vs Livraisons" (données statiques pour l’instant). */
-  commandesChiffreData: CommandRevenuePoint[] = [
-    { date: '06/09', commandes: 7, livraisons: 7, montantEncaisse: 8800000 },
-    { date: '07/09', commandes: 7, livraisons: 7, montantEncaisse: 9600000 },
-    { date: '08/09', commandes: 6, livraisons: 5, montantEncaisse: 6200000 },
-    { date: '09/09', commandes: 6, livraisons: 6, montantEncaisse: 7200000 },
-    { date: '10/09', commandes: 7, livraisons: 6, montantEncaisse: 8400000 },
-    { date: '11/09', commandes: 7, livraisons: 6, montantEncaisse: 9600000 },
-    { date: '12/09', commandes: 7, livraisons: 6, montantEncaisse: 8000000 }
-  ];
+  // [API] Commandes vs Livraisons : rempli par loadCommandesVsLivraisons()
+  commandesChiffreData: CommandRevenuePoint[] = [];
 
- 
-  /** Données du graphique empilé "Livraisons" (statiques). */
-  livraisonsData: LivraisonStackPoint[] = [
-    { date: '06/09', livres: 82, planifies: 15, retard: 3 },
-    { date: '07/09', livres: 78, planifies: 18, retard: 4 },
-    { date: '08/09', livres: 74, planifies: 20, retard: 6 },
-    { date: '09/09', livres: 80, planifies: 16, retard: 4 },
-    { date: '10/09', livres: 85, planifies: 12, retard: 3 }
-  ];
+  /** Données du graphique empilé "Livraisons" (remplies par loadLivraisonsParJour — GET /admin/dashboard/livraisons-par-jour). */
+  livraisonsData: LivraisonStackPoint[] = [];
 
-  /** Données du graphique "Utilisateurs par rôle" (statiques). */
-  rolesData: RoleStat[] = [
-    { role: 'Salariés', total: 40 },
-    { role: 'Commerciaux', total: 16 },
-    { role: 'Livreurs', total: 7 },
-    { role: 'Responsable logistique', total: 13 }
-  ];
+  // [API] Utilisateurs par rôle : rempli par loadUsersStatsByRole() (GET /admin/users/stats/by-role)
+  /** Données du graphique "Utilisateurs par rôle". role = libellé (ex. Salariés), total = effectif. */
+  rolesData: RoleStat[] = [];
 
-  /** Données du donut "Stocks - État global" (statiques). */
-  stockCategoryData = [
-    { category: 'Ok', value: 75 },
-    { category: 'Sous seuil', value: 15 },
-    { category: 'Critique', value: 10 }
-  ];
+  // [API] Stocks - État global : rempli par loadStockEtatGlobal() (GET /admin/dashboard/stocks-etat-global)
+  /**
+   * Donut "Stocks - État global" : chaque élément a category (ex. "Normal") et value (nombre).
+   * Type : tableau d’objets { category: string; value: number }  |  [] = tableau vide au départ.
+   */
+  stockCategoryData: { category: string; value: number }[] = [];
 
-  /** Données du graphique "Tendance des coupons utilisés" (statiques). */
-  couponsTrendData: CouponTrendPoint[] = [
-    { date: '06/09', value: 14 },
-    { date: '07/09', value: 8 },
-    { date: '08/09', value: 14 },
-    { date: '09/09', value: 6 },
-    { date: '10/09', value: 15 }
-  ];
+  /** Données du graphique "Tendance des coupons utilisés" (remplies par l’API GET /admin/dashboard/coupons-utilises-par-jour). */
+  couponsTrendData: CouponTrendPoint[] = [];
+
+  /** Alertes du tableau de bord (livraisons en retard, stocks critiques). Rempli par loadAlerts() — GET /admin/alerts. */
+  alertsData: AlertItemDTO[] = [];
 
   /** Références aux instances Chart.js (pour mise à jour du graphique paiements après l’API). */
   private commandesChart?: any;
@@ -150,20 +127,160 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
   private stocksEtatChart?: any;
   private couponsChart?: any;
 
-  //Constructeur
-  constructor(private adminService: AdminService) {}
+  constructor(
+    private adminService: AdminService,
+    private router: Router,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {}
 
-  //Au démarrage du composant 
   ngOnInit(): void {
-    this.loadDashboardStats();//On charge les données du dashboard
+    this.loadDashboardStats();
+    this.loadCommandesVsLivraisons();
+    this.loadLivraisonsParJour();
+    this.loadUsersStatsByRole();
+    this.loadStockEtatGlobal();
+    this.loadCouponsUtilisesParJour();
+    this.loadAlerts();
+  }
+
+  /** Appelle GET /admin/alerts et affiche les alertes (clic = redirection vers le module STOCKS ou LIVRAISONS). */
+  loadAlerts(): void {
+    this.adminService.getAlerts().subscribe({
+      next: (res) => {
+        this.alertsData = res.alerts || [];
+      },
+      error: (err) => console.error('Erreur chargement alertes:', err)
+    });
+  }
+
+  /** Redirection au clic sur une alerte : STOCKS → /log/stocks, LIVRAISONS → /log/commandes. */
+  goToModule(module: string): void {
+    if (module === 'STOCKS') {
+      this.router.navigate(['/log/stocks']);
+    } else if (module === 'LIVRAISONS') {
+      this.router.navigate(['/log/commandes']);
+    }
+  }
+
+  /**
+   * Appelle l’API GET /admin/dashboard/commandes-vs-livraisons et met à jour le graphique "Commandes vs Livraisons".
+   * Les 7 derniers jours : commandes en attente (EN_ATTENTE) et livraisons (LIVREE) par jour.
+   */
+  loadCommandesVsLivraisons(): void {
+    // Appel API → mapping date, commandesEnAttente, livraisons → commandesChiffreData
+    this.adminService.getCommandesVsLivraisons().subscribe({
+      //si succès on mappe les données de la réponse dans le graphique
+      // Quand l’API répond avec succès, "list" = tableau des 7 derniers jours
+  next: (list: CommandesVsLivraisonsDayDTO[]) => {
+        // On transforme chaque jour "d" du format API vers le format attendu par le graphique
+        this.commandesChiffreData = list.map(d => ({
+          date: d.date,                           // ex. "05/02"
+          commandes: d.commandesEnAttente,        // nombre de commandes en attente ce jour
+          livraisons: d.livraisons,               // nombre de livraisons ce jour
+          montantEncaisse: 0                      // pas fourni par l’API, on met 0
+        }));
+        // Si le graphique existe déjà (Chart.js chargé),on le remplit avec les nouvelles données
+        if (this.commandesChart) {
+         
+          this.commandesChart.data.labels = this.commandesChiffreData.map(p => p.date);           // labels axe X : "05/02", "06/02", ...
+          this.commandesChart.data.datasets[0].data = this.commandesChiffreData.map(p => p.commandes);   // 1re série = commandes en attente
+          this.commandesChart.data.datasets[1].data = this.commandesChiffreData.map(p => p.livraisons);   // 2e série = livraisons
+          this.commandesChart.update();
+        }
+      },
+      error: (err) => console.error('Erreur chargement commandes vs livraisons:', err)
+    });
+  }
+
+  /**
+   * Appelle GET /admin/dashboard/livraisons-par-jour et remplit le graphique « Livraisons » (Livrés, Planifiés, Retard).
+   */
+  loadLivraisonsParJour(): void {
+    this.adminService.getLivraisonsParJour().subscribe({
+      next: (list: LivraisonParJourDTO[]) => {
+        this.livraisonsData = list.map(d => ({
+          date: d.date,
+          livres: d.nbLivrees,
+          planifies: d.nbAssignes,
+          retard: d.nbEnAttente
+        }));
+        if (this.livraisonsChart) {
+          this.livraisonsChart.data.labels = this.livraisonsData.map(p => p.date);
+          this.livraisonsChart.data.datasets[0].data = this.livraisonsData.map(p => p.livres);
+          this.livraisonsChart.data.datasets[1].data = this.livraisonsData.map(p => p.planifies);
+          this.livraisonsChart.data.datasets[2].data = this.livraisonsData.map(p => p.retard);
+          this.livraisonsChart.update();
+        }
+      },
+      error: (err) => console.error('Erreur chargement livraisons par jour:', err)
+    });
+  }
+
+  // [API] GET /admin/users/stats/by-role → effectifs par rôle (Salariés, Commerciaux, etc.)
+  /** Remplit rolesData puis met à jour le graphique "Utilisateurs par rôle" s’il est déjà créé. */
+  loadUsersStatsByRole(): void {
+    this.adminService.getUsersStatsByRole().subscribe({
+      next: (list: UserStatsByRoleItemDTO[]) => {
+        // r = un rôle dans la liste API. On passe au format graphique : roleLabel → role, count → total
+        this.rolesData = list.map(r => ({
+          role: r.roleLabel,
+          total: r.count
+        }));
+        // Si le graphique est déjà créé, on met à jour les labels (noms des rôles) et les barres (effectifs)
+        if (this.rolesChart) {
+          this.rolesChart.data.labels = this.rolesData.map(p => p.role);//on met à jour les labels du graphique pour chaque rôle on prend le libellé du rôle
+          this.rolesChart.data.datasets[0].data = this.rolesData.map(p => p.total);//on met à jour les données du graphique pour chaque rôle on prend le nombre d’utilisateurs pour ce rôle
+          this.rolesChart.update();
+        }
+      },
+      error: (err) => console.error('Erreur chargement utilisateurs par rôle:', err)
+    });
+  }
+
+  // [API] GET /admin/dashboard/stocks-etat-global → Normal, Sous seuil, Critique
+  /** Remplit stockCategoryData puis met à jour le donut "Stocks - État global" s’il est déjà créé. */
+  loadStockEtatGlobal(): void {
+    this.adminService.getStockEtatGlobal().subscribe({
+      next: (data: StockEtatGlobalDTO) => {
+        // Passage du format API (normal, sousSeuil, critique) vers le format donut (category, value)
+        this.stockCategoryData = [
+          { category: 'Normal', value: data.normal },
+          { category: 'Sous seuil', value: data.sousSeuil },
+          { category: 'Critique', value: data.critique }
+        ];
+        // Si le graphique est déjà créé, on met à jour les labels (catégories) et les données (effectifs)
+        if (this.stocksEtatChart) {
+          this.stocksEtatChart.data.labels = this.stockCategoryData.map(d => d.category);//on met à jour les labels du graphique pour chaque catégorie on prend le nom de la catégorie
+          this.stocksEtatChart.data.datasets[0].data = this.stockCategoryData.map(d => d.value);//on met à jour les données du graphique pour chaque catégorie on prend le nombre de stocks pour cette catégorie
+          this.stocksEtatChart.update();
+        }
+      },
+      error: (err) => console.error('Erreur chargement stocks état global:', err)
+    });
+  }
+
+  /**
+   * Appelle l’API GET /admin/dashboard/coupons-utilises-par-jour et met à jour le graphique "Tendance des coupons utilisés".
+   */
+  loadCouponsUtilisesParJour(): void {
+    this.adminService.getCouponsUtilisesParJour().subscribe({
+      next: (list) => {
+        this.couponsTrendData = list.map(d => ({ date: d.date, value: d.nbUtilisations }));
+        if (this.couponsChart) {
+          this.couponsChart.data.labels = this.couponsTrendData.map(p => p.date);
+          this.couponsChart.data.datasets[0].data = this.couponsTrendData.map(p => p.value);
+          this.couponsChart.update();
+        }
+      },
+      error: (err) => console.error('Erreur chargement coupons par jour:', err)
+    });
   }
 
   /**
    * Appelle l'API GET /admin/dashboard/stats et met à jour les 3 KPIs + le graphique "Paiements par statut".
    */
   loadDashboardStats(): void {
-    //on appelle le service et on le passe la période 
-    this.adminService.getDashboardStats(this.periode).subscribe({
+    this.adminService.getDashboardStats().subscribe({
       next: (data) => {
         // 1) Mettre à jour les 3 cartes KPI
         this.metricsData[0].value = String(data.commandesEnAttente);
@@ -199,6 +316,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
     // Le léger délai garantit que les templates sont rendus avant d’initialiser Chart.js
     setTimeout(() => {
       this.loadChartJs();
@@ -220,7 +338,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // --- Commandes & chiffre d'affaires ---
+  // --- Graphique Commandes vs Livraisons (données = commandesChiffreData, rempli par l’API) ---
   initCommandesChart(Chart: any): void {
     const ctx = this.commandesChartRef?.nativeElement?.getContext('2d');
     if (!ctx) {
@@ -233,7 +351,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
         labels: this.commandesChiffreData.map(point => point.date),
         datasets: [
           {
-            label: 'Commandes fournisseurs',
+            label: 'Commandes en attente',  // correspond à commandesEnAttente (API)
             data: this.commandesChiffreData.map(point => point.commandes),
             backgroundColor: '#E0E7FF',
             hoverBackgroundColor: '#C7D2FE',
@@ -446,7 +564,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
     });
   }
 
-  // --- Histogramme utilisateurs par rôle ---
+  // --- Graphique Utilisateurs par rôle (données = rolesData, rempli par l’API GET users/stats/by-role) ---
   initRolesChart(Chart: any): void {
     const ctx = this.rolesChartRef?.nativeElement?.getContext('2d');
     if (!ctx) {
@@ -487,6 +605,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
           y: {
             beginAtZero: true,
             grid: { display: false },
+            // Pas de max fixe : si tu as 25, 50, 100 salariés, l’axe Y s’adapte tout seul en mettant taille à 10
             ticks: { color: '#6B7280', font: { size: 12 }, stepSize: 10 }
           }
         }
@@ -494,7 +613,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
     });
   }
 
-  // --- Donut stocks global (copie du composant logistique) ---
+  // --- Donut Stocks - État global (données = stockCategoryData, rempli par l’API GET stocks-etat-global) ---
   initStocksEtatChart(Chart: any): void {
     const ctx = this.stocksEtatChartRef?.nativeElement?.getContext('2d');
     if (!ctx) {

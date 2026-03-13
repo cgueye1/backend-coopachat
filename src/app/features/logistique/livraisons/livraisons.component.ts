@@ -1,34 +1,16 @@
-import { Component, HostListener } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
-import { LogisticsService, EligibleOrder, EligibleOrderLot, AvailableDriver } from '../../../shared/services/logistics.service';
+import { LogisticsService, EligibleOrder, EligibleOrderLot, AvailableDriver, DeliveryTourListItem, DeliveryTourDetails } from '../../../shared/services/logistics.service';
+import { PAGE_SIZE_OPTIONS } from '../../../shared/constants/pagination';
 import Swal from 'sweetalert2';
 
+// MODIF: interfaces conservées pour les métriques (pourraient venir de l'API plus tard)
 interface Metric {
   title: string;
   value: string;
   icon: string;
-
-}
-
-interface Livraison {
-  id: string;
-  client: {
-    name: string;
-    id: string;
-    initials: string;
-    color: string;
-  };
-  transporteur: string;
-  commande: string;
-  fournisseur: string;
-  chauffeur: {
-    name: string;
-    vehicle: string;
-  } | null;
-  date: string;
-  statut: 'Planifié' | 'Confirmé' | 'Annulé' | 'À confirmer' | 'Livrée';
 }
 
 
@@ -39,178 +21,172 @@ interface Livraison {
   templateUrl: './livraisons.component.html',
   styles: []
 })
-export class LivraisonsComponent {
+export class LivraisonsComponent implements OnInit {
   constructor(private logistics: LogisticsService) {}
+
+  ngOnInit(): void {
+    this.loadDeliveryTours();
+    this.loadDeliveryTourStats();
+  }
+
+  // MODIF: recherche par N° tour (envoyée à l'API)
   searchText: string = '';
-  currentPage: number = 1;
-  totalPages: number = 6;
+  // MODIF: pagination côté API (currentPage 0-based pour l'API)
+  currentPage: number = 0;
+  totalPages: number = 0;
+  totalElements: number = 0;
+  pageSize: number = 10;
+  pageSizeOptions = PAGE_SIZE_OPTIONS;
 
+  // MODIF: liste chargée depuis l'API (plus de données statiques)
+  deliveryTours: DeliveryTourListItem[] = [];
+  loadingTours = false;
+
+  /** Cartes statistiques (remplies par l'API GET /logistics/delivery-tours/stats) */
   metricsData: Metric[] = [
-    { title: 'Planifiées', value: '06', icon: 'box-blue' },
-    { title: 'À confirmer', value: '05', icon: 'warning-yellow', },
-    { title: 'Confirmées', value: '05', icon: 'check-blue' },
-    { title: 'Livrées', value: '05', icon: 'check-green' },
-    { title: 'Annulées', value: '01', icon: 'box-red' }
+    { title: 'Assignées', value: '0', icon: 'box-blue' },
+    { title: 'En cours', value: '0', icon: 'warning-yellow' },
+    { title: 'Terminées', value: '0', icon: 'check-green' },
+    { title: 'Annulées', value: '0', icon: 'box-red' }
   ];
+  loadingStats = false;
 
-  livraisons: Livraison[] = [
-    {
-      id: '1',
-      client: { name: 'Aminata Ndiaye', id: 'US-2025-05', initials: 'AN', color: 'bg-gray-100 text-gray-600' },
-      transporteur: 'DHL',
-      commande: 'Salarié',
-      fournisseur: 'Sahel Agro',
-      chauffeur: { name: 'I. Diallo', vehicle: 'Sprinter-1' },
-      date: '05/10/2025',
-      statut: 'Planifié'
-    },
-    {
-      id: '2',
-      client: { name: 'Moussa Sarr', id: 'US-2025-04', initials: 'MS', color: 'bg-gray-100 text-gray-600' },
-      transporteur: 'Chrono SN',
-      commande: 'Commercial',
-      fournisseur: 'Nordik Import',
-      chauffeur: { name: 'A. Faye', vehicle: 'Kia-Box' },
-      date: '05/10/2025',
-      statut: 'Confirmé'
-    },
-    {
-      id: '3',
-      client: { name: 'Fatou Diop', id: 'US-2025-03', initials: 'FD', color: 'bg-gray-100 text-gray-600' },
-      transporteur: 'Chrono SN',
-      commande: 'Livreur',
-      fournisseur: 'Nordik Import',
-      chauffeur: { name: 'S. Sow', vehicle: 'Sprinter-0' },
-      date: '05/10/2025',
-      statut: 'Planifié'
-    },
-    {
-      id: '4',
-      client: { name: 'Ibrahima Ba', id: 'US-2025-02', initials: 'IB', color: 'bg-gray-100 text-gray-600' },
-      transporteur: 'Colis SN',
-      commande: 'Salarié',
-      fournisseur: 'Sénégalaise Fourn.',
-      chauffeur: { name: 'M. Ndiaye', vehicle: 'Dacia D' },
-      date: '05/10/2025',
-      statut: 'Annulé'
-    },
-    {
-      id: '5',
-      client: { name: 'Lamine Sy', id: 'US-2025-01', initials: 'LS', color: 'bg-gray-100 text-gray-600' },
-      transporteur: 'DHL',
-      commande: 'Administrateur',
-      fournisseur: 'Sénégalaise Fourn.',
-      chauffeur: null,
-      date: '05/10/2025',
-      statut: 'À confirmer'
-    }
-  ];
-
-  selectedFournisseur = 'Tous les fournisseurs';
-  selectedTransporteur = 'Tous les transporteurs';
+  // Filtres : uniquement Statut et N° tour (alignés sur l'API)
   selectedStatus = 'Tous les statuts';
-  showFournisseurDropdown = false;
-  showTransporteurDropdown = false;
   showStatusDropdown = false;
+  /** Valeurs pour le filtre statut (backend: ASSIGNEE, EN_COURS, TERMINEE, ANNULEE) */
+  statusFilterOptions = [
+    { label: 'Tous les statuts', value: '' },
+    { label: 'Assignée', value: 'ASSIGNEE' },
+    { label: 'En cours', value: 'EN_COURS' },
+    { label: 'Terminée', value: 'TERMINEE' },
+    { label: 'Annulée', value: 'ANNULEE' }
+  ];
 
-  get uniqueFournisseurs(): string[] {
-    const fournisseurs = new Set(this.livraisons.map(l => l.fournisseur));
-    return ['Tous les fournisseurs', ...Array.from(fournisseurs)];
-  }
-
-  get uniqueTransporteurs(): string[] {
-    const transporteurs = new Set(this.livraisons.map(l => l.transporteur));
-    return ['Tous les transporteurs', ...Array.from(transporteurs)];
-  }
-
-  get uniqueStatuses(): string[] {
-    const statuses = new Set(this.livraisons.map(l => l.statut));
-    return ['Tous les statuts', ...Array.from(statuses)];
-  }
-
-  get filteredLivraisons(): Livraison[] {
-    return this.livraisons.filter(l => {
-      const matchesSearch =
-        l.client.name.toLowerCase().includes(this.searchText.toLowerCase()) ||
-        l.client.id.toLowerCase().includes(this.searchText.toLowerCase()) ||
-        l.fournisseur.toLowerCase().includes(this.searchText.toLowerCase()) ||
-        l.transporteur.toLowerCase().includes(this.searchText.toLowerCase());
-
-      const matchesFournisseur = this.selectedFournisseur === 'Tous les fournisseurs' || l.fournisseur === this.selectedFournisseur;
-      const matchesTransporteur = this.selectedTransporteur === 'Tous les transporteurs' || l.transporteur === this.selectedTransporteur;
-      const matchesStatus = this.selectedStatus === 'Tous les statuts' || l.statut === this.selectedStatus;
-
-      return matchesSearch && matchesFournisseur && matchesTransporteur && matchesStatus;
+  /** Charge les statistiques des tournées (4 cartes en haut de page). */
+  loadDeliveryTourStats() {
+    this.loadingStats = true;
+    this.logistics.getDeliveryTourStats().subscribe({
+      next: (stats) => {
+        this.metricsData = [
+          { title: 'Assignées', value: String(stats.assignedTours ?? 0), icon: 'box-blue' },
+          { title: 'En cours', value: String(stats.inProgressTours ?? 0), icon: 'warning-yellow' },
+          { title: 'Terminées', value: String(stats.completedTours ?? 0), icon: 'check-green' },
+          { title: 'Annulées', value: String(stats.cancelledTours ?? 0), icon: 'box-red' }
+        ];
+        this.loadingStats = false;
+      },
+      error: () => {
+        this.loadingStats = false;
+      }
     });
   }
 
-  toggleFournisseurDropdown() {
-    this.showFournisseurDropdown = !this.showFournisseurDropdown;
-    this.showTransporteurDropdown = false;
-    this.showStatusDropdown = false;
+  /** Charge la liste des tournées depuis l'API (N° Tour | Date | Chauffeur | Véhicule | Nb Cmd | Statut). */
+  loadDeliveryTours() {
+    this.loadingTours = true;
+    const tourNumber = this.searchText?.trim() || undefined;
+    const status = this.selectedStatus === 'Tous les statuts' ? undefined : this.getStatusApiValue(this.selectedStatus);
+    this.logistics.getDeliveryTours(this.currentPage, this.pageSize, tourNumber, status).subscribe({
+      next: (res) => {
+        this.deliveryTours = res.content ?? [];
+        this.totalElements = res.totalElements ?? 0;
+        this.totalPages = res.totalPages ?? 0;
+        this.currentPage = res.currentPage ?? 0;
+        this.loadingTours = false;
+      },
+      error: () => {
+        this.deliveryTours = [];
+        this.loadingTours = false;
+      }
+    });
   }
 
-  toggleTransporteurDropdown() {
-    this.showTransporteurDropdown = !this.showTransporteurDropdown;
-    this.showFournisseurDropdown = false;
-    this.showStatusDropdown = false;
+  /** Retourne la valeur API du statut (ex. "Planifiée" -> "PLANIFIEE"). */
+  getStatusApiValue(label: string): string | undefined {
+    const opt = this.statusFilterOptions.find(o => o.label === label);
+    return opt?.value || undefined;
   }
 
+  goToPage(page: number) {
+    if (page < 0 || page >= this.totalPages) return;
+    this.currentPage = page;
+    this.loadDeliveryTours();
+  }
+
+  onPageSizeChange(size: number) {
+    this.pageSize = size;
+    this.currentPage = 0;
+    this.loadDeliveryTours();
+  }
+
+  /** Libellé français du statut backend pour l'affichage (4 statuts : ASSIGNEE, EN_COURS, TERMINEE, ANNULEE) */
+  statusDisplay(status: string): string {
+    const map: Record<string, string> = {
+      ASSIGNEE: 'Assignée',
+      EN_COURS: 'En cours',
+      TERMINEE: 'Terminée',
+      ANNULEE: 'Annulée'
+    };
+    return map[status] ?? status;
+  }
+
+  // MODIF: plus de filtres fournisseur/transporteur (non fournis par l'API liste)
   toggleStatusDropdown() {
     this.showStatusDropdown = !this.showStatusDropdown;
-    this.showFournisseurDropdown = false;
-    this.showTransporteurDropdown = false;
   }
 
-  selectFournisseur(val: string) {
-    this.selectedFournisseur = val;
-    this.showFournisseurDropdown = false;
-  }
-
-  selectTransporteur(val: string) {
-    this.selectedTransporteur = val;
-    this.showTransporteurDropdown = false;
-  }
-
-  selectStatus(val: string) {
-    this.selectedStatus = val;
+  selectStatus(label: string) {
+    this.selectedStatus = label;
     this.showStatusDropdown = false;
+    this.currentPage = 0;
+    this.loadDeliveryTours();
   }
 
+  /** Recherche par N° tour : relancer la liste (page 0) */
+  onSearch() {
+    this.currentPage = 0;
+    this.loadDeliveryTours();
+  }
+
+  /** Classes CSS pour le badge statut (ASSIGNEE, EN_COURS, TERMINEE, ANNULEE) */
   getStatusClass(status: string): string {
     switch (status) {
-      case 'Planifié': return 'bg-[#0A97480F] text-[#0A9748]';
-      case 'Confirmé': return 'bg-[#4F46E50F] text-[#4F46E5]';
-      case 'Annulé': return 'bg-[#FF09090F] text-[#FF0909]';
-      case 'À confirmer': return 'bg-[#EAB3080F] text-[#EAB308]';
-      case 'Livrée': return 'bg-emerald-50 text-emerald-600';
+      case 'ASSIGNEE': return 'bg-[#4F46E50F] text-[#4F46E5]';
+      case 'EN_COURS': return 'bg-[#EAB3080F] text-[#EAB308]';
+      case 'TERMINEE': return 'bg-emerald-50 text-emerald-600';
+      case 'ANNULEE': return 'bg-[#FF09090F] text-[#FF0909]';
       default: return 'bg-gray-50 text-gray-600';
     }
   }
 
   getStatusDotClass(status: string): string {
     switch (status) {
-      case 'Planifié': return 'bg-[#0A9748]';
-      case 'Confirmé': return 'bg-[#4F46E5]';
-      case 'Annulé': return 'bg-[#FF0909]';
-      case 'À confirmer': return 'bg-[#EAB308]';
-      case 'Livrée': return 'bg-emerald-500';
+      case 'ASSIGNEE': return 'bg-[#4F46E5]';
+      case 'EN_COURS': return 'bg-[#EAB308]';
+      case 'TERMINEE': return 'bg-emerald-500';
+      case 'ANNULEE': return 'bg-[#FF0909]';
       default: return 'bg-gray-500';
     }
   }
 
-  // Modal Logic
+  // Modal Logic (MODIF: types alignés sur l'API tournées)
   showModal = false;
+  /** Étape du modal Planifier : 1 = date + lots, 2 = sélection commandes + préférences, 3 = assigner (chauffeur, véhicule) */
+  planifierStep: 1 | 2 | 3 = 1;
   showDetailModal = false;
-  selectedLivraison: Livraison | null = null;
-  showCommandesDropdown = false; // New state for custom dropdown
+  selectedLivraison: DeliveryTourListItem | null = null;
+  /** Détails complets de la tournée (chargés via API à l'ouverture du modal). */
+  selectedTourDetails: DeliveryTourDetails | null = null;
+  loadingTourDetails = false;
+  showCommandesDropdown = false;
   showReportModal = false;
   showEditModal = false;
   showCancelModal = false;
   cancelReason: string = '';
-  selectedLivraisonToEdit: Livraison | null = null;
-  selectedLivraisonToReport: Livraison | null = null;
-  selectedLivraisonToCancel: Livraison | null = null;
+  selectedLivraisonToEdit: DeliveryTourListItem | null = null;
+  selectedLivraisonToReport: DeliveryTourListItem | null = null;
+  selectedLivraisonToCancel: DeliveryTourListItem | null = null;
   newReportDate: string = '';
   reportDateError: string = '';
   editTournee: any = {
@@ -255,7 +231,11 @@ export class LivraisonsComponent {
   loadingDrivers = false;
   loadingLots = false;
 
-  // Pour le modal Modifier (données mock)
+  // Pour le modal Modifier (données chargées via API)
+  editTourDetails: DeliveryTourDetails | null = null;
+  /** IDs des commandes cochées dans le modal Modifier (pour pouvoir décocher). */
+  editTourSelectedOrderIds: number[] = [];
+  loadingEditDetails = false;
   creneaux = ['Matin (08h-12h)', 'Après-midi (14h-18h)', 'Soir (18h-20h)'];
   zones = ['Dakar', 'Thiès', 'Saint-Louis', 'Touba'];
   transporteursList = ['DHL', 'Chrono SN', 'Colis SN', 'Maersk'];
@@ -265,8 +245,19 @@ export class LivraisonsComponent {
     return new Date().toISOString().split('T')[0];
   }
 
+  /** Jour de la semaine en français pour la date de livraison (ex. "Samedi"). */
+  getDeliveryDateDayName(): string {
+    const dateStr = this.newTournee.deliveryDate;
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T12:00:00');
+    const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+    return days[d.getDay()] ?? '';
+  }
+
   openModal() {
     this.showModal = true;
+    this.planifierStep = 1;
+    this.loadLotsMessage = '';
     this.showCommandesDropdown = false;
     this.newTournee = {
       deliveryDate: '',
@@ -312,11 +303,20 @@ export class LivraisonsComponent {
     return `${day}-${month}-${year}`;
   }
 
+  /** Message d'erreur ou d'info après clic sur "Afficher les lots" (étape 1). */
+  loadLotsMessage = '';
+
   loadGroupedLots() {
+    this.loadLotsMessage = '';
+    this.errors.deliveryDate = '';
     const dateStr = this.newTournee.deliveryDate;
-    const lotSize = this.newTournee.lotSize;
-    if (!dateStr || lotSize < 1) {
-      this.groupedLots = [];
+    const lotSize = this.newTournee.lotSize ?? 5;
+    if (!dateStr || !dateStr.trim()) {
+      this.errors.deliveryDate = 'Veuillez choisir une date de livraison.';
+      return;
+    }
+    if (lotSize < 1) {
+      this.loadLotsMessage = 'La taille des lots doit être au moins 1.';
       return;
     }
     this.loadingLots = true;
@@ -324,10 +324,47 @@ export class LivraisonsComponent {
       next: (lots) => {
         this.groupedLots = lots || [];
         this.loadingLots = false;
+        if (this.groupedLots.length === 0) {
+          this.loadLotsMessage = 'Aucune commande éligible pour cette date.';
+        }
       },
       error: () => {
         this.groupedLots = [];
         this.loadingLots = false;
+        this.loadLotsMessage = 'Erreur lors du chargement. Vérifiez votre connexion et réessayez.';
+      }
+    });
+  }
+
+  /** Charge les lots puis passe à l'étape 2 (même effet que Suivant). */
+  loadGroupedLotsAndGoNext() {
+    this.loadLotsMessage = '';
+    this.errors.deliveryDate = '';
+    const dateStr = this.newTournee.deliveryDate;
+    const lotSize = this.newTournee.lotSize ?? 5;
+    if (!dateStr || !dateStr.trim()) {
+      this.errors.deliveryDate = 'Veuillez choisir une date de livraison.';
+      return;
+    }
+    if (lotSize < 1) {
+      this.loadLotsMessage = 'La taille des lots doit être au moins 1.';
+      return;
+    }
+    this.loadingLots = true;
+    this.logistics.getGroupedEligibleOrders(this.toApiDate(dateStr), lotSize).subscribe({
+      next: (lots) => {
+        this.groupedLots = lots || [];
+        this.loadingLots = false;
+        if (this.groupedLots.length === 0) {
+          this.loadLotsMessage = 'Aucune commande éligible pour cette date.';
+        } else {
+          this.planifierStep = 2;
+        }
+      },
+      error: () => {
+        this.groupedLots = [];
+        this.loadingLots = false;
+        this.loadLotsMessage = 'Erreur lors du chargement. Vérifiez votre connexion et réessayez.';
       }
     });
   }
@@ -345,7 +382,41 @@ export class LivraisonsComponent {
 
   closeModal() {
     this.showModal = false;
+    this.planifierStep = 1;
     this.showCommandesDropdown = false;
+  }
+
+  /** Passer à l’étape suivante (1→2 ou 2→3). */
+  nextPlanifierStep() {
+    if (this.planifierStep === 1) {
+      this.errors.deliveryDate = '';
+      if (!this.newTournee.deliveryDate) {
+        this.errors.deliveryDate = 'Choisissez une date de livraison';
+        return;
+      }
+      if (this.groupedLots.length === 0) {
+        this.errors.deliveryDate = 'Cliquez sur "Afficher les lots" pour charger les commandes.';
+        return;
+      }
+      this.planifierStep = 2;
+    } else if (this.planifierStep === 2) {
+      // On peut passer à l'étape 3 même sans sélection (validation au Planifier)
+      if (false && this.newTournee.orderIds.length === 0) {
+        return; // on peut bloquer ou laisser passer et valider à l’envoi
+      }
+      this.planifierStep = 3;
+    }
+  }
+
+  /** Revenir à l’étape précédente. */
+  prevPlanifierStep() {
+    if (this.planifierStep === 2) this.planifierStep = 1;
+    else if (this.planifierStep === 3) this.planifierStep = 2;
+  }
+
+  /** Nombre de commandes sélectionnées qui sont hors préférences (pour le message étape 3). */
+  get countOrdersOutOfPreferences(): number {
+    return this.allEligibleOrders.filter(o => this.newTournee.orderIds.includes(o.orderId) && this.getOrderPreferenceStatus(o) === 'out').length;
   }
 
   toggleCommandesDropdown() {
@@ -364,6 +435,41 @@ export class LivraisonsComponent {
 
   isOrderSelected(order: EligibleOrder): boolean {
     return this.newTournee.orderIds.includes(order.orderId);
+  }
+
+  /**
+   * Libellé des préférences pour une commande (ex: "Lundi/Mercredi · Matin · Domicile").
+   * Utilisé dans le multi-select pour afficher les préférences de livraison du client.
+   */
+  getOrderPreferenceLabel(order: EligibleOrder): string {
+    if (!order.hasPreferences) return '';
+    const days = (order.preferredDays ?? []).length
+      ? order.preferredDays!.map(d => this.formatDayName(d)).join('/')
+      : '';
+    const slot = order.preferredTimeSlot ?? '';
+    const mode = order.preferredDeliveryMode ?? '';
+    const parts = [days, slot, mode].filter(Boolean);
+    return parts.join(' · ');
+  }
+
+  /** Affiche un jour en français (LUNDI -> Lundi). */
+  private formatDayName(day: string): string {
+    const map: Record<string, string> = {
+      LUNDI: 'Lundi', MARDI: 'Mardi', MERCREDI: 'Mercredi', JEUDI: 'Jeudi',
+      VENDREDI: 'Vendredi', SAMEDI: 'Samedi', DIMANCHE: 'Dimanche',
+      MONDAY: 'Lundi', TUESDAY: 'Mardi', WEDNESDAY: 'Mercredi', THURSDAY: 'Jeudi',
+      FRIDAY: 'Vendredi', SATURDAY: 'Samedi', SUNDAY: 'Dimanche'
+    };
+    return map[day?.toUpperCase()] ?? day;
+  }
+
+  /**
+   * Statut préférence pour l’icône : 'match' | 'out' | 'none'.
+   * match = correspond aux préférences, out = hors préférences (livrable), none = aucune préférence.
+   */
+  getOrderPreferenceStatus(order: EligibleOrder): 'match' | 'out' | 'none' {
+    if (!order.hasPreferences) return 'none';
+    return order.matchesPreferences === true ? 'match' : 'out';
   }
 
   /** Modal Modifier : bascule sélection d'une commande (mock, par libellé). */
@@ -447,7 +553,8 @@ export class LivraisonsComponent {
       next: () => {
         Swal.fire({ title: 'Succès', text: 'Tournée créée avec succès', icon: 'success', confirmButtonText: 'OK' });
         this.closeModal();
-        // TODO: rafraîchir la liste des livraisons si elle vient de l'API
+        this.loadDeliveryTours();
+        this.loadDeliveryTourStats();
       },
       error: (err) => {
         const msg = err?.error?.message || err?.message || 'Erreur lors de la création de la tournée';
@@ -460,19 +567,23 @@ export class LivraisonsComponent {
     });
   }
 
-  // Action Menu Logic
-  activeActionId: string | null = null;
+  // Action Menu Logic (MODIF: id peut être number pour les tournées API)
+  activeActionId: string | number | null = null;
   menuPosition = { left: 0, top: 0 };
 
-  actionOptions = [
-    { label: 'Voir détails', icon: '/icones/voir details.svg', action: 'view' },
-    { label: 'Modifier', icon: '/icones/modifier.svg', action: 'edit' },
-    { label: 'Confirmer', icon: '/icones/confirmer.svg', action: 'confirm', color: 'text-[#374151]' },
-    { label: 'Reporter', icon: '/icones/reporter.svg', action: 'postpone' },
-    { label: 'Annuler', icon: '/icones/annuler.svg', action: 'cancel', color: 'text-[#374151]' }
-  ];
+  /** Menu actions : Voir détails ; si statut Assignée, ajouter Annuler la tournée. */
+  private readonly actionView: { label: string; icon: string; action: string; color?: string } = { label: 'Voir détails', icon: '/icones/voir details.svg', action: 'view' };
+  private readonly actionCancel: { label: string; icon: string; action: string; color?: string } = { label: 'Annuler la tournée', icon: '/icones/alerte.svg', action: 'cancel', color: 'text-red-600' };
 
-  toggleActionMenu(id: string, event: Event) {
+  getTourActionOptions(item: DeliveryTourListItem): { label: string; icon: string; action: string; color?: string }[] {
+    const options: { label: string; icon: string; action: string; color?: string }[] = [this.actionView];
+    if (item.status === 'ASSIGNEE') {
+      options.push(this.actionCancel);
+    }
+    return options;
+  }
+
+  toggleActionMenu(id: string | number, event: Event) {
     event.stopPropagation();
     if (this.activeActionId === id) {
       this.activeActionId = null;
@@ -485,37 +596,137 @@ export class LivraisonsComponent {
     this.activeActionId = null;
   }
 
-  handleAction(action: string, livraison: Livraison) {
+  handleAction(action: string, tour: DeliveryTourListItem) {
     if (action === 'view') {
-      this.openDetailModal(livraison);
-    } else if (action === 'confirm') {
-      this.confirmTournee(livraison);
+      this.openDetailModal(tour);
     } else if (action === 'cancel') {
-      this.cancelTournee(livraison);
+      this.cancelTournee(tour);
     } else if (action === 'postpone') {
-      this.openReportModal(livraison);
-    } else if (action === 'edit') {
-      this.openEditModal(livraison);
-    } else {
-      console.log(`Action: ${action} on livraison ${livraison.id}`);
+      this.openReportModal(tour);
     }
     this.closeActionMenu();
   }
 
-  openDetailModal(livraison: Livraison) {
-    this.selectedLivraison = livraison;
+  openDetailModal(tour: DeliveryTourListItem) {
+    this.selectedLivraison = tour;
+    this.selectedTourDetails = null;
     this.showDetailModal = true;
+    this.loadTourDetails(tour.id);
+  }
+
+  loadTourDetails(tourId: number) {
+    this.loadingTourDetails = true;
+    this.logistics.getDeliveryTourDetails(tourId).subscribe({
+      next: (details) => {
+        this.selectedTourDetails = details;
+        this.loadingTourDetails = false;
+      },
+      error: () => {
+        this.loadingTourDetails = false;
+        this.selectedTourDetails = null;
+      }
+    });
   }
 
   closeDetailModal() {
     this.showDetailModal = false;
     this.selectedLivraison = null;
+    this.selectedTourDetails = null;
   }
 
-  confirmTournee(livraison: Livraison) {
+  /** Format date API (yyyy-MM-dd ou dd-MM-yyyy) vers affichage dd/MM/yyyy */
+  formatTourDate(dateStr: string | undefined): string {
+    if (!dateStr) return '—';
+    const parts = dateStr.split(/[-T]/);
+    if (parts.length >= 3) {
+      const [y, m, d] = parts;
+      return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+    }
+    if (dateStr.includes('/')) return dateStr;
+    return dateStr;
+  }
+
+  removeOrderFromTour(tourId: number, orderId: number) {
+    this.logistics.removeOrderFromTour(tourId, orderId).subscribe({
+      next: () => {
+        Swal.fire({ title: 'Succès', text: 'Commande retirée de la tournée', icon: 'success', timer: 2000, showConfirmButton: false });
+        this.loadTourDetails(tourId);
+        this.loadDeliveryTours();
+        this.loadDeliveryTourStats();
+      },
+      error: (err) => {
+        const msg = err?.error?.message || err?.message || 'Impossible de retirer la commande';
+        Swal.fire({ title: 'Erreur', text: msg, icon: 'error', confirmButtonText: 'OK' });
+      }
+    });
+  }
+
+  /** Ouvre le modal Modifier à partir du détail (même tournée). Charge les détails API puis affiche note + commandes. */
+  openEditModalFromDetail() {
+    if (!this.selectedLivraison) return;
+    this.selectedLivraisonToEdit = this.selectedLivraison;
+    this.showDetailModal = false;
+    this.showEditModal = true;
+    this.editTourDetails = null;
+    this.editTourSelectedOrderIds = [];
+    this.loadTourDetailsForEdit(this.selectedLivraison.id);
+  }
+
+  /** Charge les détails de la tournée pour le modal Modifier (note + commandes comme à l'ajout). */
+  loadTourDetailsForEdit(tourId: number) {
+    this.loadingEditDetails = true;
+    this.logistics.getDeliveryTourDetails(tourId).subscribe({
+      next: (details) => {
+        this.editTourDetails = details;
+        const dateStr = details.deliveryDate != null ? this.formatDeliveryDateForInput(details.deliveryDate) : '';
+        this.editTournee = {
+          date: dateStr,
+          creneau: this.editTournee.creneau ?? '',
+          zone: this.editTournee.zone ?? '',
+          transporteur: this.editTournee.transporteur ?? '',
+          chauffeur: details.driverName ?? '',
+          vehicule: (details.vehicleType ?? details.vehiclePlate ?? details.vehicle ?? '').trim(),
+          commandes: [],
+          note: details.notes ?? ''
+        };
+        this.editTourSelectedOrderIds = (details.orders ?? []).map(o => o.orderId);
+        this.loadingEditDetails = false;
+      },
+      error: () => {
+        this.loadingEditDetails = false;
+        this.editTourDetails = null;
+    this.editTourSelectedOrderIds = [];
+      }
+    });
+  }
+
+  /** Formate la date API (yyyy-MM-dd ou string) pour input type="date". */
+  formatDeliveryDateForInput(deliveryDate: string | undefined): string {
+    if (!deliveryDate) return '';
+    const parts = String(deliveryDate).split(/[-T]/);
+    if (parts.length >= 3) return `${parts[0]}-${parts[1]}-${parts[2]}`;
+    return String(deliveryDate);
+  }
+
+  /** Jour de la semaine pour la date du modal Modifier. */
+  getEditTourDayName(): string {
+    const dateStr = this.editTourDetails?.deliveryDate ?? this.editTournee.date;
+    if (!dateStr) return '';
+    const s = String(dateStr).substring(0, 10);
+    const d = new Date(s + 'T12:00:00');
+    const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+    return days[d.getDay()] ?? '';
+  }
+
+  /** Ajouter des commandes à la tournée (à venir : modal de sélection par date). */
+  openAddOrderToTour() {
+    Swal.fire({ title: 'À venir', text: 'L\'ajout de commandes à une tournée sera disponible prochainement.', icon: 'info', confirmButtonText: 'OK' });
+  }
+
+  confirmTournee(tour: DeliveryTourListItem) {
     Swal.fire({
       title: 'Confirmer la tournée ?',
-      text: `${livraison.client.name} • ${livraison.date}`,
+      text: `${tour.tourNumber} • ${tour.deliveryDate}`,
       iconHtml: `<img src="/icones/alerte.svg" alt="alert" style="width: 95px; height: 95px; margin: 0 auto;" />`,
       showCancelButton: true,
       confirmButtonText: 'Confirmer',
@@ -537,15 +748,15 @@ export class LivraisonsComponent {
       }
     }).then((result) => {
       if (result.isConfirmed) {
-        livraison.statut = 'Confirmé';
+        // TODO: appeler l'API de confirmation puis this.loadDeliveryTours()
         this.showSuccessMessage();
         this.closeDetailModal();
       }
     });
   }
 
-  cancelTournee(livraison: Livraison) {
-    this.selectedLivraisonToCancel = livraison;
+  cancelTournee(tour: DeliveryTourListItem) {
+    this.selectedLivraisonToCancel = tour;
     this.cancelReason = '';
     this.showCancelModal = true;
   }
@@ -560,13 +771,23 @@ export class LivraisonsComponent {
     if (!this.cancelReason.trim()) {
       return;
     }
-
-    if (this.selectedLivraisonToCancel) {
-      this.selectedLivraisonToCancel.statut = 'Annulé';
-      this.closeCancelModal();
-      this.showCancelSuccessMessage();
-      this.closeDetailModal();
-    }
+    const tour = this.selectedLivraisonToCancel;
+    if (!tour) return;
+    this.logistics.cancelDeliveryTour(tour.id, { reason: this.cancelReason.trim() }).subscribe({
+      next: () => {
+        this.closeCancelModal();
+        this.showCancelSuccessMessage();
+        this.closeDetailModal();
+        this.loadDeliveryTours();
+        this.loadDeliveryTourStats();
+      },
+      error: (err: unknown) => {
+        const msg = (err as { error?: { message?: string }; message?: string })?.error?.message
+          ?? (err as { message?: string })?.message
+          ?? 'Erreur lors de l\'annulation de la tournée.';
+        Swal.fire({ title: 'Erreur', text: msg, icon: 'error', confirmButtonText: 'OK' });
+      }
+    });
   }
 
   showSuccessMessage() {
@@ -615,9 +836,9 @@ export class LivraisonsComponent {
     });
   }
 
-  openReportModal(livraison: Livraison) {
-    this.selectedLivraisonToReport = livraison;
-    this.newReportDate = livraison.date.split('/').reverse().join('-');
+  openReportModal(tour: DeliveryTourListItem) {
+    this.selectedLivraisonToReport = tour;
+    this.newReportDate = tour.deliveryDate || ''; // API renvoie déjà yyyy-MM-dd
     this.reportDateError = '';
     this.showReportModal = true;
   }
@@ -647,10 +868,7 @@ export class LivraisonsComponent {
     }
 
     if (this.selectedLivraisonToReport) {
-      // Convertir la date au format DD/MM/YYYY
-      const [year, month, day] = this.newReportDate.split('-');
-      this.selectedLivraisonToReport.date = `${day}/${month}/${year}`;
-
+      // TODO: appeler l'API de report puis this.loadDeliveryTours()
       this.closeReportModal();
       this.showReportSuccessMessage();
       this.closeDetailModal();
@@ -680,31 +898,28 @@ export class LivraisonsComponent {
     });
   }
 
-  openEditModal(livraison: Livraison) {
-    this.selectedLivraisonToEdit = livraison;
-    // Convertir la date DD/MM/YYYY en YYYY-MM-DD pour l'input date
-    const [day, month, year] = livraison.date.split('/');
+  openEditModal(tour: DeliveryTourListItem) {
+    this.selectedLivraisonToEdit = tour;
     this.editTournee = {
-      date: `${year}-${month}-${day}`,
-      creneau: 'Matin (08h-12h)', // Valeur par défaut, peut être personnalisée
-      zone: 'Dakar', // Valeur par défaut, peut être personnalisée
-      transporteur: livraison.transporteur,
-      chauffeur: livraison.chauffeur?.name || '',
-      vehicule: livraison.chauffeur?.vehicle || '',
+      date: tour.deliveryDate || '',
+      creneau: 'Matin (08h-12h)',
+      zone: 'Dakar',
+      transporteur: '',
+      chauffeur: tour.driverName || '',
+      vehicule: tour.vehicle || '',
       commandes: [],
       note: ''
     };
-    this.errors = {
-      date: '',
-      chauffeur: '',
-      vehicule: ''
-    };
+    this.errors = { date: '', chauffeur: '', vehicule: '' };
     this.showEditModal = true;
+    this.loadTourDetailsForEdit(tour.id);
   }
 
   closeEditModal() {
     this.showEditModal = false;
     this.selectedLivraisonToEdit = null;
+    this.editTourDetails = null;
+    this.editTourSelectedOrderIds = [];
     this.editTournee = {
       date: '',
       creneau: '',
@@ -722,60 +937,67 @@ export class LivraisonsComponent {
     };
   }
 
-  saveEditTournee() {
-    // Reset errors
-    this.errors = {
-      date: '',
-      chauffeur: '',
-      vehicule: ''
-    };
-
-    let isValid = true;
-
-    // Validation Date
-    if (!this.editTournee.date) {
-      this.errors.date = 'La date est obligatoire';
-      isValid = false;
-    } else {
-      const selectedDate = new Date(this.editTournee.date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selectedDate < today) {
-        this.errors.date = 'La date ne peut pas être dans le passé';
-        isValid = false;
+  /** Décocher / cocher une commande dans le modal Modifier. */
+  toggleEditTourOrder(orderId: number) {
+    const idx = this.editTourSelectedOrderIds.indexOf(orderId);
+    if (idx >= 0) {
+      const next = this.editTourSelectedOrderIds.filter(id => id !== orderId);
+      if (next.length === 0) {
+        Swal.fire({
+          title: 'Impossible',
+          text: 'Pas de tournée sans commande. Gardez au moins une commande.',
+          icon: 'warning',
+          confirmButtonText: 'OK'
+        });
+        return;
       }
+      this.editTourSelectedOrderIds = next;
+    } else {
+      this.editTourSelectedOrderIds = [...this.editTourSelectedOrderIds, orderId];
     }
+  }
 
-    // Validation Chauffeur
-    if (!this.editTournee.chauffeur) {
-      this.errors.chauffeur = 'Le chauffeur est obligatoire';
-      isValid = false;
-    }
+  isEditTourOrderSelected(orderId: number): boolean {
+    return this.editTourSelectedOrderIds.includes(orderId);
+  }
 
-    // Validation Véhicule
-    if (!this.editTournee.vehicule) {
+  saveEditTournee() {
+    this.errors = { date: '', chauffeur: '', vehicule: '' };
+    if (!this.editTournee.vehicule?.trim()) {
       this.errors.vehicule = 'Le véhicule est obligatoire';
-      isValid = false;
-    }
-
-    if (!isValid) {
       return;
     }
-
-    if (this.selectedLivraisonToEdit) {
-      // Convertir la date au format DD/MM/YYYY
-      const [year, month, day] = this.editTournee.date.split('-');
-      this.selectedLivraisonToEdit.date = `${day}/${month}/${year}`;
-      this.selectedLivraisonToEdit.transporteur = this.editTournee.transporteur;
-      this.selectedLivraisonToEdit.chauffeur = {
-        name: this.editTournee.chauffeur,
-        vehicle: this.editTournee.vehicule
-      };
-
-      this.closeEditModal();
-      this.showEditSuccessMessage();
-      this.closeDetailModal();
+    if (this.editTourSelectedOrderIds.length === 0) {
+      Swal.fire({
+        title: 'Impossible',
+        text: 'Pas de tournée sans commande. Gardez au moins une commande.',
+        icon: 'warning',
+        confirmButtonText: 'OK'
+      });
+      return;
     }
+    const tour = this.selectedLivraisonToEdit;
+    if (!tour) return;
+    this.logistics.updateDeliveryTour(tour.id, {
+      vehicleInfo: this.editTournee.vehicule.trim(),
+      notes: this.editTournee.note?.trim() || null,
+      orderIds: this.editTourSelectedOrderIds
+    }).subscribe({
+      next: () => {
+        this.closeEditModal();
+        this.showEditSuccessMessage();
+        this.loadDeliveryTours();
+        this.loadDeliveryTourStats();
+      },
+      error: (err: unknown) => {
+        const e = err as { error?: { message?: string } | string; message?: string };
+        const msg = (typeof e?.error === 'object' && e?.error?.message)
+          ?? (typeof e?.error === 'string' ? e.error : null)
+          ?? e?.message
+          ?? 'Erreur lors de la modification.';
+        Swal.fire({ title: 'Erreur', text: String(msg), icon: 'error', confirmButtonText: 'OK' });
+      }
+    });
   }
 
   showEditSuccessMessage() {

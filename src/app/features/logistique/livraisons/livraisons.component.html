@@ -24,7 +24,7 @@
         </div>
 
         <!-- Metrics Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-3 sm:mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
             <div *ngFor="let metric of metricsData" class="bg-white rounded-2xl p-3 sm:p-4">
                 <div class="flex justify-between items-start">
                     <div>
@@ -82,59 +82,22 @@
         <!-- Main Content Card -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 ">
 
-            <!-- Filters -->
+            <!-- Filters (MODIF: recherche N° tour + filtre Statut, alignés sur l'API) -->
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4">
-                <div class="relative flex-1 max-w-md">
-                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" fill="none"
+                <div class="relative flex-1 max-w-md flex gap-2">
+                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" fill="none"
                         stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                    <input type="text" placeholder="Rechercher par référence ou produit..." [(ngModel)]="searchText"
+                    <input type="text" placeholder="Rechercher par N° tour..." [(ngModel)]="searchText"
+                        (keyup.enter)="onSearch()"
                         class="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm bg-white placeholder-gray-400">
+                    <button (click)="onSearch()"
+                        class="px-4 py-3 bg-[#2B3674] text-white rounded-lg text-sm font-medium hover:bg-[#1a214d]">Rechercher</button>
                 </div>
 
                 <div class="flex flex-wrap gap-3">
-                    <div class="relative w-full sm:w-auto">
-                        <button (click)="toggleFournisseurDropdown()"
-                            class="w-full sm:w-auto px-3 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center justify-center sm:justify-start gap-2 bg-white transition-colors">
-                            <svg width="20" height="21" viewBox="0 0 20 21" fill="none"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <path
-                                    d="M16.6673 5.16671C16.6673 4.70004 16.6673 4.46671 16.5757 4.28837C16.496 4.13171 16.3688 4.00424 16.2123 3.92421C16.034 3.83337 15.8007 3.83337 15.334 3.83337H4.66732C4.20065 3.83337 3.96732 3.83337 3.78898 3.92421C3.63219 4.0041 3.50471 4.13158 3.42482 4.28837C3.33398 4.46671 3.33398 4.70004 3.33398 5.16671V5.78087C3.33398 5.98504 3.33398 6.08671 3.35732 6.18254C3.37772 6.26786 3.41147 6.34942 3.45732 6.42421C3.50815 6.50754 3.58065 6.58004 3.72398 6.72421L7.94315 10.9425C8.08732 11.0867 8.15982 11.1592 8.21065 11.2425C8.25676 11.3181 8.2901 11.3987 8.31065 11.4842C8.33398 11.5792 8.33398 11.68 8.33398 11.8792V15.8425C8.33398 16.5567 8.33398 16.9142 8.48398 17.1292C8.54906 17.2222 8.63245 17.3009 8.72903 17.3605C8.82562 17.4201 8.93336 17.4594 9.04565 17.4759C9.30482 17.5142 9.62482 17.355 10.2632 17.035L10.9298 16.7017C11.1982 16.5684 11.3315 16.5017 11.429 16.4017C11.5155 16.3134 11.5812 16.2069 11.6215 16.09C11.6673 15.9584 11.6673 15.8084 11.6673 15.5092V11.8859C11.6673 11.6817 11.6673 11.58 11.6907 11.4842C11.7111 11.3989 11.7448 11.3173 11.7907 11.2425C11.8407 11.1592 11.9132 11.0875 12.0548 10.9459L12.0582 10.9425L16.2773 6.72421C16.4207 6.58004 16.4923 6.50754 16.544 6.42421C16.5901 6.34865 16.6234 6.2681 16.644 6.18254C16.6673 6.08837 16.6673 5.98671 16.6673 5.78754V5.16671Z"
-                                    stroke="#A3AED0" stroke-width="1.66667" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                            </svg>
-                            {{ selectedFournisseur }}
-                        </button>
-                        <div *ngIf="showFournisseurDropdown"
-                            class="absolute top-full right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10">
-                            <button *ngFor="let f of uniqueFournisseurs" (click)="selectFournisseur(f)"
-                                class="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-[#2B3674] transition-colors">
-                                {{ f }}
-                            </button>
-                        </div>
-                    </div>
-                    <div class="relative w-full sm:w-auto">
-                        <button (click)="toggleTransporteurDropdown()"
-                            class="w-full sm:w-auto px-3 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center justify-center sm:justify-start gap-2 bg-white transition-colors">
-                            <svg width="20" height="21" viewBox="0 0 20 21" fill="none"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <path
-                                    d="M16.6673 5.16671C16.6673 4.70004 16.6673 4.46671 16.5757 4.28837C16.496 4.13171 16.3688 4.00424 16.2123 3.92421C16.034 3.83337 15.8007 3.83337 15.334 3.83337H4.66732C4.20065 3.83337 3.96732 3.83337 3.78898 3.92421C3.63219 4.0041 3.50471 4.13158 3.42482 4.28837C3.33398 4.46671 3.33398 4.70004 3.33398 5.16671V5.78087C3.33398 5.98504 3.33398 6.08671 3.35732 6.18254C3.37772 6.26786 3.41147 6.34942 3.45732 6.42421C3.50815 6.50754 3.58065 6.58004 3.72398 6.72421L7.94315 10.9425C8.08732 11.0867 8.15982 11.1592 8.21065 11.2425C8.25676 11.3181 8.2901 11.3987 8.31065 11.4842C8.33398 11.5792 8.33398 11.68 8.33398 11.8792V15.8425C8.33398 16.5567 8.33398 16.9142 8.48398 17.1292C8.54906 17.2222 8.63245 17.3009 8.72903 17.3605C8.82562 17.4201 8.93336 17.4594 9.04565 17.4759C9.30482 17.5142 9.62482 17.355 10.2632 17.035L10.9298 16.7017C11.1982 16.5684 11.3315 16.5017 11.429 16.4017C11.5155 16.3134 11.5812 16.2069 11.6215 16.09C11.6673 15.9584 11.6673 15.8084 11.6673 15.5092V11.8859C11.6673 11.6817 11.6673 11.58 11.6907 11.4842C11.7111 11.3989 11.7448 11.3173 11.7907 11.2425C11.8407 11.1592 11.9132 11.0875 12.0548 10.9459L12.0582 10.9425L16.2773 6.72421C16.4207 6.58004 16.4923 6.50754 16.544 6.42421C16.5901 6.34865 16.6234 6.2681 16.644 6.18254C16.6673 6.08837 16.6673 5.98671 16.6673 5.78754V5.16671Z"
-                                    stroke="#A3AED0" stroke-width="1.66667" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                            </svg>
-                            {{ selectedTransporteur }}
-                        </button>
-                        <div *ngIf="showTransporteurDropdown"
-                            class="absolute top-full right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10">
-                            <button *ngFor="let t of uniqueTransporteurs" (click)="selectTransporteur(t)"
-                                class="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-[#2B3674] transition-colors">
-                                {{ t }}
-                            </button>
-                        </div>
-                    </div>
                     <div class="relative w-full sm:w-auto">
                         <button (click)="toggleStatusDropdown()"
                             class="w-full sm:w-auto px-3 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center justify-center sm:justify-start gap-2 bg-white transition-colors">
@@ -149,9 +112,9 @@
                         </button>
                         <div *ngIf="showStatusDropdown"
                             class="absolute top-full right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10">
-                            <button *ngFor="let s of uniqueStatuses" (click)="selectStatus(s)"
+                            <button *ngFor="let opt of statusFilterOptions" (click)="selectStatus(opt.label)"
                                 class="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-[#2B3674] transition-colors">
-                                {{ s }}
+                                {{ opt.label }}
                             </button>
                         </div>
                     </div>
@@ -167,86 +130,55 @@
                 </div>
             </div>
 
-            <!-- Liste unifiée responsive -->
+            <!-- Liste des tournées (MODIF: colonnes N° Tour | Date | Chauffeur | Véhicule | Nb Cmd | Statut | Actions) -->
             <div class="overflow-x-auto">
-                <!-- En-têtes (visibles uniquement sur lg+) -->
-                <div class="hidden lg:grid lg:grid-cols-8 bg-[#F4F7FE] border-b border-gray-100">
-                    <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">Client</div>
-                    <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">Transporteur</div>
-                    <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">Commande</div>
-                    <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">Fournisseur</div>
-                    <div class="text-left text-xs text-[#2C3E50] font-semibold p-4 lg:whitespace-nowrap">Chauffeur /
-                        Véhicule</div>
+                <!-- Loading -->
+                <div *ngIf="loadingTours" class="p-8 text-center text-gray-500">Chargement des tournées...</div>
+
+                <ng-container *ngIf="!loadingTours">
+                    <!-- En-têtes -->
+                    <div class="hidden lg:grid lg:grid-cols-7 bg-[#F4F7FE] border-b border-gray-100">
+                        <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">N° Tour</div>
                     <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">Date</div>
+                        <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">Chauffeur</div>
+                        <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">Véhicule</div>
+                        <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">Nb Cmd</div>
                     <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">Statut</div>
                     <div class="text-center text-xs text-[#2C3E50] font-semibold p-4">Actions</div>
                 </div>
 
-                <!-- Liste des items -->
-                <div *ngFor="let item of filteredLivraisons"
-                    class="grid grid-cols-1 lg:grid-cols-8 gap-3 lg:gap-0 border border-gray-100 lg:border-0 lg:border-b lg:border-gray-100 rounded-xl lg:rounded-none mb-3 lg:mb-0 hover:shadow-md lg:hover:shadow-none hover:bg-gray-50 transition-all p-3 sm:p-4 lg:p-0">
-
-                    <!-- Client (mobile: card header, desktop: cellule) -->
-                    <div class="lg:py-3 lg:px-2 flex items-center gap-3">
-                        <div
-                            [class]="'w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 ' + item.client.color">
-                            {{ item.client.initials }}
+                    <!-- Lignes (données API) -->
+                    <div *ngFor="let item of deliveryTours"
+                        class="grid grid-cols-1 lg:grid-cols-7 gap-3 lg:gap-0 border border-gray-100 lg:border-0 lg:border-b lg:border-gray-100 rounded-xl lg:rounded-none mb-3 lg:mb-0 hover:shadow-md lg:hover:shadow-none hover:bg-gray-50 transition-all p-3 sm:p-4 lg:p-0">
+                        <div class="lg:py-3 lg:px-4">
+                            <div class="lg:hidden text-xs text-gray-500 mb-1">N° Tour</div>
+                            <div class="text-sm font-medium text-[#4B4848]">{{ item.tourNumber }}</div>
                         </div>
-                        <div class="flex-1 min-w-0 lg:min-w-auto">
-                            <div class="text-sm font-medium text-[#4B4848] mb-0.5 lg:mb-1 truncate lg:truncate-none">{{
-                                item.client.name }}</div>
-                            <div class="text-xs text-gray-500">{{ item.client.id }}</div>
+                        <div class="lg:py-3 lg:px-4">
+                            <div class="lg:hidden text-xs text-gray-500 mb-1">Date</div>
+                            <div class="text-sm font-medium text-gray-600">{{ item.deliveryDate }}</div>
                         </div>
-                    </div>
-
-                    <!-- Transporteur (mobile: dans grille, desktop: cellule) -->
-                    <div class="lg:py-3 lg:px-6">
-                        <div class="lg:hidden text-xs text-gray-500 mb-1">Transporteur</div>
-                        <div class="text-sm font-medium text-gray-600">{{ item.transporteur }}</div>
-                    </div>
-
-                    <!-- Commande (mobile: dans grille, desktop: cellule) -->
-                    <div class="lg:py-3 lg:px-6">
-                        <div class="lg:hidden text-xs text-gray-500 mb-1">Commande</div>
-                        <div class="text-sm font-medium text-gray-600">{{ item.commande }}</div>
-                    </div>
-
-                    <!-- Fournisseur (mobile: dans grille, desktop: cellule) -->
-                    <div class="lg:py-3 lg:px-6">
-                        <div class="lg:hidden text-xs text-gray-500 mb-1">Fournisseur</div>
-                        <div class="text-sm font-medium text-gray-600 truncate lg:truncate-none">{{ item.fournisseur }}
+                        <div class="lg:py-3 lg:px-4">
+                            <div class="lg:hidden text-xs text-gray-500 mb-1">Chauffeur</div>
+                            <div class="text-sm font-medium text-gray-600">{{ item.driverName }}</div>
                         </div>
-                    </div>
-
-                    <!-- Chauffeur / Véhicule (mobile: dans grille, desktop: cellule) -->
-                    <div class="lg:py-3 lg:px-6">
-                        <div class="lg:hidden text-xs text-gray-500 mb-1">Chauffeur / Véhicule</div>
-                        <div *ngIf="item.chauffeur"
-                            class="text-sm font-medium text-gray-700 lg:font-bold lg:text-[#4B4848] lg:whitespace-nowrap">
-                            <span class="font-semibold lg:font-bold">{{ item.chauffeur.name }}</span>
-                            <span class="text-xs text-gray-500"> / {{ item.chauffeur.vehicle }}</span>
+                        <div class="lg:py-3 lg:px-4">
+                            <div class="lg:hidden text-xs text-gray-500 mb-1">Véhicule</div>
+                            <div class="text-sm font-medium text-gray-600">{{ item.vehicle }}</div>
                         </div>
-                        <div *ngIf="!item.chauffeur" class="text-sm text-gray-400">--</div>
-                    </div>
-
-                    <!-- Date (mobile: avec statut, desktop: cellule) -->
-                    <div class="lg:py-3 lg:px-6">
-                        <div class="lg:hidden text-xs text-gray-500 mb-1">Date</div>
-                        <div class="text-sm font-medium text-gray-600">{{ item.date }}</div>
-                    </div>
-
-                    <!-- Statut (mobile: avec date, desktop: cellule) -->
-                    <div class="lg:py-3 lg:px-6">
+                        <div class="lg:py-3 lg:px-4">
+                            <div class="lg:hidden text-xs text-gray-500 mb-1">Nb Cmd</div>
+                            <div class="text-sm font-medium text-gray-600">{{ item.orderCount }}</div>
+                        </div>
+                        <div class="lg:py-3 lg:px-4">
                         <div class="lg:hidden text-xs text-gray-500 mb-1">Statut</div>
                         <span
-                            [class]="'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs whitespace-nowrap ' + getStatusClass(item.statut)">
-                            <span [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(item.statut)"></span>
-                            {{ item.statut }}
+                                [class]="'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs whitespace-nowrap ' + getStatusClass(item.status)">
+                                <span [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(item.status)"></span>
+                                {{ statusDisplay(item.status) }}
                         </span>
                     </div>
-
-                    <!-- Actions (mobile: dans header, desktop: cellule) -->
-                    <div class="lg:py-3 lg:px-6 lg:text-center flex items-center justify-end lg:justify-center">
+                        <div class="lg:py-3 lg:px-4 lg:text-center flex items-center justify-end lg:justify-center">
                         <div class="relative inline-block">
                             <button (click)="toggleActionMenu(item.id, $event)"
                                 class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 hover:bg-[#F0F5FA] hover:rounded-full">
@@ -257,11 +189,9 @@
                                         fill="#9CA3AF" />
                                 </svg>
                             </button>
-
-                            <!-- Options Modal -->
                             <div *ngIf="activeActionId === item.id"
                                 class="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
-                                <button *ngFor="let option of actionOptions" (click)="handleAction(option.action, item)"
+                                <button *ngFor="let option of getTourActionOptions(item)" (click)="handleAction(option.action, item)"
                                     class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-gray-50 transition-colors"
                                     [class]="option.color || 'text-gray-700'">
                                     <img [src]="option.icon" [alt]="option.label" class="w-4 h-4">
@@ -271,23 +201,35 @@
                         </div>
                     </div>
                 </div>
+
+                    <div *ngIf="deliveryTours.length === 0" class="p-8 text-center text-gray-500">
+                        Aucune tournée trouvée.
+                    </div>
+                </ng-container>
             </div>
 
-            <!-- Pagination -->
+            <!-- Pagination (MODIF: page 0-based côté API) -->
             <div
                 class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100">
-                <div class="text-xs sm:text-sm text-gray-500 font-medium">
-                    Page {{ currentPage }} sur {{ totalPages }}
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-500 font-medium">
+                    <span>Afficher</span>
+                    <select [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)"
+                        class="pl-2 pr-8 py-1.5 border border-gray-200 rounded-lg bg-white text-gray-600 focus:outline-none focus:border-[#2B3674] appearance-none bg-[length:12px_12px] bg-[right_0.4rem_center] bg-no-repeat"
+                        style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%239CA3AF%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22 d=%22M19 9l-7 7-7-7%22/%3E%3C/svg%3E');">
+                        <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt">{{ opt }}</option>
+                    </select>
+                    <span>par page</span>
+                    <span>· Page {{ currentPage + 1 }} sur {{ totalPages || 1 }}</span>
                 </div>
                 <div class="flex gap-2 w-full sm:w-auto">
-                    <button
+                    <button (click)="goToPage(currentPage - 1)"
                         class="flex-1 sm:flex-none px-3 sm:px-4 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        [disabled]="currentPage === 1">
+                        [disabled]="currentPage === 0">
                         Précédent
                     </button>
-                    <button
+                    <button (click)="goToPage(currentPage + 1)"
                         class="flex-1 sm:flex-none px-3 sm:px-4 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        [disabled]="currentPage === totalPages">
+                        [disabled]="currentPage >= totalPages - 1 || totalPages === 0">
                         Suivant
                     </button>
                 </div>
@@ -295,82 +237,91 @@
         </div>
     </div>
 
-    <!-- Modal Détails Planification -->
+    <!-- Modal Détails Tournée de livraison -->
     <div *ngIf="showDetailModal && selectedLivraison"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 transition-opacity duration-300"
         (click)="closeDetailModal()">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+        <div class="bg-white rounded-2xl shadow-xl w-full min-w-[min(100%,28rem)] max-w-3xl max-h-[90vh] overflow-hidden flex flex-col"
             (click)="$event.stopPropagation()">
-            <!-- Header -->
-            <div class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100">
-                <h2 class="text-lg sm:text-xl font-bold text-[#2C3E50]">Planification {{ selectedLivraison.id }}</h2>
-                <button (click)="closeDetailModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round" />
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Body -->
-            <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                <!-- Informations Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    <div>
-                        <div class="text-sm text-[#6B7280] mb-1">Client</div>
-                        <div class="text-base font-medium text-[#4B4848]">{{ selectedLivraison.client.name }}</div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-[#6B7280] mb-1">Transporteur</div>
-                        <div class="text-base font-medium text-[#4B4848]">{{ selectedLivraison.transporteur }}</div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-[#6B7280] mb-1">Fournisseur</div>
-                        <div class="text-base font-medium text-[#4B4848]">{{ selectedLivraison.fournisseur }}</div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-[#6B7280] mb-1">Commande</div>
-                        <div class="text-base font-medium text-[#4B4848]">{{ selectedLivraison.commande }}</div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-[#6B7280] mb-1">Chauffeur / Véhicule</div>
-                        <div *ngIf="selectedLivraison.chauffeur" class="text-base font-medium text-[#4B4848]">
-                            {{ selectedLivraison.chauffeur.name }} / {{ selectedLivraison.chauffeur.vehicle }}
-                        </div>
-                        <div *ngIf="!selectedLivraison.chauffeur" class="text-base text-gray-400">--</div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-[#6B7280] mb-1">Date</div>
-                        <div class="text-base font-medium text-[#4B4848]">{{ selectedLivraison.date }}</div>
-                    </div>
-                    <div class="col-span-2">
-                        <div class="text-sm text-[#6B7280] mb-1">Statut</div>
-                        <div
-                            [class]="'inline-flex items-center gap-2 px-3 py-1.5 rounded-full ' + getStatusClass(selectedLivraison.statut)">
-                            <span
-                                [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(selectedLivraison.statut)"></span>
-                            <span class="text-xs font-medium">
-                                {{ selectedLivraison.statut }}
-                            </span>
-                        </div>
-                    </div>
+            <!-- Header: Tournée XXX [Modifier] -->
+            <div class="flex items-center justify-between p-5 sm:p-7 border-b border-gray-100 shrink-0">
+                <h2 class="text-lg sm:text-xl font-bold text-[#2C3E50]">Tournée {{ selectedLivraison.tourNumber }}</h2>
+                <div class="flex items-center gap-2">
+                    <button *ngIf="selectedTourDetails && selectedTourDetails.status === 'ASSIGNEE'"
+                        (click)="openEditModalFromDetail()"
+                        class="px-4 py-2 bg-[#2B3674] text-white rounded-lg text-sm font-medium hover:bg-[#1a214d] transition-colors">
+                        Modifier
+                    </button>
+                    <button *ngIf="selectedTourDetails && selectedTourDetails.status === 'ASSIGNEE' && selectedLivraison"
+                        (click)="cancelTournee(selectedLivraison)"
+                        class="px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors">
+                        Annuler la tournée
+                    </button>
+                    <button (click)="closeDetailModal()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
                 </div>
             </div>
 
-            <!-- Footer avec les boutons d'action -->
-            <div
-                class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 px-4 sm:px-6 pb-4 sm:pb-6 pt-3 sm:pt-4">
-                <button *ngFor="let option of actionOptions" (click)="handleAction(option.action, selectedLivraison)"
-                    class="w-full flex items-center  gap-2 p-4 border border-[#E5E7EB] text-gray-700 rounded-lg text-sm font-medium transition-colors"
-                    [class]="option.color || ''">
-                    <img [src]="option.icon" [alt]="option.label">
-                    <span>{{ option.label }}</span>
-                </button>
-                <button (click)="closeDetailModal()"
-                    class="w-full p-4 bg-[#DDE2E433] hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors">
-                    Fermer
-                </button>
+            <!-- Chargement -->
+            <div *ngIf="loadingTourDetails" class="p-8 text-center text-gray-500">Chargement des détails...</div>
+
+            <!-- Body -->
+            <div *ngIf="!loadingTourDetails && selectedTourDetails" class="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6">
+                <!-- Ligne : Date • Chauffeur • Véhicule [STATUT] -->
+                <div class="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-[#4B4848]">
+                    <span class="flex items-center gap-1.5">
+                        <img src="/icones/date.svg" alt="" class="w-5 h-5 shrink-0" aria-hidden="true">
+                        {{ formatTourDate(selectedTourDetails.deliveryDate) }}
+                    </span>
+                    <span class="text-gray-300">•</span>
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-5 h-5 shrink-0 text-[#2B3674]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+                        {{ selectedTourDetails.driverName || '—' }}
+                    </span>
+                    <span class="text-gray-300">•</span>
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-5 h-5 shrink-0 text-[#DC2626]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
+                        {{ selectedTourDetails.vehicleType || selectedTourDetails.vehicle || selectedLivraison.vehicle || '—' }}
+                    </span>
+                    <span
+                        [class]="'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ml-auto ' + getStatusClass(selectedTourDetails.status || '')">
+                        <span [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(selectedTourDetails.status || '')"></span>
+                        {{ statusDisplay(selectedTourDetails.status || '') }}
+                    </span>
+                </div>
+
+                <!-- Section Commandes (n) [+ Ajouter] -->
+                <div class="border-t border-gray-100 pt-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-base font-semibold text-[#2C3E50]">Commandes ({{ selectedTourDetails.orders?.length ?? selectedTourDetails.orderCount ?? 0 }})</h3>
+                    </div>
+                    <ul class="space-y-2">
+                        <li *ngFor="let order of (selectedTourDetails.orders || [])"
+                            class="flex items-center justify-between gap-3 py-2.5 px-3 rounded-lg border border-gray-100 hover:bg-gray-50">
+                            <span class="flex items-center gap-2 text-sm text-[#4B4848]">
+                                <span class="text-emerald-600">☑</span>
+                                <span class="font-medium">{{ order.orderNumber }}</span>
+                                <span class="text-gray-400">•</span>
+                                <span>{{ order.employeeName }}</span>
+                                <span class="text-gray-400">•</span>
+                                <span class="text-gray-600">{{ order.deliveryAddress || '—' }}</span>
+                            </span>
+                            <button *ngIf="selectedTourDetails.status === 'ASSIGNEE' && selectedTourDetails.id"
+                                (click)="removeOrderFromTour(selectedTourDetails.id, order.orderId)"
+                                class="text-xs font-medium text-[#6B7280] hover:text-[#FF0909] transition-colors shrink-0">
+                                Retirer
+                            </button>
+                        </li>
+                        <li *ngIf="!selectedTourDetails.orders?.length" class="py-4 text-center text-sm text-gray-500">
+                            Aucune commande dans cette tournée.
+                        </li>
+                    </ul>
+                </div>
             </div>
+
         </div>
     </div>
 
@@ -382,7 +333,7 @@
             <!-- Header -->
             <div
                 class="flex items-center justify-between p-3 sm:p-4 lg:p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
-                <h2 class="text-base sm:text-lg lg:text-xl font-bold">Planifier une tournée</h2>
+                <h2 class="text-base sm:text-lg lg:text-xl font-bold text-[#2C3E50]">Planifier une tournée</h2>
                 <button (click)="closeModal()"
                     class="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -392,148 +343,201 @@
                 </button>
             </div>
 
-            <!-- Body -->
-            <div class="p-3 sm:p-4 space-y-3 sm:space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
-                    <!-- Date de livraison -->
-                    <div class="space-y-2 px-1 sm:px-2">
-                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Date de livraison <span
-                                class="text-red-500">*</span></label>
+            <!-- Stepper : Date — Lots — Attribution (quasi toute la largeur) -->
+            <div class="w-full px-3 sm:px-4 pt-2 pb-3 border-b border-gray-100">
+                <p class="text-xs text-[#6B7280] mb-3">Étape {{ planifierStep }} sur 3</p>
+                <div class="flex items-center w-full max-w-full">
+                    <div class="flex flex-col items-center shrink-0">
+                        <span [class]="'flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ' + (planifierStep >= 1 ? 'bg-[#2C2D5B] text-white' : 'bg-gray-200 text-gray-500')">1</span>
+                        <span class="text-xs font-medium mt-1.5" [class.text-[#2C2D5B]]="planifierStep >= 1" [class.text-gray-500]="planifierStep < 1">Date</span>
+                    </div>
+                    <span *ngIf="planifierStep < 3" class="flex-1 h-0.5 mx-2 min-w-[8px] rounded" [class.bg-[#2C2D5B]]="planifierStep > 1" [class.bg-gray-200]="planifierStep <= 1"></span>
+                    <div class="flex flex-col items-center shrink-0">
+                        <span [class]="'flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ' + (planifierStep >= 2 ? 'bg-[#2C2D5B] text-white' : 'bg-gray-200 text-gray-500')">2</span>
+                        <span class="text-xs font-medium mt-1.5" [class.text-[#2C2D5B]]="planifierStep >= 2" [class.text-gray-500]="planifierStep < 2">Lots</span>
+                    </div>
+                    <span *ngIf="planifierStep < 3" class="flex-1 h-0.5 mx-2 min-w-[8px] rounded" [class.bg-[#2C2D5B]]="planifierStep > 2" [class.bg-gray-200]="planifierStep <= 2"></span>
+                    <div class="flex flex-col items-center shrink-0">
+                        <span [class]="'flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ' + (planifierStep >= 3 ? 'bg-[#2C2D5B] text-white' : 'bg-gray-200 text-gray-500')">3</span>
+                        <span class="text-xs font-medium mt-1.5" [class.text-[#2C2D5B]]="planifierStep >= 3" [class.text-gray-500]="planifierStep < 3">Attribution</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Étape 1 : Date + taille des lots -->
+            <div *ngIf="planifierStep === 1" class="p-3 sm:p-4 space-y-5">
+                <div class="space-y-2">
+                    <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <span class="text-[#2C2D5B]">📅</span> Date de livraison <span class="text-red-500">*</span>
+                    </label>
                         <div class="relative">
                             <input type="date" [(ngModel)]="newTournee.deliveryDate" [min]="minDate" #dateInput
                                 (ngModelChange)="loadGroupedLots()"
                                 [class.border-red-500]="errors.deliveryDate"
-                                class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg text-gray-600 placeholder:text-[#6B7280] font-light appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0">
-                            <img src="/icones/date.svg" alt="calendar"
-                                class="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 cursor-pointer w-4 h-4 sm:w-5 sm:h-5"
-                                (click)="dateInput.showPicker()">
-                        </div>
-                        <p *ngIf="errors.deliveryDate" class="text-red-500 text-xs mt-1">{{ errors.deliveryDate }}</p>
+                            class="w-full p-3 pr-12 rounded-xl border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-2 focus:ring-[#2B3674]/20 outline-none text-base text-gray-700 placeholder:text-gray-400 appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0">
+                        <button type="button" (click)="dateInput.showPicker()" class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" aria-label="Ouvrir le calendrier">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </button>
+                    </div>
+                    <p *ngIf="errors.deliveryDate" class="text-red-500 text-xs mt-1">{{ errors.deliveryDate }}</p>
+                    <p *ngIf="newTournee.deliveryDate && !errors.deliveryDate" class="text-sm text-[#6B7280] mt-1">
+                        {{ getDeliveryDateDayName() }}<span *ngIf="allEligibleOrders.length > 0"> • {{ allEligibleOrders.length }} commande(s) disponible(s)</span>
+                    </p>
                     </div>
 
-                    <!-- Taille des lots (nombre de commandes par lot pour "plus proches") -->
-                    <div class="space-y-2 px-1 sm:px-2">
-                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Taille des lots</label>
-                        <div class="flex gap-2">
+                <div class="space-y-2">
+                    <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <span class="text-[#2C2D5B]">📦</span> Taille des lots
+                    </label>
+                    <div class="flex gap-2 items-stretch">
                             <input type="number" [(ngModel)]="newTournee.lotSize" min="1" max="50"
                                 (ngModelChange)="loadGroupedLots()"
-                                class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base sm:text-lg text-gray-600">
-                            <button type="button" (click)="loadGroupedLots()" [disabled]="!newTournee.deliveryDate || loadingLots"
-                                class="px-4 py-2.5 rounded-lg bg-[#2C2D5B] text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                            class="w-20 sm:w-24 p-3 rounded-xl border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-2 focus:ring-[#2B3674]/20 outline-none text-base text-center text-gray-700">
+                        <button type="button" (click)="loadGroupedLotsAndGoNext()" [disabled]="loadingLots"
+                            class="px-4 py-3 rounded-xl bg-[#2C2D5B] text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap hover:bg-[#232b5c] transition-colors">
                                 {{ loadingLots ? 'Chargement...' : 'Afficher les lots' }}
                             </button>
-                        </div>
-                        <p class="text-xs text-gray-500">Nombre de commandes par groupe de proximité. Cliquez sur "Afficher les lots" pour voir les commandes proches.</p>
                     </div>
-
-                    <!-- Chauffeur -->
-                    <div class="space-y-2 px-1 sm:px-2">
-                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Chauffeur <span
-                                class="text-red-500">*</span></label>
-                        <div class="relative">
-                            <select [(ngModel)]="newTournee.driverId"
-                                [class.border-red-500]="errors.driverId"
-                                class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base sm:text-lg text-gray-600 appearance-none bg-white">
-                                <option [ngValue]="null">Sélectionner un chauffeur</option>
-                                <option *ngFor="let d of availableDrivers" [ngValue]="d.driverId">{{ d.fullName }}</option>
-                            </select>
-                            <div class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                            </div>
-                        </div>
-                        <p *ngIf="errors.driverId" class="text-red-500 text-xs mt-1">{{ errors.driverId }}</p>
-                    </div>
-
-                    <!-- Plaque véhicule -->
-                    <div class="space-y-2 px-1 sm:px-2">
-                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Plaque véhicule <span
-                                class="text-red-500">*</span></label>
-                        <input type="text" [(ngModel)]="newTournee.vehiclePlate" placeholder="Ex: AA-12345-AB"
-                            [class.border-red-500]="errors.vehiclePlate"
-                            class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base sm:text-lg placeholder:text-[#6B7280] font-light">
-                        <p *ngIf="errors.vehiclePlate" class="text-red-500 text-xs mt-1">{{ errors.vehiclePlate }}</p>
-                    </div>
-
-                    <!-- Type véhicule -->
-                    <div class="space-y-2 px-1 sm:px-2 md:col-span-2">
-                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Type de véhicule <span
-                                class="text-red-500">*</span></label>
-                        <input type="text" [(ngModel)]="newTournee.vehicleType" placeholder="Ex: Fourgon, Camion..."
-                            [class.border-red-500]="errors.vehicleType"
-                            class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base sm:text-lg placeholder:text-[#6B7280] font-light">
-                        <p *ngIf="errors.vehicleType" class="text-red-500 text-xs mt-1">{{ errors.vehicleType }}</p>
-                    </div>
-                </div>
-
-                <!-- Lots par proximité (aperçu) -->
-                <div *ngIf="groupedLots.length > 0" class="space-y-2 px-1 sm:px-2">
-                    <p class="text-sm font-medium text-gray-700">Lots par proximité ({{ groupedLots.length }} lot(s))</p>
-                    <div class="rounded-lg border border-[#CBD5E1] p-2 max-h-32 overflow-y-auto space-y-1">
-                        <div *ngFor="let lot of groupedLots" class="text-xs text-gray-600">
-                            {{ lot.zoneName || ('Lot ' + (lot.lotIndex + 1)) }} — {{ lot.orderCount }} commande(s) : {{ getLotOrderNumbers(lot) }}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Commandes à inclure -->
-                <div class="space-y-2 px-1 sm:px-2">
-                    <label class="text-sm sm:text-[15px] font-medium text-gray-700">Commandes à inclure <span
-                            class="text-red-500">*</span></label>
-                    <div class="relative">
-                        <button type="button" (click)="toggleCommandesDropdown()"
-                            [class.border-red-500]="errors.orderIds"
-                            class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base sm:text-lg text-[#6B7280] font-light bg-white text-left flex items-center justify-between">
-                            <span [class.text-[#6B7280]]="newTournee.orderIds.length === 0"
-                                [class.font-light]="newTournee.orderIds.length === 0">
-                                {{ getSelectedCommandesLabel() }}
-                            </span>
-                            <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                            </svg>
-                        </button>
-                        <p *ngIf="errors.orderIds" class="text-red-500 text-xs mt-1">{{ errors.orderIds }}</p>
-
-                        <div *ngIf="showCommandesDropdown"
-                            class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 max-h-60 overflow-y-auto z-20 p-2">
-                            <ng-container *ngIf="allEligibleOrders.length === 0">
-                                <p class="text-sm text-gray-500 px-3 py-2">Choisissez une date et cliquez sur "Afficher les lots".</p>
-                            </ng-container>
-                            <div *ngFor="let order of allEligibleOrders" (click)="toggleOrderSelection(order)"
-                                class="flex items-start gap-3 px-3 py-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
-                                <input type="checkbox" [checked]="isOrderSelected(order)"
-                                    class="w-5 h-5 mt-0.5 border-2 border-gray-300 rounded text-[#2B3674] focus:ring-[#2B3674] cursor-pointer flex-shrink-0">
-                                <div class="flex flex-col min-w-0">
-                                    <span class="text-sm font-medium text-[#374151]">{{ order.orderNumber }} — {{ order.customerName }}</span>
-                                    <span *ngIf="order.formattedAddress" class="text-xs text-[#6B7280] mt-0.5">{{ order.formattedAddress }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Note -->
-                <div class="space-y-2 px-1 sm:px-2">
-                    <label class="text-sm sm:text-[15px] font-medium text-gray-700">Note (optionnel)</label>
-                    <textarea [(ngModel)]="newTournee.notes" placeholder="Saisir" rows="2"
-                        class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base sm:text-lg placeholder:text-[#6B7280] font-light resize-none"></textarea>
+                    <p *ngIf="loadLotsMessage" class="text-sm mt-1" [class.text-amber-600]="loadLotsMessage.indexOf('Aucune') === 0" [class.text-red-500]="loadLotsMessage.indexOf('Erreur') === 0">{{ loadLotsMessage }}</p>
                 </div>
             </div>
 
-            <!-- Footer -->
+            <!-- Étape 2 : Commandes et préférences (par lots) -->
+            <div *ngIf="planifierStep === 2" class="p-3 sm:p-4 space-y-4">
+                <div class="rounded-lg bg-[#F4F7FE] px-3 py-2 text-sm font-medium text-[#2B3674]">Étape 2 : Commandes et préférences</div>
+                <p class="text-sm text-gray-600">{{ allEligibleOrders.length }} commande(s) trouvée(s) · {{ groupedLots.length }} lot(s) suggéré(s)</p>
+                <div class="rounded-lg border border-[#CBD5E1] divide-y divide-gray-100 max-h-[50vh] overflow-y-auto">
+                    <ng-container *ngFor="let lot of groupedLots">
+                        <div class="p-3">
+                            <div class="flex items-center gap-2 text-sm font-medium text-[#374151] mb-2">
+                                <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+                                {{ lot.zoneName || ('LOT ' + (lot.lotIndex + 1)) }} : {{ lot.orders.length }} commande(s)
+                            </div>
+                            <div class="space-y-2">
+                                <div *ngFor="let order of (lot.orders ?? [])" (click)="toggleOrderSelection(order)"
+                                    class="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-100">
+                                    <input type="checkbox" [checked]="isOrderSelected(order)"
+                                        class="w-5 h-5 mt-0.5 border-2 border-gray-300 rounded text-[#2B3674] focus:ring-[#2B3674] cursor-pointer flex-shrink-0">
+                                    <div class="flex flex-col min-w-0 flex-1">
+                                        <span class="text-sm font-medium text-[#374151]">{{ order.orderNumber }} — {{ order.customerName }}</span>
+                                        <span *ngIf="order.daysOverdue != null && order.daysOverdue > 0" class="text-xs font-medium text-red-600 mt-0.5">En retard ({{ order.daysOverdue }} j)</span>
+                                        <span *ngIf="order.formattedAddress" class="text-xs text-[#6B7280] mt-0.5 flex items-center gap-1">
+                                            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+                                            {{ order.formattedAddress }}
+                                        </span>
+                                        <div class="mt-1.5 flex items-center gap-1.5 text-xs">
+                                            <ng-container [ngSwitch]="getOrderPreferenceStatus(order)">
+                                                <span *ngSwitchCase="'match'" class="flex items-center gap-1.5 text-emerald-600">
+                                                    <span class="inline-flex w-4 h-4 items-center justify-center rounded bg-emerald-100 text-emerald-600">✓</span>
+                                                    <span>Préfère : {{ getOrderPreferenceLabel(order) }}</span>
+                                                </span>
+                                                <span *ngSwitchCase="'out'" class="flex items-center gap-1.5 text-amber-600">
+                                                    <span class="inline-flex w-4 h-4 items-center justify-center rounded bg-amber-100 text-amber-600">!</span>
+                                                    <span><span *ngIf="getOrderPreferenceLabel(order)">Préfère : {{ getOrderPreferenceLabel(order) }} · </span><span class="text-amber-500">Hors préférences (livrable)</span></span>
+                                                </span>
+                                                <span *ngSwitchCase="'none'" class="flex items-center gap-1.5 text-[#6B7280]">
+                                                    <span class="inline-flex w-4 h-4 items-center justify-center rounded bg-gray-100 text-gray-500">i</span>
+                                                    <span>Aucune préférence renseignée</span>
+                                                </span>
+                                            </ng-container>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </ng-container>
+                </div>
+                <div class="rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs text-[#6B7280] space-y-1">
+                    <p class="font-medium text-[#374151]">Légende</p>
+                    <p><span class="inline-flex w-4 h-4 items-center justify-center rounded bg-emerald-100 text-emerald-600 mr-1">✓</span> Correspond aux préférences</p>
+                    <p><span class="inline-flex w-4 h-4 items-center justify-center rounded bg-amber-100 text-amber-600 mr-1">!</span> Hors préférences (livrable quand même)</p>
+                    <p><span class="inline-flex w-4 h-4 items-center justify-center rounded bg-gray-100 text-gray-500 mr-1">i</span> Pas de préférences</p>
+                    <p><span class="text-red-600 font-medium mr-1">En retard (X j)</span> Commande en attente, date de livraison prévue dépassée</p>
+                </div>
+                    </div>
+
+            <!-- Étape 3 : Assigner (chauffeur, véhicule, note) -->
+            <div *ngIf="planifierStep === 3" class="p-3 sm:p-4 space-y-4">
+                <div class="rounded-lg bg-[#F4F7FE] px-3 py-2 text-sm font-medium text-[#2B3674]">Étape 3 : Assigner la tournée</div>
+                <p class="text-sm text-gray-600">{{ newTournee.orderIds.length }} commande(s) sélectionnée(s)</p>
+                <div *ngIf="countOrdersOutOfPreferences > 0" class="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+                    <span class="inline-flex w-6 h-6 items-center justify-center rounded bg-amber-100 text-amber-600">!</span>
+                    {{ countOrdersOutOfPreferences }} commande(s) hors préférences client (livrable).
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-gray-700">Chauffeur <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <select [(ngModel)]="newTournee.driverId" [class.border-red-500]="errors.driverId"
+                                class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base text-gray-600 appearance-none bg-white">
+                                <option [ngValue]="null">Sélectionner un chauffeur</option>
+                                <option *ngFor="let d of availableDrivers" [ngValue]="d.driverId">{{ d.fullName }}</option>
+                            </select>
+                            <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </div>
+                        <p *ngIf="errors.driverId" class="text-red-500 text-xs">{{ errors.driverId }}</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-gray-700">Plaque véhicule <span class="text-red-500">*</span></label>
+                        <input type="text" [(ngModel)]="newTournee.vehiclePlate" placeholder="Ex: AA-12345-AB"
+                            [class.border-red-500]="errors.vehiclePlate"
+                            class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none placeholder:text-[#6B7280]">
+                        <p *ngIf="errors.vehiclePlate" class="text-red-500 text-xs">{{ errors.vehiclePlate }}</p>
+                    </div>
+                    <div class="space-y-2 md:col-span-2">
+                        <label class="text-sm font-medium text-gray-700">Type de véhicule <span class="text-red-500">*</span></label>
+                        <input type="text" [(ngModel)]="newTournee.vehicleType" placeholder="Ex: Fourgon, Camion..."
+                            [class.border-red-500]="errors.vehicleType"
+                            class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none placeholder:text-[#6B7280]">
+                        <p *ngIf="errors.vehicleType" class="text-red-500 text-xs">{{ errors.vehicleType }}</p>
+                    </div>
+                    <div class="space-y-2 md:col-span-2">
+                        <label class="text-sm font-medium text-gray-700">Note (optionnel)</label>
+                        <textarea [(ngModel)]="newTournee.notes" placeholder="Saisir" rows="2"
+                            class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none placeholder:text-[#6B7280] resize-none"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer selon l’étape -->
             <div
-                class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 sm:p-4 lg:p-6 gap-2 border-t border-gray-100 sticky bottom-0 bg-white">
+                class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 p-3 sm:p-4 lg:p-6 border-t border-gray-100 sticky bottom-0 bg-white">
+                <ng-container [ngSwitch]="planifierStep">
+                    <ng-container *ngSwitchCase="1">
+                        <button (click)="nextPlanifierStep()"
+                            class="w-full py-2.5 sm:py-3 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium text-sm">
+                            Suivant
+                        </button>
+                        <button (click)="closeModal()"
+                            class="w-full py-2.5 sm:py-3 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 rounded-lg font-medium text-sm">
+                            Annuler
+                        </button>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="2">
+                        <button (click)="prevPlanifierStep()"
+                            class="w-full py-2.5 sm:py-3 border border-gray-200 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50">
+                            ← Retour
+                        </button>
+                        <button (click)="nextPlanifierStep()"
+                            class="w-full py-2.5 sm:py-3 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium text-sm">
+                            Suivant
+                        </button>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="3">
+                        <button (click)="prevPlanifierStep()"
+                            class="w-full py-2.5 sm:py-3 border border-gray-200 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50">
+                            ← Retour
+                        </button>
                 <button (click)="saveTournee()"
-                    class="w-full py-2.5 sm:py-3 lg:py-4 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium transition-colors text-sm sm:text-base">
+                            class="w-full py-2.5 sm:py-3 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium text-sm">
                     Planifier
                 </button>
                 <button (click)="closeModal()"
-                    class="w-full py-2.5 sm:py-3 lg:py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 hover:text-gray-800 rounded-lg font-medium transition-colors text-sm sm:text-base">
+                            class="w-full py-2.5 sm:py-3 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 rounded-lg font-medium text-sm">
                     Annuler
                 </button>
+                    </ng-container>
+                </ng-container>
             </div>
         </div>
     </div>
@@ -590,7 +594,7 @@
             <!-- Header -->
             <div
                 class="flex items-center justify-between p-3 sm:p-4 lg:p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
-                <h2 class="text-base sm:text-lg lg:text-xl font-bold">Modifier la tournée</h2>
+                <h2 class="text-base sm:text-lg lg:text-xl font-bold text-[#2C3E50]">Modifier la tournée {{ selectedLivraisonToEdit?.tourNumber }}</h2>
                 <button (click)="closeEditModal()"
                     class="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -600,151 +604,96 @@
                 </button>
             </div>
 
-            <!-- Body -->
-            <div class="p-3 sm:p-4 space-y-3 sm:space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
-                    <!-- Date de livraison -->
-                    <div class="space-y-2 px-1 sm:px-2">
-                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Date de livraison <span
-                                class="text-red-500">*</span></label>
-                        <div class="relative">
-                            <input type="date" [(ngModel)]="editTournee.date" [min]="minDate" #editDateInput
-                                [class.border-red-500]="errors.date"
-                                class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg text-gray-600 placeholder:text-[#6B7280] font-light appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0">
-                            <img src="/icones/date.svg" alt="calendar"
-                                class="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 cursor-pointer w-4 h-4 sm:w-5 sm:h-5"
-                                (click)="editDateInput.showPicker()">
-                        </div>
-                        <p *ngIf="errors.date" class="text-red-500 text-xs mt-1">{{ errors.date }}</p>
-                    </div>
+            <!-- Body : chargement -->
+            <div *ngIf="loadingEditDetails" class="p-12 text-center text-gray-500">Chargement des détails...</div>
 
-                    <!-- Créneau -->
-                    <div class="space-y-2 px-1 sm:px-2">
-                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Créneau</label>
-                        <div class="relative">
-                            <select [(ngModel)]="editTournee.creneau"
-                                class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg text-gray-600 appearance-none bg-white">
-                                <option *ngFor="let c of creneaux" [value]="c">{{ c }}</option>
-                            </select>
-                            <div class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5"
-                                        stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                            </div>
-                        </div>
+            <!-- Body : contenu (note + commandes comme à l'ajout) -->
+            <div *ngIf="!loadingEditDetails && editTourDetails" class="p-3 sm:p-4 lg:p-6 space-y-5">
+                <!-- INFORMATIONS GÉNÉRALES -->
+                <div class="rounded-lg bg-[#F4F7FE] px-3 py-2 text-sm font-medium text-[#2B3674] flex items-center gap-2">
+                    <span>📅</span> INFORMATIONS GÉNÉRALES
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-700">Date de livraison</label>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <input type="text" [value]="formatTourDate(editTourDetails.deliveryDate)" readonly
+                            class="w-full max-w-[140px] p-2.5 rounded-lg border border-[#CBD5E1] bg-gray-50 text-gray-700 text-sm">
+                        <span class="text-sm text-[#6B7280] flex items-center gap-1">
+                            <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9z" clip-rule="evenodd"/></svg>
+                            {{ getEditTourDayName() }} • {{ editTourDetails.orders?.length ?? editTourDetails.orderCount ?? 0 }} commande(s)
+                        </span>
                     </div>
+                </div>
 
-                    <!-- Zone -->
-                    <div class="space-y-2 px-1 sm:px-2">
-                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Zone</label>
-                        <div class="relative">
-                            <select [(ngModel)]="editTournee.zone"
-                                class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg text-gray-600 appearance-none bg-white">
-                                <option *ngFor="let z of zones" [value]="z">{{ z }}</option>
-                            </select>
-                            <div class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5"
-                                        stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                            </div>
-                        </div>
+                <!-- AFFECTATION -->
+                <div class="rounded-lg bg-[#F4F7FE] px-3 py-2 text-sm font-medium text-[#2B3674] flex items-center gap-2">
+                    <span>🚚</span> AFFECTATION
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-gray-700">Chauffeur</label>
+                        <input type="text" [(ngModel)]="editTournee.chauffeur" readonly
+                            class="w-full p-2.5 rounded-lg border border-[#CBD5E1] bg-gray-50 text-gray-700">
                     </div>
-
-                    <!-- Transporteur -->
-                    <div class="space-y-2 px-1 sm:px-2">
-                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Transporteur</label>
-                        <div class="relative">
-                            <select [(ngModel)]="editTournee.transporteur"
-                                class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg text-gray-600 appearance-none bg-white">
-                                <option *ngFor="let t of transporteursList" [value]="t">{{ t }}</option>
-                            </select>
-                            <div class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5"
-                                        stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Chauffeur -->
-                    <div class="space-y-2 px-1 sm:px-2">
-                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Chauffeur <span
-                                class="text-red-500">*</span></label>
-                        <input type="text" [(ngModel)]="editTournee.chauffeur" placeholder="Saisir"
-                            [class.border-red-500]="errors.chauffeur"
-                            class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg placeholder:text-[#6B7280] font-light">
-                        <p *ngIf="errors.chauffeur" class="text-red-500 text-xs mt-1">{{ errors.chauffeur }}</p>
-                    </div>
-
-                    <!-- Véhicule -->
-                    <div class="space-y-2 px-1 sm:px-2">
-                        <label class="text-sm sm:text-[15px] font-medium text-gray-700">Véhicule <span
-                                class="text-red-500">*</span></label>
-                        <input type="text" [(ngModel)]="editTournee.vehicule" placeholder="Ex: AA-12345-AB"
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-gray-700">Véhicule (type / plaque) <span class="text-red-500">*</span></label>
+                        <input type="text" [(ngModel)]="editTournee.vehicule" placeholder="Ex: 4x4, DK-1234-AA"
                             [class.border-red-500]="errors.vehicule"
-                            class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg placeholder:text-[#6B7280] font-light">
+                            class="w-full p-2.5 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none">
                         <p *ngIf="errors.vehicule" class="text-red-500 text-xs mt-1">{{ errors.vehicule }}</p>
                     </div>
                 </div>
 
-                <!-- Commandes à inclure -->
-                <div class="space-y-2 px-1 sm:px-2">
-                    <label class="text-sm sm:text-[15px] font-medium text-gray-700">Commandes à inclure</label>
-                    <div class="relative">
-                        <button (click)="toggleCommandesDropdown()"
-                            class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg text-[#6B7280] font-light bg-white text-left flex items-center justify-between">
-                            <span [class.text-[#6B7280]]="editTournee.commandes.length === 0"
-                                [class.font-light]="editTournee.commandes.length === 0">
-                                {{ editTournee.commandes.length === 0 ? 'Sélectionner (multiple)' :
-                                editTournee.commandes.length + ' commande(s) sélectionnée(s)' }}
-                            </span>
-                            <svg width="12" height="8" viewBox="0 0 12 8" fill="none"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <path d="M1 1.5L6 6.5L11 1.5" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                            </svg>
-                        </button>
-
-                        <!-- Dropdown Menu -->
-                        <div *ngIf="showCommandesDropdown"
-                            class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 max-h-60 overflow-y-auto z-20 p-2">
-                            <div *ngFor="let cmd of commandesDisponibles" (click)="toggleCommandeSelection(cmd)"
-                                class="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors">
-                                <div class="relative flex items-center">
-                                    <input type="checkbox" [checked]="isCommandeSelected(cmd)"
-                                        class="w-5 h-5 border-2 border-gray-300 rounded text-[#2B3674] focus:ring-[#2B3674] transition-colors cursor-pointer">
-                                </div>
-                                <span class="text-sm text-[#6B7280]">{{ cmd }}</span>
-                            </div>
-                        </div>
-                    </div>
+                <!-- COMMANDES (décocher = retirer de la tournée ; au moins une obligatoire) -->
+                <div class="rounded-lg bg-[#F4F7FE] px-3 py-2 text-sm font-medium text-[#2B3674] flex items-center gap-2">
+                    <span>📋</span> COMMANDES ({{ editTourDetails.orders?.length ?? 0 }})
                 </div>
+                <p class="text-xs text-[#6B7280] mb-2">Décocher une commande la retire de la tournée. Au moins une commande doit rester.</p>
+                <ul class="rounded-lg border border-[#CBD5E1] divide-y divide-gray-100 max-h-[40vh] overflow-y-auto">
+                    <li *ngFor="let order of (editTourDetails.orders ?? [])"
+                        class="flex items-start gap-3 p-3 hover:bg-gray-50/50">
+                        <span class="mt-0.5 flex-shrink-0">
+                            <input type="checkbox" [checked]="isEditTourOrderSelected(order.orderId)"
+                                (change)="toggleEditTourOrder(order.orderId)"
+                                class="w-5 h-5 rounded border-gray-300 text-[#2B3674] focus:ring-[#2B3674] cursor-pointer">
+                        </span>
+                        <div class="flex flex-col min-w-0 flex-1">
+                            <span class="text-sm font-medium text-[#374151]">{{ order.orderNumber }} • {{ order.employeeName }}</span>
+                            <span *ngIf="order.deliveryAddress" class="text-xs text-[#6B7280] mt-0.5 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+                                {{ order.deliveryAddress }}
+                            </span>
+                        </div>
+                    </li>
+                    <li *ngIf="!editTourDetails.orders?.length" class="p-4 text-center text-sm text-gray-500">Aucune commande dans cette tournée.</li>
+                </ul>
 
-                <!-- Note -->
-                <div class="space-y-2 px-1 sm:px-2">
-                    <label class="text-sm sm:text-[15px] font-medium text-gray-700">Note (optionnel)</label>
-                    <textarea [(ngModel)]="editTournee.note" placeholder="Saisir" rows="2"
-                        class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base sm:text-lg placeholder:text-[#6B7280] font-light resize-none"></textarea>
+                <!-- Notes (optionnel) : affiché si présent ou toujours pour édition -->
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-700">Notes (optionnel)</label>
+                    <textarea [(ngModel)]="editTournee.note" placeholder="Saisir une note..." rows="2"
+                        class="w-full p-2.5 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none placeholder:text-[#6B7280] resize-none"></textarea>
                 </div>
             </div>
 
             <!-- Footer -->
-            <div
-                class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 sm:p-4 lg:p-6 gap-2 border-t border-gray-100 sticky bottom-0 bg-white">
-                <button (click)="saveEditTournee()"
-                    class="w-full py-2.5 sm:py-3 lg:py-4 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium transition-colors text-sm sm:text-base">
-                    Enregistrer
+            <div *ngIf="!loadingEditDetails && editTourDetails"
+                class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 p-3 sm:p-4 lg:p-6 border-t border-gray-100 sticky bottom-0 bg-white">
+                <button *ngIf="editTourDetails.status === 'ASSIGNEE' && selectedLivraisonToEdit"
+                    (click)="cancelTournee(selectedLivraisonToEdit); closeEditModal()"
+                    class="order-2 sm:order-1 py-2.5 sm:py-3 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg font-medium text-sm transition-colors">
+                    Annuler la tournée
                 </button>
-                <button (click)="closeEditModal()"
-                    class="w-full py-2.5 sm:py-3 lg:py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 hover:text-gray-800 rounded-lg font-medium transition-colors text-sm sm:text-base">
-                    Annuler
-                </button>
+                <div class="flex gap-2 order-1 sm:order-2 flex-1 sm:justify-end">
+                    <button (click)="closeEditModal()"
+                        class="py-2.5 sm:py-3 px-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 rounded-lg font-medium text-sm">
+                        Annuler
+                    </button>
+                    <button (click)="saveEditTournee()"
+                        class="py-2.5 sm:py-3 px-4 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium text-sm">
+                        Enregistrer les modifications
+                    </button>
+                </div>
             </div>
         </div>
     </div>

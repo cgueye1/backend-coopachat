@@ -35,12 +35,14 @@
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                     <input type="text" placeholder="Rechercher par référence ou produit..." [(ngModel)]="searchText"
+                        (keyup.enter)="onSearch()"
                         class="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-sm bg-white placeholder-gray-400">
                 </div>
 
                 <div class="flex flex-wrap gap-3">
                     <div class="relative">
                         <button (click)="toggleStatusDropdown()"
+                            type="button"
                             class="px-3 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
                             <svg width="20" height="21" viewBox="0 0 20 21" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
@@ -53,13 +55,18 @@
                         </button>
                         <div *ngIf="showStatusDropdown"
                             class="absolute top-full right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10">
-                            <button *ngFor="let s of uniqueStatuses" (click)="selectStatus(s)"
+                            <button *ngFor="let s of statusOptions" (click)="selectStatus(s.label)"
+                                type="button"
                                 class="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-[#2B3674] transition-colors">
-                                {{ s }}
+                                {{ s.label }}
                             </button>
                         </div>
                     </div>
-                    <button
+                    <button type="button" (click)="onSearch()"
+                        class="px-3 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
+                        Rechercher
+                    </button>
+                    <button type="button" (click)="exportRetours()"
                         class="px-3 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
                         <svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd"
@@ -101,74 +108,65 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        <tr *ngFor="let item of filteredRetours" class="hover:bg-gray-50 transition-colors group">
+                        <tr *ngIf="loading" class="text-center">
+                            <td colspan="8" class="py-8 text-gray-500">Chargement...</td>
+                        </tr>
+                        <tr *ngIf="!loading && content.length === 0" class="text-center">
+                            <td colspan="8" class="py-8 text-gray-500">Aucun retour trouvé.</td>
+                        </tr>
+                        <tr *ngFor="let item of content" class="hover:bg-gray-50 transition-colors group">
                             <td class="py-3 px-2 2xl:px-6">
                                 <div class="flex items-center gap-3">
                                     <div
                                         class="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
-                                        <img [src]="getIconPath(item.product.icon)" [alt]="item.product.name"
+                                        <img *ngIf="item.productImage" [src]="productImageUrl(item.productImage)" [alt]="item.productName"
+                                            class="w-8 h-8 object-contain">
+                                        <img *ngIf="!item.productImage" [src]="getIconPath('water')" [alt]="item.productName"
                                             class="w-8 h-8 object-contain">
                                     </div>
                                     <div>
-                                        <div class="text-sm font-medium text-gray-900 mb-1 truncate">{{
-                                            item.product.name }}
-                                        </div>
-                                        <div class="text-xs text-gray-500 truncate">{{ item.product.reference }}</div>
+                                        <div class="text-sm font-medium text-gray-900 mb-1 truncate">{{ item.productName }}</div>
+                                        <div class="text-xs text-gray-500 truncate">{{ item.orderNumber }}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td
-                                class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 whitespace-nowrap">
-                                {{ item.client }}</td>
-                            <td
-                                class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 whitespace-nowrap">
+                            <td class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 whitespace-nowrap">
+                                {{ item.employeeName }}</td>
+                            <td class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 whitespace-nowrap">
                                 {{ item.quantity }}</td>
-                            <td
-                                class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 whitespace-nowrap">
-                                {{ item.motif }}</td>
-                            <td
-                                class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 whitespace-nowrap">
-                                {{ item.date }}</td>
-                            <td
-                                class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 whitespace-nowrap">
+                            <td class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 whitespace-nowrap">
+                                {{ item.problemTypeLabel }}</td>
+                            <td class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 whitespace-nowrap">
+                                {{ formatDate(item.createdAt) }}</td>
+                            <td class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 whitespace-nowrap">
                                 <span
                                     [class]="'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ' + getStatusClass(item.status)">
                                     <span [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(item.status)"></span>
                                     {{ item.status }}
                                 </span>
                             </td>
-                            <td class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 truncate">{{
-                                item.decision || '' }}</td>
+                            <td class="py-3 px-4 lg:px-6 text-xs lg:text-sm font-medium text-gray-600 truncate">
+                                {{ item.decisionLabel || '' }}</td>
                             <td class="py-3 px-6 text-center">
                                 <div class="flex items-center justify-start gap-2">
-                                    <!-- Eye button -->
-                                    <button (click)="openDetailModal(item)"
+                                    <button (click)="openDetailModal(item)" type="button"
                                         class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100 border border-gray-200">
-                                        <svg class="w-4 h-4" width="16" height="11" viewBox="0 0 16 11" fill="none"
-                                            xmlns="http://www.w3.org/2000/svg">
-                                            <path
-                                                d="M16 5.5C16 5.5 13 0 8 0C3 0 0 5.5 0 5.5C0 5.5 3 11 8 11C13 11 16 5.5 16 5.5ZM1.173 5.5C1.65578 4.76459 2.21197 4.08008 2.833 3.457C4.12 2.168 5.88 1 8 1C10.12 1 11.879 2.168 13.168 3.457C13.789 4.08008 14.3452 4.76459 14.828 5.5C14.7707 5.58667 14.7057 5.68267 14.633 5.788C14.298 6.268 13.803 6.908 13.168 7.543C11.879 8.832 10.119 10 8 10C5.881 10 4.121 8.832 2.832 7.543C2.21097 6.91992 1.65578 6.23541 1.173 5.5Z"
-                                                fill="#4B4848" />
-                                            <path
-                                                d="M8 3C7.33696 3 6.70107 3.26339 6.23223 3.73223C5.76339 4.20107 5.5 4.83696 5.5 5.5C5.5 6.16304 5.76339 6.79893 6.23223 7.26777C6.70107 7.73661 7.33696 8 8 8C8.66304 8 9.29893 7.73661 9.76777 7.26777C10.2366 6.79893 10.5 6.16304 10.5 5.5C10.5 4.83696 10.2366 4.20107 9.76777 3.73223C9.29893 3.26339 8.66304 3 8 3ZM4.5 5.5C4.5 4.57174 4.86875 3.6815 5.52513 3.02513C6.1815 2.36875 7.07174 2 8 2C8.92826 2 9.8185 2.36875 10.4749 3.02513C11.1313 3.6815 11.5 4.57174 11.5 5.5C11.5 6.42826 11.1313 7.3185 10.4749 7.97487C9.8185 8.63125 8.92826 9 8 9C7.07174 9 6.1815 8.63125 5.52513 7.97487C4.86875 7.3185 4.5 6.42826 4.5 5.5Z"
-                                                fill="#4B4848" />
+                                        <svg class="w-4 h-4" width="16" height="11" viewBox="0 0 16 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M16 5.5C16 5.5 13 0 8 0C3 0 0 5.5 0 5.5C0 5.5 3 11 8 11C13 11 16 5.5 16 5.5ZM1.173 5.5C1.65578 4.76459 2.21197 4.08008 2.833 3.457C4.12 2.168 5.88 1 8 1C10.12 1 11.879 2.168 13.168 3.457C13.789 4.08008 14.3452 4.76459 14.828 5.5C14.7707 5.58667 14.7057 5.68267 14.633 5.788C14.298 6.268 13.803 6.908 13.168 7.543C11.879 8.832 10.119 10 8 10C5.881 10 4.121 8.832 2.832 7.543C2.21097 6.91992 1.65578 6.23541 1.173 5.5Z" fill="#4B4848" />
+                                            <path d="M8 3C7.33696 3 6.70107 3.26339 6.23223 3.73223C5.76339 4.20107 5.5 4.83696 5.5 5.5C5.5 6.16304 5.76339 6.79893 6.23223 7.26777C6.70107 7.73661 7.33696 8 8 8C8.66304 8 9.29893 7.73661 9.76777 7.26777C10.2366 6.79893 10.5 6.16304 10.5 5.5C10.5 4.83696 10.2366 4.20107 9.76777 3.73223C9.29893 3.26339 8.66304 3 8 3ZM4.5 5.5C4.5 4.57174 4.86875 3.6815 5.52513 3.02513C6.1815 2.36875 7.07174 2 8 2C8.92826 2 9.8185 2.36875 10.4749 3.02513C11.1313 3.6815 11.5 4.57174 11.5 5.5C11.5 6.42826 11.1313 7.3185 10.4749 7.97487C9.8185 8.63125 8.92826 9 8 9C7.07174 9 6.1815 8.63125 5.52513 7.97487C4.86875 7.3185 4.5 6.42826 4.5 5.5Z" fill="#4B4848" />
                                         </svg>
                                     </button>
-                                    <ng-container *ngIf="item.status === 'En attente'">
-                                        <!-- Approve Button -->
-                                        <button (click)="openValidationModal(item)"
+                                    <ng-container *ngIf="isPending(item.status)">
+                                        <button (click)="openValidationModal(item)" type="button"
                                             class="text-green-500 hover:text-green-700 transition-colors p-2 rounded-lg hover:bg-green-50 border border-gray-200">
                                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M5 13l4 4L19 7" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                             </svg>
                                         </button>
-                                        <!-- Reject Button -->
-                                        <button (click)="openRejectModal(item)"
+                                        <button (click)="openRejectModal(item)" type="button"
                                             class="text-red-500 hover:text-red-700 transition-colors p-2 rounded-lg hover:bg-red-50 border border-gray-200">
                                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M6 18L18 6M6 6l12 12" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                             </svg>
                                         </button>
                                     </ng-container>
@@ -185,12 +183,12 @@
                     Page {{ currentPage }} sur {{ totalPages }}
                 </div>
                 <div class="flex gap-2">
-                    <button
+                    <button type="button" (click)="goPrev()"
                         class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         [disabled]="currentPage === 1">
                         Précédent
                     </button>
-                    <button
+                    <button type="button" (click)="goNext()"
                         class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         [disabled]="currentPage === totalPages">
                         Suivant
@@ -208,107 +206,94 @@
             <!-- Header -->
             <div
                 class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3 sm:px-6 sm:py-4 border-b border-[#F7FAFC] sticky top-0 bg-white z-10 rounded-t-2xl">
-                <h2 class="text-lg sm:text-xl font-semibold text-gray-900 truncate">Produit {{
-                    selectedDetailRetour!.product.reference }}</h2>
-                <button (click)="closeDetailModal()"
+                <h2 class="text-lg sm:text-xl font-semibold text-gray-900 truncate">Produit {{ selectedDetail?.orderNumber }}</h2>
+                <button (click)="closeDetailModal()" type="button"
                     class="text-gray-400 hover:text-gray-600 transition-colors p-2 sm:p-0">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round" />
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
                 </button>
             </div>
             <!-- Body -->
             <div class="flex-1 overflow-y-auto p-4 sm:p-8">
-                <!-- Product Info -->
-                <div class="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 mb-6 sm:mb-8">
-                    <div
-                        class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-[#E2E2E2] flex-shrink-0 overflow-hidden flex items-center justify-center mx-auto sm:mx-0">
-                        <img [src]="getIconPath(selectedDetailRetour!.product.icon)"
-                            [alt]="selectedDetailRetour!.product.name" class="w-12 h-12 sm:w-16 sm:h-16 object-contain">
+                <div *ngIf="loadingDetail" class="py-8 text-center text-gray-500">Chargement...</div>
+                <ng-container *ngIf="!loadingDetail && selectedDetail">
+                    <!-- Product Info -->
+                    <div class="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 mb-6 sm:mb-8">
+                        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-[#E2E2E2] flex-shrink-0 overflow-hidden flex items-center justify-center mx-auto sm:mx-0">
+                            <img *ngIf="selectedDetail.productImage" [src]="productImageUrl(selectedDetail.productImage)" [alt]="selectedDetail.productName" class="w-12 h-12 sm:w-16 sm:h-16 object-contain">
+                            <img *ngIf="!selectedDetail.productImage" [src]="getIconPath('water')" [alt]="selectedDetail.productName" class="w-12 h-12 sm:w-16 sm:h-16 object-contain">
+                        </div>
+                        <div class="flex-1 text-center sm:text-left">
+                            <h3 class="text-base sm:text-xl font-semibold text-[#333333] mb-1 sm:mb-2">{{ selectedDetail.productName }}</h3>
+                            <p class="text-xs sm:text-sm text-[#4B4848] font-light leading-relaxed">
+                                {{ selectedDetail.comment || 'Aucune description.' }}
+                            </p>
+                        </div>
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-[#F2F2F2] text-[#6B7280] mt-2 sm:mt-0 mx-auto sm:mx-0">{{ selectedDetail.problemTypeLabel }}</span>
                     </div>
-                    <div class="flex-1 text-center sm:text-left">
-                        <h3 class="text-base sm:text-xl font-semibold text-[#333333] mb-1 sm:mb-2">{{
-                            selectedDetailRetour!.product.name }}</h3>
-                        <p class="text-xs sm:text-sm text-[#4B4848] font-light leading-relaxed">
-                            Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has
-                            been the industry's standard dummy text ever since the 1500s,
-                        </p>
-                    </div>
-                    <span
-                        class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-[#F2F2F2] text-[#6B7280] mt-2 sm:mt-0 mx-auto sm:mx-0">{{
-                        selectedDetailRetour!.product.category }}</span>
-                </div>
-                <!-- Details Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-x-8 sm:gap-y-4 mb-4 sm:mb-6">
-                    <div>
-                        <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Client</div>
-                        <div class="text-sm sm:text-base font-medium text-[#4B4848]">{{ selectedDetailRetour?.client }}
+                    <!-- Details Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-x-8 sm:gap-y-4 mb-4 sm:mb-6">
+                        <div>
+                            <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Client</div>
+                            <div class="text-sm sm:text-base font-medium text-[#4B4848]">{{ selectedDetail.employeeName }}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Date</div>
+                            <div class="text-sm sm:text-base font-medium text-[#4B4848]">{{ formatDate(selectedDetail.createdAt) }}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Statut</div>
+                            <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium" [ngClass]="getStatusClass(selectedDetail.status)">
+                                <span class="w-2 h-2 rounded-full" [ngClass]="getStatusDotClass(selectedDetail.status)"></span>
+                                {{ selectedDetail.status }}
+                            </span>
+                        </div>
+                        <div>
+                            <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Montant</div>
+                            <div class="text-sm sm:text-base font-bold text-[#4B4848]">{{ selectedDetail.subtotalProduct | number:'1.0-0' }} Fcfa</div>
+                        </div>
+                        <div>
+                            <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Quantité</div>
+                            <div class="text-sm sm:text-base font-bold text-[#4B4848]">{{ selectedDetail.quantityOrdered }}</div>
                         </div>
                     </div>
-                    <div>
-                        <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Date</div>
-                        <div class="text-sm sm:text-base font-medium text-[#4B4848]">{{ selectedDetailRetour?.date }}
+                    <!-- Motif -->
+                    <div class="mb-4 sm:mb-6">
+                        <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Motif</div>
+                        <div class="text-sm sm:text-base font-medium text-[#4B4848]">{{ selectedDetail.problemTypeLabel }}</div>
+                    </div>
+                    <!-- Motif du rejet (uniquement si rejeté) -->
+                    <div *ngIf="selectedDetail.rejectionReason" class="mb-4 sm:mb-6">
+                        <h3 class="text-base sm:text-lg font-bold text-[#374151] mb-2 sm:mb-3">Motif du rejet</h3>
+                        <div class="bg-[#FF09090F] border border-[#FF090926] rounded-lg p-3 sm:p-4">
+                            <p class="text-xs sm:text-sm text-[#4B4848]">{{ selectedDetail.rejectionReason }}</p>
                         </div>
                     </div>
-                    <div>
-                        <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Statut</div>
-                        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
-                            [ngClass]="getStatusClass(selectedDetailRetour?.status || '')">
-                            <span class="w-2 h-2 rounded-full"
-                                [ngClass]="getStatusDotClass(selectedDetailRetour?.status || '')"></span>
-                            {{ selectedDetailRetour?.status }}
-                        </span>
-                    </div>
-                    <div>
-                        <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Montant</div>
-                        <div class="text-sm sm:text-base font-bold text-[#4B4848]">9 000 Fcfa</div>
-                    </div>
-                    <div>
-                        <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Quantité</div>
-                        <div class="text-sm sm:text-base font-bold text-[#4B4848]">{{ selectedDetailRetour?.quantity }}
-                        </div>
-                    </div>
-                </div>
-                <!-- Motif -->
-                <div class="mb-4 sm:mb-6">
-                    <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Motif</div>
-                    <div class="text-sm sm:text-base font-medium text-[#4B4848]">{{ selectedDetailRetour?.motif }}</div>
-                </div>
-                <!-- Motif du rejet (uniquement si rejeté) -->
-                <div *ngIf="selectedDetailRetour?.status === 'Rejeté'" class="mb-4 sm:mb-6">
-                    <h3 class="text-base sm:text-lg font-bold text-[#374151] mb-2 sm:mb-3">Motif du rejet</h3>
-                    <div class="bg-[#FF09090F] border border-[#FF090926] rounded-lg p-3 sm:p-4">
-                        <p class="text-xs sm:text-sm text-[#4B4848]">
-                            Lorem Ipsum is simply dummy text of the printing and typesetting industry.
-                        </p>
-                    </div>
-                </div>
-                <!-- Action Buttons -->
-                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 mt-2">
-                    <ng-container *ngIf="selectedDetailRetour?.status === 'En attente'">
-                        <button (click)="openValidationModal(selectedDetailRetour!); closeDetailModal()"
-                            class="flex items-center justify-center gap-2 px-4 py-3 sm:px-8 sm:py-3 bg-white text-green-600 border border-[#E5E7EB] rounded-lg font-medium hover:bg-green-50 transition-colors text-sm sm:text-base">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            Valider ce retour
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 mt-2">
+                        <ng-container *ngIf="isPending(selectedDetail.status)">
+                            <button (click)="openValidationFromDetail(); closeDetailModal()" type="button"
+                                class="flex items-center justify-center gap-2 px-4 py-3 sm:px-8 sm:py-3 bg-white text-green-600 border border-[#E5E7EB] rounded-lg font-medium hover:bg-green-50 transition-colors text-sm sm:text-base">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Valider ce retour
+                            </button>
+                            <button (click)="openRejectFromDetail(); closeDetailModal()" type="button"
+                                class="flex items-center justify-center gap-2 px-4 py-3 sm:px-8 sm:py-3 bg-white text-red-600 border border-[#E5E7EB] rounded-lg font-medium hover:bg-red-50 transition-colors text-sm sm:text-base">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Rejeter
+                            </button>
+                        </ng-container>
+                        <button (click)="closeDetailModal()" type="button"
+                            class="px-4 py-3 sm:px-8 sm:py-3 bg-[#DDE2E433] text-[#646B78] rounded-lg font-medium transition-colors text-sm sm:text-base">
+                            {{ isPending(selectedDetail.status) ? 'Fermer' : 'Annuler' }}
                         </button>
-                        <button (click)="openRejectModal(selectedDetailRetour!); closeDetailModal()"
-                            class="flex items-center justify-center gap-2 px-4 py-3 sm:px-8 sm:py-3 bg-white text-red-600 border border-[#E5E7EB] rounded-lg font-medium hover:bg-red-50 transition-colors text-sm sm:text-base">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                            Rejeter
-                        </button>
-                    </ng-container>
-                    <button (click)="closeDetailModal()"
-                        class="px-4 py-3 sm:px-8 sm:py-3 bg-[#DDE2E433] text-[#646B78] rounded-lg font-medium transition-colors text-sm sm:text-base">
-                        {{ selectedDetailRetour?.status === 'En attente' ? 'Fermer' : 'Annuler' }}
-                    </button>
-                </div>
+                    </div>
+                </ng-container>
             </div>
         </div>
     </div>

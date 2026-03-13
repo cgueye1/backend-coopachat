@@ -113,8 +113,9 @@
                         <td class="py-3 px-4 2xl:px-6">
                             <div class="flex items-center gap-3">
                                 <div
-                                    class="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-[#F2F2F2] flex items-center justify-center text-sm lg:text-base font-semibold text-[#4B4848] flex-shrink-0">
-                                    {{ employee.initials }}
+                                    class="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-[#F2F2F2] flex items-center justify-center text-sm lg:text-base font-semibold text-[#4B4848] flex-shrink-0 overflow-hidden">
+                                    <img *ngIf="employee.profilePhotoUrl" [src]="getEmployeePhotoUrl(employee.profilePhotoUrl)" alt="" class="w-full h-full object-cover">
+                                    <span *ngIf="!employee.profilePhotoUrl">{{ employee.initials }}</span>
                                 </div>
                                 <div class="min-w-0">
                                     <div class="text-xs lg:text-sm font-medium text-[#4B4848] truncate">{{ employee.nom
@@ -175,8 +176,15 @@
         <!-- Pagination -->
         <div
             class="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 2xl:p-5 border-t border-gray-100">
-            <div class="text-xs sm:text-sm text-[#4B4848]">
-                Page {{ currentPage }} sur {{ totalPages }}
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-[#4B4848]">
+                <span>Afficher</span>
+                <select [ngModel]="itemsPerPage" (ngModelChange)="onPageSizeChange($event)"
+                    class="pl-2 pr-8 py-1.5 border border-[#EEEEEE] rounded-lg bg-white text-[#4B4848] focus:outline-none focus:border-[#2B3674] appearance-none bg-no-repeat bg-[length:12px_12px] bg-[right_0.4rem_center]"
+                    style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%239CA3AF%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22 d=%22M19 9l-7 7-7-7%22/%3E%3C/svg%3E');">
+                    <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt">{{ opt }}</option>
+                </select>
+                <span>par page</span>
+                <span class="sm:ml-2">· Page {{ currentPage }} sur {{ totalPages }}</span>
             </div>
             <div class="flex gap-2 sm:gap-3">
                 <button (click)="previousPage()" [disabled]="currentPage === 1"
@@ -201,18 +209,18 @@
         (close)="closeModal()"
         (submit)="handleSubmit($event)"></app-employee-modal>
 
-    <!-- ===================== MODAL DETAILS (VOIR) ===================== -->
-    <div *ngIf="showEmployeeModal && selectedEmployee"
-        class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/30 transition-opacity duration-300">
+    <!-- ===================== MODAL DETAILS (VOIR) - Drawer droite ===================== -->
+    <ng-container *ngIf="showEmployeeModal && selectedEmployee">
+    <div class="fixed inset-0 z-50 flex justify-end p-0 sm:p-4 bg-black/30 transition-opacity duration-300"
+        (click)="closeEmployeeModal()">
         <div
-            class="bg-white rounded-2xl shadow-xl w-full max-w-full sm:max-w-lg  2xl:max-w-xl overflow-hidden transform transition-all duration-300 scale-100">
+            class="bg-white w-full max-w-md sm:max-w-lg 2xl:max-w-xl h-full sm:h-auto sm:max-h-[90vh] sm:rounded-2xl shadow-xl overflow-hidden transform transition-all duration-300 flex flex-col"
+            (click)="$event.stopPropagation()">
             <!-- Header -->
             <div
-                class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 sm:p-6 border-b border-gray-100">
-                <h2 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Salarié {{ selectedEmployee.code }}
-                </h2>
-                <button (click)="closeEmployeeModal()" class="self-end sm:self-auto transition-colors">
-                    <!-- Close icon SVG -->
+                class="flex items-center justify-between gap-2 p-4 sm:p-6 border-b border-gray-100 shrink-0">
+                <h2 class="text-lg sm:text-xl font-bold text-gray-900">{{ selectedEmployee.nom }}</h2>
+                <button (click)="closeEmployeeModal()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path
                             d="M12.892 0.302021C12.7995 0.209317 12.6896 0.135769 12.5686 0.085588C12.4477 0.0354065 12.318 0.00957632 12.187 0.00957632C12.0561 0.00957632 11.9264 0.0354065 11.8054 0.085588C11.6844 0.135769 11.5745 0.209317 11.482 0.302021L6.59202 5.18202L1.70202 0.29202C1.60944 0.199438 1.49953 0.125998 1.37856 0.0758934C1.2576 0.0257884 1.12795 9.75509e-10 0.997021 0C0.86609 -9.75509e-10 0.736441 0.0257884 0.615477 0.0758934C0.494513 0.125998 0.384602 0.199438 0.29202 0.29202C0.199438 0.384602 0.125998 0.494513 0.0758934 0.615477C0.0257884 0.736441 -9.75509e-10 0.86609 0 0.997021C9.75509e-10 1.12795 0.0257884 1.2576 0.0758934 1.37856C0.125998 1.49953 0.199438 1.60944 0.29202 1.70202L5.18202 6.59202L0.29202 11.482C0.199438 11.5746 0.125998 11.6845 0.0758934 11.8055C0.0257884 11.9264 0 12.0561 0 12.187C0 12.318 0.0257884 12.4476 0.0758934 12.5686C0.125998 12.6895 0.199438 12.7994 0.29202 12.892C0.384602 12.9846 0.494513 13.058 0.615477 13.1081C0.736441 13.1583 0.86609 13.184 0.997021 13.184C1.12795 13.184 1.2576 13.1583 1.37856 13.1081C1.49953 13.058 1.60944 12.9846 1.70202 12.892L6.59202 8.00202L11.482 12.892C11.5746 12.9846 11.6845 13.058 11.8055 13.1081C11.9264 13.1583 12.0561 13.184 12.187 13.184C12.318 13.184 12.4476 13.1583 12.5686 13.1081C12.6895 13.058 12.7994 12.9846 12.892 12.892C12.9846 12.7994 13.058 12.6895 13.1081 12.5686C13.1583 12.4476 13.184 12.318 13.184 12.187C13.184 12.0561 13.1583 11.9264 13.1081 11.8055C13.058 11.6845 12.9846 11.5746 12.892 11.482L8.00202 6.59202L12.892 1.70202C13.272 1.32202 13.272 0.682021 12.892 0.302021Z"
@@ -220,36 +228,48 @@
                     </svg>
                 </button>
             </div>
-            <!-- Body -->
-            <div class="p-3 sm:p-6 space-y-4 sm:space-y-6">
-                <!-- Employee Avatar and Info -->
-                <div class="flex flex-col items-center text-center">
-                    <div
-                        class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#F2F2F2] flex items-center justify-center text-3xl sm:text-4xl font-semibold text-[#4B4848] mb-4 sm:mb-6 relative">
-                        {{ selectedEmployee.initials }}
-                        <span class="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white"
-                            [class.bg-green-500]="selectedEmployee.statut === 'Actif'"
-                            [class.bg-red-500]="selectedEmployee.statut === 'Inactif'">
-                        </span>
+            <!-- Body: gauche (avatar) + droite (détails) -->
+            <div class="flex-1 overflow-y-auto p-4 sm:p-6">
+                <div class="flex flex-col sm:flex-row gap-6">
+                    <!-- Partie gauche: Avatar + rôle -->
+                    <div class="flex flex-col items-center sm:items-start shrink-0">
+                        <div
+                            class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#F2F2F2] flex items-center justify-center text-3xl sm:text-4xl font-semibold text-[#4B4848] mb-3 relative">
+                            {{ selectedEmployee.initials }}
+                            <span class="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white"
+                                [class.bg-green-500]="selectedEmployee.statut === 'Actif'"
+                                [class.bg-red-500]="selectedEmployee.statut === 'Inactif'">
+                            </span>
+                        </div>
+                        <p class="text-xs font-medium text-[#64748B]">Salarié</p>
+                        <p class="text-xs text-[#64748B]">{{ selectedEmployee.code }}</p>
                     </div>
-                    <h3 class="text-base sm:text-lg text-[#4B4848] mb-1">{{ selectedEmployee.nom }}</h3>
-                    <p class="text-xs text-gray-600">Salarié</p>
-                </div>
-
-                <!-- Employee Details -->
-                <div class="space-y-4 sm:space-y-6">
-                    <!-- Email -->
-                    <div class="flex items-center gap-2 sm:gap-3">
+                    <!-- Partie droite: Détails complets -->
+                    <div class="flex-1 min-w-0 space-y-4">
+                    <!-- Rôle -->
+                    <div class="flex items-center gap-3">
                         <div class="flex-shrink-0">
-                            <!-- Mail icon SVG -->
-                            <svg width="16" height="12" viewBox="0 0 16 12" fill="none"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <path
-                                    d="M0 2C0 1.46957 0.210714 0.960859 0.585786 0.585786C0.960859 0.210714 1.46957 0 2 0H14C14.5304 0 15.0391 0.210714 15.4142 0.585786C15.7893 0.960859 16 1.46957 16 2V10C16 10.5304 15.7893 11.0391 15.4142 11.4142C15.0391 11.7893 14.5304 12 14 12H2C1.46957 12 0.960859 11.7893 0.585786 11.4142C0.210714 11.0391 0 10.5304 0 10V2ZM2 1C1.73478 1 1.48043 1.10536 1.29289 1.29289C1.10536 1.48043 1 1.73478 1 2V2.217L8 6.417L15 2.217V2C15 1.73478 14.8946 1.48043 14.7071 1.29289C14.5196 1.10536 14.2652 1 14 1H2ZM15 3.383L10.292 6.208L15 9.105V3.383ZM14.966 10.259L9.326 6.788L8 7.583L6.674 6.788L1.034 10.258C1.09083 10.4708 1.21632 10.6589 1.39099 10.7931C1.56566 10.9272 1.77975 11 2 11H14C14.2201 11 14.4341 10.9274 14.6088 10.7934C14.7834 10.6595 14.909 10.4716 14.966 10.259ZM1 9.105L5.708 6.208L1 3.383V9.105Z"
-                                    fill="#64748B" />
+                            <svg width="15" height="16" viewBox="0 0 15 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M14.763 0.0748824C14.8354 0.119677 14.8952 0.182228 14.9367 0.256606C14.9782 0.330983 15 0.414722 15 0.499882V15.4999C15 15.6325 14.9473 15.7597 14.8536 15.8534C14.7598 15.9472 14.6326 15.9999 14.5 15.9999H11.5C11.3674 15.9999 11.2402 15.9472 11.1464 15.8534C11.0527 15.7597 11 15.6325 11 15.4999V13.9999H10V15.4999C10 15.6325 9.94732 15.7597 9.85355 15.8534C9.75979 15.9472 9.63261 15.9999 9.5 15.9999H0.5C0.367392 15.9999 0.240215 15.9472 0.146447 15.8534C0.0526784 15.7597 0 15.6325 0 15.4999V9.99988C7.96467e-05 9.89499 0.0331481 9.79277 0.0945249 9.7077C0.155902 9.62264 0.242478 9.55903 0.342 9.52588L6 7.63988V4.49988C6 4.4071 6.02582 4.31616 6.07456 4.23721C6.12331 4.15827 6.19305 4.09445 6.276 4.05288L14.276 0.0528824C14.3523 0.0146883 14.4371 -0.00334141 14.5224 0.00050948C14.6076 0.00436037 14.6904 0.0299637 14.763 0.0748824ZM6 8.69388L1 10.3599V14.9999H6V8.69388ZM7 14.9999H9V13.4999C9 13.3673 9.05268 13.2401 9.14645 13.1463C9.24021 13.0526 9.36739 12.9999 9.5 12.9999H11.5C11.6326 12.9999 11.7598 13.0526 11.8536 13.1463C11.9473 13.2401 12 13.3673 12 13.4999V14.9999H14V1.30888L7 4.80888V14.9999Z" fill="#64748B"/>
+                                <path d="M2 11H3V12H2V11ZM4 11H5V12H4V11ZM2 13H3V14H2V13ZM4 13H5V14H4V13ZM8 9H9V10H8V9ZM10 9H11V10H10V9ZM8 11H9V12H8V11ZM10 11H11V12H10V11ZM12 9H13V10H12V9ZM12 11H13V12H12V11ZM8 7H9V8H8V7ZM10 7H11V8H10V7ZM12 7H13V8H12V7ZM8 5H9V6H8V5ZM10 5H11V6H10V5ZM12 5H13V6H12V5ZM12 3H13V4H12V3Z" fill="#64748B"/>
                             </svg>
                         </div>
-                        <p class="text-sm text-[#333333]">{{ selectedEmployee.email }}</p>
+                        <div class="flex justify-between items-center w-full">
+                            <p class="text-sm text-[#333333]">Salarié</p>
+                            <p class="text-xs font-light text-[#64748B]">Rôle</p>
+                        </div>
+                    </div>
+                    <!-- Email -->
+                    <div class="flex items-center gap-3">
+                        <div class="flex-shrink-0">
+                            <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M0 2C0 1.46957 0.210714 0.960859 0.585786 0.585786C0.960859 0.210714 1.46957 0 2 0H14C14.5304 0 15.0391 0.210714 15.4142 0.585786C15.7893 0.960859 16 1.46957 16 2V10C16 10.5304 15.7893 11.0391 15.4142 11.4142C15.0391 11.7893 14.5304 12 14 12H2C1.46957 12 0.960859 11.7893 0.585786 11.4142C0.210714 11.0391 0 10.5304 0 10V2ZM2 1C1.73478 1 1.48043 1.10536 1.29289 1.29289C1.10536 1.48043 1 1.73478 1 2V2.217L8 6.417L15 2.217V2C15 1.73478 14.8946 1.48043 14.7071 1.29289C14.5196 1.10536 14.2652 1 14 1H2ZM15 3.383L10.292 6.208L15 9.105V3.383ZM14.966 10.259L9.326 6.788L8 7.583L6.674 6.788L1.034 10.258C1.09083 10.4708 1.21632 10.6589 1.39099 10.7931C1.56566 10.9272 1.77975 11 2 11H14C14.2201 11 14.4341 10.9274 14.6088 10.7934C14.7834 10.6595 14.909 10.4716 14.966 10.259ZM1 9.105L5.708 6.208L1 3.383V9.105Z" fill="#64748B"/>
+                            </svg>
+                        </div>
+                        <div class="flex justify-between items-center w-full">
+                            <p class="text-sm text-[#333333]">{{ selectedEmployee.email }}</p>
+                            <p class="text-xs font-light text-[#64748B]">Email</p>
+                        </div>
                     </div>
                     <!-- Téléphone -->
                     <div class="flex items-center gap-3">
@@ -262,7 +282,10 @@
                                     fill="#64748B" />
                             </svg>
                         </div>
-                        <p class="text-sm text-[#333333]">{{ selectedEmployee.telephone }}</p>
+                        <div class="flex justify-between items-center w-full">
+                            <p class="text-sm text-[#333333]">{{ selectedEmployee.telephone }}</p>
+                            <p class="text-xs font-light text-[#64748B]">Téléphone</p>
+                        </div>
                     </div>
                     <!-- Adresse -->
                     <div class="flex items-center gap-3">
@@ -278,7 +301,10 @@
                                     fill="#64748B" />
                             </svg>
                         </div>
-                        <p class="text-sm text-[#333333]">{{ selectedEmployee.adresse }}</p>
+                        <div class="flex justify-between items-center w-full">
+                            <p class="text-sm text-[#333333]">{{ selectedEmployee.adresse || '—' }}</p>
+                            <p class="text-xs font-light text-[#64748B]">Adresse</p>
+                        </div>
                     </div>
                     <!-- Entreprise -->
                     <div class="flex items-center gap-3">
@@ -330,9 +356,10 @@
                                 </div>
                             </div>
                         </button>
-                        <span class="text-sm text-[#333333]">Salarié activé</span>
+                        <span class="text-sm text-[#333333]">{{ selectedEmployee.statut === 'Actif' ? 'Utilisateur activé' : 'Utilisateur désactivé' }}</span>
                     </div>
                 </div>
+            </div>
             </div>
 
             <!-- Footer -->
@@ -348,4 +375,5 @@
             </div>
         </div>
     </div>
+    </ng-container>
 </app-main-layout>

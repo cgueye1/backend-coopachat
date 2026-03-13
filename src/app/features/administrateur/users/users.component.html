@@ -32,7 +32,8 @@
                             d="M13.1539 12.2073L10.6806 9.75393C11.6407 8.55687 12.1056 7.03747 11.9798 5.50813C11.854 3.9788 11.147 2.55579 10.0043 1.5317C8.86151 0.507604 7.3698 -0.0397263 5.83588 0.00224731C4.30196 0.0442209 2.84241 0.672308 1.75736 1.75736C0.672308 2.84241 0.0442209 4.30196 0.00224731 5.83588C-0.0397263 7.3698 0.507604 8.86151 1.5317 10.0043C2.55579 11.147 3.9788 11.854 5.50813 11.9798C7.03747 12.1056 8.55687 11.6407 9.75393 10.6806L12.2073 13.1339C12.2692 13.1964 12.343 13.246 12.4242 13.2799C12.5055 13.3137 12.5926 13.3311 12.6806 13.3311C12.7686 13.3311 12.8557 13.3137 12.937 13.2799C13.0182 13.246 13.092 13.1964 13.1539 13.1339C13.2741 13.0096 13.3413 12.8435 13.3413 12.6706C13.3413 12.4977 13.2741 12.3316 13.1539 12.2073ZM6.01393 10.6806C5.09095 10.6806 4.1887 10.4069 3.42127 9.89412C2.65384 9.38134 2.0557 8.65251 1.7025 7.79979C1.34929 6.94707 1.25687 6.00876 1.43694 5.10351C1.617 4.19827 2.06146 3.36675 2.7141 2.7141C3.36675 2.06146 4.19827 1.617 5.10351 1.43694C6.00876 1.25687 6.94707 1.34929 7.79979 1.7025C8.65251 2.0557 9.38134 2.65384 9.89412 3.42127C10.4069 4.1887 10.6806 5.09095 10.6806 6.01393C10.6806 7.25161 10.1889 8.43859 9.31376 9.31376C8.43859 10.1889 7.25161 10.6806 6.01393 10.6806Z"
                             fill="#777777" />
                     </svg>
-                    <input type="text" placeholder="Rechercher par référence ou produit..." [(ngModel)]="searchText"
+                    <input type="text" placeholder="Rechercher par référence, nom ou email..." [(ngModel)]="searchText"
+                        (input)="onSearchInput()"
                         class="w-full pl-10 pr-3 py-2.5 border border-[#EEEEEE] rounded-lg focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-xs sm:pl-12 sm:pr-4 sm:py-3 sm:text-sm bg-white placeholder-[#777777]">
                 </div>
 
@@ -112,16 +113,23 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        <tr *ngFor="let user of filteredUsers" class="hover:bg-gray-50 transition-colors">
+                        <tr *ngIf="loading" class="hover:bg-gray-50">
+                            <td colspan="6" class="py-8 text-center text-sm text-[#6B7280]">Chargement...</td>
+                        </tr>
+                        <tr *ngIf="!loading && users.length === 0" class="hover:bg-gray-50">
+                            <td colspan="6" class="py-8 text-center text-sm text-[#6B7280]">Aucun utilisateur trouvé.</td>
+                        </tr>
+                        <tr *ngFor="let user of users" class="hover:bg-gray-50 transition-colors">
                             <td class="py-2 px-2 sm:py-3 sm:px-4">
                                 <div class="flex items-center gap-2 sm:gap-3">
                                     <div
-                                        class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-[#F2F2F2] flex items-center justify-center text-xs sm:text-base font-semibold text-[#4B4848]">
-                                        {{ user.initials }}
+                                        class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-[#F2F2F2] flex items-center justify-center text-xs sm:text-base font-semibold text-[#4B4848] overflow-hidden flex-shrink-0">
+                                        <img *ngIf="user.profilePhotoUrl" [src]="user.profilePhotoUrl" [alt]="user.name" class="w-full h-full object-cover" />
+                                        <span *ngIf="!user.profilePhotoUrl">{{ user.initials }}</span>
                                     </div>
                                     <div>
                                         <div class="text-xs sm:text-sm font-medium text-[#4B4848]">{{ user.name }}</div>
-                                        <div class="text-[10px] sm:text-xs text-[#6B7280]">{{ user.id }}</div>
+                                        <div class="text-[10px] sm:text-xs text-[#6B7280]">{{ user.ref }}</div>
                                     </div>
                                 </div>
                             </td>
@@ -157,8 +165,8 @@
                                                 fill="#F68647" />
                                         </svg>
                                     </button>
-                                    <button (click)="toggleUserStatus(user)"
-                                        class="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                                    <button (click)="toggleUserStatus(user)" [disabled]="toggleLoadingId === user.id"
+                                        class="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50">
                                         <div
                                             [class]="'w-6 h-3.5 rounded-full relative transition-colors ' + (user.status === 'Actif' ? 'bg-gradient-to-r from-[#FF6B00] to-[#FF914D]' : 'bg-gray-300')">
                                             <div
@@ -176,8 +184,15 @@
             <!-- Pagination -->
             <div
                 class="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0 px-4 sm:px-6 py-3 sm:py-4 border-t border-[#F4F7FE]">
-                <div class="text-xs sm:text-sm text-[#4B4848]">
-                    Page {{ currentPage }} sur {{ totalPages }}
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-[#4B4848]">
+                    <span>Afficher</span>
+                    <select [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)"
+                        class="pl-2 pr-8 py-1.5 border border-[#EEEEEE] rounded-lg bg-white text-[#4B4848] focus:outline-none focus:border-[#2B3674] appearance-none bg-[length:12px_12px] bg-[right_0.4rem_center] bg-no-repeat"
+                        style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%239CA3AF%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22 d=%22M19 9l-7 7-7-7%22/%3E%3C/svg%3E');">
+                        <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt">{{ opt }}</option>
+                    </select>
+                    <span>par page</span>
+                    <span class="sm:ml-2">· Page {{ currentPage }} sur {{ totalPages }}</span>
                 </div>
                 <div class="flex gap-1.5 sm:gap-2">
                     <button (click)="previousPage()" [disabled]="currentPage === 1"
@@ -221,7 +236,7 @@
                 (click)="$event.stopPropagation()">
                 <!-- Modal Header -->
                 <div class="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-6 border-b border-gray-100">
-                    <h2 class="text-lg font-semibold sm:text-xl">Utilisateur {{ selectedUser.id }}</h2>
+                    <h2 class="text-lg font-semibold sm:text-xl">Utilisateur {{ selectedUser.ref }}</h2>
                     <button (click)="closeUserModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                         <!-- Close icon SVG placeholder -->
                         <svg class="w-6 h-6" width="14" height="14" viewBox="0 0 14 14" fill="none"
@@ -237,8 +252,9 @@
                     <!-- User Avatar and Info -->
                     <div class="flex flex-col items-center text-center">
                         <div
-                            class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#F2F2F2] flex items-center justify-center text-2xl sm:text-4xl font-semibold text-[#4B4848] mb-4 sm:mb-6 relative">
-                            {{ selectedUser.initials }}
+                            class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#F2F2F2] flex items-center justify-center text-2xl sm:text-4xl font-semibold text-[#4B4848] mb-4 sm:mb-6 relative overflow-hidden">
+                            <img *ngIf="selectedUser.profilePhotoUrl" [src]="selectedUser.profilePhotoUrl" [alt]="selectedUser.name" class="w-full h-full object-cover" />
+                            <span *ngIf="!selectedUser.profilePhotoUrl">{{ selectedUser.initials }}</span>
                             <span class="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white"
                                 [class.bg-green-500]="selectedUser.status === 'Actif'"
                                 [class.bg-red-500]="selectedUser.status === 'Inactif'">
@@ -279,8 +295,9 @@
                                 </svg>
 
                             </div>
-                            <div class="flex-1">
+                            <div class="flex items-center justify-between w-full">
                                 <p class="text-xs sm:text-sm text-gray-900">{{ selectedUser.email }}</p>
+                                <p class="text-[10px] sm:text-xs text-gray-500">Email</p>
                             </div>
                         </div>
                         <!-- Phone -->
@@ -295,8 +312,9 @@
                                 </svg>
 
                             </div>
-                            <div class="flex-1">
+                            <div class="flex items-center justify-between w-full">
                                 <p class="text-xs sm:text-sm text-gray-900">{{ selectedUser.phone }}</p>
+                                <p class="text-[10px] sm:text-xs text-gray-500">Téléphone</p>
                             </div>
                         </div>
                         <!-- Date d'inscription -->
@@ -330,7 +348,7 @@
                                     </div>
                                 </div>
                             </button>
-                            <span class="text-xs sm:text-sm text-gray-700 ml-2">Utilisateur activé</span>
+                            <span class="text-xs sm:text-sm text-gray-700 ml-2">{{ selectedUser.status === 'Actif' ? 'Utilisateur activé' : 'Utilisateur désactivé' }}</span>
                         </div>
                     </div>
                 </div>

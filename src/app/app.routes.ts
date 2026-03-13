@@ -68,8 +68,16 @@ export const routes: Routes = [
     loadComponent: () => import('./features/administrateur/add-user/add-user.component').then(c => c.AddUserComponent)
   },
   {
+    path: 'admin/users/edit/:id',
+    loadComponent: () => import('./features/administrateur/add-user/add-user.component').then(c => c.AddUserComponent)
+  },
+  {
     path: 'admin/catalogue',
     loadComponent: () => import('./features/administrateur/catalogue/catalogue.component').then(c => c.CatalogueComponent)
+  },
+  {
+    path: 'admin/categories',
+    loadComponent: () => import('./features/administrateur/categories/categories.component').then(c => c.CategoriesComponent)
   },
   {
     path: 'admin/add-produit',
@@ -81,8 +89,14 @@ export const routes: Routes = [
     loadComponent: () => import('./features/commercial/dashboard/dashboard.component').then(c => c.DashboardComponent)
   },
   {
-    path: 'com/propection',
-    loadComponent: () => import('./features/commercial/propection/propection.component').then(c => c.ProspectionComponent)
+    path: 'com/prospections',
+    loadComponent: () => import('./features/commercial/propection/propection.component').then(c => c.ProspectionComponent),
+    data: { mode: 'prospects' }
+  },
+  {
+    path: 'com/entreprises',
+    loadComponent: () => import('./features/commercial/propection/propection.component').then(c => c.ProspectionComponent),
+    data: { mode: 'partenaires' }
   },
   {
     path: 'com/salaries',

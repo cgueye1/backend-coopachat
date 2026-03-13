@@ -1,8 +1,9 @@
-import { Component, Input, OnChanges, SimpleChanges, OnInit, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Input, OnChanges, SimpleChanges, OnInit, Output, EventEmitter, PLATFORM_ID, Inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Router, NavigationEnd, RouterModule } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../shared/services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 type Role = 'log' | 'com' | 'admin' | 'commercial';
 
@@ -23,18 +24,21 @@ export class SidebarComponent implements OnChanges, OnInit {
   // Informations utilisateur affichées dans le profil
   displayName = 'Utilisateur';
   displayRoleLabel = 'Commercial';
+  /** URL complète de la photo de profil (pour la sidebar), ou null si pas de photo. */
+  displayProfilePhotoUrl: string | null = null;
 
   constructor(
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
   private readonly menuItems = [
     { label: 'Tableau de bord', icon: 'dashboard', link: '/com/dashboard', active: false },
-    { label: 'Prospections', icon: 'prospection', link: '/com/propection', active: false },
+    { label: 'Prospections', icon: 'prospection', link: '/com/prospections', active: false },
+    { label: 'Entreprises', icon: 'entreprises', link: '/com/entreprises', active: false },
     { label: 'Gestion salariés', icon: 'salaries', link: '/com/salaries', active: false },
-    { label: 'Statistiques', icon: 'statistiques', link: '/com/statistiques', active: false },
-    { label: 'Promotions', icon: 'promotion', link: '/com/promotions', active: false },
+    { label: 'Promotions/Coupons', icon: 'promotion', link: '/com/promotions', active: false },
 
     { label: 'Tableau de bord', icon: 'dashboard', link: '/log/dashboardlog', active: false },
     { label: 'Commandes Fournisseurs', icon: 'fournisseurs', link: '/log/fournisseurs', active: false },
@@ -47,7 +51,7 @@ export class SidebarComponent implements OnChanges, OnInit {
     { label: 'Tableau de bord', icon: 'dashboard', link: '/admin/dashboardadmin', active: false },
     { label: 'Utilisateurs', icon: 'users', link: '/admin/users', active: false },
     { label: 'Catalogue', icon: 'catalogue', link: '/admin/catalogue', active: false },
-
+    { label: 'Catégories', icon: 'categories', link: '/admin/categories', active: false },
   ];
 
   filteredMenuItems = this.menuItems.slice();
@@ -64,8 +68,11 @@ export class SidebarComponent implements OnChanges, OnInit {
         this.updateActiveState();
       });
 
-    // Charger les infos utilisateur stockées
-    this.loadUserFromStorage();
+    // Charger les infos utilisateur stockées (uniquement en navigateur, pas en SSR)
+    if (isPlatformBrowser(this.platformId)) {
+      this.loadUserFromStorage();
+      this.refreshProfileFromApi();
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -119,15 +126,16 @@ export class SidebarComponent implements OnChanges, OnInit {
     this.userMenuOpen = false;
   }
 
-  // Actions du menu utilisateur
-  goToProfile() {
-    console.log('Redirection vers Mon compte');
-    // Implémentez ici la navigation vers la page de profil
-    // Par exemple : this.router.navigate(['/profile']);
-    this.closeMenus();
+  /** Si l'image de profil ne charge pas (404, CORS, etc.), afficher le placeholder. */
+  onProfileImageError(): void {
+    this.displayProfilePhotoUrl = null;
   }
 
   logout() {
+    if (!isPlatformBrowser(this.platformId)) {
+      this.finishLogout();
+      return;
+    }
     const token =
       sessionStorage.getItem('token') ||
       localStorage.getItem('token') ||
@@ -143,8 +151,44 @@ export class SidebarComponent implements OnChanges, OnInit {
     }
   }
 
-  // Charger le nom/prénom et le rôle depuis le storage
+  /** Au chargement, si l'utilisateur est connecté, recharge le profil depuis l'API pour afficher la photo et les infos à jour (ex. après rechargement de page). */
+  private refreshProfileFromApi(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const token = sessionStorage.getItem('token') || localStorage.getItem('token') || '';
+    if (!token) return;
+
+    this.authService.getCurrentUserProfile().subscribe({
+      next: (profile) => {
+        const fullName = `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim();
+        const emailName = profile.email ? profile.email.split('@')[0] : '';
+        this.displayName = fullName || emailName || 'Utilisateur';
+        this.displayRoleLabel = profile.roleLabel ?? profile.role ?? '';
+
+        const rawUrl = profile.profilePhotoUrl?.trim() ?? '';
+        if (rawUrl) {
+          const base = (environment as { imageServerUrl?: string }).imageServerUrl?.replace(/\/$/, '') ?? '';
+          this.displayProfilePhotoUrl = base ? `${base}/files/${rawUrl}` : `/files/${rawUrl}`;
+        } else {
+          this.displayProfilePhotoUrl = null;
+        }
+
+        // Persister dans les deux storages pour que loadUserFromStorage retrouve les infos au prochain rechargement
+        const roleVal = profile.roleLabel ?? profile.role ?? '';
+        [sessionStorage, localStorage].forEach(storage => {
+          if (profile.firstName != null) storage.setItem('firstName', profile.firstName);
+          if (profile.lastName != null) storage.setItem('lastName', profile.lastName);
+          if (profile.email != null) storage.setItem('email', profile.email);
+          if (roleVal) storage.setItem('role', roleVal);
+          if (rawUrl) storage.setItem('profilePhotoUrl', rawUrl);
+        });
+      },
+      error: () => { /* garder les valeurs du storage en cas d'erreur */ }
+    });
+  }
+
+  // Charger le nom/prénom et le rôle depuis le storage (appelé uniquement en navigateur)
   private loadUserFromStorage(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
     const firstName =
       sessionStorage.getItem('firstName') ||
       localStorage.getItem('firstName') ||
@@ -166,23 +210,38 @@ export class SidebarComponent implements OnChanges, OnInit {
     const emailName = email ? email.split('@')[0] : '';
     this.displayName = fullName || emailName || 'Utilisateur';
     this.displayRoleLabel = role || 'Commercial';
+
+    const profilePhotoUrl =
+      sessionStorage.getItem('profilePhotoUrl') ||
+      localStorage.getItem('profilePhotoUrl') ||
+      '';
+    if (profilePhotoUrl.trim()) {
+      const base = (environment as { imageServerUrl?: string }).imageServerUrl?.replace(/\/$/, '') ?? '';
+      this.displayProfilePhotoUrl = base ? `${base}/files/${profilePhotoUrl}` : `/files/${profilePhotoUrl}`;
+    } else {
+      this.displayProfilePhotoUrl = null;
+    }
   }
 
   // Nettoyer la session et rediriger
   private finishLogout(): void {
-    sessionStorage.removeItem('token');
-    sessionStorage.removeItem('role');
-    sessionStorage.removeItem('firstName');
-    sessionStorage.removeItem('lastName');
-    sessionStorage.removeItem('email');
-    sessionStorage.removeItem('otpEmail');
-    sessionStorage.removeItem('verificationEmail');
+    if (isPlatformBrowser(this.platformId)) {
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('role');
+      sessionStorage.removeItem('firstName');
+      sessionStorage.removeItem('lastName');
+      sessionStorage.removeItem('email');
+      sessionStorage.removeItem('otpEmail');
+      sessionStorage.removeItem('verificationEmail');
+      sessionStorage.removeItem('profilePhotoUrl');
 
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('firstName');
-    localStorage.removeItem('lastName');
-    localStorage.removeItem('email');
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
+      localStorage.removeItem('firstName');
+      localStorage.removeItem('lastName');
+      localStorage.removeItem('email');
+      localStorage.removeItem('profilePhotoUrl');
+    }
 
     this.closeMenus();
     this.router.navigate(['/login']);

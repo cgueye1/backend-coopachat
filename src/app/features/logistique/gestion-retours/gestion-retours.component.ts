@@ -2,31 +2,21 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
+import {
+  LogisticsService,
+  ClaimStats,
+  ClaimListItem,
+  ClaimDetail,
+  ClaimListResponse
+} from '../../../shared/services/logistics.service';
+import { environment } from '../../../../environments/environment';
 import Swal from 'sweetalert2';
 
 interface Metric {
   title: string;
   value: string;
   icon: string;
-
 }
-
-interface Retour {
-  id: string;
-  product: {
-    name: string;
-    reference: string;
-    icon: string;
-    category: string;
-  };
-  client: string;
-  quantity: number;
-  motif: string;
-  date: string;
-  status: 'En attente' | 'Validé' | 'En cours' | 'Rejeté';
-  decision?: string;
-}
-
 
 @Component({
   selector: 'app-gestion-retours',
@@ -36,280 +26,339 @@ interface Retour {
   styles: []
 })
 export class GestionRetoursComponent {
-  searchText: string = '';
-  selectedStatus: string = 'Tous les status';
-  showStatusDropdown: boolean = false;
-  currentPage: number = 1;
-  totalPages: number = 6;
+  searchText = '';
+  selectedStatus = 'Tous les status';
+  showStatusDropdown = false;
+  currentPage = 1;
+  itemsPerPage = 10;
+  totalPages = 1;
+  totalElements = 0;
 
-  // Modal Logic
-  showDetailModal: boolean = false;
-  selectedDetailRetour: Retour | null = null;
-  showValidationModal: boolean = false;
-  selectedRetour: Retour | null = null;
-  validationOption: string = 'reintegrer';
+  listResponse: ClaimListResponse | null = null;
+  loading = false;
+  loadingStats = false;
+  loadingDetail = false;
+
+  showDetailModal = false;
+  selectedDetail: ClaimDetail | null = null;
+  showValidationModal = false;
+  selectedClaim: ClaimListItem | null = null;
+  validationOption: 'reintegrer' | 'rembourser' = 'reintegrer';
   validationOptions = [
     { value: 'reintegrer', label: 'Réintégrer au stock' },
     { value: 'rembourser', label: 'Rembourser le stock' }
   ];
-  showRefundModal: boolean = false;
+  showRefundModal = false;
   refundAmount: number | null = null;
-  showRejectModal: boolean = false;
-  rejectReason: string = '';
-  selectedRetourToReject: Retour | null = null;
+  showRejectModal = false;
+  rejectReason = '';
+  selectedClaimToReject: ClaimListItem | null = null;
 
   metricsData: Metric[] = [
-    { title: 'Total', value: '03', icon: 'box-blue', },
-    { title: 'Validés', value: '01', icon: 'check-green', },
-    { title: 'Rejetés', value: '01', icon: 'box-red', },
-    { title: 'Réintégrés', value: '01', icon: 'box-indigo', },
-    { title: 'Montant remboursé', value: '25 000 F', icon: 'money-green', }
+    { title: 'Total', value: '0', icon: 'box-blue' },
+    { title: 'Validés', value: '0', icon: 'check-green' },
+    { title: 'Rejetés', value: '0', icon: 'box-red' },
+    { title: 'Réintégrés', value: '0', icon: 'box-indigo' },
+    { title: 'Montant remboursé', value: '0 F', icon: 'money-green' }
   ];
 
-  retours: Retour[] = [
-    {
-      id: '1',
-      product: { name: 'Eau 1.5L (x6)', reference: 'CP-2025-03', icon: 'water', category: 'Épicerie' },
-      client: 'Amadou Ndiaye',
-      quantity: 6,
-      motif: 'Bouteill fuyarde',
-      date: '05/10/2025',
-      status: 'En attente'
-    },
-    {
-      id: '2',
-      product: { name: 'Lait 1L', reference: 'CP-2025-02', icon: 'milk', category: 'Épicerie' },
-      client: 'Elimane Ndiaye',
-      quantity: 10,
-      motif: 'Date courte',
-      date: '05/10/2025',
-      status: 'Validé'
-    },
-    {
-      id: '3',
-      product: { name: 'Eau 1.5L (x6)', reference: 'CP-2025-03', icon: 'water', category: 'Épicerie' },
-      client: 'Moussa Faye',
-      quantity: 4,
-      motif: 'Bouteill fuyarde',
-      date: '05/10/2025',
-      status: 'En cours'
-    },
-    {
-      id: '4',
-      product: { name: 'Savon 250g', reference: 'CP-2025-01', icon: 'soap', category: 'Épicerie' },
-      client: 'Khadija Diallo',
-      quantity: 2,
-      motif: 'Bouteill fuyarde',
-      date: '05/10/2025',
-      status: 'Rejeté',
-      decision: 'Réintégration'
-    }
+  statusOptions = [
+    { label: 'Tous les status', value: '' },
+    { label: 'En Attente', value: 'EN_ATTENTE' },
+    { label: 'Validé', value: 'VALIDE' },
+    { label: 'Rejeté', value: 'REJETE' }
   ];
 
-  get uniqueStatuses(): string[] {
-    const statuses = new Set(this.retours.map(r => r.status));
-    return ['Tous les status', ...Array.from(statuses)];
+  constructor(private logisticsService: LogisticsService) {
+    this.loadStats();
+    this.loadClaims();
   }
 
-  get filteredRetours(): Retour[] {
-    return this.retours.filter(retour => {
-      const matchesSearch =
-        retour.product.name.toLowerCase().includes(this.searchText.toLowerCase()) ||
-        retour.product.reference.toLowerCase().includes(this.searchText.toLowerCase()) ||
-        retour.client.toLowerCase().includes(this.searchText.toLowerCase());
+  get content(): ClaimListItem[] {
+    return this.listResponse?.content ?? [];
+  }
 
-      const matchesStatus = this.selectedStatus === 'Tous les status' || retour.status === this.selectedStatus;
-
-      return matchesSearch && matchesStatus;
+  loadStats(): void {
+    this.loadingStats = true;
+    this.logisticsService.getClaimStats().subscribe({
+      next: (stats: ClaimStats) => {
+        this.metricsData[0].value = String(stats.total);
+        this.metricsData[1].value = String(stats.validatedCount);
+        this.metricsData[2].value = String(stats.rejectedCount);
+        this.metricsData[3].value = String(stats.reintegratedCount);
+        const amount = stats.totalRefundAmount ?? 0;
+        this.metricsData[4].value = amount > 0 ? `${Number(amount).toLocaleString('fr-FR')} F` : '0 F';
+        this.loadingStats = false;
+      },
+      error: () => {
+        this.loadingStats = false;
+      }
     });
   }
 
-  toggleStatusDropdown() {
+  loadClaims(): void {
+    this.loading = true;
+    const page = this.currentPage - 1;
+    const statusParam = this.statusOptions.find(s => s.label === this.selectedStatus)?.value ?? '';
+    this.logisticsService.getClaims(page, this.itemsPerPage, this.searchText.trim() || undefined, statusParam || undefined).subscribe({
+      next: (res) => {
+        this.listResponse = res;
+        this.totalPages = Math.max(1, res.totalPages);
+        this.totalElements = res.totalElements;
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+      }
+    });
+  }
+
+  onSearch(): void {
+    this.currentPage = 1;
+    this.loadClaims();
+  }
+
+  toggleStatusDropdown(): void {
     this.showStatusDropdown = !this.showStatusDropdown;
   }
 
-  selectStatus(status: string) {
-    this.selectedStatus = status;
+  selectStatus(label: string): void {
+    this.selectedStatus = label;
     this.showStatusDropdown = false;
+    this.currentPage = 1;
+    this.loadClaims();
   }
 
-  openDetailModal(retour: Retour) {
-    this.selectedDetailRetour = retour;
+  goPrev(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.loadClaims();
+    }
+  }
+
+  goNext(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.loadClaims();
+    }
+  }
+
+  formatDate(d: string | null): string {
+    if (!d) return '-';
+    const date = new Date(d);
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  openDetailModal(item: ClaimListItem): void {
+    this.loadingDetail = true;
     this.showDetailModal = true;
+    this.selectedDetail = null;
+    this.logisticsService.getClaimById(item.claimId).subscribe({
+      next: (detail) => {
+        this.selectedDetail = detail;
+        this.loadingDetail = false;
+      },
+      error: () => {
+        this.loadingDetail = false;
+      }
+    });
   }
 
-  closeDetailModal() {
+  closeDetailModal(): void {
     this.showDetailModal = false;
-    this.selectedDetailRetour = null;
+    this.selectedDetail = null;
   }
 
   getStatusClass(status: string): string {
-    switch (status) {
-      case 'En attente': return 'bg-gray-100 text-gray-600';
-      case 'Validé': return 'bg-[#0A97480F] text-[#0A9748]';
-      case 'En cours': return 'bg-[#EAB3080F] text-[#EAB308]';
-      case 'Rejeté': return 'bg-[#FF09090F] text-[#FF0909]';
-      default: return 'bg-gray-50 text-gray-600';
-    }
+    if (!status) return 'bg-gray-100 text-gray-600';
+    if (status.includes('Attente') || status === 'En attente') return 'bg-gray-100 text-gray-600';
+    if (status.includes('Validé') || status === 'Validé') return 'bg-[#0A97480F] text-[#0A9748]';
+    if (status.includes('Rejeté') || status === 'Rejeté') return 'bg-[#FF09090F] text-[#FF0909]';
+    return 'bg-gray-50 text-gray-600';
   }
 
   getIconPath(iconName: string): string {
     const iconMap: { [key: string]: string } = {
-      'water': '/icones/eau.svg',
-      'milk': '/icones/lait.svg',
-      'soap': '/icones/savon.svg',
+      water: '/icones/eau.svg',
+      milk: '/icones/lait.svg',
+      soap: '/icones/savon.svg',
       'box-blue': '/icones/commandefour.svg',
       'check-green': '/icones/green-box.svg',
       'box-red': '/icones/red-box.svg',
       'box-indigo': '/icones/purple-box.svg',
       'money-green': '/icones/money.svg'
     };
-    return iconMap[iconName] || '/icones/stocks.svg';
+    return iconMap[iconName] ?? '/icones/stocks.svg';
   }
 
   getStatusDotClass(status: string): string {
-    switch (status) {
-      case 'En attente': return 'bg-gray-500';
-      case 'Validé': return 'bg-[#0A9748]';
-      case 'En cours': return 'bg-[#EAB308]';
-      case 'Rejeté': return 'bg-[#FF0909]';
-      default: return 'bg-gray-500';
-    }
+    if (!status) return 'bg-gray-500';
+    if (status.includes('Attente') || status === 'En attente') return 'bg-gray-500';
+    if (status.includes('Validé') || status === 'Validé') return 'bg-[#0A9748]';
+    if (status.includes('Rejeté') || status === 'Rejeté') return 'bg-[#FF0909]';
+    return 'bg-gray-500';
   }
 
-  openValidationModal(retour: Retour) {
-    this.selectedRetour = retour;
+  productImageUrl(img: string | null): string {
+    if (!img) return '';
+    if (img.startsWith('http')) return img;
+    const base = (environment as { apiUrl?: string }).apiUrl ?? '';
+    return base ? `${base.replace(/\/api\/?$/, '')}${img.startsWith('/') ? '' : '/'}${img}` : img;
+  }
+
+  isPending(status: string): boolean {
+    return status?.includes('Attente') === true || status === 'En attente';
+  }
+
+  openValidationModal(item: ClaimListItem): void {
+    this.selectedClaim = item;
     this.validationOption = 'reintegrer';
     this.showValidationModal = true;
   }
 
-  closeValidationModal() {
-    this.showValidationModal = false;
+  /** Ouvre le modal de validation depuis le détail (on n'a que selectedDetail). */
+  openValidationFromDetail(): void {
+    if (!this.selectedDetail) return;
+    this.selectedClaim = { claimId: this.selectedDetail.claimId } as ClaimListItem;
     this.validationOption = 'reintegrer';
+    this.showValidationModal = true;
   }
 
-  validateRetour() {
-    if (this.selectedRetour && this.validationOption === 'reintegrer') {
-      this.selectedRetour.status = 'Validé';
-      this.closeValidationModal();
-      this.showSuccessMessage();
-      this.selectedRetour = null;
-    } else if (this.selectedRetour && this.validationOption === 'rembourser') {
-      this.closeValidationModal();
-      this.openRefundModal();
-    }
-  }
-
-  openRefundModal() {
-    this.showRefundModal = true;
-    this.refundAmount = null;
-  }
-
-  closeRefundModal() {
-    this.showRefundModal = false;
-    this.refundAmount = null;
-    this.selectedRetour = null;
-  }
-
-  saveRefund() {
-    if (this.selectedRetour) {
-      this.selectedRetour.status = 'Validé';
-      this.closeRefundModal();
-      this.showRefundSuccessMessage();
-    }
-  }
-
-  openRejectModal(retour: Retour) {
-    this.selectedRetourToReject = retour;
+  /** Ouvre le modal de rejet depuis le détail. */
+  openRejectFromDetail(): void {
+    if (!this.selectedDetail) return;
+    this.selectedClaimToReject = { claimId: this.selectedDetail.claimId } as ClaimListItem;
     this.rejectReason = '';
     this.showRejectModal = true;
   }
 
-  closeRejectModal() {
+  closeValidationModal(): void {
+    this.showValidationModal = false;
+    this.selectedClaim = null;
+  }
+
+  validateRetour(): void {
+    if (!this.selectedClaim) return;
+    if (this.validationOption === 'reintegrer') {
+      this.logisticsService.validateClaim(this.selectedClaim.claimId, { decisionType: 'REINTEGRATION' }).subscribe({
+        next: () => {
+          this.closeValidationModal();
+          this.showSuccessMessage();
+          this.loadStats();
+          this.loadClaims();
+        },
+        error: (err) => this.showError(err?.error ?? 'Erreur lors de la validation')
+      });
+    } else {
+      this.closeValidationModal();
+      this.showRefundModal = true;
+      this.refundAmount = null;
+    }
+  }
+
+  openRefundModal(): void {
+    this.showRefundModal = true;
+    this.refundAmount = null;
+  }
+
+  closeRefundModal(): void {
+    this.showRefundModal = false;
+    this.refundAmount = null;
+    this.selectedClaim = null;
+  }
+
+  saveRefund(): void {
+    if (!this.selectedClaim || this.refundAmount == null || this.refundAmount <= 0) {
+      return;
+    }
+    this.logisticsService.validateClaim(this.selectedClaim.claimId, {
+      decisionType: 'REMBOURSEMENT',
+      refundAmount: this.refundAmount
+    }).subscribe({
+      next: () => {
+        this.closeRefundModal();
+        this.showRefundSuccessMessage();
+        this.loadStats();
+        this.loadClaims();
+      },
+      error: (err) => this.showError(err?.error ?? 'Erreur lors du remboursement')
+    });
+  }
+
+  openRejectModal(item: ClaimListItem): void {
+    this.selectedClaimToReject = item;
+    this.rejectReason = '';
+    this.showRejectModal = true;
+  }
+
+  closeRejectModal(): void {
     this.showRejectModal = false;
-    this.selectedRetourToReject = null;
+    this.selectedClaimToReject = null;
     this.rejectReason = '';
   }
 
-  confirmReject() {
-    if (!this.rejectReason.trim()) {
-      return;
-    }
-
-    if (this.selectedRetourToReject) {
-      this.selectedRetourToReject.status = 'Rejeté';
-      this.closeRejectModal();
-      this.showRejectSuccessMessage();
-    }
+  confirmReject(): void {
+    if (!this.rejectReason.trim() || !this.selectedClaimToReject) return;
+    this.logisticsService.rejectClaim(this.selectedClaimToReject.claimId, { rejectionReason: this.rejectReason.trim() }).subscribe({
+      next: () => {
+        this.closeRejectModal();
+        this.showRejectSuccessMessage();
+        this.loadStats();
+        this.loadClaims();
+      },
+      error: (err) => this.showError(err?.error ?? 'Erreur lors du rejet')
+    });
   }
 
-  showRejectSuccessMessage() {
+  exportRetours(): void {
+    // L'API n'expose pas encore d'export claims ; on peut ouvrir la même liste en CSV côté client ou afficher un message.
+    Swal.fire({
+      title: 'Export',
+      text: 'L\'export des retours sera disponible prochainement.',
+      icon: 'info'
+    });
+  }
+
+  private showError(message: string): void {
+    Swal.fire({ title: 'Erreur', text: message, icon: 'error' });
+  }
+
+  showRejectSuccessMessage(): void {
     Swal.fire({
       title: 'Demande rejetée',
       iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
       showConfirmButton: false,
       timer: 1500,
       buttonsStyling: false,
-      customClass: {
-        popup: 'rounded-3xl p-6',
-        title: 'text-xl font-medium text-gray-900',
-        icon: 'border-none'
-      },
-      backdrop: `rgba(0,0,0,0.2)`,
-      width: '580px',
-      showClass: {
-        popup: 'animate__animated animate__fadeIn animate__faster'
-      },
-      hideClass: {
-        popup: 'animate__animated animate__fadeOut animate__faster'
-      }
+      customClass: { popup: 'rounded-3xl p-6', title: 'text-xl font-medium text-gray-900', icon: 'border-none' },
+      backdrop: 'rgba(0,0,0,0.2)',
+      width: '580px'
     });
   }
 
-  showSuccessMessage() {
+  showSuccessMessage(): void {
     Swal.fire({
       title: 'Retour enregistré - Produit réintégré au stock',
       iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
       showConfirmButton: false,
       timer: 1500,
       buttonsStyling: false,
-      customClass: {
-        popup: 'rounded-3xl p-6',
-        title: 'text-xl font-medium text-gray-900',
-        icon: 'border-none'
-      },
-      backdrop: `rgba(0,0,0,0.2)`,
-      width: '580px',
-      showClass: {
-        popup: 'animate__animated animate__fadeIn animate__faster'
-      },
-      hideClass: {
-        popup: 'animate__animated animate__fadeOut animate__faster'
-      }
+      customClass: { popup: 'rounded-3xl p-6', title: 'text-xl font-medium text-gray-900', icon: 'border-none' },
+      backdrop: 'rgba(0,0,0,0.2)',
+      width: '580px'
     });
   }
 
-  showRefundSuccessMessage() {
+  showRefundSuccessMessage(): void {
     Swal.fire({
       title: 'Retour enregistré - Remboursement validé',
       iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
       showConfirmButton: false,
       timer: 1500,
       buttonsStyling: false,
-      customClass: {
-        popup: 'rounded-3xl p-6',
-        title: 'text-xl font-medium text-gray-900',
-        icon: 'border-none'
-      },
-      backdrop: `rgba(0,0,0,0.2)`,
-      width: '580px',
-      showClass: {
-        popup: 'animate__animated animate__fadeIn animate__faster'
-      },
-      hideClass: {
-        popup: 'animate__animated animate__fadeOut animate__faster'
-      }
+      customClass: { popup: 'rounded-3xl p-6', title: 'text-xl font-medium text-gray-900', icon: 'border-none' },
+      backdrop: 'rgba(0,0,0,0.2)',
+      width: '580px'
     });
   }
-
 }

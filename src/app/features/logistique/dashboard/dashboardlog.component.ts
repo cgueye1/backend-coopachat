@@ -3,7 +3,14 @@ import { CommonModule } from '@angular/common';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
 import { RouterModule } from '@angular/router';
-import { isBoxedPrimitive } from 'util/types';
+import { forkJoin } from 'rxjs';
+import {
+  LogisticsService,
+  RLDashboardKpis,
+  StatutTournees,
+  CommandesVsLivraisonsDayDTO,
+  TauxRetoursParJourItem
+} from '../../../shared/services/logistics.service';
 
 interface MetricCard {
   title: string;
@@ -38,86 +45,94 @@ interface CommandeLivraison {
 export class DashboardLogComponent implements OnInit, AfterViewInit {
   @ViewChild('commandesChart') commandesChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('stocksChart') stocksChartRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('stockCategoryChart') stockCategoryChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('deliveryStatusChart') deliveryStatusChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('returnRateChart') returnRateChartRef!: ElementRef<HTMLCanvasElement>;
 
   role: 'log' = 'log';
 
+  dashboardLoading = true;
+  dashboardError: string | null = null;
+
   private commandesChart: any;
   private stocksChart: any;
-  private stockCategoryChart: any;
   private deliveryStatusChart: any;
   private returnRateChart: any;
 
   metricsData: MetricCard[] = [
-    {
-      title: 'Commandes fournisseurs',
-      value: '1961',
-      subtitle: '↗ 5% vs 30 jours derniers',
-      subtitleDetail: '',
-      icon: '/icones/commandefour.svg',
-    },
-    {
-      title: 'Livraisons à venir',
-      value: '1041',
-      subtitle: '↘ -3% vs mois dernier',
-      subtitleDetail: '',
-      icon: '/icones/livraisonavenir.svg',
-    },
-    {
-      title: 'Stocks sous seuil',
-      value: '03',
-      subtitle: '↗ 5% vs SKU en alerte',
-      subtitleDetail: '',
-      icon: '/icones/stocks.png',
-    },
-    {
-      title: 'Retours',
-      value: '03',
-      subtitle: '↗ 2% vs 30 derniers jours',
-      subtitleDetail: '',
-      icon: '/icones/retours.png',
-    }
+    { title: 'Commandes en attente', value: '0', subtitle: '', subtitleDetail: '', icon: '/icones/commandefour.svg' },
+    { title: 'Commandes en retard', value: '0', subtitle: '', subtitleDetail: '', icon: '/icones/livraisonavenir.svg' },
+    { title: 'Tournées actives', value: '0', subtitle: '', subtitleDetail: '', icon: '/icones/stocks.png' },
+    { title: 'Livrées ce mois', value: '0', subtitle: '', subtitleDetail: '', icon: '/icones/retours.png' }
   ];
 
-  commandesLivraisonsData: CommandeLivraison[] = [
-    { date: '06/09', commandes: 7, livraisons: 6 },
-    { date: '07/09', commandes: 6.5, livraisons: 5 },
-    { date: '08/09', commandes: 7, livraisons: 6 },
-    { date: '09/09', commandes: 7, livraisons: 6.5 },
-    { date: '10/09', commandes: 7, livraisons: 5.5 },
-    { date: '11/09', commandes: 7, livraisons: 6 },
-    { date: '12/09', commandes: 6.5, livraisons: 6.5 }
-  ];
+  commandesLivraisonsData: CommandeLivraison[] = [];
 
-  stockCategoryData = [
-    { category: 'Épicerie', value: 40 },
-    { category: 'Boissons', value: 7 },
-    { category: 'Frais', value: 14 },
-    { category: 'Hygiène', value: 14 }
-  ];
+  /** Donut Stocks - État global : rempli par GET /logistics/dashboard/stock-etat-global */
+  stockEtatGlobalData: { normal: number; sousSeuil: number; critique: number } = { normal: 0, sousSeuil: 0, critique: 0 };
 
-  deliveryStatusData = [
-    { status: 'Planifiée', value: 75, color: '#22C55E' },
-    { status: 'À confirmer', value: 15, color: '#FFE7C2' },
-    { status: 'Retard', value: 10, color: '#FFD3D3' }
-  ];
+  deliveryStatusData: { status: string; value: number; color: string }[] = [];
 
-  returnRateData = [
-    { date: '06/09', rate: 7 },
-    { date: '07/09', rate: 14 },
-    { date: '08/09', rate: 6 },
-    { date: '09/09', rate: 13 },
-    { date: '10/09', rate: 8 },
-  ];
+  /** Données pour le graphique « Taux de retours (%) » (API dashboard/taux-retours-par-jour). */
+  returnRateData: { date: string; rate: number }[] = [];
 
-  ngOnInit(): void { }
+  constructor(private logistics: LogisticsService) {}
+
+  ngOnInit(): void {}
 
   ngAfterViewInit(): void {
-    setTimeout(() => {
-      this.loadChartJs();
-    }, 100);
+    this.loadDashboardData();
+  }
+
+  private loadDashboardData(): void {
+    this.dashboardLoading = true;
+    this.dashboardError = null;
+    forkJoin({
+      kpis: this.logistics.getDashboardKpis(),
+      statutTournees: this.logistics.getStatutTournees(),
+      commandesVsLivraisons: this.logistics.getCommandesVsLivraisons(),
+      stockEtatGlobal: this.logistics.getStockEtatGlobal(),
+      tauxRetoursParJour: this.logistics.getTauxRetoursParJour()
+    }).subscribe({
+      next: ({ kpis, statutTournees, commandesVsLivraisons, stockEtatGlobal, tauxRetoursParJour }) => {
+        this.metricsData = [
+          { title: 'Commandes en attente', value: String(kpis.commandesEnAttente), subtitle: '', subtitleDetail: '', icon: '/icones/commandefour.svg' },
+          { title: 'Commandes en retard', value: String(kpis.commandesEnRetard), subtitle: '', subtitleDetail: '', icon: '/icones/livraisonavenir.svg' },
+          { title: 'Tournées actives', value: String(kpis.tourneesActives), subtitle: '', subtitleDetail: '', icon: '/icones/stocks.png' },
+          { title: 'Livrées ce mois', value: String(kpis.livreesCeMois), subtitle: '', subtitleDetail: '', icon: '/icones/retours.png' }
+        ];
+        const parStatut = statutTournees.parStatut || {};
+        const statusConfig: Record<string, { label: string; color: string }> = {
+          ASSIGNEE: { label: 'Assignée', color: '#22C55E' },
+          EN_COURS: { label: 'En cours', color: '#FFE7C2' },
+          TERMINEE: { label: 'Terminée', color: '#4F46E5' },
+          ANNULEE: { label: 'Annulée', color: '#FFD3D3' }
+        };
+        this.deliveryStatusData = Object.entries(statusConfig).map(([key, { label, color }]) => ({
+          status: label,
+          value: parStatut[key] ?? 0,
+          color
+        }));
+        this.commandesLivraisonsData = commandesVsLivraisons.map(d => ({
+          date: d.date,
+          commandes: d.commandesEnAttente,
+          livraisons: d.livraisons
+        }));
+        this.stockEtatGlobalData = {
+          normal: stockEtatGlobal?.normal ?? 0,
+          sousSeuil: stockEtatGlobal?.sousSeuil ?? 0,
+          critique: stockEtatGlobal?.critique ?? 0
+        };
+        this.returnRateData = (tauxRetoursParJour ?? []).map(d => ({ date: d.date, rate: d.tauxPercent }));
+        setTimeout(() => this.loadChartJs(), 100);
+      },
+      error: (err) => {
+        this.dashboardError = err?.message || 'Erreur lors du chargement du tableau de bord.';
+        this.dashboardLoading = false;
+      },
+      complete: () => {
+        this.dashboardLoading = false;
+      }
+    });
   }
 
   async loadChartJs(): Promise<void> {
@@ -125,7 +140,6 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
       const Chart = (await import('chart.js/auto')).default;
       this.initCommandesChart(Chart);
       this.initStocksChart(Chart);
-      this.initStockCategoryChart(Chart);
       this.initDeliveryStatusChart(Chart);
       this.initReturnRateChart(Chart);
     } catch (error) {
@@ -137,14 +151,19 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
     const ctx = this.commandesChartRef?.nativeElement?.getContext('2d');
     if (!ctx) return;
 
+    const commandes = this.commandesLivraisonsData.map(d => d.commandes);
+    const livraisons = this.commandesLivraisonsData.map(d => d.livraisons);
+    const maxData = Math.max(0, ...commandes, ...livraisons);
+    const yMax = maxData + 2;
+
     this.commandesChart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: this.commandesLivraisonsData.map(d => d.date),
         datasets: [
           {
-            label: 'Commandes fournisseurs',
-            data: this.commandesLivraisonsData.map(d => d.commandes),
+            label: 'Commandes en attente',
+            data: commandes,
             backgroundColor: '#E0E7FF',
             hoverBackgroundColor: '#C7D2FE',
             categoryPercentage: 0.7,
@@ -153,21 +172,12 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
           },
           {
             label: 'Livraisons',
-            data: this.commandesLivraisonsData.map(d => d.livraisons),
+            data: livraisons,
             backgroundColor: '#C1F3DC',
             hoverBackgroundColor: '#C1F3DC',
             categoryPercentage: 0.7,
             order: 3,
             yAxisID: 'y'
-          },
-          {
-            label: 'Montant',
-            data: this.commandesLivraisonsData.map(d => d.commandes * 4000000),
-            type: 'line',
-            borderColor: 'transparent',
-            pointRadius: 0,
-            yAxisID: 'y1',
-            order: 4
           }
         ]
       },
@@ -189,8 +199,7 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
               boxWidth: 6,
               boxHeight: 6,
               padding: 20,
-              font: { size: 12 },
-              filter: (item: any) => item.text !== 'Montant'
+              font: { size: 12 }
             }
           },
           tooltip: {
@@ -200,31 +209,23 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
             padding: 12,
             cornerRadius: 8,
             displayColors: true,
-            boxPadding: 4,
-            filter: (item: any) => item.datasetIndex < 2
+            boxPadding: 4
           }
         },
         scales: {
           y: {
             beginAtZero: true,
-            max: 8,
-            grid: {  color: '#F3F4F6', },
-            ticks: { color: '#6B7280', font: { size: 11 }, padding: 10 },
-            border: { display: true }
-          },
-          y1: {
-            beginAtZero: true,
-            position: 'right',
-            max: 32000000,
-            grid: { drawOnChartArea: false, drawBorder: false },
+            min: 0,
+            max: yMax,
+            grid: { color: '#F3F4F6' },
             ticks: {
               color: '#6B7280',
               font: { size: 11 },
               padding: 10,
-              callback: (value: any) => value.toLocaleString('fr-FR') + ' F',
-              stepSize: 4000000
+              stepSize: 1,
+              callback: (value: string | number) => Number.isInteger(Number(value)) ? value : ''
             },
-            border: { display: false }
+            border: { display: true }
           },
           x: {
             grid: { color: '#F3F4F6'},
@@ -232,20 +233,20 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
             border: { display: false }
           }
         }
-      },
-      // plugins: [] // Suppression du plugin customLinePlugin
+      }
     });
   }
   initStocksChart(Chart: any): void {
     const ctx = this.stocksChartRef?.nativeElement?.getContext('2d');
     if (!ctx) return;
 
+    const d = this.stockEtatGlobalData;
     this.stocksChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
         labels: ['Ok', 'Sous seuil', 'Critique'],
         datasets: [{
-          data: [75, 15, 10],
+          data: [d.normal, d.sousSeuil, d.critique],
           backgroundColor: ['#22C55F', '#FFE7C2', '#FFD3D3'],
           borderWidth: 2
         }]
@@ -275,68 +276,6 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
             bodyColor: '#fff',
             padding: 12,
             cornerRadius: 8
-          }
-        }
-      }
-    });
-  }
-
-  initStockCategoryChart(Chart: any): void {
-    const ctx = this.stockCategoryChartRef?.nativeElement?.getContext('2d');
-    if (!ctx) return;
-
-    this.stockCategoryChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: this.stockCategoryData.map(d => d.category),
-        datasets: [{
-          data: this.stockCategoryData.map(d => d.value),
-          backgroundColor: '#4F46E5',
-          barThickness: 50
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
-          },
-          tooltip: {
-            backgroundColor: '#1F2937',
-            titleColor: '#fff',
-            bodyColor: '#fff',
-            padding: 12,
-            cornerRadius: 8,
-            displayColors: false
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            max: 40,
-            grid: {
-              display: false,
-              borderWidth: 1,
-            },
-            ticks: {
-              color: '#6B7280',
-              font: {
-                size: 10
-              },
-              stepSize: 10
-            }
-          },
-          x: {
-            grid: {
-              display: false,
-            },
-            ticks: {
-              color: '#6B7280',
-              font: {
-                size: 10
-              }
-            }
           }
         }
       }
@@ -431,17 +370,15 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
         },
         scales: {
           y: {
-            beginAtZero: false,
-            max: 16,
+            beginAtZero: true,
+            max: this.returnRateData.length ? Math.max(16, ...this.returnRateData.map(d => d.rate)) + 2 : 16,
             grid: {
               color: '#F3F4F6',
               drawBorder: false
             },
             ticks: {
               color: '#6B7280',
-              font: {
-                size: 10
-              },
+              font: { size: 10 },
               stepSize: 2
             }
           },
@@ -452,9 +389,7 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
             },
             ticks: {
               color: '#6B7280',
-              font: {
-                size: 10
-              }
+              font: { size: 10 }
             }
           }
         }

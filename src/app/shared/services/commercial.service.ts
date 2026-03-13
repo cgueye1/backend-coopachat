@@ -10,6 +10,15 @@ export interface CompanyStats {
     inactiveCompanies: number;
 }
 
+// Structure des statistiques prospections (GET /commercial/prospects/stats)
+export interface ProspectStats {
+    total: number;
+    enAttente: number;
+    interesses: number;
+    relancer: number;
+    signes: number;
+}
+
 // Structure des statistiques renvoyees par /commercial/employees/stats
 export interface EmployeeStats {
     totalEmployees: number;
@@ -17,13 +26,43 @@ export interface EmployeeStats {
     pendingEmployees: number;
 }
 
+/** Un jour du graphique « Tendance des coupons utilisés » (7 derniers jours). */
+export interface CouponUsageParJourDTO {
+    date: string;
+    nbUtilisations: number;
+}
+
+/** Données ventes par mois (évolution des ventes). */
+export interface VentesParMoisDTO {
+    mois: string;
+    montant: number;
+}
+
+/** Données commandes par mois (évolution des commandes). */
+export interface CommandesParMoisDTO {
+    mois: string;
+    nbCommandes: number;
+}
+
+/** KPIs du tableau de bord commercial (GET /api/commercial/dashboard/kpis). */
+export interface CommercialDashboardKpisDTO {
+    totalSalaries: number;
+    nouveauxSalariesCeMois: number;
+    commandesCeMois: number;
+    evolutionCommandesPct: number | null;
+    ventesCeMois: number;
+    evolutionVentesPct: number | null;
+    promotionsActives: number;
+    evolutionVentes?: VentesParMoisDTO[];
+    evolutionCommandes?: CommandesParMoisDTO[];
+}
+
 @Injectable({
     providedIn: 'root'
 })
 export class CommercialService {
-    // ==================================================
+  
     // SECTION 1 : VARIABLES GLOBALES ET INITIALISATION
-    // ==================================================
 
     // URL de base de l'API (definie dans environment.ts)
     private apiUrl = environment.apiUrl;
@@ -31,50 +70,51 @@ export class CommercialService {
     // Constructeur : injection du client HTTP
     constructor(private http: HttpClient) { }
 
-    // ==================================================
     // SECTION 2 : METHODES PRINCIPALES (CRUD + ACTIONS)
-    // ==================================================
 
-    /** ==================================================
-     *  METHODE : LISTER LES ENTREPRISES
-     *  ================================================== */
-    /**
-     * But : Recuperer la liste paginee avec filtres
-     * Resultat attendu : Une reponse API avec contenu + pagination
-     * Etapes :
-     * 1. Construire les parametres
-     * 2. Ajouter les filtres si presents
-     * 3. Appeler l'API GET
-     */
+    /** Liste des secteurs d'activité (référentiel, lecture seule). */
+    getCompanySectors(): Observable<{ id: number; name: string; description?: string }[]> {
+        return this.http.get<{ id: number; name: string; description?: string }[]>(`${this.apiUrl}/commercial/company-sectors`);
+    }
+
+    /** Entreprises partenaires uniquement (status = Partenaire signé). */
     getCompanies(
         page: number,
         size: number,
         search?: string,
-        sector?: string,
+        sectorId?: number,
         isActive?: boolean
     ): Observable<any> {
-        // Preparer les parametres de requete
         let params = new HttpParams()
             .set('page', page.toString())
             .set('size', size.toString());
-
-        // Ajouter la recherche si elle existe
-        if (search && search.trim()) {
-            params = params.set('search', search.trim());
-        }
-
-        // Ajouter le secteur si selectionne
-        if (sector) {
-            params = params.set('sector', sector);
-        }
-
-        // Ajouter le statut actif/inactif si selectionne
-        if (isActive !== undefined && isActive !== null) {
-            params = params.set('isActive', String(isActive));
-        }
-
-        // Appeler l'API et retourner la reponse
+        if (search?.trim()) params = params.set('search', search.trim());
+        if (sectorId != null) params = params.set('sectorId', sectorId.toString());
+        if (isActive !== undefined && isActive !== null) params = params.set('isActive', String(isActive));
         return this.http.get(`${this.apiUrl}/commercial/companies`, { params });
+    }
+
+    /** Prospects uniquement (status != Partenaire signé). */
+    getProspects(
+        page: number,
+        size: number,
+        search?: string,
+        sectorId?: number,
+        prospectionStatus?: string
+    ): Observable<any> {
+        let params = new HttpParams()
+            .set('page', page.toString())
+            .set('size', size.toString());
+        if (search?.trim()) params = params.set('search', search.trim());
+        if (sectorId != null) params = params.set('sectorId', sectorId.toString());
+        if (prospectionStatus?.trim()) params = params.set('prospectionStatus', prospectionStatus.trim());
+        return this.http.get(`${this.apiUrl}/commercial/prospects`, { params });
+    }
+
+    /** Derniers prospects (entreprises non partenaires). limit défaut 3. */
+    getLastProspects(limit: number = 3): Observable<any[]> {
+        const params = new HttpParams().set('limit', limit.toString());
+        return this.http.get<any[]>(`${this.apiUrl}/commercial/companies/last-prospects`, { params });
     }
 
     /** ==================================================
@@ -85,8 +125,27 @@ export class CommercialService {
      * Resultat attendu : total / actif / inactif
      */
     getCompanyStats(): Observable<CompanyStats> {
-        // Appeler l'API de statistiques
         return this.http.get<CompanyStats>(`${this.apiUrl}/commercial/companies/stats`);
+    }
+
+    /** Stats prospections (total, enAttente, interesses, relancer, signes). */
+    getProspectStats(): Observable<ProspectStats> {
+        return this.http.get<ProspectStats>(`${this.apiUrl}/commercial/prospects/stats`);
+    }
+
+    /** Stats entreprises partenaires (totalCompanies, activeCompanies, inactiveCompanies). */
+    getPartnerStats(): Observable<CompanyStats> {
+        return this.http.get<CompanyStats>(`${this.apiUrl}/commercial/partners/stats`);
+    }
+
+    /** GET /api/commercial/dashboard/kpis — KPIs du tableau de bord (salariés, commandes, ventes, promotions). */
+    getDashboardKpis(): Observable<CommercialDashboardKpisDTO> {
+        return this.http.get<CommercialDashboardKpisDTO>(`${this.apiUrl}/commercial/dashboard/kpis`);
+    }
+
+    /** GET /api/commercial/dashboard/coupons-utilises-par-jour — 7 derniers jours pour le graphique « Tendance des coupons utilisés ». */
+    getCouponsUtilisesParJour(): Observable<CouponUsageParJourDTO[]> {
+        return this.http.get<CouponUsageParJourDTO[]>(`${this.apiUrl}/commercial/dashboard/coupons-utilises-par-jour`);
     }
 
     /** ==================================================
@@ -99,23 +158,32 @@ export class CommercialService {
      * 1. Recevoir les donnees
      * 2. Appeler l'API POST
      */
+    /** Création via multipart/form-data : champs, logo optionnel en file. sectorId = ID du référentiel (GET /company-sectors). */
     createCompany(payload: {
         name: string;
-        sector?: string;
+        sectorId?: number;
         location: string;
         contactName: string;
         contactEmail?: string;
         contactPhone: string;
         status: string;
         note?: string;
-    }): Observable<any> {
-        // Appeler l'API de creation
+        logo?: File;
+    }): Observable<string> {
+        const formData = new FormData();
+        formData.append('name', payload.name);
+        formData.append('location', payload.location);
+        formData.append('contactName', payload.contactName);
+        formData.append('contactPhone', payload.contactPhone);
+        formData.append('status', payload.status);
+        if (payload.sectorId != null) formData.append('sectorId', payload.sectorId.toString());
+        if (payload.contactEmail) formData.append('contactEmail', payload.contactEmail);
+        if (payload.note) formData.append('note', payload.note);
+        if (payload.logo) formData.append('logo', payload.logo, payload.logo.name);
         return this.http.post(
             `${this.apiUrl}/commercial/companies`,
-            payload,
-            {
-                responseType: 'text' as 'json'
-            }
+            formData,
+            { responseType: 'text' }
         );
     }
 
@@ -132,7 +200,7 @@ export class CommercialService {
      */
     updateCompany(companyId: string, payload: {
         name: string;
-        sector?: string;
+        sectorId?: number;
         location: string;
         contactName: string;
         contactEmail?: string;
@@ -140,7 +208,6 @@ export class CommercialService {
         status: string;
         note?: string;
     }): Observable<any> {
-        // Appeler l'API de mise a jour
         return this.http.put(
             `${this.apiUrl}/commercial/companies/${companyId}`,
             payload,
@@ -175,6 +242,25 @@ export class CommercialService {
             `${this.apiUrl}/commercial/companies/${companyId}/status`,
             { isActive },
             { responseType: 'text' as 'json' }
+        );
+    }
+
+    /** Téléverser le logo d'une entreprise (JPG, PNG, max 5 Mo). */
+    uploadCompanyLogo(companyId: string, file: File): Observable<string> {
+        const formData = new FormData();
+        formData.append('file', file);
+        return this.http.post(
+            `${this.apiUrl}/commercial/companies/${companyId}/logo`,
+            formData,
+            { responseType: 'text' }
+        );
+    }
+
+    /** Supprimer le logo d'une entreprise. */
+    deleteCompanyLogo(companyId: string): Observable<string> {
+        return this.http.delete(
+            `${this.apiUrl}/commercial/companies/${companyId}/logo`,
+            { responseType: 'text' }
         );
     }
 
@@ -291,5 +377,140 @@ export class CommercialService {
             { responseType: 'text' as 'json' }
         );
     }
+
+    // ==================================================
+    // COUPONS / PROMOTIONS
+    // ==================================================
+
+    /** Types et scopes alignés sur le backend */
+    static readonly DISCOUNT_TYPE = { PERCENTAGE: 'PERCENTAGE', FIXED_AMOUNT: 'FIXED_AMOUNT' } as const;
+    static readonly COUPON_SCOPE = {
+        CART_TOTAL: 'CART_TOTAL',
+        ALL_PRODUCTS: 'ALL_PRODUCTS',
+        PRODUCTS: 'PRODUCTS',
+        CATEGORIES: 'CATEGORIES'
+    } as const;
+    static readonly COUPON_STATUS = { PLANNED: 'PLANNED', ACTIVE: 'ACTIVE', EXPIRED: 'EXPIRED', DISABLED: 'DISABLED' } as const;
+
+    getCoupons(
+        page: number,
+        size: number,
+        search?: string,
+        status?: string,
+        scope?: string,
+        isActive?: boolean
+    ): Observable<CouponListResponse> {
+        let params = new HttpParams()
+            .set('page', page.toString())
+            .set('size', size.toString());
+        if (search && search.trim()) params = params.set('search', search.trim());
+        if (status) params = params.set('status', status);
+        if (scope) params = params.set('scope', scope);
+        if (isActive !== undefined && isActive !== null) params = params.set('isActive', String(isActive));
+        return this.http.get<CouponListResponse>(`${this.apiUrl}/commercial/coupons`, { params });
+    }
+
+    /** Statistiques des coupons panier (CART_TOTAL) : nombre actifs et total d'utilisations. */
+    getCartTotalCouponStats(): Observable<CartTotalCouponStats> {
+        return this.http.get<CartTotalCouponStats>(`${this.apiUrl}/commercial/coupons/cart-total-stats`);
+    }
+
+    /** Produits actifs (id, name) pour le modal création coupon. */
+    getActiveProductsForCoupon(): Observable<{ id: number; name: string }[]> {
+        return this.http.get<{ id: number; name: string }[]>(`${this.apiUrl}/commercial/coupons/products`);
+    }
+
+    /** Catégories (id, name) pour le modal création coupon. */
+    getCategoriesForCoupon(): Observable<{ id: number; name: string }[]> {
+        return this.http.get<{ id: number; name: string }[]>(`${this.apiUrl}/commercial/coupons/categories`);
+    }
+
+    getCouponById(id: number): Observable<CouponDetails> {
+        return this.http.get<CouponDetails>(`${this.apiUrl}/commercial/coupons/${id}`);
+    }
+
+    createCoupon(payload: CreateCouponPayload): Observable<string> {
+        return this.http.post(
+            `${this.apiUrl}/commercial/coupons`,
+            payload,
+            { responseType: 'text' }
+        );
+    }
+
+    updateCouponStatus(couponId: number, isActive: boolean): Observable<string> {
+        return this.http.patch(
+            `${this.apiUrl}/commercial/coupons/${couponId}/status`,
+            { isActive },
+            { responseType: 'text' }
+        );
+    }
+
+    deleteCoupon(couponId: number): Observable<string> {
+        return this.http.delete(
+            `${this.apiUrl}/commercial/coupons/${couponId}`,
+            { responseType: 'text' }
+        );
+    }
+}
+
+// --- Stats coupons panier (CART_TOTAL)
+export interface CartTotalCouponStats {
+    activeCouponsCount: number;
+    totalUsages: number;
+    totalGenerated: number;
+}
+
+// --- Types pour les coupons
+export interface CouponListResponse {
+    content: CouponListItem[];
+    totalElements: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+}
+
+export interface CouponListItem {
+    id: number;
+    code: string;
+    name: string;
+    discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+    value: number;
+    scope: string;
+    status: string;
+    validFrom: string;
+    validTo: string;
+    usageCount?: number;
+    totalGenerated?: number;
+}
+
+export interface CouponDetails {
+    id: number;
+    code: string;
+    name: string;
+    discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+    value: number;
+    scope: string;
+    status: string;
+    isActive: boolean;
+    validFrom: string;
+    validTo: string;
+    usageCount?: number;
+    totalGenerated?: number;
+    products: { id: number; name: string; categoryName?: string; description?: string; currentStock?: number; image?: string }[];
+}
+
+export interface CreateCouponPayload {
+    code: string;
+    name: string;
+    discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+    value: number;
+    scope: string;
+    status: string;
+    startDate: string; // ISO date or datetime
+    endDate: string;
+    productIds?: number[];
+    categoryIds?: number[];
 }
 

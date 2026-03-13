@@ -1,0 +1,93 @@
+<app-main-layout role="admin">
+  <div class="space-y-4 sm:space-y-5 lg:space-y-6">
+    <app-header
+      [title]="'Catégories'"
+      [breadcrumb]="'Pages / Catégories'"
+      [type]="'simple'"
+      [buttonLabel]="'Nouvelle catégorie'"
+      (actionClick)="openCreate()">
+    </app-header>
+
+    <div class="bg-white rounded-2xl hover:shadow-sm">
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs sm:text-sm">
+          <thead class="bg-[#F4F7FE]">
+            <tr>
+              <th class="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs text-[#2C3E50]">Icon</th>
+              <th class="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs text-[#2C3E50]">Nom</th>
+              <th class="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs text-[#2C3E50]">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let cat of categories" class="border-b border-[#F4F7FE] hover:bg-gray-50">
+              <td class="px-2 py-2 sm:px-4 sm:py-3">
+                <img *ngIf="getIconUrl(cat)" [src]="getIconUrl(cat)" alt="" class="w-8 h-8 object-contain" (error)="onIconLoadError(cat)">
+                <span *ngIf="!getIconUrl(cat) && cat.icon" class="inline-flex items-center justify-center w-8 h-8 text-xl">{{ cat.icon }}</span>
+                <img *ngIf="!getIconUrl(cat) && !cat.icon" [src]="defaultIconUrl" alt="" class="w-8 h-8 object-contain">
+              </td>
+              <td class="px-2 py-2 sm:px-6 sm:py-3 text-[#4B4848]">{{ cat.name }}</td>
+              <td class="py-2 px-0 sm:py-3">
+                <button (click)="openEdit(cat)" class="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Modifier">
+                  <svg class="w-4 h-4" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1.66667 13.3333H2.85417L11 5.1875L9.8125 4L1.66667 12.1458V13.3333ZM0 15V11.4583L11 0.479167C11.1667 0.326389 11.3508 0.208333 11.5525 0.125C11.7542 0.0416667 11.9658 0 12.1875 0C12.4092 0 12.6244 0.0416667 12.8333 0.125C13.0422 0.208333 13.2228 0.333333 13.375 0.5L14.5208 1.66667C14.6875 1.81944 14.8092 2 14.8858 2.20833C14.9625 2.41667 15.0006 2.625 15 2.83333C15 3.05556 14.9619 3.2675 14.8858 3.46917C14.8097 3.67083 14.6881 3.85472 14.5208 4.02083L3.54167 15H0ZM10.3958 4.60417L9.8125 4L11 5.1875L10.3958 4.60417Z" fill="#F68647"/>
+                  </svg>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="categories.length === 0">
+              <td colspan="3" class="px-4 py-8 text-center text-[#6B7280]">Aucune catégorie.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Création / Édition -->
+  <div *ngIf="showModal" class="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50" (click)="closeModal()">
+    <div class="bg-white rounded-2xl w-full max-w-md mx-4 shadow-lg" (click)="$event.stopPropagation()">
+      <div class="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100">
+        <h2 class="text-lg font-semibold">{{ isEdit ? 'Modifier la catégorie' : 'Nouvelle catégorie' }}</h2>
+        <button (click)="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="p-4 sm:p-6 space-y-4">
+        <p *ngIf="errorMessage" class="text-sm text-red-600">{{ errorMessage }}</p>
+        <div>
+          <label class="block text-sm font-medium text-[#2C3E50] mb-1">Nom <span class="text-red-500">*</span></label>
+          <input type="text" [(ngModel)]="formName" placeholder="Nom de la catégorie"
+            class="w-full px-3 py-2.5 border border-[#EEEEEE] rounded-lg focus:outline-none focus:border-[#777777] text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-[#2C3E50] mb-1">Icon (optionnel)</label>
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center gap-2">
+              <input #iconFileInput type="file" accept=".svg,image/svg+xml,image/png,image/jpeg,image/webp" class="hidden"
+                (change)="onIconFileSelected($event)">
+              <button type="button" [disabled]="uploadingIcon"
+                (click)="iconFileInput.click()"
+                class="px-3 py-2.5 rounded-lg text-sm font-medium bg-gray-100 hover:bg-gray-200 text-[#2C3E50] disabled:opacity-50 whitespace-nowrap">
+                {{ uploadingIcon ? 'Envoi…' : 'Choisir un fichier' }}
+              </button>
+            </div>
+            <div *ngIf="formIconPreviewDataUrl || formIconPreviewUrl()" class="flex items-center gap-2 mt-1">
+              <span class="text-xs text-[#6B7280]">Aperçu :</span>
+              <img [src]="formIconPreviewDataUrl || formIconPreviewUrl()" alt="" class="w-8 h-8 object-contain border border-gray-200 rounded">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 px-4 sm:px-6 py-4 border-t border-gray-100">
+        <button (click)="closeModal()" class="px-4 py-2.5 rounded-lg font-medium text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
+          Annuler
+        </button>
+        <button (click)="save()" [disabled]="loading || uploadingIcon" class="px-4 py-2.5 rounded-lg font-medium text-sm text-white bg-[#2C2D5B] hover:bg-[#252654] disabled:opacity-50 transition-colors">
+          {{ loading ? 'Enregistrement…' : uploadingIcon ? 'Envoi de l\'icône…' : (isEdit ? 'Enregistrer' : 'Créer') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</app-main-layout>

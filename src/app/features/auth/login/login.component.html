@@ -1,7 +1,7 @@
 <app-auth-layout>
 
-    <!-- Titre principal et description de la plateforme -->
-    <div class="mb-5 sm:mb-6">
+    <!-- Titre principal et description de la plateforme (non cliquables) -->
+    <div class="mb-5 sm:mb-6 cursor-default select-none pointer-events-none">
         <h1 class="text-2xl sm:text-3xl lg:text-4xl font-semibold text-gray-800 font-Inter mb-3 sm:mb-4">
             Plateforme d'achat coopératif pour salariés
         </h1>
@@ -10,57 +10,58 @@
         </p>
     </div>
 
-    <!-- Message d’erreur retourné par l’API de login -->
-    <!-- Affiché uniquement si errorMessage contient une valeur -->
+    <!-- Message d'erreur retourné par l'API de login -->
     <div *ngIf="errorMessage" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
         <p class="text-red-600 text-sm">{{ errorMessage }}</p>
     </div>
 
-    <!-- Loader affiché pendant l’appel API de connexion -->
-    <!-- Visible uniquement lorsque isLoading = true -->
+    <!-- Loader affiché pendant l'appel API de connexion -->
     <div *ngIf="isLoading" class="mb-4 text-center">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
     </div>
 
-    <!-- Formulaire de connexion lié au FormGroup loginForm -->
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-5 sm:space-y-6">
+    <!-- Formulaire de connexion -->
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-5 sm:space-y-6 cursor-default">
 
-        <!-- Champ email -->
         <div>
-            <label class="block text-sm font-medium mb-2">Email</label>
+            <label class="block text-sm font-medium mb-2 cursor-text" for="login-email">Email</label>
             <input
+                id="login-email"
                 type="email"
                 formControlName="email"
                 placeholder="Email"
-                class="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all duration-200 text-[#9C9AA5] bg-transparent">
+                class="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:ring-inset focus:border-orange-500 outline-none transition-all duration-200 text-[#9C9AA5] bg-transparent caret-orange-500">
         </div>
 
-        <!-- Champ mot de passe avec affichage/masquage -->
+        <!-- Mot de passe affichage - masquage -->
         <div>
-            <label class="block text-sm font-medium mb-2">Mot de passe</label>
+            <label class="block text-sm font-medium mb-2 cursor-text">Mot de passe</label>
             <div class="flex items-center justify-between relative">
 
-                <!-- Le type change selon showPassword (text ou password) -->
+                <!-- le type change selon showpassword-->
                 <input
                     [type]="showPassword ? 'text' : 'password'"
                     formControlName="password"
                     placeholder="*******"
-                    class="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all duration-200 text-[#9C9AA5] bg-transparent">
-
-                <!-- Bouton pour afficher ou masquer le mot de passe -->
+                    class="w-full p-3 sm:p-4 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:ring-inset focus:border-orange-500 outline-none transition-all duration-200 text-[#9C9AA5] bg-transparent caret-orange-500">
                 <button
                     type="button"
                     (click)="togglePassword()"
-                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    <!-- Icône œil -->
+                    class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-[#FF6B00] transition-colors"
+                    [attr.aria-label]="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'">
+                    <svg *ngIf="!showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    <svg *ngIf="showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                    </svg>
                 </button>
             </div>
         </div>
 
-        <!-- Option "Se souvenir de moi" + lien mot de passe oublié -->
+        <!-- Se souvenir de moi -->
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-
-            <!-- Checkbox liée au champ rememberMe -->
             <label class="flex items-center">
                 <input
                     type="checkbox"
@@ -68,19 +69,17 @@
                     class="w-4 h-4 text-orange-600 bg-transparent border-gray-300 rounded-sm focus:ring-orange-500 focus:ring-2">
                 <span class="ml-2 text-sm text-gray-700">Se souvenir de moi</span>
             </label>
-
-            <!-- Lien vers la récupération du mot de passe -->
-            <a href=""
-               class="text-sm text-transparent bg-clip-text bg-gradient-to-r from-[#FF6B00] to-[#FF914D] hover:text-orange-500 font-medium">
+            <!-- Mot de passe oublié -->
+            <a href="/reset-password"
+               class="text-sm text-transparent bg-clip-text bg-gradient-to-r from-[#FF6B00] to-[#FF914D] hover:text-orange-500 font-medium cursor-pointer">
                 Mot de passe oublié ?
             </a>
         </div>
 
-        <!-- Bouton de soumission du formulaire -->
         <div>
             <button
                 type="submit"
-                class="w-full bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white p-3 sm:p-4 rounded-lg hover:from-orange-600 hover:to-orange-700 focus:ring-4 focus:ring-orange-200 font-medium text-base sm:text-lg transition-all duration-200 transform hover:scale-[1.02]">
+                class="w-full bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white p-3 sm:p-4 rounded-lg hover:from-orange-600 hover:to-orange-700 focus:ring-4 focus:ring-orange-200 font-medium text-base sm:text-lg transition-all duration-200 transform hover:scale-[1.02] cursor-pointer">
                 Se connecter
             </button>
         </div>
@@ -128,14 +127,13 @@
             </button>
         </div>
 
-        <!-- Lien vers la page d’inscription -->
+        <!-- Lien vers la page d'inscription -->
         <div class="text-center mt-4">
             <span class="text-[#6C7278] text-xs sm:text-sm">
                 Vous n'avez pas de compte ?
             </span>
-            <a
-                href="/register"
-                class="text-[#2C2D5B] hover:text-orange-500 font-medium text-xs sm:text-sm">
+            <a href="/register"
+                class="text-[#2C2D5B] hover:text-orange-500 font-medium text-xs sm:text-sm cursor-pointer">
                 S'inscrire
             </a>
         </div>

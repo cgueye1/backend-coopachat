@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { UserDto } from '../models/user.model';
+import { UserDetailsDTO } from './admin.service';
 
 @Injectable({
     providedIn: 'root'
@@ -13,43 +14,54 @@ export class AuthService {
 
     constructor(private http: HttpClient) { }
 
+    //----------------------------------------
+    // INSCRIPTION
+    //----------------------------------------
+
+    /**
+     * Inscription d'un nouvel utilisateur.
+     * Envoie les données vers POST /api/auth/users.
+     */
     register(userData: UserDto): Observable<any> {
+
+        // Les headers indiquent que le corps de la requête est en JSON. et responseType: 'text' indique que le backend renvoie une simple chaîne de caractères (message de succès ou d'erreur) au lieu d'un objet JSON.
         const headers = new HttpHeaders({
             'Content-Type': 'application/json'
         });
 
         return this.http.post(
-            `${this.apiUrl}/auth/users`,
-            userData,
-            {
-                headers,
-                responseType: 'text' as 'json' // Accepter la réponse comme texte
+            `${this.apiUrl}/auth/users`, userData,{headers, responseType: 'text' as 'json'
             }
         );
     }
 
-    // Méthode pour vérifier le code OTP envoyé par email
-    verifyActivationCode(email: string, code: string): Observable<any> {
+    //----------------------------------------
+    // ACTIVATION DU COMPTE (CODE OTP)
+    //----------------------------------------
 
-        // Crée les headers HTTP pour indiquer qu'on envoie des données JSON
+    /**
+     * Vérifie le code OTP reçu par email après inscription.
+     * Si le code est valide, l'utilisateur peut créer son mot de passe.
+     */
+    verifyActivationCode(email: string, code: string): Observable<any> {
         const headers = new HttpHeaders({
             'Content-Type': 'application/json'
         });
 
-        // Envoie une requête POST au backend pour vérifier le code OTP
         return this.http.post(
-            // URL de l'API qui vérifie le code d'activation
             `${this.apiUrl}/auth/verify-activation-code`,
-            // Corps de la requête : email et code OTP
             { email, code },
             {
-                headers, // on envoie les headers définis juste au-dessus
-                responseType: 'text' as 'json' // Le serveur renvoie du texte plutôt qu'un objet JSON
+                headers,
+                responseType: 'text' as 'json'
             }
         );
     }
 
-    // Vérifier le code OTP admin (2FA) et récupérer le token
+    /**
+     * Vérifie le code OTP pour les admins (authentification à deux facteurs).
+     * Retourne le token JWT si le code est correct.
+     */
     verifyAdminOtp(email: string, code: string): Observable<any> {
         const headers = new HttpHeaders({
             'Content-Type': 'application/json'
@@ -62,7 +74,14 @@ export class AuthService {
         );
     }
 
-    // Créer le mot de passe après vérification du code
+    //----------------------------------------
+    // CRÉATION / GESTION DU MOT DE PASSE
+    //----------------------------------------
+
+    /**
+     * Crée le mot de passe après vérification du code OTP.
+     * Étape finale de l'inscription avant la connexion.
+     */
     setPassword(email: string, password: string, confirmPassword: string): Observable<any> {
         const headers = new HttpHeaders({
             'Content-Type': 'application/json'
@@ -78,7 +97,14 @@ export class AuthService {
         );
     }
 
-    // Envoyer un code d'activation par email
+    //----------------------------------------
+    // ENVOI ET RENVOI DU CODE D'ACTIVATION
+    //----------------------------------------
+
+    /**
+     * Demande l'envoi d'un nouveau code d'activation par email.
+     * Utilisé quand l'utilisateur n'a pas reçu le premier envoi.
+     */
     sendActivationCode(email: string): Observable<any> {
         const headers = new HttpHeaders({
             'Content-Type': 'application/json'
@@ -94,8 +120,10 @@ export class AuthService {
         );
     }
 
-
-    // Renvoyer le code d'activation
+    /**
+     * Renvoie le code OTP par email (par ex. si le précédent a expiré).
+     * Limité par un délai pour éviter les abus.
+     */
     resendActivationCode(email: string): Observable<any> {
         const headers = new HttpHeaders({
             'Content-Type': 'application/json'
@@ -111,20 +139,10 @@ export class AuthService {
         );
     }
 
-    // Connexion via Google OAuth (idToken)
-    loginWithGoogle(idToken: string): Observable<any> {
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/json'
-        });
-
-        return this.http.post(
-            `${this.apiUrl}/auth/login/google`,
-            { idToken },
-            { headers }
-        );
-    }
-
-    // Connexion (un seul endpoint pour tous)
+    /**
+     * Connexion classique avec email et mot de passe.
+     * Même endpoint pour tous les rôles (Admin, Commercial, Salarié, etc.).
+     */
     login(email: string, password: string): Observable<any> {
         const headers = new HttpHeaders({
             'Content-Type': 'application/json'
@@ -133,13 +151,18 @@ export class AuthService {
         return this.http.post(
             `${this.apiUrl}/auth/login`,
             { email, password },
-            {
-                headers
-            }
+            { headers }
         );
     }
 
-    // Déconnexion (invalidation du token)
+    //----------------------------------------
+    // DÉCONNEXION
+    //----------------------------------------
+
+    /**
+     * Déconnexion : invalide le token côté serveur (blacklist).
+     * À appeler avant de supprimer le token du navigateur.
+     */
     logout(token: string): Observable<any> {
         return this.http.post(
             `${this.apiUrl}/auth/logout?token=${encodeURIComponent(token)}`,
@@ -148,5 +171,17 @@ export class AuthService {
                 responseType: 'text' as 'json'
             }
         );
+    }
+
+    //----------------------------------------
+    // PROFIL UTILISATEUR
+    //----------------------------------------
+
+    /**
+     * Récupère le profil de l'utilisateur connecté (tous rôles).
+     * Requiert le token JWT dans le header Authorization.
+     */
+    getCurrentUserProfile(): Observable<UserDetailsDTO> {
+        return this.http.get<UserDetailsDTO>(`${this.apiUrl}/auth/me`);
     }
 }

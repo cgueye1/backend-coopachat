@@ -1,8 +1,8 @@
 <app-main-layout role="admin">
     <div class="space-y-4 sm:space-y-5 lg:space-y-6">
         <!-- Header with back navigation -->
-        <app-header [title]="'Nouveau utilisateur'"
-            [breadcrumb]="'Pages / Gestion des utilisateurs / Nouveau utilisateur'" [type]="'back'"
+        <app-header [title]="editId ? 'Modifier l\'utilisateur' : 'Nouveau utilisateur'"
+            [breadcrumb]="editId ? 'Pages / Gestion des utilisateurs / Modifier' : 'Pages / Gestion des utilisateurs / Nouveau utilisateur'" [type]="'back'"
             (actionClick)="goBack()">
         </app-header>
 
@@ -67,8 +67,9 @@
                         </div>
                     </div>
 
-                    <!-- Row 3: Rôle (Dropdown) -->
+                    <!-- Row 3: Rôle & Photo de profil -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+                        <!-- Rôle -->
                         <div class="space-y-1.5 sm:space-y-2">
                             <label class="block font-medium text-[#333333] text-sm sm:text-base">
                                 Rôle
@@ -99,14 +100,37 @@
                             </div>
                             <p *ngIf="errors.role" class="text-red-500 text-xs mt-1">{{ errors.role }}</p>
                         </div>
+
+                        <!-- Photo de profil -->
+                        <div class="space-y-1.5 sm:space-y-2">
+                            <label class="block font-medium text-[#333333] text-sm sm:text-base">
+                                Photo de profil
+                            </label>
+                            <div class="flex items-center gap-3">
+                                <div class="w-14 h-14 rounded-full border-2 border-[#CBD5E1] overflow-hidden bg-[#F4F7FE] flex items-center justify-center flex-shrink-0">
+                                    <img *ngIf="profilePhotoPreview" [src]="profilePhotoPreview" alt="Aperçu" class="w-full h-full object-cover" />
+                                    <img *ngIf="!profilePhotoPreview && currentProfilePhotoUrl" [src]="currentProfilePhotoUrl" alt="Photo actuelle" class="w-full h-full object-cover" />
+                                    <span *ngIf="!profilePhotoPreview && !currentProfilePhotoUrl" class="text-[#9CA3AF] text-xl">?</span>
+                                </div>
+                                <div class="flex flex-col gap-1 min-w-0">
+                                    <input #photoInput type="file" accept="image/jpeg,image/png,image/jpg" (change)="onProfilePhotoChange($event)"
+                                        class="block w-full text-xs text-[#6B7280] file:mr-2 file:py-1.5 file:px-2.5 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#2C2D5B] file:text-white file:cursor-pointer cursor-pointer" />
+                                    <button *ngIf="profilePhotoPreview || currentProfilePhotoUrl" type="button" (click)="clearProfilePhoto(photoInput)"
+                                        class="text-xs text-[#6B7280] hover:text-[#2C2D5B] underline text-left">
+                                        Retirer la photo
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="text-[#9CA3AF] text-xs">JPG ou PNG, max 5 Mo</p>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Action Buttons -->
                 <div class="flex flex-col sm:flex-row items-center justify-end gap-2 mt-4 sm:gap-3 sm:mt-5 lg:mt-6">
-                    <button (click)="enregistrer()"
-                        class="w-full sm:w-auto px-6 py-2.5 bg-[#2C2D5B] hover:bg-[#232447] text-white rounded-md font-medium transition-colors text-xs sm:px-8 sm:py-3 sm:text-sm lg:px-12 lg:py-4">
-                        Enregistrer
+                    <button (click)="enregistrer()" [disabled]="saving"
+                        class="w-full sm:w-auto px-6 py-2.5 bg-[#2C2D5B] hover:bg-[#232447] text-white rounded-md font-medium transition-colors text-xs sm:px-8 sm:py-3 sm:text-sm lg:px-12 lg:py-4 disabled:opacity-50">
+                        {{ saving ? 'Enregistrement...' : (editId ? 'Mettre à jour' : 'Enregistrer') }}
                     </button>
                     <button (click)="annuler()"
                         class="w-full sm:w-auto px-6 py-2.5 bg-[#F3F4F6] hover:bg-[#CBD5E1] text-[#6B7280] rounded-md font-medium transition-colors text-xs sm:px-8 sm:py-3 sm:text-sm lg:px-12 lg:py-4">

@@ -6,8 +6,10 @@
             <h1 class="text-2xl sm:text-3xl font-bold text-[#2B3674]">Gestion des commandes</h1>
         </div>
 
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-1 gap-2 mb-2 sm:grid-cols-2 md:gap-4 md:mb-4 lg:grid-cols-3">
+        <!-- Stats Cards (EN ATTENTE, EN RETARD, EN COURS, VALIDÉES, LIVRÉES) -->
+        <div class="grid grid-cols-1 gap-2 mb-2 sm:grid-cols-2 md:gap-4 md:mb-4 lg:grid-cols-5">
+            <div *ngIf="loadingStats" class="col-span-full text-sm text-[#6B7280] py-2">Chargement des statistiques...</div>
+            <div *ngIf="statsError && !loadingStats" class="col-span-full text-sm text-[#DC2626] py-2">Impossible de charger les statistiques.</div>
             <div *ngFor="let metric of metricsData"
                 class="bg-white rounded-lg p-3 sm:p-4 hover:shadow-sm transition-shadow">
                 <div class="flex items-start justify-between gap-2">
@@ -103,12 +105,15 @@
                                     <div class="text-sm font-medium text-[#4B4848]">{{ commande.salarie }}</div>
                                 </div>
                                 <div class="flex items-center justify-between">
-                                    <div class="text-xs text-[#6B7280]">Date de validation</div>
-                                    <div class="text-sm font-medium text-[#4B4848]">{{ commande.dateValidation }}</div>
+                                    <div class="text-xs text-[#6B7280]">Date de commande</div>
+                                    <div class="text-sm font-medium text-[#4B4848]">{{ commande.dateCommande }}</div>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <div class="text-xs text-[#6B7280]">Produits</div>
-                                    <div class="text-xs font-medium text-[#4B4848]">{{ commande.produits }}</div>
+                                    <div class="flex flex-wrap gap-1.5 justify-end">
+                                        <span *ngFor="let p of (commande.produitsList ?? [])"
+                                            class="inline-flex rounded-md px-2.5 py-1 text-xs font-medium bg-[#F4F6F9] text-[#4B4848]">{{ p }}</span>
+                                    </div>
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <div class="text-xs text-[#6B7280]">Fréquence</div>
@@ -116,17 +121,22 @@
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <div class="text-xs text-[#6B7280]">Statut</div>
-                                    <span
-                                        [class]="'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ' + getStatusClass(commande.statut)">
+                                    <div class="text-right">
                                         <span
-                                            [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(commande.statut)"></span>
-                                        {{ commande.statut }}
-                                    </span>
+                                            [class]="'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ' + getStatusClass(commande.statut)">
+                                            <span
+                                                [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(commande.statut)"></span>
+                                            {{ commande.statut }}
+                                        </span>
+                                        <div *ngIf="commande.dateStatut" class="text-xs text-[#6B7280] mt-1">Passé à ce statut le {{ commande.dateStatut }}</div>
+                                        <div *ngIf="commande.statut === 'Échec' && commande.failureReason" class="text-xs text-[#DC2626] mt-1">« {{ commande.failureReason }} »</div>
+                                    </div>
                                 </div>
-                                <div class="flex items-center gap-2 pt-2">
+                                <div class="flex items-center gap-2 pt-2 flex-wrap">
                                     <button
-                                        class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100 flex-1"
-                                        (click)="viewCommande(commande.numero)">
+                                        class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100"
+                                        (click)="viewCommande(commande.numero)"
+                                        title="Voir">
                                         <svg width="16" height="11" viewBox="0 0 16 11" fill="none"
                                             xmlns="http://www.w3.org/2000/svg">
                                             <path
@@ -137,6 +147,14 @@
                                                 fill="#4B4848" />
                                         </svg>
                                     </button>
+                                    <ng-container *ngIf="commande.statut === 'Échec'">
+                                        <button type="button"
+                                            class="text-xs px-2 py-1.5 rounded-lg border border-[#2B3674] text-[#2B3674] hover:bg-[#2B3674] hover:text-white transition-colors"
+                                            (click)="replanOrder(commande)">Replanifier</button>
+                                        <button type="button"
+                                            class="text-xs px-2 py-1.5 rounded-lg border border-[#DC2626] text-[#DC2626] hover:bg-[#DC2626] hover:text-white transition-colors"
+                                            (click)="cancelOrderAfterFailure(commande)">Annuler</button>
+                                    </ng-container>
                                 </div>
                             </div>
                         </div>
@@ -146,12 +164,12 @@
                                 <tr>
                                     <th class="text-left text-xs font-semibold text-[#2C3E50] p-4">N° Commande</th>
                                     <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Salarié</th>
-                                    <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Date de
-                                        validation</th>
+                                    <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Date de commande</th>
                                     <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Produits</th>
                                     <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Fréquence de
                                         livraison</th>
                                     <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Statut</th>
+                                    <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Passé à ce statut le</th>
                                     <th class="text-left text-xs font-semibold text-[#2C3E50] py-4 px-6">Actions</th>
                                 </tr>
                             </thead>
@@ -160,37 +178,54 @@
                                     class="hover:bg-gray-50 transition-colors group">
                                     <td class="py-4 px-4 text-sm text-[#4B4848] font-medium">{{ commande.numero }}</td>
                                     <td class="py-4 px-6 text-sm text-[#4B4848]">{{ commande.salarie }}</td>
-                                    <td class="py-4 px-6 text-sm text-[#4B4848]">{{ commande.dateValidation }}</td>
+                                    <td class="py-4 px-6 text-sm text-[#4B4848]">{{ commande.dateCommande }}</td>
                                     <td class="py-4 px-6 text-xs text-[#4B4848]">
-                                        <span class="inline-flex rounded-md px-3 py-1 items-center bg-[#F4F6F9]">{{
-                                            commande.produits }}</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <span *ngFor="let p of (commande.produitsList ?? [])"
+                                                class="inline-flex rounded-md px-2.5 py-1 items-center bg-[#F4F6F9] text-[#4B4848]">{{ p }}</span>
+                                        </div>
                                     </td>
                                     <td class="py-4 px-6 text-xs text-[#4B4848]">
                                         <span class="inline-flex rounded-md px-3 py-1 items-center bg-[#F4F6F9]">{{
                                             commande.frequence }}</span>
                                     </td>
                                     <td class="py-4 px-6">
-                                        <span
-                                            [class]="'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ' + getStatusClass(commande.statut)">
+                                        <div>
                                             <span
-                                                [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(commande.statut)"></span>
-                                            {{ commande.statut }}
-                                        </span>
-                                    </td>
+                                                [class]="'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ' + getStatusClass(commande.statut)">
+                                                <span
+                                                    [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(commande.statut)"></span>
+                                                {{ commande.statut }}
+                                            </span>
+<div *ngIf="commande.statut === 'Échec' && commande.failureReason" class="text-xs text-[#DC2626] mt-1">« {{ commande.failureReason }} »</div>
+                                    </div>
+                                </td>
+                                    <td class="py-4 px-6 text-sm text-[#4B4848]">{{ commande.dateStatut ?? '—' }}</td>
                                     <td class="py-4 px-6">
-                                        <button
-                                            class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100"
-                                            (click)="viewCommande(commande.numero)">
-                                            <svg width="16" height="11" viewBox="0 0 16 11" fill="none"
-                                                xmlns="http://www.w3.org/2000/svg">
-                                                <path
-                                                    d="M16 5.5C16 5.5 13 0 8 0C3 0 0 5.5 0 5.5C0 5.5 3 11 8 11C13 11 16 5.5 16 5.5ZM1.173 5.5C1.65578 4.76459 2.21197 4.08008 2.833 3.457C4.12 2.168 5.88 1 8 1C10.12 1 11.879 2.168 13.168 3.457C13.789 4.08008 14.3452 4.76459 14.828 5.5C14.7707 5.58667 14.7057 5.68267 14.633 5.788C14.298 6.268 13.803 6.908 13.168 7.543C11.879 8.832 10.119 10 8 10C5.881 10 4.121 8.832 2.832 7.543C2.21097 6.91992 1.65578 6.23541 1.173 5.5Z"
-                                                    fill="#4B4848" />
-                                                <path
-                                                    d="M8 3C7.33696 3 6.70107 3.26339 6.23223 3.73223C5.76339 4.20107 5.5 4.83696 5.5 5.5C5.5 6.16304 5.76339 6.79893 6.23223 7.26777C6.70107 7.73661 7.33696 8 8 8C8.66304 8 9.29893 7.73661 9.76777 7.26777C10.2366 6.79893 10.5 6.16304 10.5 5.5C10.5 4.83696 10.2366 4.20107 9.76777 3.73223C9.29893 3.26339 8.66304 3 8 3ZM4.5 5.5C4.5 4.57174 4.86875 3.6815 5.52513 3.02513C6.1815 2.36875 7.07174 2 8 2C8.92826 2 9.8185 2.36875 10.4749 3.02513C11.1313 3.6815 11.5 4.57174 11.5 5.5C11.5 6.42826 11.1313 7.3185 10.4749 7.97487C9.8185 8.63125 8.92826 9 8 9C7.07174 9 6.1815 8.63125 5.52513 7.97487C4.86875 7.3185 4.5 6.42826 4.5 5.5Z"
-                                                    fill="#4B4848" />
-                                            </svg>
-                                        </button>
+                                        <div class="flex items-center gap-1 flex-wrap">
+                                            <button
+                                                class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100"
+                                                (click)="viewCommande(commande.numero)"
+                                                title="Voir">
+                                                <svg width="16" height="11" viewBox="0 0 16 11" fill="none"
+                                                    xmlns="http://www.w3.org/2000/svg">
+                                                    <path
+                                                        d="M16 5.5C16 5.5 13 0 8 0C3 0 0 5.5 0 5.5C0 5.5 3 11 8 11C13 11 16 5.5 16 5.5ZM1.173 5.5C1.65578 4.76459 2.21197 4.08008 2.833 3.457C4.12 2.168 5.88 1 8 1C10.12 1 11.879 2.168 13.168 3.457C13.789 4.08008 14.3452 4.76459 14.828 5.5C14.7707 5.58667 14.7057 5.68267 14.633 5.788C14.298 6.268 13.803 6.908 13.168 7.543C11.879 8.832 10.119 10 8 10C5.881 10 4.121 8.832 2.832 7.543C2.21097 6.91992 1.65578 6.23541 1.173 5.5Z"
+                                                        fill="#4B4848" />
+                                                    <path
+                                                        d="M8 3C7.33696 3 6.70107 3.26339 6.23223 3.73223C5.76339 4.20107 5.5 4.83696 5.5 5.5C5.5 6.16304 5.76339 6.79893 6.23223 7.26777C6.70107 7.73661 7.33696 8 8 8C8.66304 8 9.29893 7.73661 9.76777 7.26777C10.2366 6.79893 10.5 6.16304 10.5 5.5C10.5 4.83696 10.2366 4.20107 9.76777 3.73223C9.29893 3.26339 8.66304 3 8 3ZM4.5 5.5C4.5 4.57174 4.86875 3.6815 5.52513 3.02513C6.1815 2.36875 7.07174 2 8 2C8.92826 2 9.8185 2.36875 10.4749 3.02513C11.1313 3.6815 11.5 4.57174 11.5 5.5C11.5 6.42826 11.1313 7.3185 10.4749 7.97487C9.8185 8.63125 8.92826 9 8 9C7.07174 9 6.1815 8.63125 5.52513 7.97487C4.86875 7.3185 4.5 6.42826 4.5 5.5Z"
+                                                        fill="#4B4848" />
+                                                </svg>
+                                            </button>
+                                            <ng-container *ngIf="commande.statut === 'Échec'">
+                                                <button type="button"
+                                                    class="text-xs px-2 py-1.5 rounded-lg border border-[#2B3674] text-[#2B3674] hover:bg-[#2B3674] hover:text-white transition-colors"
+                                                    (click)="replanOrder(commande)">Replanifier</button>
+                                                <button type="button"
+                                                    class="text-xs px-2 py-1.5 rounded-lg border border-[#DC2626] text-[#DC2626] hover:bg-[#DC2626] hover:text-white transition-colors"
+                                                    (click)="cancelOrderAfterFailure(commande)">Annuler</button>
+                                            </ng-container>
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -204,7 +239,16 @@
             <!-- Pagination -->
             <div
                 class="bg-white rounded-xl shadow flex flex-col sm:flex-row justify-between items-center p-4 gap-4 border-t border-gray-100">
-                <p class="text-gray-500 text-sm mb-2 sm:mb-0">Page {{ currentPage }} sur {{ totalPagesCount }}</p>
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-gray-500 text-sm mb-2 sm:mb-0">
+                    <span>Afficher</span>
+                    <select [ngModel]="itemsPerPage" (ngModelChange)="onPageSizeChange($event)"
+                        class="pl-2 pr-8 py-1.5 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:border-[#2d3561] appearance-none bg-[length:12px_12px] bg-[right_0.4rem_center] bg-no-repeat"
+                        style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%236B7280%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22 d=%22M19 9l-7 7-7-7%22/%3E%3C/svg%3E');">
+                        <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt">{{ opt }}</option>
+                    </select>
+                    <span>par page</span>
+                    <span>· Page {{ currentPage }} sur {{ totalPagesCount }}</span>
+                </div>
                 <div class="flex gap-2 w-full sm:w-auto">
                     <button
                         class="w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#2d3561] hover:text-[#2d3561]"
@@ -227,7 +271,7 @@
             </div>
             <!-- Chart 2: Commandes par jour -->
             <div class="bg-white rounded-2xl shadow-sm p-3 sm:p-4 lg:p-6">
-                <h3 class="text-base font-semibold text-[#2C3E50] mb-2 sm:mb-4">Commandes par jour (7 derniers jours)
+                <h3 class="text-base font-semibold text-[#2C3E50] mb-2 sm:mb-4">Commandes par jour (7 derniers jours) <span class="text-sm font-normal text-[#6B7280]">(tous statuts)</span>
                 </h3>
                 <div class="h-56">
                     <canvas #dailyOrdersChart></canvas>
@@ -236,14 +280,14 @@
         </div>
 
         <!-- Modal Détails Commande -->
-        <div *ngIf="showDetailModal && selectedCommande"
+        <div *ngIf="showDetailModal && selectedCommande as cmd"
             class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/30 transition-opacity duration-300"
             (click)="closeDetailModal()">
             <div class="bg-white rounded-xl shadow-xl w-full max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-3xl flex flex-col max-h-[90vh]"
                 (click)="$event.stopPropagation()">
                 <!-- Header (fixed) -->
                 <div class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 flex-shrink-0">
-                    <h2 class="text-lg sm:text-xl font-bold text-[#2C3E50]">Commande N° {{ selectedCommande.numero }}
+                    <h2 class="text-lg sm:text-xl font-bold text-[#2C3E50]">Commande N° {{ cmd.numero }}
                     </h2>
                     <button (click)="closeDetailModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -258,33 +302,33 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <div class="text-sm text-[#6B7280] mb-1">Salarié</div>
-                            <div class="text-base font-medium text-[#4B4848]">{{ selectedCommande.salarie }}</div>
+                            <div class="text-base font-medium text-[#4B4848]">{{ cmd.salarie }}</div>
                         </div>
                         <div>
-                            <div class="text-sm text-[#6B7280] mb-1">Date de validation</div>
-                            <div class="text-base font-medium text-[#4B4848]">{{ selectedCommande.dateValidation }}
-                            </div>
+                            <div class="text-sm text-[#6B7280] mb-1">Date de commande</div>
+                            <div class="text-base font-medium text-[#4B4848]">{{ cmd.dateCommande }}</div>
                         </div>
                         <div>
                             <div class="text-sm text-[#6B7280] mb-1">Statut</div>
                             <div
-                                [class]="'inline-flex items-center gap-2 px-3 py-1.5 rounded-full ' + getStatusClass(selectedCommande.statut)">
+                                [class]="'inline-flex items-center gap-2 px-3 py-1.5 rounded-full ' + getStatusClass(cmd.statut)">
                                 <span
-                                    [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(selectedCommande.statut)"></span>
-                                <span class="text-xs font-medium">{{ selectedCommande.statut }}</span>
+                                    [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(cmd.statut)"></span>
+                                <span class="text-xs font-medium">{{ cmd.statut }}</span>
                             </div>
+                            <div *ngIf="cmd.dateStatut" class="text-sm text-[#6B7280] mt-1">Passé à ce statut le {{ cmd.dateStatut }}</div>
                         </div>
                         <div>
                             <div class="text-sm text-[#6B7280] mb-1">Référence</div>
-                            <div class="text-base font-medium text-[#4B4848]">{{ selectedCommande.reference }}</div>
+                            <div class="text-base font-medium text-[#4B4848]">{{ cmd.reference }}</div>
                         </div>
                     </div>
                     <!-- Note -->
-                    <div *ngIf="selectedCommande.note">
+                    <div *ngIf="cmd.note">
                         <div class="text-sm text-[#6B7280] mb-1">Note</div>
-                        <div class="text-base text-[#4B4848] mb-8">{{ selectedCommande.note }}</div>
+                        <div class="text-base text-[#4B4848] mb-8">{{ cmd.note }}</div>
                     </div>
-                    <!-- Produits commandés -->
+                    <!-- Produits commandés (chargés via API avec images) -->
                     <div>
                         <h3 class="text-base font-bold text-[#374151] mb-3">Produits commandés</h3>
                         <!-- Table Header -->
@@ -294,27 +338,39 @@
                                 <div class="text-xs font-semibold text-[#2C3E50] text-right">Stock</div>
                             </div>
                         </div>
-                        <!-- Products List -->
-                        <div class="border border-gray-100 rounded-b-lg divide-y divide-gray-100">
-                            <div *ngFor="let product of getCommandeProducts()"
+                        <!-- Loading -->
+                        <div *ngIf="loadingOrderDetails" class="border border-gray-100 rounded-b-lg px-4 py-6 text-center text-sm text-[#6B7280]">
+                            Chargement des produits...
+                        </div>
+                        <!-- Products List (images + nom + catégorie + stock) -->
+                        <div *ngIf="!loadingOrderDetails && (selectedOrderDetails?.listProducts?.length ?? 0) > 0"
+                            class="border border-gray-100 rounded-b-lg divide-y divide-gray-100">
+                            <div *ngFor="let product of (selectedOrderDetails?.listProducts ?? [])"
                                 class="px-4 py-3 hover:bg-gray-50 transition-colors">
                                 <div class="grid grid-cols-2 gap-4 items-center">
                                     <div class="flex items-center gap-3">
                                         <div
                                             class="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                                            <img [src]="product.icon" [alt]="product.name"
-                                                class="w-6 h-6 object-contain">
+                                            <img [src]="getProductImageUrl(product.image)" [alt]="product.name"
+                                                class="w-10 h-10 object-cover"
+                                                onerror="this.style.display='none'">
                                         </div>
                                         <div class="min-w-0">
-                                            <div class="text-sm font-medium text-[#2C3E50] truncate">{{ product.name }}
-                                            </div>
-                                            <div class="text-xs text-[#6B7280]">{{ product.category }}</div>
+                                            <div class="text-sm font-medium text-[#2C3E50] truncate">{{ product.name }}</div>
+                                            <div class="text-xs text-[#6B7280]">{{ product.categoryName }}</div>
                                         </div>
                                     </div>
-                                    <div class="text-sm font-medium text-[#2C3E50] text-right">{{
-                                        getProductQuantity(product.id) }}</div>
+                                    <div class="text-sm font-medium text-[#2C3E50] text-right">{{ product.currentStock }}</div>
                                 </div>
                             </div>
+                        </div>
+                        <div *ngIf="!loadingOrderDetails && loadOrderDetailsError"
+                            class="border border-gray-100 rounded-b-lg px-4 py-6 text-sm text-amber-600">
+                            Impossible de charger les produits (erreur serveur).
+                        </div>
+                        <div *ngIf="!loadingOrderDetails && !loadOrderDetailsError && (!selectedOrderDetails?.listProducts || (selectedOrderDetails?.listProducts?.length ?? 0) === 0)"
+                            class="border border-gray-100 rounded-b-lg px-4 py-6 text-sm text-[#6B7280]">
+                            Aucun produit dans cette commande.
                         </div>
                     </div>
                 </div>

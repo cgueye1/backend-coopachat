@@ -1,300 +1,342 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { AuthLayoutComponent } from '../auth-layout/auth-layout.component';
 import { NgOtpInputModule, NgOtpInputConfig } from 'ng-otp-input';
 import Swal from 'sweetalert2';
 import { AuthService } from '../../../shared/services/auth.service';
 
-/**
- * Composant de vérification OTP
- * Sert à vérifier le code envoyé par email et activer le compte utilisateur
- */
+// ============================================================
+// CE QUE FAIT CE FICHIER
+// ============================================================
+// Page OTP à deux usages : 
+// inscription (Commercial/Logistique) → création de mot de passe ;
+// connexion Admin (2FA) → accès au dashboard. 
+// Le cas est choisi selon la présence de otpEmail dans sessionStorage.
+// ============================================================
+
 @Component({
   selector: 'app-otp-verification',
   standalone: true,
-  imports: [CommonModule, AuthLayoutComponent, NgOtpInputModule],
+  imports: [
+    CommonModule,        // *ngIf, *ngFor etc.
+    AuthLayoutComponent, // cadre commun aux pages auth
+    NgOtpInputModule     // bibliothèque pour le champ OTP à 6 cases
+  ],
   templateUrl: './otp-verification.component.html',
   styleUrls: ['./otp-verification.component.css']
 })
 export class OtpVerificationComponent implements OnInit {
 
-  // ========================================================================
-  //  Référence du champ OTP pour pouvoir le réinitialiser si erreur
-  // ========================================================================
+  // ============================================================
+  //  LES VARIABLES DE CE COMPOSANT
+  // ============================================================
+
+  // @ViewChild → permet d'accéder directement au champ OTP dans le HTML depuis le TypeScript
+  // Utilisé pour vider le champ si le code est incorrect
   @ViewChild('ngOtpInput') ngOtpInputRef: any;
 
-  // ========================================================================
-  //  Informations utilisateur
-  // ========================================================================
-  maskedEmail: string = ''; // Email masqué pour affichage (ex: j***n@exemple.com)
-  userEmail: string = '';   // Email réel utilisé pour l'API
+  // Email affiché à l'écran (masqué pour la confidentialité)
+  maskedEmail: string = '';
 
-  // ========================================================================
-  // Etat de l'application
-  // ========================================================================
-  errorMessage: string = ''; // Message d'erreur affiché à l'utilisateur
-  isLoading: boolean = false; // True = appel API en cours (affiche spinner)
-  isInvalid: boolean = false; // True = code OTP invalide
+  // Email réel (non masqué) utilisé pour appeler l'API
+  userEmail: string = '';
 
-  // ========================================================================
-  //  Gestion du renvoi de code
-  // ========================================================================
-  isResendDisabled: boolean = false; // True = bouton “renvoyer” désactivé
-  resendCountdown: number = 0;       // Temps restant avant de pouvoir renvoyer
+  // Message d'erreur affiché sous les cases OTP
+  errorMessage: string = '';
 
-  // ========================================================================
-  //  Code OTP saisi par l'utilisateur
-  // ========================================================================
+  // true = appel API en cours → on affiche le spinner
+  // false = pas d'appel en cours → formulaire normal
+  isLoading: boolean = false;
+
+  // true = le code saisi est incorrect 
+  // false = pas d'erreur
+  isInvalid: boolean = false;
+
+  // true = bouton "Renvoyer le code" grisé et non cliquable
+  // false = bouton actif (l'utilisateur peut demander un nouveau code)
+  isResendDisabled: boolean = false;
+
+  // Compte à rebours affiché sur le bouton "Renvoyer"
+  // Quand il atteint 0 → bouton réactivé
+  resendCountdown: number = 0;
+
+  // Le code OTP saisi par l'utilisateur 
   otpValue: string = '';
 
-  // ========================================================================
-  // Configuration du champ OTP
-  // ========================================================================
-  otpConfig: NgOtpInputConfig = {
-    length: 6, // nombre de chiffres
-    isPasswordInput: false,
-    disableAutoFocus: false,
-    placeholder: '',
-    allowNumbersOnly: true,
-    inputStyles: {
-      'width': '48px',
-      'height': '48px',
-      'border': '1px solid #D1D5DB',
-      'border-radius': '16px',
-      'text-align': 'center',
-      'font-size': '1.25rem',
-      'font-weight': '600',
-      'color': '#374151',
-      'outline': 'none',
-      'transition': 'all 0.2s'
-    },
-    containerStyles: {
-      'display': 'flex',
-      'gap': '16px'
-    }
-  };
-
-  // ========================================================================
-  //  CONSTRUCTEUR
-  // ========================================================================
-  constructor(
-    private router: Router,        // pour naviguer vers d'autres pages
-    private authService: AuthService // service pour appeler les API
-  ) { }
-
-  // ========================================================================
-  // INITIALISATION DU COMPOSANT
-  // ========================================================================
-  ngOnInit(): void {
-    // On récupère l'email depuis le storage
-    const email =
-      sessionStorage.getItem('otpEmail') || // cas admin (login -> OTP)
-      localStorage.getItem('verificationEmail') || // cas inscription
-      sessionStorage.getItem('email') || // fallback session
-      '';
-    this.userEmail = email;
-
-    // On masque l'email pour affichage
-    if (email) {
-      this.maskedEmail = this.maskEmail(email);
-    } else {
-      this.maskedEmail = 'votre@email.com'; // valeur par défaut
-    }
+  // ============================================================
+  // ⚙️ CONFIGURATION DU CHAMP OTP
+  // ============================================================
+  get otpConfig(): NgOtpInputConfig {
+    const border = this.isInvalid ? '2px solid #EF4444' : '1px solid #D1D5DB';
+    const backgroundColor = this.isInvalid ? '#FEF2F2' : 'transparent';
+    return {
+      length: 6,
+      isPasswordInput: false,
+      disableAutoFocus: false,
+      placeholder: '',
+      allowNumbersOnly: true,
+      inputStyles: {
+        'width': '48px',
+        'height': '48px',
+        'border': border,
+        'background-color': backgroundColor,
+        'border-radius': '16px',
+        'text-align': 'center',
+        'font-size': '1.25rem',
+        'font-weight': '600',
+        'color': '#374151',
+        'outline': 'none',
+        'transition': 'all 0.2s'
+      },
+      containerStyles: { 'display': 'flex', 'gap': '16px' }
+    };
   }
 
-  // ========================================================================
-  // VÉRIFICATION OTP
-  // ========================================================================
+  // ============================================================
+  // 🔧 CONSTRUCTEUR
+  // ============================================================
+  // On injecte 3 services :
+  //   router      → pour naviguer vers une autre page
+  //   route       → pour lire l'email dans l'URL (priorité inscription)
+  //   authService → pour appeler les API (vérifier OTP, renvoyer code)
+  // ============================================================
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private authService: AuthService
+  ) { }
 
-  //  Vérifie si le code OTP est complet (6 chiffres)
+  // ============================================================
+  // 🚀 INITIALISATION — s'exécute quand la page se charge
+  // ============================================================
+  ngOnInit(): void {
+
+    // On cherche l'email dans plusieurs endroits possibles
+    // car il peut venir de 2 flux différents (inscription ou admin)
+    // Priorité : query param (inscription) > otpEmail (admin) > verificationEmail
+    const emailFromUrl = this.route.snapshot.queryParams['email'];
+    const email = emailFromUrl ||
+      sessionStorage.getItem('otpEmail') ||        // CAS ADMIN : stocké à la connexion
+      localStorage.getItem('verificationEmail') ||  // CAS INSCRIPTION : stocké après register
+      sessionStorage.getItem('email') ||            // fallback au cas où
+      '';
+
+    this.userEmail = email; // email réel pour l'API
+
+    // On masque l'email pour l'affichage
+    this.maskedEmail = email
+      ? this.maskEmail(email)
+      : 'votre@email.com'; // valeur par défaut si email introuvable
+  }
+
+  // ============================================================
+  // ✅ PROPRIÉTÉ CALCULÉE — le code est-il complet ?
+  // ============================================================
+  // get = propriété calculée automatiquement,retourne true seulement si les 6 cases sont remplies
+  // Utilisé pour activer/désactiver le bouton "Vérifier"
   get isCodeComplete(): boolean {
     return this.otpValue.length === 6;
   }
 
-  // Quand l'utilisateur modifie le code OTP
+  // ============================================================
+  // ⌨️ QUAND L'UTILISATEUR TAPE DANS LES CASES OTP
+  // ============================================================
+  // Appelée automatiquement à chaque changement dans le champ OTP
   onOtpChange(otp: string): void {
-    this.otpValue = otp;
-    this.errorMessage = ''; // on efface l'erreur
-    this.isInvalid = false; // on réinitialise le flag d'erreur
+    this.otpValue = otp;       // on met à jour le code saisi
+    this.errorMessage = '';     // on efface l'erreur précédente
+    this.isInvalid = false;     // on remet les cases en normal (pas rouge)
   }
 
-  //  Soumettre le code OTP
+  // ============================================================
+  // 🚀 QUAND L'UTILISATEUR CLIQUE "VÉRIFIER"
+  // ============================================================
   onSubmit(): void {
 
-    // Vérifie si le code est complet et qu'on n'est pas déjà en chargement
-    if (this.isCodeComplete && !this.isLoading) {
-      this.isLoading = true; // on affiche spinner
-      this.errorMessage = '';
+    // Sécurité : on vérifie que le code est complet
+    // et qu'on n'est pas déjà en train d'appeler l'API
+    if (!this.isCodeComplete || this.isLoading) return;
 
-      // Vérifie si l'email est disponible
-      if (!this.userEmail) {
-        this.errorMessage = 'Email introuvable';
-        this.isLoading = false; // arrêt spinner
-        return;
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    // Sécurité : on vérifie qu'on a bien un email
+    if (!this.userEmail) {
+      this.errorMessage = 'Email introuvable';
+      this.isLoading = false;
+      return;
+    }
+
+    // On détecte dans quel cas on est :
+    // Si 'otpEmail' existe dans sessionStorage → cas Admin
+    const isAdminOtpFlow = !!sessionStorage.getItem('otpEmail');
+    // !! = convertit en booléen (null → false, "email@..." → true)
+
+    // On choisit le bon appel API selon le cas
+    const request$ = isAdminOtpFlow
+      ? this.authService.verifyAdminOtp(this.userEmail, this.otpValue)
+      // CAS ADMIN  → vérifie le code 2FA et retourne un token
+      : this.authService.verifyActivationCode(this.userEmail, this.otpValue);
+      // CAS INSCRIPTION → active le compte et ne retourne pas de token
+
+    // On envoie la requête
+    request$.subscribe({
+
+      // ✅ SI LE CODE EST CORRECT
+      next: (response) => {
+        this.isLoading = false;
+
+        // CAS ADMIN : on reçoit un token → on le stocke → redirection
+        if (isAdminOtpFlow && response?.accessToken) {
+
+          // On stocke toutes les infos de l'utilisateur (session + local pour persistance au rechargement)
+          const store = (key: string, value: string) => {
+            sessionStorage.setItem(key, value);
+            localStorage.setItem(key, value);
+          };
+          store('token', response.accessToken);
+          store('role', response.role);
+          if (response.email) store('email', response.email);
+          if (response.firstName) store('firstName', response.firstName);
+          if (response.lastName) store('lastName', response.lastName);
+          if (response.profilePhotoUrl) store('profilePhotoUrl', response.profilePhotoUrl);
+
+          // On nettoie l'email OTP (plus besoin)
+          sessionStorage.removeItem('otpEmail');
+
+          // On redirige selon le rôle de l'utilisateur
+          const role = response.role;
+          if (role === 'Administrateur' || role === 'ADMIN') {
+            this.router.navigate(['/admin/dashboardadmin']);
+          } else if (role === 'Responsable Logistique') {
+            this.router.navigate(['/log/dashboardlog']);
+          } else if (role === 'Commercial') {
+            this.router.navigate(['/com/dashboard']);
+          } else {
+            this.router.navigate(['/portail']); // rôle inconnu → page d'accueil
+          }
+          return; // on sort, pas besoin de continuer
+        }
+
+        // CAS INSCRIPTION : pas de token → juste un message de succès
+        // puis redirection vers "Créer un mot de passe"
+        this.showSuccessMessage();
+      },
+
+      // ❌ SI LE CODE EST INCORRECT
+      error: (error) => {
+        this.isLoading = false;
+
+        // Message d'erreur du backend ou message générique
+        this.errorMessage = error.error?.message
+          || 'Code de vérification incorrect. Veuillez réessayer.';
+
+        // On marque les cases en rouge (le code reste affiché pour que l'utilisateur puisse le corriger)
+        this.isInvalid = true;
       }
-
-      const isAdminOtpFlow = !!sessionStorage.getItem('otpEmail');
-
-      // Appel API : OTP admin (2FA) ou activation de compte
-      const request$ = isAdminOtpFlow
-        ? this.authService.verifyAdminOtp(this.userEmail, this.otpValue)
-        : this.authService.verifyActivationCode(this.userEmail, this.otpValue);
-
-      request$.subscribe({
-        next: (response) => {
-          this.isLoading = false; // arrêt spinner
-
-          // Cas admin : on reçoit un token + role -> redirection dashboard
-          if (isAdminOtpFlow && response?.accessToken) {
-            sessionStorage.setItem('token', response.accessToken);
-            sessionStorage.setItem('role', response.role);
-            if (response.email) {
-              sessionStorage.setItem('email', response.email);
-            }
-            if (response.firstName) {
-              sessionStorage.setItem('firstName', response.firstName);
-            }
-            if (response.lastName) {
-              sessionStorage.setItem('lastName', response.lastName);
-            }
-            sessionStorage.removeItem('otpEmail'); // nettoyer
-
-            const role = response.role;
-            if (role === 'Administrateur' || role === 'ADMINISTRATOR' || role === 'ADMIN') {
-              this.router.navigate(['/admin/dashboardadmin']);
-            } else if (role === 'Responsable Logistique') {
-              this.router.navigate(['/log/dashboardlog']);
-            } else if (role === 'Commercial') {
-              this.router.navigate(['/com/dashboard']);
-            } else {
-              this.router.navigate(['/portail']);
-            }
-            return;
-          }
-
-          // Cas activation (commercial / logistique)
-          this.showSuccessMessage();
-        },
-        error: (error) => {
-          this.isLoading = false; // arrêt spinner
-          this.errorMessage = error.error?.message || 'Code de vérification incorrect. Veuillez réessayer.';
-          this.isInvalid = true;
-
-          // Réinitialiser le champ OTP
-          if (this.ngOtpInputRef) {
-            this.ngOtpInputRef.setValue('');
-          }
-          this.otpValue = '';
-        }
-      });
-    }
+    });
   }
 
-  // ========================================================================
-  // 🔄 RENVOI DE CODE
-  // ========================================================================
+  // ============================================================
+  // 🔄 RENVOYER UN NOUVEAU CODE
+  // ============================================================
   resendCode(): void {
-    
-    // Vérifier si le bouton n'est pas déjà désactivé et que l'utilisateur a un email
-    if (!this.isResendDisabled && this.userEmail) {
 
-      // Désactiver le bouton immédiatement pour éviter les clics multiples
-      this.isResendDisabled = true;
-      this.errorMessage = ''; // Réinitialiser tout message d'erreur précédent
+    // Sécurité : bouton déjà désactivé ou email manquant → on ne fait rien
+    if (this.isResendDisabled || !this.userEmail) return;
 
-      // Appel de l'API pour renvoyer le code d'activation
-      this.authService.resendActivationCode(this.userEmail).subscribe({
+    // On désactive le bouton immédiatement pour éviter les clics multiples
+    this.isResendDisabled = true;
+    this.errorMessage = '';
 
-        // -------------------
-        // Succès de l'API
-        // -------------------
-        next: (response) => {
-          // Le code a été renvoyé avec succès
-          // On lance le countdown par défaut de 30 secondes pour bloquer le bouton
-          this.startResendCountdown(30);
-        },
+    // Appel API : envoie un nouveau code par email
+    this.authService.resendActivationCode(this.userEmail).subscribe({
 
-        // -------------------
-        // Erreur de l'API
-        // -------------------
-        error: (error) => {
-          // Réactiver le bouton car l'envoi a échoué
-          this.isResendDisabled = false;
+      // ✅ CODE RENVOYÉ AVEC SUCCÈS
+      next: () => {
+        // On lance un compte à rebours de 30 secondes pendant lequel le bouton reste désactivé
+        this.startResendCountdown(30);
+      },
 
-          // Récupérer le message d'erreur du backend ou afficher un message générique
-          const errorMessage = error.error?.message || 'Erreur lors du renvoi du code';
-          this.errorMessage = errorMessage;
+      // ❌ ERREUR LORS DU RENVOI
+      error: (error) => {
+        this.isResendDisabled = false; // on réactive le bouton
 
-          // Vérifier si le message contient un délai de réessai (ex: "15 secondes")
-          const secondsMatch = errorMessage.match(/(\d+)\s*secondes?/);
-          if (secondsMatch) {
-            // Extraire le nombre de secondes et lancer le countdown correspondant
-            const remainingSeconds = parseInt(secondsMatch[1]);
-            //utiliser le nombre extrait pour le countdown (compte à rebours)
-            this.startResendCountdown(remainingSeconds);
-          }
+        const errorMessage = error.error?.message
+          || 'Erreur lors du renvoi du code';
+        this.errorMessage = errorMessage;
+
+        // Le backend peut envoyer un message comme : "Veuillez attendre 15 secondes avant de réessayer"
+        // On extrait le nombre de secondes avec une regex
+        const secondsMatch = errorMessage.match(/(\d+)\s*secondes?/);
+        if (secondsMatch) {
+          // On lance le countdown avec le délai exact du backend
+          const remainingSeconds = parseInt(secondsMatch[1]);
+          this.startResendCountdown(remainingSeconds);
         }
-      });
-    }
+      }
+    });
   }
 
-
-  // Countdown pour le bouton “renvoyer code”
+  // ============================================================
+  // ⏱️ COMPTE À REBOURS DU BOUTON "RENVOYER"
+  // ============================================================
   private startResendCountdown(seconds: number): void {
-    this.resendCountdown = seconds; // nombre de secondes affiché
+    this.resendCountdown = seconds;
+
+    // setInterval = exécute la fonction toutes les 1000ms (1 seconde)
     const countdownInterval = setInterval(() => {
-      this.resendCountdown--; // on décrémente chaque seconde
+      this.resendCountdown--;
 
       if (this.resendCountdown <= 0) {
-        this.isResendDisabled = false; // bouton réactivé
-        clearInterval(countdownInterval); // on arrête le timer
+        this.isResendDisabled = false;      // bouton réactivé
+        clearInterval(countdownInterval);   // on arrête le timer
       }
-    }, 1000); // répété toutes les 1000ms = 1 seconde
+    }, 1000);
   }
 
-
-  // ========================================================================
-  // GESTION DU SUCCÈS
-  // ========================================================================
+  // ============================================================
+  // 🎉 POPUP DE SUCCÈS (même style que les modals admin produits)
+  // ============================================================
   showSuccessMessage(): void {
-    // Affiche un message de succès via SweetAlert
     Swal.fire({
       title: 'Vérification réussie',
-      html: '<p style="color: #231F20; font-size: 18px; margin: 0;">Votre code a été vérifié avec succès.</p>',
+      text: 'Votre code a été vérifié avec succès.',
       iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
       showConfirmButton: false,
-      timer: 1500,
+      timer: 3000,
       buttonsStyling: false,
       customClass: {
-        popup: 'rounded-xl p-6',
-        title: 'text-2xl font-semibold text-[#231F20]',
+        popup: 'rounded-3xl p-6',
+        title: 'text-xl font-medium text-gray-900',
+        htmlContainer: 'text-base text-gray-600',
         icon: 'border-none'
       },
-      backdrop: `rgba(0,0,0,0.2)`,
+      backdrop: 'rgba(0,0,0,0.2)',
       width: '580px',
-      showClass: {
-        popup: 'animate__animated animate__fadeIn animate__faster'
-      },
-      hideClass: {
-        popup: 'animate__animated animate__fadeOut animate__faster'
-      }
+      showClass: { popup: 'animate__animated animate__fadeIn animate__faster' },
+      hideClass: { popup: 'animate__animated animate__fadeOut animate__faster' }
     }).then(() => {
       this.router.navigate(['/create-password']);
     });
   }
 
-  // ========================================================================
-  //  UTILITAIRES
-  // ========================================================================
+  // ============================================================
+  // 🔒 MASQUER L'EMAIL (utilitaire)
+  // ============================================================
   private maskEmail(email: string): string {
-    // Masque les lettres de l'email sauf 1ère et dernière lettre
     const [localPart, domain] = email.split('@');
     if (localPart.length <= 2) {
       return `${localPart}***@${domain}`;
     }
-    const maskedLocal = localPart.charAt(0) + '*'.repeat(localPart.length - 2) + localPart.charAt(localPart.length - 1);
+    const maskedLocal =
+      localPart.charAt(0) +                        
+      '*'.repeat(localPart.length - 2) +           
+      localPart.charAt(localPart.length - 1); 
+
     return `${maskedLocal}@${domain}`;
+    
   }
 
   // Redirige vers la page de connexion
