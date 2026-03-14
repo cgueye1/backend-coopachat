@@ -949,6 +949,11 @@ public class CommercialServiceImpl implements CommercialService {
             throw new RuntimeException("La date de fin doit être après la date de début");
         }
 
+        // 2a) Le scope "Tous les produits" n'est plus proposé
+        if (createCouponDTO.getScope() == CouponScope.ALL_PRODUCTS) {
+            throw new RuntimeException("Le scope \"Tous les produits\" n'est plus disponible. Utilisez \"Produits spécifiques\" ou \"Catégories spécifiques\".");
+        }
+
         // 2b) Scope CART_TOTAL = code promo panier, pas de produit ni catégorie
         if (createCouponDTO.getScope() == CouponScope.CART_TOTAL) {
             if ((createCouponDTO.getProductIds() != null && !createCouponDTO.getProductIds().isEmpty())

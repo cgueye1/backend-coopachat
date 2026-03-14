@@ -74,8 +74,8 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         // 1. Récupérer l'utilisateur connecté
         Users user = getCurrentUser();
         // 2. Vérifier que c'est bien un livreur (et récupérer le driver)
-        Driver driver = deliveryDriverRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Livreur non trouvé"));
+       Driver driver = deliveryDriverRepository.findByUser(user)
+               .orElseThrow(() -> new RuntimeException("Livreur non trouvé"));
         // 3. Retourner nom, prénom, téléphone, email (vehicleType = tour assignée, pas dans le profil)
         return new DriverPersonalInfoDTO(
                 user.getFirstName(),
@@ -263,9 +263,9 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
                 .filter(o -> o.getStatus() != OrderStatus.VALIDEE)
                 .count();
         if (nbDejaRecuperees == 1) {
-            tour.setStatus(DeliveryTourStatus.EN_COURS);
-            tour.setStartedAt(LocalDateTime.now());
-            deliveryTourRepository.save(tour);
+        tour.setStatus(DeliveryTourStatus.EN_COURS);
+        tour.setStartedAt(LocalDateTime.now());
+        deliveryTourRepository.save(tour);
             driverNotificationService.notifyLogisticsManagerTourStarted(tour);
             log.info("Tournée {} démarrée par {} (première récupération)", tour.getTourNumber(), currentUser.getEmail());
         } else {
