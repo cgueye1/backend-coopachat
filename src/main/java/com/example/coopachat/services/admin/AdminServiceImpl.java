@@ -354,16 +354,17 @@ public class AdminServiceImpl implements AdminService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Produit introuvable"));
 
-        // Vérifier si le nom est modifié et s'il existe déjà (sauf si c'est le même nom)
+        // Vérifier si le nom est modifié et qu'aucun autre produit n'a déjà ce nom
         if (updateProductDTO.getName() != null && !updateProductDTO.getName().trim().isEmpty()) {
             String newName = updateProductDTO.getName().trim();
-            // Si le nouveau nom est différent de l'ancien, vérifier l'unicité
-            if (!newName.equals(product.getName())) {
-                if (productRepository.existsByName(newName)) {
+            String currentName = product.getName() != null ? product.getName().trim() : "";
+            if (!newName.equalsIgnoreCase(currentName)) {
+                // Nom modifié : vérifier l'unicité en excluant ce produit
+                if (Boolean.TRUE.equals(productRepository.existsByNameAndIdNot(newName, product.getId()))) {
                     throw new RuntimeException("Un produit avec ce nom existe déjà");
                 }
-                product.setName(newName);
             }
+            product.setName(newName);
         }
 
         // Mettre à jour la description si fournie
