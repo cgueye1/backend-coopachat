@@ -118,10 +118,14 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Autorise tous les sites à appeler l'API (pattern * autorise toute origine)
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        // Origines autorisées : * + localhost (front en dev ou Docker sur 8080)
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "*",
+                "http://localhost:8080",
+                "http://localhost:4200"
+        ));
 
-        // Autorise ces méthodes HTTP
+        // Autorise ces méthodes HTTP (OPTIONS requis pour le preflight CORS)
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
         // Autorise tous les headers (dont Authorization pour le Bearer token)
@@ -129,6 +133,9 @@ public class SecurityConfig {
 
         // Credentials (cookies) : false
         configuration.setAllowCredentials(false);
+
+        // Cache du preflight (OPTIONS) en secondes
+        configuration.setMaxAge(3600L);
 
         // Crée la "boîte à configuration" CORS
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
