@@ -537,9 +537,8 @@ public class LogisticsManagerController {
     }
     @Operation(
             summary = "Modifier une tournée",
-            description = "Met à jour les informations d'une tournée (véhicule, notes, liste des commandes). PUT et PATCH acceptés."
+            description = "Met à jour les informations d'une tournée (véhicule, notes, liste des commandes)."
     )
-    @PutMapping("/delivery-tours/{tourId}")
     @PatchMapping("/delivery-tours/{tourId}")
     public ResponseEntity<?> updateDeliveryTour(
             @PathVariable Long tourId,
