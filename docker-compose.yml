@@ -61,8 +61,10 @@ services:
         condition: service_healthy
 
     # Variables d'environnement (valeurs depuis .env ou host)
+    # - Profil Spring = docker (charge application-docker.properties, connexion à db:3306)
     # - Connexion base de données, JWT, Email, Google Auth, MinIO
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       DB_NAME: ${DB_NAME:-coopachat}
       DB_USER: ${DB_USER:-coopachat}
       DB_PASSWORD: ${DB_PASSWORD:-coopachat}
