@@ -1,6 +1,5 @@
 package com.example.coopachat.dtos.coupons;
 
-import com.example.coopachat.enums.CouponScope;
 import com.example.coopachat.enums.CouponStatus;
 import com.example.coopachat.enums.DiscountType;
 import lombok.AllArgsConstructor;
@@ -22,7 +21,6 @@ public class CouponListItemDTO {
     private String name;
     private DiscountType discountType;
     private BigDecimal value;
-    private CouponScope scope;
     private CouponStatus status;
     private String validFrom; // dd-MM-yyyy
     private String validTo;   // dd-MM-yyyy

@@ -1,7 +1,6 @@
 package com.example.coopachat.repositories;
 
 import com.example.coopachat.entities.Coupon;
-import com.example.coopachat.enums.CouponScope;
 import com.example.coopachat.enums.CouponStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,12 +38,10 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
                    OR LOWER(c.code) LIKE LOWER(CONCAT('%', :search, '%'))
                    OR LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')))
               AND (:status IS NULL OR c.status = :status)
-              AND (:scope IS NULL OR c.scope = :scope)
               AND (:isActive IS NULL OR c.isActive = :isActive)
             """)
     Page<Coupon> findAllWithFilters(@Param("search") String search,
                                     @Param("status") CouponStatus status,
-                                    @Param("scope") CouponScope scope,
                                     @Param("isActive") Boolean isActive,
                                     Pageable pageable);
 
@@ -77,39 +74,32 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
     Optional<Coupon> findLatestActiveCoupon(@Param("now") LocalDateTime now);
 
     /**
-     * Liste tous les coupons actifs dont le scope n’est pas lié à un produit ou une catégorie.
-     * On exclut uniquement ALL_PRODUCTS, CATEGORIES, PRODUCTS ; tout autre scope (CART_TOTAL, livraison, etc.) est inclus.
+     * Liste tous les coupons actifs en cours de validité (accueil salarié, codes promo panier). n’est pas lié à un produit ou une catégorie.
      * Utilisé pour l’accueil salarié : coupons à saisir manuellement (panier, livraison, etc.).
-     * //NOT IN "ne pas inclure les produits ou catégories"
      */
     @Query("""
             SELECT c
             FROM Coupon c
             WHERE c.isActive = true
               AND c.status = 'ACTIVE'
-              AND c.scope NOT IN ('ALL_PRODUCTS', 'CATEGORIES', 'PRODUCTS') 
               AND c.startDate <= :now
               AND c.endDate >= :now
             ORDER BY c.startDate DESC
             """)
-    List<Coupon> findActiveCouponsNotProductOrCategory(@Param("now") LocalDateTime now);
+    List<Coupon> findActiveCouponsInValidity(@Param("now") LocalDateTime now);
 
-    // ============================================================================
-    // Statistiques coupons panier (scope CART_TOTAL uniquement)
-    // ============================================================================
+    /** Nombre de coupons avec le statut donné. */
+    long countByStatus(CouponStatus status);
 
-    /** Nombre de coupons actifs dont la portée est CART_TOTAL (code promo panier). */
-    long countByScopeAndStatus(CouponScope scope, CouponStatus status);
-
-    /** Nombre de promotions actives (isActive = true). Utilisé pour le KPI dashboard commercial. */
+    /** Nombre de coupons actifs (isActive = true). Utilisé pour le KPI dashboard commercial. */
     long countByIsActiveTrue();
 
-    /** Somme des utilisations (usageCount) pour les coupons de portée donnée. */
-    @Query("SELECT COALESCE(SUM(c.usageCount), 0) FROM Coupon c WHERE c.scope = :scope")
-    long sumUsageCountByScope(@Param("scope") CouponScope scope);
+    /** Somme des utilisations (usageCount) pour tous les coupons. */
+    @Query("SELECT COALESCE(SUM(c.usageCount), 0) FROM Coupon c")
+    long sumUsageCount();
 
-    /** Somme du montant généré (totalGenerated) pour les coupons de portée donnée. */
-    @Query("SELECT COALESCE(SUM(c.totalGenerated), 0) FROM Coupon c WHERE c.scope = :scope")
-    BigDecimal sumTotalGeneratedByScope(@Param("scope") CouponScope scope);
+    /** Somme du montant généré (totalGenerated) pour tous les coupons. */
+    @Query("SELECT COALESCE(SUM(c.totalGenerated), 0) FROM Coupon c")
+    BigDecimal sumTotalGenerated();
 
 }
