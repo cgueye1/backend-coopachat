@@ -1,6 +1,5 @@
 package com.example.coopachat.entities;
 
-import com.example.coopachat.enums.CouponScope;
 import com.example.coopachat.enums.CouponStatus;
 import com.example.coopachat.enums.DiscountType;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -18,7 +17,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Entity représentant un coupon de réduction ou une promotion
+ * Entity représentant un coupon (code promo saisi sur le panier, réduction sur le total).
  */
 @Entity
 @Table(name = "coupons")
@@ -48,11 +47,6 @@ public class Coupon {
     @NotNull(message = "La valeur de réduction est obligatoire")
     @Positive(message = "La valeur de réduction doit être positive")
     private BigDecimal value; // Pourcentage ou montant
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
-    @NotNull(message = "Le scope du coupon est obligatoire")
-    private CouponScope scope; // ALL_PRODUCTS, CATEGORIES, PRODUCTS (lié produit/catégorie) ou CART_TOTAL (code promo manuel, pas lié, s'applique au total du panier)
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

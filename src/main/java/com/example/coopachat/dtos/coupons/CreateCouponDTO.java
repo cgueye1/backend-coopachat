@@ -1,6 +1,5 @@
 package com.example.coopachat.dtos.coupons;
 
-import com.example.coopachat.enums.CouponScope;
 import com.example.coopachat.enums.CouponStatus;
 import com.example.coopachat.enums.DiscountType;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -13,11 +12,9 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
- * DTO pour la création d'un coupon.
- * Deux types : (1) produit/catégorie (scope ALL_PRODUCTS, CATEGORIES ou PRODUCTS) ; (2) code promo panier (scope CART_TOTAL), pas lié à un produit/catégorie.
+ * DTO pour la création d'un coupon (code promo panier, réduction sur le total).
  */
 @Data
 @NoArgsConstructor
@@ -37,9 +34,6 @@ public class CreateCouponDTO {
     @Positive(message = "La valeur de reduction doit être positive")
     private BigDecimal value;
 
-    @NotNull(message = "Le scope du coupon est obligatoire")
-    private CouponScope scope; // ALL_PRODUCTS, CATEGORIES, PRODUCTS ou CART_TOTAL (code promo sans produit/catégorie)
-
     @NotNull(message = "Le statut du coupon est obligatoire")
     private CouponStatus status;
 
@@ -53,12 +47,4 @@ public class CreateCouponDTO {
     @NotNull(message = "La date de fin est obligatoire")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     private LocalDateTime endDate;
-
-    // Optionnel : liste des produits pour le scope PRODUCTS. Pour CART_TOTAL, doit être null ou vide.
-    private List<Long> productIds;
-
-    // Optionnel : liste des catégories pour le scope CATEGORIES. Pour CART_TOTAL, doit être null ou vide.
-    private List<Long> categoryIds;
-
-
 }

@@ -889,13 +889,13 @@ public class CommercialServiceImpl implements CommercialService {
                 .map(this::mapToCouponProductItemDTO)
                 .collect(Collectors.toList());
 
-        return mapToCouponDetailsDTO(coupon, productItems);
+        return mapToCouponDetailsDTO(coupon);
     }
 
     @Override
     @Transactional
     public CouponListResponseDTO getAllCoupons(int page, int size, String search,
-                                               CouponStatus status, CouponScope scope, Boolean isActive) {
+                                               CouponStatus status, Boolean isActive) {
 
         Users commercial = getCurrentUser();
 
@@ -908,7 +908,7 @@ public class CommercialServiceImpl implements CommercialService {
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
 
         Page<Coupon> couponPage = couponRepository.findAllWithFilters(
-                searchTerm, status, scope, isActive, pageable);
+                searchTerm, status, isActive, pageable);
 
         List<CouponListItemDTO> couponList = couponPage.getContent().stream()
                 .map(this::mapToCouponListItemDTO)
@@ -923,11 +923,10 @@ public class CommercialServiceImpl implements CommercialService {
         response.setHasNext(couponPage.hasNext());
         response.setHasPrevious(couponPage.hasPrevious());
 
-        log.info("Page {} de {} coupons récupérée par le commercial {} (total: {}, recherche: '{}', status: {}, scope: {}, isActive: {})",
+        log.info("Page {} de {} coupons récupérée par le commercial {} (total: {}, recherche: '{}', status: {}, isActive: {})",
                 page + 1, couponPage.getTotalPages(), commercial.getEmail(), couponPage.getTotalElements(),
                 searchTerm != null ? searchTerm : "aucune",
                 status != null ? status : "tous",
-                scope != null ? scope : "tous",
                 isActive != null ? isActive : "tous");
 
         return response;
@@ -949,75 +948,18 @@ public class CommercialServiceImpl implements CommercialService {
             throw new RuntimeException("La date de fin doit être après la date de début");
         }
 
-        // 2a) Le scope "Tous les produits" n'est plus proposé
-        if (createCouponDTO.getScope() == CouponScope.ALL_PRODUCTS) {
-            throw new RuntimeException("Le scope \"Tous les produits\" n'est plus disponible. Utilisez \"Produits spécifiques\" ou \"Catégories spécifiques\".");
-        }
-
-        // 2b) Scope CART_TOTAL = code promo panier, pas de produit ni catégorie
-        if (createCouponDTO.getScope() == CouponScope.CART_TOTAL) {
-            if ((createCouponDTO.getProductIds() != null && !createCouponDTO.getProductIds().isEmpty())
-                    || (createCouponDTO.getCategoryIds() != null && !createCouponDTO.getCategoryIds().isEmpty())) {
-                throw new RuntimeException("Un coupon \"Sur le total du panier\" ne doit pas être lié à des produits ou catégories");
-            }
-        }
-
-        // 2c) Montant fixe = uniquement sur le total du panier (évite coupon > prix produit sur une ligne(article) de panier)
-        if (createCouponDTO.getDiscountType() == DiscountType.FIXED_AMOUNT) {
-            if (createCouponDTO.getScope() != CouponScope.CART_TOTAL) {
-                throw new RuntimeException("Un coupon en montant fixe ne peut être appliqué que sur le total du panier (scope CART_TOTAL)");
-            }
-            if ((createCouponDTO.getProductIds() != null && !createCouponDTO.getProductIds().isEmpty())
-                    || (createCouponDTO.getCategoryIds() != null && !createCouponDTO.getCategoryIds().isEmpty())) {
-                throw new RuntimeException("Un coupon en montant fixe ne doit pas être lié à des produits ou catégories");
-            }
-        }
-
-        // 3) Création du coupon
+        // 3) Création du coupon (code promo panier uniquement)
         Coupon coupon = new Coupon();
-        coupon.setCode(createCouponDTO.getCode().trim().toUpperCase()); // Normalisation du code
-        coupon.setName(createCouponDTO.getName().trim()); // Normalisation du nom
-        coupon.setDiscountType(createCouponDTO.getDiscountType());//Type de coupon
+        coupon.setCode(createCouponDTO.getCode().trim().toUpperCase());
+        coupon.setName(createCouponDTO.getName().trim());
+        coupon.setDiscountType(createCouponDTO.getDiscountType());
         coupon.setValue(createCouponDTO.getValue());
-        coupon.setScope(createCouponDTO.getScope());
         coupon.setIsActive(false);
         coupon.setStatus(CouponStatus.PLANNED);
         coupon.setStartDate(createCouponDTO.getStartDate());
         coupon.setEndDate(createCouponDTO.getEndDate());
 
-        Coupon saved = couponRepository.save(coupon);
-
-        // 4) Lier des produits/catégories uniquement pour les scopes autre que CART_TOTAL (déjà validé en 2b)
-        if (createCouponDTO.getScope() == CouponScope.ALL_PRODUCTS) {
-            // Appliquer sur tous les produits actifs
-            List<Product> activeProducts = productRepository.findByStatus(true);
-            for (Product p : activeProducts) {
-                p.setCoupon(saved);
-            }
-            productRepository.saveAll(activeProducts);
-        } else if (createCouponDTO.getScope() == CouponScope.PRODUCTS) {//on a ciblé des produits, on les lie au coupon
-            if (createCouponDTO.getProductIds() == null || createCouponDTO.getProductIds().isEmpty()) {
-                throw new RuntimeException("Veuillez sélectionner au moins un produit");
-            }
-            List<Product> products = productRepository.findAllById(createCouponDTO.getProductIds());
-            for (Product p : products) {
-                if (Boolean.FALSE.equals(p.getStatus())) {
-                    throw new RuntimeException("Produit inactif détecté: " + p.getName());
-                }
-                p.setCoupon(saved);
-            }
-            productRepository.saveAll(products);
-        } else if (createCouponDTO.getScope() == CouponScope.CATEGORIES) {
-            if (createCouponDTO.getCategoryIds() == null || createCouponDTO.getCategoryIds().isEmpty()) {
-                throw new RuntimeException("Veuillez sélectionner au moins une catégorie");
-            }
-            List<Category> categories = categoryRepository.findAllById(createCouponDTO.getCategoryIds());
-            for (Category c : categories) {
-                c.setCoupon(saved);
-            }
-            categoryRepository.saveAll(categories);
-        }
-
+        couponRepository.save(coupon);
     }
 
 
@@ -1062,9 +1004,9 @@ public class CommercialServiceImpl implements CommercialService {
         if (commercial.getRole() != UserRole.COMMERCIAL) {
             throw new RuntimeException("Seuls les commerciaux peuvent consulter les statistiques coupons");
         }
-        long activeCount = couponRepository.countByScopeAndStatus(CouponScope.CART_TOTAL, CouponStatus.ACTIVE);
-        long totalUsages = couponRepository.sumUsageCountByScope(CouponScope.CART_TOTAL);
-        BigDecimal totalGenerated = couponRepository.sumTotalGeneratedByScope(CouponScope.CART_TOTAL);
+        long activeCount = couponRepository.countByStatus(CouponStatus.ACTIVE);
+        long totalUsages = couponRepository.sumUsageCount();
+        BigDecimal totalGenerated = couponRepository.sumTotalGenerated();
         if (totalGenerated == null) {
             totalGenerated = java.math.BigDecimal.ZERO;
         }
