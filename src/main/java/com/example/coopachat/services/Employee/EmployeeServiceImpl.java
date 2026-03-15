@@ -150,12 +150,12 @@ public class EmployeeServiceImpl implements EmployeeService {
                     .map(this::mapToProductPromoItemDTO)
                     .collect(Collectors.toList());
 
-            // Catégories + liste des coupons actifs (scope non produit/catégorie : panier, livraison, etc.)
+            // Catégories + liste des coupons actifs en validité (codes promo panier)
             List<Category> latestCategories = categoryRepository.findTop4ByOrderByIdDesc();
             List<CategoryHomeItemDTO> categoryItems = latestCategories.stream()
                     .map(this::mapToCategoryHomeItemDTO)
                     .collect(Collectors.toList());
-            List<CouponPromoDTO> promoCoupons = couponRepository.findActiveCouponsNotProductOrCategory(LocalDateTime.now())
+            List<CouponPromoDTO> promoCoupons = couponRepository.findActiveCouponsInValidity(LocalDateTime.now())
                     .stream()
                     .map(this::mapToCouponPromoDTO)
                     .collect(Collectors.toList());
@@ -186,7 +186,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         List<CategoryHomeItemDTO> categoryItems = latestCategories.stream()
                 .map(this::mapToCategoryHomeItemDTO)
                 .collect(Collectors.toList());
-        List<CouponPromoDTO> promoCoupons = couponRepository.findActiveCouponsNotProductOrCategory(LocalDateTime.now())
+        List<CouponPromoDTO> promoCoupons = couponRepository.findActiveCouponsInValidity(LocalDateTime.now())
                 .stream()
                 .map(this::mapToCouponPromoDTO)
                 .collect(Collectors.toList());

@@ -13,8 +13,8 @@ import com.example.coopachat.dtos.coupons.CreateCouponDTO;
 import com.example.coopachat.dtos.coupons.IdNameDTO;
 import com.example.coopachat.dtos.coupons.UpdateCouponStatusDTO;
 import com.example.coopachat.dtos.employees.*;
+import com.example.coopachat.dtos.promotions.CreatePromotionDTO;
 import com.example.coopachat.enums.CompanyStatus;
-import com.example.coopachat.enums.CouponScope;
 import com.example.coopachat.enums.CouponStatus;
 
 /**
@@ -215,7 +215,15 @@ public interface CommercialService {
      * @return Réponse paginée contenant la liste des coupons
      */
     CouponListResponseDTO getAllCoupons(int page, int size, String search,
-                                        CouponStatus status, CouponScope scope, Boolean isActive);
+                                        CouponStatus status, Boolean isActive);
+
+    /**
+     * Crée une promotion avec la liste des produits et leur réduction en %.
+     * Une seule promotion peut être active à la fois (lors de l'activation).
+     *
+     * @param createPromotionDTO Nom, dates, liste des (productId, discountValue en %)
+     */
+    void addPromotion(CreatePromotionDTO createPromotionDTO);
 
     /**
      * Récupère les détails d'un coupon avec ses produits liés.
@@ -247,6 +255,12 @@ public interface CommercialService {
      * Liste des catégories (id, name) pour la création de coupons.
      */
     List<IdNameDTO> getCategoriesForCoupon();
+
+    /**
+     * Liste des produits actifs (id, name) pour la création de promotions.
+     * Si categoryId est fourni, retourne uniquement les produits de cette catégorie.
+     */
+    List<IdNameDTO> getProductsForPromotion(Long categoryId);
 
     /**
      * KPIs du tableau de bord commercial : totalSalaries, nouveauxSalariesCeMois, commandesCeMois,

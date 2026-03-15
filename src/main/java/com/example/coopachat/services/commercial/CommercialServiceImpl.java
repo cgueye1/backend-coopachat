@@ -3,6 +3,8 @@ package com.example.coopachat.services.commercial;
 import com.example.coopachat.dtos.companies.*;
 import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.dtos.coupons.*;
+import com.example.coopachat.dtos.promotions.CreatePromotionDTO;
+import com.example.coopachat.dtos.promotions.ProductReductionItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
 import com.example.coopachat.dtos.dashboard.commercial.CommandesParMoisDTO;
 import com.example.coopachat.dtos.dashboard.commercial.CommercialDashboardKpisDTO;
@@ -15,7 +17,10 @@ import com.example.coopachat.entities.CompanySector;
 import com.example.coopachat.entities.Coupon;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Product;
+import com.example.coopachat.entities.Promotion;
+import com.example.coopachat.entities.PromotionProduct;
 import com.example.coopachat.entities.Users;
+import com.example.coopachat.enums.CouponStatus;
 import com.example.coopachat.enums.DeliveryMode;
 import com.example.coopachat.enums.*;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
@@ -58,6 +63,8 @@ public class CommercialServiceImpl implements CommercialService {
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
     private final CouponRepository couponRepository;
+    private final PromotionRepository promotionRepository;
+    private final PromotionProductRepository promotionProductRepository;
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final OrderRepository orderRepository;
@@ -870,25 +877,7 @@ public class CommercialServiceImpl implements CommercialService {
         Coupon coupon = couponRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Coupon introuvable"));
 
-        // Récupérer les produits concernés selon le scope (CART_TOTAL : pas de produit ni catégorie liés → liste vide)
-        List<Product> products = Collections.emptyList();
         // Récupérer les produits concernés selon le scope du coupon (pour l’affichage détail)
-        // CART_TOTAL : code promo sur le total du panier, pas de produit ni catégorie liés → liste vide
-        if (coupon.getScope() == CouponScope.ALL_PRODUCTS || coupon.getScope() == CouponScope.PRODUCTS) {
-            // Coupon appliqué à des produits : on charge les produits qui ont ce coupon en référence
-            products = productRepository.findByCouponId(coupon.getId());
-        } else if (coupon.getScope() == CouponScope.CATEGORIES) {
-            // Coupon appliqué à des catégories : on charge les catégories liées, puis tous les produits de ces catégories
-            List<Category> categories = categoryRepository.findByCouponId(coupon.getId());
-            if (categories != null && !categories.isEmpty()) {
-                products = productRepository.findByCategoryIn(categories);//findByCategoryIn signifie "trouver les produits qui appartiennent à une des catégories"
-            }
-        }
-
-        List<CouponProductItemDTO> productItems = products.stream()
-                .map(this::mapToCouponProductItemDTO)
-                .collect(Collectors.toList());
-
         return mapToCouponDetailsDTO(coupon);
     }
 
@@ -962,6 +951,53 @@ public class CommercialServiceImpl implements CommercialService {
         couponRepository.save(coupon);
     }
 
+    @Override
+    @Transactional
+    public void addPromotion(CreatePromotionDTO createPromotionDTO) {
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent créer des promotions");
+        }
+
+        if (createPromotionDTO.getEndDate().isBefore(createPromotionDTO.getStartDate())) {
+            throw new RuntimeException("La date de fin doit être après la date de début");
+        }
+
+        List<ProductReductionItemDTO> items = createPromotionDTO.getProductItems();
+        if (items == null || items.isEmpty()) {
+            throw new RuntimeException("Au moins un produit avec réduction est obligatoire");
+        }
+
+        Promotion promotion = new Promotion();
+        promotion.setName(createPromotionDTO.getName().trim());
+        promotion.setStatus(CouponStatus.PLANNED);
+        promotion.setIsActive(false);
+        promotion.setStartDate(createPromotionDTO.getStartDate());
+        promotion.setEndDate(createPromotionDTO.getEndDate());
+
+        Promotion savedPromotion = promotionRepository.save(promotion);
+
+        for (ProductReductionItemDTO item : items) {
+            if (item.getDiscountValue() == null || item.getDiscountValue().compareTo(java.math.BigDecimal.ZERO) <= 0
+                    || item.getDiscountValue().compareTo(new BigDecimal("100")) > 0)//
+                     {
+                throw new RuntimeException("La réduction doit être entre 1 et 100 % pour le produit id " + item.getProductId());
+            }
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Produit introuvable : id " + item.getProductId()));
+            if (Boolean.FALSE.equals(product.getStatus())) {
+                throw new RuntimeException("Le produit \"" + product.getName() + "\" est inactif");
+            }
+            PromotionProduct pp = new PromotionProduct();
+            pp.setPromotion(savedPromotion);
+            pp.setProduct(product);
+            pp.setDiscountValue(item.getDiscountValue());
+            promotionProductRepository.save(pp);
+        }
+
+        log.info("Promotion \"{}\" créée (id={}) avec {} produit(s) par le commercial {}",
+                savedPromotion.getName(), savedPromotion.getId(), items.size(), commercial.getEmail());
+    }
 
     @Override
     @Transactional
@@ -1033,9 +1069,29 @@ public class CommercialServiceImpl implements CommercialService {
             throw new RuntimeException("Seuls les commerciaux peuvent consulter les catégories pour coupons");
         }
         return categoryRepository.findAll().stream()
-    
                 .sorted(java.util.Comparator.comparing(Category::getName, String.CASE_INSENSITIVE_ORDER))
                 .map(c -> new IdNameDTO(c.getId(), c.getName()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<IdNameDTO> getProductsForPromotion(Long categoryId) {
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter les produits pour promotions");
+        }
+        if (categoryId == null) {
+            return productRepository.findByStatusTrueOrderByNameAsc().stream()
+                    .map(p -> new IdNameDTO(p.getId(), p.getName()))
+                    .collect(Collectors.toList());
+        }
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Catégorie introuvable"));
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
+                0, Integer.MAX_VALUE, org.springframework.data.domain.Sort.by("name"));
+        return productRepository.findByCategoryAndStatus(category, true, pageable).getContent().stream()
+                .map(p -> new IdNameDTO(p.getId(), p.getName()))
                 .collect(Collectors.toList());
     }
 
@@ -1355,7 +1411,6 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setName(coupon.getName());
         dto.setDiscountType(coupon.getDiscountType());
         dto.setValue(coupon.getValue());
-        dto.setScope(coupon.getScope());
         dto.setStatus(coupon.getStatus());
         dto.setValidFrom(coupon.getStartDate() != null ? coupon.getStartDate().format(formatter) : null);
         dto.setValidTo(coupon.getEndDate() != null ? coupon.getEndDate().format(formatter) : null);
@@ -1382,13 +1437,9 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     /**
-     * Mappe une entité Coupon vers un CouponDetailsDTO
-     *
-     * @param coupon L'entité Coupon à mapper
-     * @param products Liste des produits liés
-     * @return Le DTO correspondant
+     * Mappe une entité Coupon vers un CouponDetailsDTO (code promo panier, pas de produits liés).
      */
-    private CouponDetailsDTO mapToCouponDetailsDTO(Coupon coupon, List<CouponProductItemDTO> products) {
+    private CouponDetailsDTO mapToCouponDetailsDTO(Coupon coupon) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
         CouponDetailsDTO dto = new CouponDetailsDTO();
@@ -1397,14 +1448,12 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setName(coupon.getName());
         dto.setDiscountType(coupon.getDiscountType());
         dto.setValue(coupon.getValue());
-        dto.setScope(coupon.getScope());
         dto.setStatus(coupon.getStatus());
         dto.setIsActive(coupon.getIsActive());
         dto.setValidFrom(coupon.getStartDate() != null ? coupon.getStartDate().format(formatter) : null);
         dto.setValidTo(coupon.getEndDate() != null ? coupon.getEndDate().format(formatter) : null);
         dto.setUsageCount(coupon.getUsageCount());
         dto.setTotalGenerated(coupon.getTotalGenerated());
-        dto.setProducts(products);
         return dto;
     }
 

@@ -22,8 +22,8 @@ import com.example.coopachat.dtos.employees.EmployeeStatsDTO;
 import com.example.coopachat.dtos.employees.UpdateEmployeeDTO;
 import com.example.coopachat.dtos.employees.UpdateEmployeeStatusDTO;
 import com.example.coopachat.dtos.reference.ReferenceItemDTO;
+import com.example.coopachat.dtos.promotions.CreatePromotionDTO;
 import com.example.coopachat.enums.CompanyStatus;
-import com.example.coopachat.enums.CouponScope;
 import com.example.coopachat.enums.CouponStatus;
 import com.example.coopachat.services.commercial.CommercialService;
 import com.example.coopachat.services.minio.MinioService;
@@ -382,15 +382,7 @@ public class CommercialController {
     // 🏷️ GESTION DES COUPONS
     // ============================================================================
 
-    @Operation(
-            summary = "Créer un coupon ou une promotion",
-            description = """
-                   scope=CART_TOTAL   → code promo saisi dans le panier (ex: WEEKEND20)
-                   scope=PRODUCTS     → promotion automatique sur produits (fournir productIds)
-                   scope=CATEGORIES   → promotion automatique sur catégories (fournir categoryIds)
-                   scope=ALL_PRODUCTS → promotion sur tous les produits actifs
-        ⚠️ FIXED_AMOUNT uniquement avec CART_TOTAL"""
-    )
+    @Operation(summary = "Créer un coupon", description = "Code promo panier (réduction sur le total). Nom, code, type % ou F CFA, valeur, dates.")
     @PostMapping("/coupons")
     public ResponseEntity<String> createCoupon(@RequestBody @Valid CreateCouponDTO createCouponDTO) {
         commercialService.addCoupon(createCouponDTO);
@@ -439,11 +431,7 @@ public class CommercialController {
 
     @Operation(
             summary = "Lister les coupons (paginé avec recherche et filtres)",
-            description = """
-        Filtres optionnels: search, status, isActive
-        scope=CART_TOTAL   → codes promo panier uniquement
-        scope=PRODUCTS/CATEGORIES/ALL_PRODUCTS → promotions produits
-        """
+            description = "Filtres optionnels: search, status, isActive. Coupons = codes promo panier."
     )
     @GetMapping("/coupons")
     public ResponseEntity<CouponListResponseDTO> getAllCoupons(
@@ -451,10 +439,9 @@ public class CommercialController {
             @RequestParam(defaultValue = "6") int size,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) CouponStatus status,
-            @RequestParam(required = false) CouponScope scope,
             @RequestParam(required = false) Boolean isActive
     ) {
-        CouponListResponseDTO response = commercialService.getAllCoupons(page, size, search, status, scope, isActive);
+        CouponListResponseDTO response = commercialService.getAllCoupons(page, size, search, status, isActive);
         return ResponseEntity.ok(response);
     }
 
@@ -477,6 +464,30 @@ public class CommercialController {
     public ResponseEntity<String> deleteCoupon(@PathVariable Long id) {
         commercialService.deleteCoupon(id);
         return ResponseEntity.ok("Coupon supprimé avec succès");
+    }
+
+    // ============================================================================
+    // 🏷️ GESTION DES PROMOTIONS
+    // ============================================================================
+
+    @Operation(summary = "Liste des produits pour création de promotion", description = "Produits actifs (id, name). Optionnel : categoryId pour filtrer par catégorie.")
+    @GetMapping("/promotions/products")
+    public ResponseEntity<List<IdNameDTO>> getProductsForPromotion(@RequestParam(required = false) Long categoryId) {
+        return ResponseEntity.ok(commercialService.getProductsForPromotion(categoryId));
+    }
+
+    @Operation(
+            summary = "Créer une promotion",
+            description = "Promotion = réductions en % sur une liste de produits. Nom, dates, productItems (productId, discountValue en %). Au moins un produit obligatoire."
+    )
+    @PostMapping("/promotions")
+    public ResponseEntity<String> createPromotion(@RequestBody @Valid CreatePromotionDTO createPromotionDTO) {
+        try {
+            commercialService.addPromotion(createPromotionDTO);
+            return ResponseEntity.status(HttpStatus.CREATED).body("Promotion créée avec succès");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
 }

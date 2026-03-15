@@ -1,9 +1,9 @@
 package com.example.coopachat.entities;
 
-import com.example.coopachat.enums.DiscountType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import org.hibernate.validator.constraints.Range;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
