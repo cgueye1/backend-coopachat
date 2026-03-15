@@ -15,4 +15,7 @@ public interface PromotionProductRepository extends JpaRepository<PromotionProdu
     List<PromotionProduct> findByPromotionId(Long promotionId);
 
     void deleteByPromotionId(Long promotionId);
+
+    /** Nombre de produits dans une promotion. */
+    long countByPromotionId(Long promotionId);
 }
