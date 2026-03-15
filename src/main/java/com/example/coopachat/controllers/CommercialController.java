@@ -23,6 +23,9 @@ import com.example.coopachat.dtos.employees.UpdateEmployeeDTO;
 import com.example.coopachat.dtos.employees.UpdateEmployeeStatusDTO;
 import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.dtos.promotions.CreatePromotionDTO;
+import com.example.coopachat.dtos.promotions.PromotionDetailsDTO;
+import com.example.coopachat.dtos.promotions.PromotionListResponseDTO;
+import com.example.coopachat.dtos.promotions.PromotionStatsDTO;
 import com.example.coopachat.enums.CompanyStatus;
 import com.example.coopachat.enums.CouponStatus;
 import com.example.coopachat.services.commercial.CommercialService;
@@ -469,6 +472,31 @@ public class CommercialController {
     // ============================================================================
     // 🏷️ GESTION DES PROMOTIONS
     // ============================================================================
+
+    @Operation(
+            summary = "Lister les promotions (paginé avec recherche et filtre)",
+            description = "Promotions = réductions en % sur des produits. Filtres optionnels: search (nom), status (PLANNED, ACTIVE, EXPIRED, DISABLED)."
+    )
+    @GetMapping("/promotions")
+    public ResponseEntity<PromotionListResponseDTO> getAllPromotions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) CouponStatus status) {
+        return ResponseEntity.ok(commercialService.getAllPromotions(page, size, search, status));
+    }
+
+    @Operation(summary = "Statistiques des promotions", description = "Total, actives, planifiées, expirées, désactivées, nombre de produits concernés.")
+    @GetMapping("/promotions/stats")
+    public ResponseEntity<PromotionStatsDTO> getPromotionStats() {
+        return ResponseEntity.ok(commercialService.getPromotionStats());
+    }
+
+    @Operation(summary = "Détails d'une promotion", description = "Nom, dates, statut, liste des produits avec réduction %.")
+    @GetMapping("/promotions/{id}")
+    public ResponseEntity<PromotionDetailsDTO> getPromotionById(@PathVariable Long id) {
+        return ResponseEntity.ok(commercialService.getPromotionById(id));
+    }
 
     @Operation(summary = "Liste des produits pour création de promotion", description = "Produits actifs (id, name). Optionnel : categoryId pour filtrer par catégorie.")
     @GetMapping("/promotions/products")

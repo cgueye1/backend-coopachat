@@ -5,6 +5,11 @@ import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.dtos.coupons.*;
 import com.example.coopachat.dtos.promotions.CreatePromotionDTO;
 import com.example.coopachat.dtos.promotions.ProductReductionItemDTO;
+import com.example.coopachat.dtos.promotions.PromotionDetailsDTO;
+import com.example.coopachat.dtos.promotions.PromotionListResponseDTO;
+import com.example.coopachat.dtos.promotions.PromotionListItemDTO;
+import com.example.coopachat.dtos.promotions.PromotionProductItemDTO;
+import com.example.coopachat.dtos.promotions.PromotionStatsDTO;
 import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
 import com.example.coopachat.dtos.dashboard.commercial.CommandesParMoisDTO;
 import com.example.coopachat.dtos.dashboard.commercial.CommercialDashboardKpisDTO;
@@ -1095,6 +1100,58 @@ public class CommercialServiceImpl implements CommercialService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PromotionListResponseDTO getAllPromotions(int page, int size, String search, CouponStatus status) {
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter les promotions");
+        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+        Page<Promotion> promotionPage = promotionRepository.findAllWithFilters(searchTerm, status, pageable);
+        List<PromotionListItemDTO> list = promotionPage.getContent().stream()
+                .map(this::mapToPromotionListItemDTO)
+                .collect(Collectors.toList());
+        PromotionListResponseDTO response = new PromotionListResponseDTO();
+        response.setContent(list);
+        response.setTotalElements(promotionPage.getTotalElements());
+        response.setTotalPages(promotionPage.getTotalPages());
+        response.setCurrentPage(promotionPage.getNumber());
+        response.setPageSize(promotionPage.getSize());
+        response.setHasNext(promotionPage.hasNext());
+        response.setHasPrevious(promotionPage.hasPrevious());
+        return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PromotionDetailsDTO getPromotionById(Long id) {
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter les promotions");
+        }
+        Promotion promotion = promotionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Promotion introuvable"));
+        return mapToPromotionDetailsDTO(promotion);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PromotionStatsDTO getPromotionStats() {
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent consulter les statistiques promotions");
+        }
+        long total = promotionRepository.count();
+        long actives = promotionRepository.countByStatus(CouponStatus.ACTIVE);
+        long planifiees = promotionRepository.countByStatus(CouponStatus.PLANNED);
+        long expirees = promotionRepository.countByStatus(CouponStatus.EXPIRED);
+        long desactivees = promotionRepository.countByStatus(CouponStatus.DISABLED);
+        long totalProduits = promotionProductRepository.count();
+        return new PromotionStatsDTO(total, actives, planifiees, expirees, desactivees, totalProduits);
+    }
+
     /**
      * KPIs du tableau de bord commercial : salariés actifs, nouveaux ce mois, commandes et ventes ce mois avec évolution %, promotions actives.
      * Données globales (tous les salariés / toutes les commandes), sans filtre createdBy, pour ne pas restreindre la vue.
@@ -1416,6 +1473,38 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setValidTo(coupon.getEndDate() != null ? coupon.getEndDate().format(formatter) : null);
         dto.setUsageCount(coupon.getUsageCount());
         dto.setTotalGenerated(coupon.getTotalGenerated());
+        return dto;
+    }
+
+    private static final DateTimeFormatter PROMO_DATE_FORMAT = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+    private PromotionListItemDTO mapToPromotionListItemDTO(Promotion p) {
+        PromotionListItemDTO dto = new PromotionListItemDTO();
+        dto.setId(p.getId());
+        dto.setName(p.getName());
+        dto.setStatus(p.getStatus());
+        dto.setIsActive(p.getIsActive());
+        dto.setStartDate(p.getStartDate() != null ? p.getStartDate().format(PROMO_DATE_FORMAT) : null);
+        dto.setEndDate(p.getEndDate() != null ? p.getEndDate().format(PROMO_DATE_FORMAT) : null);
+        dto.setProductCount((int) promotionProductRepository.countByPromotionId(p.getId()));
+        return dto;
+    }
+
+    private PromotionDetailsDTO mapToPromotionDetailsDTO(Promotion p) {
+        PromotionDetailsDTO dto = new PromotionDetailsDTO();
+        dto.setId(p.getId());
+        dto.setName(p.getName());
+        dto.setStatus(p.getStatus());
+        dto.setIsActive(p.getIsActive());
+        dto.setStartDate(p.getStartDate() != null ? p.getStartDate().format(PROMO_DATE_FORMAT) : null);
+        dto.setEndDate(p.getEndDate() != null ? p.getEndDate().format(PROMO_DATE_FORMAT) : null);
+        List<PromotionProduct> items = promotionProductRepository.findByPromotionId(p.getId());
+        dto.setProducts(items.stream()
+                .map(pp -> new PromotionProductItemDTO(
+                        pp.getProduct().getId(),
+                        pp.getProduct().getName(),
+                        pp.getDiscountValue()))
+                .collect(Collectors.toList()));
         return dto;
     }
 

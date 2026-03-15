@@ -14,6 +14,9 @@ import com.example.coopachat.dtos.coupons.IdNameDTO;
 import com.example.coopachat.dtos.coupons.UpdateCouponStatusDTO;
 import com.example.coopachat.dtos.employees.*;
 import com.example.coopachat.dtos.promotions.CreatePromotionDTO;
+import com.example.coopachat.dtos.promotions.PromotionDetailsDTO;
+import com.example.coopachat.dtos.promotions.PromotionListResponseDTO;
+import com.example.coopachat.dtos.promotions.PromotionStatsDTO;
 import com.example.coopachat.enums.CompanyStatus;
 import com.example.coopachat.enums.CouponStatus;
 
@@ -261,6 +264,21 @@ public interface CommercialService {
      * Si categoryId est fourni, retourne uniquement les produits de cette catégorie.
      */
     List<IdNameDTO> getProductsForPromotion(Long categoryId);
+
+    /**
+     * Liste paginée des promotions (produit) avec recherche et filtre par statut.
+     */
+    PromotionListResponseDTO getAllPromotions(int page, int size, String search, CouponStatus status);
+
+    /**
+     * Détails d'une promotion (nom, dates, statut, liste des produits avec réduction).
+     */
+    PromotionDetailsDTO getPromotionById(Long id);
+
+    /**
+     * Statistiques des promotions (total, actives, planifiées, expirées, désactivées, produits concernés).
+     */
+    PromotionStatsDTO getPromotionStats();
 
     /**
      * KPIs du tableau de bord commercial : totalSalaries, nouveauxSalariesCeMois, commandesCeMois,
