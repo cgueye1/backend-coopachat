@@ -129,8 +129,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Si l'utilisateur est admin, déclencher l'OTP (on envoie sur l’email du compte)
-        // OTP admin désactivé temporairement : connexion directe avec JWT pour tous les rôles
-        // Générer le token
+        // Connexion directe avec JWT pour tous les rôles (y compris admin). Aucun envoi d'email OTP au login.
         String accessToken = jwtService.generateToken(user.getEmail(), user.getRole().name(), user.getId());
 
         return new LoginResponseDTO(
