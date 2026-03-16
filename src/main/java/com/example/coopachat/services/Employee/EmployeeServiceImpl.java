@@ -1955,6 +1955,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     /**
      * Mapper un Product vers ProductCatalogueItemDTO
      */
+    private final PromotionProductRepository promotionProductRepository;
+
     private ProductCatalogueItemDTO mapToProductCatalogueItemDTO(Product product) {
         ProductCatalogueItemDTO dto = new ProductCatalogueItemDTO();
         dto.setId(product.getId());
