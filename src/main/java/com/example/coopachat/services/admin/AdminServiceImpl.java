@@ -219,7 +219,7 @@ public class AdminServiceImpl implements AdminService {
         product.setPrice(createProductDTO.getPrice());
         product.setCurrentStock(createProductDTO.getCurrentStock());
         product.setMinThreshold(createProductDTO.getMinThreshold() != null ? createProductDTO.getMinThreshold() : 0);
-        product.setStatus(createProductDTO.getStatus() != null ? createProductDTO.getStatus() : false);
+        product.setStatus(false); // Nouveau produit toujours inactif par défaut
 
         // Générer le code produit unique (ex: "CP-2025-001")
         String productCode = generateUniqueProductCode();
