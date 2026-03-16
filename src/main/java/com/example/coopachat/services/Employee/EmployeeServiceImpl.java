@@ -1962,12 +1962,14 @@ public class EmployeeServiceImpl implements EmployeeService {
         dto.setImage(product.getImage());
         dto.setOriginalPrice(product.getPrice());
 
-        // Calculer les promotions
-        Coupon coupon = getActiveCouponForProduct(product);
-        if (coupon != null) {
-            BigDecimal promoPrice = calculatePromoPrice(product.getPrice(), coupon.getValue());
+        // Calculer les promotions PRODUIT (les coupons sont réservés au panier)
+        // Règle : une éventuelle promotion produit remplace le prix catalogue affiché.
+        PromotionProduct activePromotionProduct = getActivePromotionForProduct(product);
+        if (activePromotionProduct != null && activePromotionProduct.getDiscountValue() != null) {
+            BigDecimal percent = activePromotionProduct.getDiscountValue();
+            BigDecimal promoPrice = calculatePromoPrice(product.getPrice(), percent);
             dto.setPromoPrice(promoPrice);
-            dto.setDiscountPercent(coupon.getValue().setScale(0, RoundingMode.HALF_UP).intValue());
+            dto.setDiscountPercent(percent.setScale(0, RoundingMode.HALF_UP).intValue());
             dto.setHasPromo(true);
         } else {
             dto.setPromoPrice(null);
@@ -1976,6 +1978,31 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
 
         return dto;
+    }
+
+    /**
+     * Retourne la promotion produit ACTIVE pour ce produit, si elle existe.
+     * Conditions : promotion.isActive = true, status = ACTIVE, maintenant dans [startDate, endDate].
+     */
+    private PromotionProduct getActivePromotionForProduct(Product product) {
+        if (product == null || product.getId() == null) {
+            return null;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        // On parcourt les PromotionProduct liés à ce produit via le repository (relation simple par produitId).
+        List<PromotionProduct> promotionProducts = promotionProductRepository.findByProductId(product.getId());
+        return promotionProducts.stream()
+                .filter(pp -> {
+                    Promotion promo = pp.getPromotion();
+                    if (promo == null) return false;
+                    if (!Boolean.TRUE.equals(promo.getIsActive())) return false;
+                    if (promo.getStatus() != CouponStatus.ACTIVE) return false;
+                    if (promo.getStartDate() != null && now.isBefore(promo.getStartDate())) return false;
+                    if (promo.getEndDate() != null && now.isAfter(promo.getEndDate())) return false;
+                    return true;
+                })
+                .findFirst()
+                .orElse(null);
     }
 
     private ProductPromoItemDTO mapToProductPromoItemDTO(Product product) {
