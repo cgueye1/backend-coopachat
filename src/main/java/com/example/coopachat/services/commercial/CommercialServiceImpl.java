@@ -1513,6 +1513,7 @@ public class CommercialServiceImpl implements CommercialService {
                 .map(pp -> new PromotionProductItemDTO(
                         pp.getProduct().getId(),
                         pp.getProduct().getName(),
+                        pp.getProduct().getImage(),
                         pp.getDiscountValue()))
                 .collect(Collectors.toList()));
         return dto;

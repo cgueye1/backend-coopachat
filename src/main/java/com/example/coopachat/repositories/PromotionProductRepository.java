@@ -18,4 +18,7 @@ public interface PromotionProductRepository extends JpaRepository<PromotionProdu
 
     /** Nombre de produits dans une promotion. */
     long countByPromotionId(Long promotionId);
+
+    /** Tous les liens promotion-produit pour un produit donné. */
+    List<PromotionProduct> findByProductId(Long productId);
 }

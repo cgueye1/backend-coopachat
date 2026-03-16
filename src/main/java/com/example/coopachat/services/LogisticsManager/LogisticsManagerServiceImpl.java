@@ -1498,6 +1498,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EligibleOrderLotDTO> getGroupedEligibleOrders(LocalDate deliveryDate, int lotSize) {
 
         // On récupère l'utilisateur connecté

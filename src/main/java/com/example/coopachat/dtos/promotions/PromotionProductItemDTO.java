@@ -16,5 +16,7 @@ public class PromotionProductItemDTO {
 
     private Long productId;
     private String productName;
+    /** Nom de fichier ou URL de l'image produit (Minio). */
+    private String image;
     private BigDecimal discountValue; // pourcentage
 }
