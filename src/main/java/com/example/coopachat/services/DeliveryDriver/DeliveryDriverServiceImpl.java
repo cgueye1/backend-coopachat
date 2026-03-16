@@ -451,6 +451,7 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     // ========================================
 
     @Override
+    @Transactional(readOnly = true)
     public DeliveryDetailDTO getDeliveryDetail(Long orderId) {
         // 1. Récupérer la commande
         Order order = orderRepository.findById(orderId)
