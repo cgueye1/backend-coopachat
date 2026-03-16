@@ -150,8 +150,8 @@ public class EmployeeServiceImpl implements EmployeeService {
                     .map(this::mapToProductPromoItemDTO)
                     .collect(Collectors.toList());
 
-            // Catégories + liste des coupons actifs en validité (codes promo panier)
-            List<Category> latestCategories = categoryRepository.findTop4ByOrderByIdDesc();
+            // Catégories (avec au moins 1 produit actif) + liste des coupons actifs en validité (codes promo panier)
+            List<Category> latestCategories = categoryRepository.findCategoriesWithActiveProductsOrderByIdDesc(PageRequest.of(0, 4));
             List<CategoryHomeItemDTO> categoryItems = latestCategories.stream()
                     .map(this::mapToCategoryHomeItemDTO)
                     .collect(Collectors.toList());
@@ -182,7 +182,8 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .map(this::mapToProductPromoItemDTO)
                 .collect(Collectors.toList());
 
-        List<Category> latestCategories = categoryRepository.findTop4ByOrderByIdDesc();
+        // Catégories avec au moins 1 produit actif (max 4 pour l'accueil)
+        List<Category> latestCategories = categoryRepository.findCategoriesWithActiveProductsOrderByIdDesc(PageRequest.of(0, 4));
         List<CategoryHomeItemDTO> categoryItems = latestCategories.stream()
                 .map(this::mapToCategoryHomeItemDTO)
                 .collect(Collectors.toList());
@@ -204,8 +205,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Transactional(readOnly = true)
     public List<CategoryListItemDTO> getAllCategories() {
         ensureCompanyActive(getCurrentUser());
-        // Liste simple des catégories (id + name)
-        List<Category> categories = categoryRepository.findAll();
+        // Uniquement les catégories qui ont au moins un produit actif
+        List<Category> categories = categoryRepository.findCategoriesWithAtLeastOneActiveProduct();
         return categories.stream()
                 .map(this::mapToCategoryListItemDTO)
                 .collect(Collectors.toList());
