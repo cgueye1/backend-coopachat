@@ -24,6 +24,9 @@ public class DeliveryDetailDTO {
     /** Label du statut pour affichage (ex. "EN COURS", "À LIVRER") */
     private String statusLabel;
 
+    /** Statut paiement */
+    private String statusPaiement;
+
     // ========================================
     // INFOS CLIENT
     // ========================================
