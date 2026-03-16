@@ -13,5 +13,7 @@ public class ProductPreviewDTO {
     private String image; // Image du produit
     private String name; // Nom du produit
     private String categoryName; // Nom de la catégorie
-    private Integer currentStock;//le stock actuel
+    private Integer currentStock; // Stock actuel (optionnel en contexte commande)
+    /** Quantité commandée pour ce produit (contexte détail commande). */
+    private Integer quantity;
 }
