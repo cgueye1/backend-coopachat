@@ -156,6 +156,22 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("end") LocalDateTime end);
 
     /**
+     * Livraisons (commandes LIVREE) d'un livreur sur une plage de dates, pour le dashboard livreur.
+     * On se base sur deliveryCompletedAt afin de compter les commandes réellement remises.
+     */
+    @Query("""
+           SELECT o FROM Order o
+           WHERE o.deliveryTour.driver.id = :driverId
+             AND o.status = :status
+             AND o.deliveryCompletedAt BETWEEN :start AND :end
+           """)
+    List<Order> findDriverDeliveriesBetween(
+            @Param("driverId") Long driverId,
+            @Param("status") OrderStatus status,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    /**
      * Nombre de commandes avec le statut donné, créées dans la période [start, end].
      */
     long countByStatusAndCreatedAtBetween(OrderStatus status, LocalDateTime start, LocalDateTime end);

@@ -1699,6 +1699,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DeliveryTourDetailsDTO getDeliveryTourDetails(Long tourId) {
 
         // 1. VÉRIFICATION DES DROITS
@@ -1708,7 +1709,8 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         }
 
         // Récupérer la tournée avec ses relations
-        DeliveryTour deliveryTour = deliveryTourRepository.findById(tourId).orElseThrow(()->new RuntimeException("Tournée introuvable"));
+        DeliveryTour deliveryTour = deliveryTourRepository.findById(tourId)
+                .orElseThrow(() -> new RuntimeException("Tournée introuvable"));
 
         DeliveryTourDetailsDTO dto = new DeliveryTourDetailsDTO();
         dto.setId(deliveryTour.getId());
