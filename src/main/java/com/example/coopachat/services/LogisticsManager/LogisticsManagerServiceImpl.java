@@ -1304,21 +1304,42 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         Order order = orderRepository.findByIdWithItemsAndProducts(orderId)
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
 
-        // On prépare un DTO contenant  - les infos générales de la commande - la liste des produits associés à la commande
+        // Construire le nom du salarié
+        String employeeName = order.getEmployee() != null && order.getEmployee().getUser() != null
+                ? (order.getEmployee().getUser().getFirstName() != null ? order.getEmployee().getUser().getFirstName() : "")
+                  + " "
+                  + (order.getEmployee().getUser().getLastName() != null ? order.getEmployee().getUser().getLastName() : "")
+                : "";
+
+        // Construire le nom du livreur (si la commande est rattachée à une tournée avec un driver)
+        String driverName = null;
+        if (order.getDeliveryTour() != null
+                && order.getDeliveryTour().getDriver() != null
+                && order.getDeliveryTour().getDriver().getUser() != null) {
+            String first = order.getDeliveryTour().getDriver().getUser().getFirstName();
+            String last = order.getDeliveryTour().getDriver().getUser().getLastName();
+            driverName = ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
+        }
+
+        // On prépare un DTO contenant :
+        // - les infos générales de la commande
+        // - éventuellement le nom du livreur
+        // - la liste des produits associés à la commande
         return new OrderItemDetailsDTO(
                 order.getOrderNumber(),
                 order.getCreatedAt().toLocalDate(),
-                order.getEmployee().getUser().getFirstName() + " " + order.getEmployee().getUser().getLastName(),
+                employeeName.trim(),
                 order.getStatus().getLabel(),
+                driverName,
                 order.getItems().stream()
-                .filter(item -> item.getProduct() != null)
-                .map(item -> new ProductPreviewDTO(
-                        item.getProduct().getImage(),
-                        item.getProduct().getName(),
-                        item.getProduct().getCategory().getName(),
-                        item.getProduct().getCurrentStock(),
-                        item.getQuantity() != null ? item.getQuantity() : 0
-                )).toList()
+                        .filter(item -> item.getProduct() != null)
+                        .map(item -> new ProductPreviewDTO(
+                                item.getProduct().getImage(),
+                                item.getProduct().getName(),
+                                item.getProduct().getCategory().getName(),
+                                item.getProduct().getCurrentStock(),
+                                item.getQuantity() != null ? item.getQuantity() : 0
+                        )).toList()
         );
 
     }
