@@ -695,10 +695,10 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
             // Exemple : 16 mars 23:59:59
             LocalDateTime end = weekEnd.atTime(23, 59, 59, 999_999_999);
 
-            // Compter les livraisons du livreur entre ces dates
-            // Exemple résultat : 7 livraisons
-            long count = driverEarningRepository
-                    .countByDriverIdAndEarnedAtBetween(driverId, start, end);
+            // Compter les livraisons du livreur entre ces dates (commandes LIVREE réellement complétées)
+            long count = orderRepository
+                    .findDriverDeliveriesBetween(driverId, OrderStatus.LIVREE, start, end)
+                    .size();
 
             // Ajouter le résultat dans la liste pour le graphique
             // Exemple : S1 = 7
@@ -766,10 +766,10 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
             // Fin période : 23:59:59
             LocalDateTime finPeriode = finTranche.atTime(23, 59, 59, 999_999_999);
 
-            // Compter les livraisons du livreur dans cette période
-            // Exemple : 10 livraisons
-            long nombreLivraisons = driverEarningRepository
-                    .countByDriverIdAndEarnedAtBetween(idLivreur, debutPeriode, finPeriode);
+            // Compter les livraisons du livreur dans cette période (commandes LIVREE réellement complétées)
+            long nombreLivraisons = orderRepository
+                    .findDriverDeliveriesBetween(idLivreur, OrderStatus.LIVREE, debutPeriode, finPeriode)
+                    .size();
 
             // Ajouter le résultat pour le graphique
             // Exemple : S1 = 10
@@ -835,10 +835,10 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
             // Exemple : 31 mars 23:59:59
             LocalDateTime finPeriode = dernierJourMois.atTime(23, 59, 59, 999_999_999);
 
-            // Compter les livraisons du livreur dans ce mois
-            // Exemple résultat :  mars → 52 livraisons
-            long nombreLivraisons = driverEarningRepository
-                    .countByDriverIdAndEarnedAtBetween(idLivreur, debutPeriode, finPeriode);
+            // Compter les livraisons du livreur dans ce mois (commandes LIVREE réellement complétées)
+            long nombreLivraisons = orderRepository
+                    .findDriverDeliveriesBetween(idLivreur, OrderStatus.LIVREE, debutPeriode, finPeriode)
+                    .size();
 
             // Ajouter le résultat pour le graphique
             // Exemple :  Mar → 52
