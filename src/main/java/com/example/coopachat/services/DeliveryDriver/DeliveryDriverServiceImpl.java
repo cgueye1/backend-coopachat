@@ -468,6 +468,7 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         dto.setOrderId(order.getId());
         dto.setOrderNumber(order.getOrderNumber());
         dto.setStatusLabel(order.getStatus() != null ? order.getStatus().getLabel() : "");
+        dto.setStatusPaiement(order.getPayment().getStatus().getLabel());
 
         // 4. Infos client (employé)
         Employee employee = order.getEmployee();
