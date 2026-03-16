@@ -707,7 +707,6 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     @Override
-    @Transactional
     @Transactional(readOnly = true)
     public EmployeeDetailsDTO getEmployeeById(Long id) {
 

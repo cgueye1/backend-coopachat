@@ -18,5 +18,7 @@ public class OrderItemDetailsDTO {
     private LocalDate validationDate;
     private String employeeName;
     private String status;
+    /** Nom complet du livreur qui a livré la commande (null si aucun livreur associé). */
+    private String driverName;
     private List<ProductPreviewDTO> listProducts;
 }
