@@ -1767,6 +1767,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DeliveryTourListResponseDTO getAllDeliveryTours(int page, int size, String tourNumber, DeliveryTourStatus status) {
 
         // VÉRIFICATION DES DROITS
