@@ -69,7 +69,7 @@ public class SecurityConfig {
                         // 🟢 ZONES PUBLIQUES (sans connexion)
                         // ==================================
                         .requestMatchers("/api/auth/**").permitAll()                   // Inscription + Connexion
-                        .requestMatchers("/files/**").permitAll()                      // Images / fichiers (img src ne peut pas envoyer le token)
+                        .requestMatchers("/api/files/**").permitAll()                  // Images / fichiers (img src ne peut pas envoyer le token)
                         .requestMatchers("/swagger-ui/**").permitAll()                  // Documentation API
                         .requestMatchers("/v3/api-docs/**").permitAll()                 // Documentation API
                         .requestMatchers("/swagger-ui.html").permitAll()                // Documentation API
