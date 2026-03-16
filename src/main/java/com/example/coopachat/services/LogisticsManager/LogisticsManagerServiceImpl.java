@@ -1198,16 +1198,23 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                     LocalDate orderDate = order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate() : null;
                     LocalDate statusDate = getOrderStatusDate(order);
 
+                    String employeeName = "—";
+                    if (order.getEmployee() != null && order.getEmployee().getUser() != null) {
+                        var u = order.getEmployee().getUser();
+                        employeeName = (u.getFirstName() != null ? u.getFirstName() : "") + " "
+                                + (u.getLastName() != null ? u.getLastName() : "").trim();
+                        if (employeeName.trim().isEmpty()) employeeName = "—";
+                    }
+
                     return new OrderEmployeeListItemDTO(
                             order.getId(),
                             order.getOrderNumber(),
-                            order.getEmployee().getUser().getFirstName() + " "
-                                    + order.getEmployee().getUser().getLastName(),
+                            employeeName,
                             orderDate,
                             statusDate,
                             display,
                             deliveryFrequency,
-                            order.getStatus().getLabel(),
+                            order.getStatus() != null ? order.getStatus().getLabel() : "—",
                             order.getFailureReason()
                     );
                 })
@@ -1303,11 +1310,14 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 order.getCreatedAt().toLocalDate(),
                 order.getEmployee().getUser().getFirstName() + " " + order.getEmployee().getUser().getLastName(),
                 order.getStatus().getLabel(),
-                order.getItems().stream().map(item -> new ProductPreviewDTO(
+                order.getItems().stream()
+                .filter(item -> item.getProduct() != null)
+                .map(item -> new ProductPreviewDTO(
                         item.getProduct().getImage(),
                         item.getProduct().getName(),
                         item.getProduct().getCategory().getName(),
-                        item.getProduct().getCurrentStock()
+                        item.getProduct().getCurrentStock(),
+                        item.getQuantity() != null ? item.getQuantity() : 0
                 )).toList()
         );
 
