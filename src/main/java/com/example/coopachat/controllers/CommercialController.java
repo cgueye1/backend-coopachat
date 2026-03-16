@@ -498,6 +498,18 @@ public class CommercialController {
         return ResponseEntity.ok(commercialService.getPromotionById(id));
     }
 
+    @Operation(summary = "Activer/Désactiver une promotion", description = "Comme pour les coupons. Body: { \"isActive\": true/false }.")
+    @PatchMapping("/promotions/{id}/status")
+    public ResponseEntity<String> updatePromotionStatus(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateCouponStatusDTO updateCouponStatusDTO) {
+        commercialService.updatePromotionStatus(id, updateCouponStatusDTO);
+        String message = updateCouponStatusDTO.getIsActive()
+                ? "Promotion activée avec succès"
+                : "Promotion désactivée avec succès";
+        return ResponseEntity.ok(message);
+    }
+
     @Operation(summary = "Liste des produits pour création de promotion", description = "Produits actifs (id, name). Optionnel : categoryId pour filtrer par catégorie.")
     @GetMapping("/promotions/products")
     public ResponseEntity<List<IdNameDTO>> getProductsForPromotion(@RequestParam(required = false) Long categoryId) {

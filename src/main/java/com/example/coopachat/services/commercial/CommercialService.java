@@ -276,6 +276,11 @@ public interface CommercialService {
     PromotionDetailsDTO getPromotionById(Long id);
 
     /**
+     * Activer ou désactiver une promotion (comme pour les coupons). Body: { "isActive": true/false }.
+     */
+    void updatePromotionStatus(Long id, UpdateCouponStatusDTO updateCouponStatusDTO);
+
+    /**
      * Statistiques des promotions (total, actives, planifiées, expirées, désactivées, produits concernés).
      */
     PromotionStatsDTO getPromotionStats();

@@ -1018,6 +1018,16 @@ public class CommercialServiceImpl implements CommercialService {
 
     @Override
     @Transactional
+    public void updatePromotionStatus(Long id, UpdateCouponStatusDTO updateCouponStatusDTO) {
+        Promotion promotion = promotionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Promotion introuvable"));
+        promotion.setIsActive(updateCouponStatusDTO.getIsActive());
+        promotion.setStatus(computeStatus(promotion.getStartDate(), promotion.getEndDate(), updateCouponStatusDTO.getIsActive()));
+        promotionRepository.save(promotion);
+    }
+
+    @Override
+    @Transactional
     public void deleteCoupon(Long id) {
         Coupon coupon = couponRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Coupon introuvable"));
