@@ -1505,6 +1505,21 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     @Override
     @Transactional(readOnly = true)
     public List<com.example.coopachat.dtos.delivery.DeliveryPlanningCalendarDayDTO> getDeliveryPlanningCalendar(int year, int month) {
+        /*
+         * Objectif (vue globale RL)
+         * - Construire un calendrier pour un mois donné.
+         * - Pour chaque jour du mois, on retourne des compteurs basés sur la DATE DE LIVRAISON des commandes
+         *   (Order.deliveryDate). Autrement dit: "le 17/03 = date de livraison de X commandes".
+         *
+         * Champs du DTO:
+         * - pendingOrders : commandes EN_ATTENTE, non planifiées (deliveryTour = NULL), groupées par deliveryDate
+         * - plannedOrders : commandes déjà planifiées = dans une tournée (deliveryTour != NULL)
+         *                 dont le statut est "actif" (ASSIGNEE/EN_COURS/TERMINEE), groupées par deliveryDate
+         *
+         * Important:
+         * - plannedOrders est  regroupé par Order.deliveryDate
+         *   pour que le calendrier reflète uniquement les dates de livraison des commandes.
+         */
         Users user = getCurrentUser();
         if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
             throw new RuntimeException("Seul un responsable logistique peut consulter le calendrier");
@@ -1513,46 +1528,42 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             throw new RuntimeException("Mois invalide (1-12)");
         }
 
+        // Période du mois (inclusif)
         LocalDate monthStart = LocalDate.of(year, month, 1);
         LocalDate monthEnd = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
 
-        // EN_ATTENTE non planifiées (deliveryDate dans le mois)
+        // 1) EN_ATTENTE non planifiées (Order.deliveryDate dans le mois)
         List<Object[]> pendingRows = orderRepository.countPendingOrdersByDeliveryDateBetween(
                 OrderStatus.EN_ATTENTE, monthStart, monthEnd);
-        java.util.Map<LocalDate, Long> pendingByDay = new java.util.HashMap<>();
+        Map<LocalDate, Long> pendingByDay = new HashMap<>();
         for (Object[] row : pendingRows) {
             LocalDate day = (LocalDate) row[0];
             Long count = (Long) row[1];
             pendingByDay.put(day, count != null ? count : 0L);
         }
 
-        // Planifié = commandes assignées à un livreur (dans une tournée) et pas encore LIVREE
-        List<com.example.coopachat.enums.DeliveryTourStatus> tourStatuses = java.util.List.of(
-                com.example.coopachat.enums.DeliveryTourStatus.ASSIGNEE,
-                com.example.coopachat.enums.DeliveryTourStatus.EN_COURS,
-                com.example.coopachat.enums.DeliveryTourStatus.TERMINEE
+        // 2) Déjà planifiées = commandes présentes dans une tournée "active" (basé sur le statut de la tournée)
+        List<DeliveryTourStatus> tourStatuses = java.util.List.of(
+               DeliveryTourStatus.ASSIGNEE,
+               DeliveryTourStatus.EN_COURS,
+                DeliveryTourStatus.TERMINEE
         );
-        List<OrderStatus> plannedOrderStatuses = java.util.List.of(
-                OrderStatus.VALIDEE,
-                OrderStatus.EN_PREPARATION,
-                OrderStatus.EN_COURS,
-                OrderStatus.ARRIVE
-        );
-        List<Object[]> plannedRows = orderRepository.countPlannedOrdersByTourDeliveryDateBetween(
-                monthStart, monthEnd, tourStatuses, plannedOrderStatuses);
-        java.util.Map<LocalDate, Long> plannedByDay = new java.util.HashMap<>();
+        List<Object[]> plannedRows = orderRepository.countPlannedOrdersByDeliveryDateBetween(
+                monthStart, monthEnd, tourStatuses);
+       Map<LocalDate, Long> plannedByDay = new HashMap<>();
         for (Object[] row : plannedRows) {
             LocalDate day = (LocalDate) row[0];
             Long count = (Long) row[1];
             plannedByDay.put(day, count != null ? count : 0L);
         }
 
-        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        List<com.example.coopachat.dtos.delivery.DeliveryPlanningCalendarDayDTO> result = new java.util.ArrayList<>();
+        // 3) Assemblage du résultat: 1 DTO par jour du mois (y compris jours à 0)
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        List<DeliveryPlanningCalendarDayDTO> result = new ArrayList<>();
         for (LocalDate d = monthStart; !d.isAfter(monthEnd); d = d.plusDays(1)) {
             long pending = pendingByDay.getOrDefault(d, 0L);
             long planned = plannedByDay.getOrDefault(d, 0L);
-            result.add(new com.example.coopachat.dtos.delivery.DeliveryPlanningCalendarDayDTO(d.format(fmt), pending, planned));
+            result.add(new DeliveryPlanningCalendarDayDTO(d.format(fmt), pending, planned));
         }
         return result;
     }
