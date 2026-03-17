@@ -251,8 +251,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("end") LocalDate end);
 
     /**
-     * Calendrier RL (mois) — commandes déjà planifiées (dans une tournée), groupées par date de tournée.
-     * On filtre les statuts de tournée (exclut ANNULEE).
+     * Calendrier RL (mois) — commandes "planifiées" = assignées à un livreur (dans une tournée),
+     * et pas encore livrées (statuts inclus dans :orderStatuses).
+     * Groupées par date de tournée.
+     *
      * Retour : lignes (LocalDate tourDeliveryDate, long count).
      */
     @Query("""
@@ -261,12 +263,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
            JOIN o.deliveryTour t
            WHERE t.deliveryDate BETWEEN :start AND :end
              AND t.status IN :tourStatuses
+             AND o.status IN :orderStatuses
            GROUP BY t.deliveryDate
            """)
     List<Object[]> countPlannedOrdersByTourDeliveryDateBetween(
             @Param("start") LocalDate start,
             @Param("end") LocalDate end,
-            @Param("tourStatuses") List<com.example.coopachat.enums.DeliveryTourStatus> tourStatuses);
+            @Param("tourStatuses") List<com.example.coopachat.enums.DeliveryTourStatus> tourStatuses,
+            @Param("orderStatuses") List<OrderStatus> orderStatuses);
 
     /**
      * Commandes du livreur dont la tournée a un des statuts donnés (paginé).

@@ -1526,14 +1526,20 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             pendingByDay.put(day, count != null ? count : 0L);
         }
 
-        // Déjà planifiées : commandes dans une tournée non annulée (date tournée dans le mois)
+        // Planifié = commandes assignées à un livreur (dans une tournée) et pas encore LIVREE
         List<com.example.coopachat.enums.DeliveryTourStatus> tourStatuses = java.util.List.of(
                 com.example.coopachat.enums.DeliveryTourStatus.ASSIGNEE,
                 com.example.coopachat.enums.DeliveryTourStatus.EN_COURS,
                 com.example.coopachat.enums.DeliveryTourStatus.TERMINEE
         );
+        List<OrderStatus> plannedOrderStatuses = java.util.List.of(
+                OrderStatus.VALIDEE,
+                OrderStatus.EN_PREPARATION,
+                OrderStatus.EN_COURS,
+                OrderStatus.ARRIVE
+        );
         List<Object[]> plannedRows = orderRepository.countPlannedOrdersByTourDeliveryDateBetween(
-                monthStart, monthEnd, tourStatuses);
+                monthStart, monthEnd, tourStatuses, plannedOrderStatuses);
         java.util.Map<LocalDate, Long> plannedByDay = new java.util.HashMap<>();
         for (Object[] row : plannedRows) {
             LocalDate day = (LocalDate) row[0];
