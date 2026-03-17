@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -57,4 +58,20 @@ public interface DeliveryTourRepository extends JpaRepository<DeliveryTour, Long
      */
     @Query("SELECT new com.example.coopachat.dtos.dashboard.logisticsManager.StatusCountDTO(t.status, COUNT(t)) FROM DeliveryTour t GROUP BY t.status")
     List<StatusCountDTO> countGroupByStatus();
+
+    /**
+     * Calendrier RL (mois) — tournées planifiées (non annulées), groupées par date de tournée.
+     * Retour : lignes (LocalDate deliveryDate, long count).
+     */
+    @Query("""
+           SELECT t.deliveryDate, COUNT(t)
+           FROM DeliveryTour t
+           WHERE t.deliveryDate BETWEEN :start AND :end
+             AND t.status IN :statuses
+           GROUP BY t.deliveryDate
+           """)
+    List<Object[]> countToursByDeliveryDateBetweenAndStatusIn(
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end,
+            @Param("statuses") List<DeliveryTourStatus> statuses);
 }
