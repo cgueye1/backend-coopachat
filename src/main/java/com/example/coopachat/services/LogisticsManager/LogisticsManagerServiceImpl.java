@@ -1502,6 +1502,55 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // 🚚 GESTION DES TOURNÉES DE LIVRAISON
     // ============================================================================
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.example.coopachat.dtos.delivery.DeliveryPlanningCalendarDayDTO> getDeliveryPlanningCalendar(int year, int month) {
+        Users user = getCurrentUser();
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter le calendrier");
+        }
+        if (month < 1 || month > 12) {
+            throw new RuntimeException("Mois invalide (1-12)");
+        }
+
+        LocalDate monthStart = LocalDate.of(year, month, 1);
+        LocalDate monthEnd = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
+
+        // EN_ATTENTE non planifiées (deliveryDate dans le mois)
+        List<Object[]> pendingRows = orderRepository.countPendingOrdersByDeliveryDateBetween(
+                OrderStatus.EN_ATTENTE, monthStart, monthEnd);
+        java.util.Map<LocalDate, Long> pendingByDay = new java.util.HashMap<>();
+        for (Object[] row : pendingRows) {
+            LocalDate day = (LocalDate) row[0];
+            Long count = (Long) row[1];
+            pendingByDay.put(day, count != null ? count : 0L);
+        }
+
+        // Déjà planifiées : commandes dans une tournée non annulée (date tournée dans le mois)
+        List<com.example.coopachat.enums.DeliveryTourStatus> tourStatuses = java.util.List.of(
+                com.example.coopachat.enums.DeliveryTourStatus.ASSIGNEE,
+                com.example.coopachat.enums.DeliveryTourStatus.EN_COURS,
+                com.example.coopachat.enums.DeliveryTourStatus.TERMINEE
+        );
+        List<Object[]> plannedRows = orderRepository.countPlannedOrdersByTourDeliveryDateBetween(
+                monthStart, monthEnd, tourStatuses);
+        java.util.Map<LocalDate, Long> plannedByDay = new java.util.HashMap<>();
+        for (Object[] row : plannedRows) {
+            LocalDate day = (LocalDate) row[0];
+            Long count = (Long) row[1];
+            plannedByDay.put(day, count != null ? count : 0L);
+        }
+
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        List<com.example.coopachat.dtos.delivery.DeliveryPlanningCalendarDayDTO> result = new java.util.ArrayList<>();
+        for (LocalDate d = monthStart; !d.isAfter(monthEnd); d = d.plusDays(1)) {
+            long pending = pendingByDay.getOrDefault(d, 0L);
+            long planned = plannedByDay.getOrDefault(d, 0L);
+            result.add(new com.example.coopachat.dtos.delivery.DeliveryPlanningCalendarDayDTO(d.format(fmt), pending, planned));
+        }
+        return result;
+    }
+
     /** Filtre : date + EN_ATTENTE + employé actif + pas en tournée. Retourne les Order pour liste ou regroupement. */
     private List<Order> filterEligibleOrders(LocalDate deliveryDate) {
         return orderRepository.findEligibleOrdersForDate(deliveryDate, OrderStatus.EN_ATTENTE);

@@ -465,6 +465,17 @@ public class LogisticsManagerController {
    // ============================================================================
 
     @Operation(
+            summary = "Calendrier planification (mois)",
+            description = "Vue globale : pour chaque jour du mois, nb commandes en attente (non planifiées) et nb commandes déjà planifiées."
+    )
+    @GetMapping("/delivery-tours/planning-calendar")
+    public ResponseEntity<List<DeliveryPlanningCalendarDayDTO>> getPlanningCalendar(
+            @RequestParam int year,
+            @RequestParam int month) {
+        return ResponseEntity.ok(logisticsManagerService.getDeliveryPlanningCalendar(year, month));
+    }
+
+    @Operation(
             summary = "Récupérer les commandes éligibles",
             description = "Retourne la liste des commandes disponibles pour une tournée selon la date."
     )

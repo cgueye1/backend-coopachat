@@ -234,6 +234,41 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("day") LocalDate day);
 
     /**
+     * Calendrier RL (mois) — commandes EN_ATTENTE non planifiées, groupées par deliveryDate.
+     * Retour : lignes (LocalDate deliveryDate, long count).
+     */
+    @Query("""
+           SELECT o.deliveryDate, COUNT(o)
+           FROM Order o
+           WHERE o.status = :status
+             AND o.deliveryTour IS NULL
+             AND o.deliveryDate BETWEEN :start AND :end
+           GROUP BY o.deliveryDate
+           """)
+    List<Object[]> countPendingOrdersByDeliveryDateBetween(
+            @Param("status") OrderStatus status,
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end);
+
+    /**
+     * Calendrier RL (mois) — commandes déjà planifiées (dans une tournée), groupées par date de tournée.
+     * On filtre les statuts de tournée (exclut ANNULEE).
+     * Retour : lignes (LocalDate tourDeliveryDate, long count).
+     */
+    @Query("""
+           SELECT t.deliveryDate, COUNT(o)
+           FROM Order o
+           JOIN o.deliveryTour t
+           WHERE t.deliveryDate BETWEEN :start AND :end
+             AND t.status IN :tourStatuses
+           GROUP BY t.deliveryDate
+           """)
+    List<Object[]> countPlannedOrdersByTourDeliveryDateBetween(
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end,
+            @Param("tourStatuses") List<com.example.coopachat.enums.DeliveryTourStatus> tourStatuses);
+
+    /**
      * Commandes du livreur dont la tournée a un des statuts donnés (paginé).
      * triés par date de livraison, puis id de la tournée, puis id de la commande du plus ancien au plus récent
      */

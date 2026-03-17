@@ -309,6 +309,13 @@ public interface LogisticsManagerService {
     List<AvailableDriverDTO> getAvailableDrivers();
 
     /**
+     * Vue calendrier (mois) pour la planification : compte par jour des commandes en attente vs déjà planifiées.
+     * @param year année (ex: 2026)
+     * @param month mois (1-12)
+     */
+    List<com.example.coopachat.dtos.delivery.DeliveryPlanningCalendarDayDTO> getDeliveryPlanningCalendar(int year, int month);
+
+    /**
      * Crée une nouvelle tournée de livraison
      * @param dto Informations de la tournée à créer
      */
