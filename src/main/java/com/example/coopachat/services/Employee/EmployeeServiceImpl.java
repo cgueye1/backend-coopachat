@@ -280,7 +280,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     // ============================================================================
     @Override
     @Transactional
-    public void addProductToCart(Long productId) {
+    public CartResponseDTO addProductToCart(Long productId) {
 
         // 1. Récupérer l'employé concerné
         Users currentUser = getCurrentUser();
@@ -333,15 +333,14 @@ public class EmployeeServiceImpl implements EmployeeService {
             BigDecimal unitPrice = product.getPrice();
             newItem.setUnitPrice(unitPrice);
 
-            // Vérifier promo
-            Coupon activeCoupon = getActiveCouponForProduct(product);
-            if (activeCoupon != null) {
-                // Prix avec promo
-                BigDecimal promoPrice = calculatePromoPrice(unitPrice, activeCoupon.getValue());
+            // Vérifier promo produit (les coupons sont réservés au panier)
+            PromotionProduct activePromotionProduct = getActivePromotionForProduct(product);
+            if (activePromotionProduct != null && activePromotionProduct.getDiscountValue() != null) {
+                BigDecimal percent = activePromotionProduct.getDiscountValue();
+                BigDecimal promoPrice = calculatePromoPrice(unitPrice, percent);
                 newItem.setPromoPrice(promoPrice);
                 newItem.setHasPromo(true);
             } else {
-                // Pas de promo
                 newItem.setPromoPrice(null);
                 newItem.setHasPromo(false);
             }
@@ -352,6 +351,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         log.info("Produit ajouté au panier - User: {}, Produit: {}, Quantité: {}",
                 employee.getUser().getEmail(), product.getName(), requestedQuantity);
 
+        return getCart();
     }
 
     @Override
@@ -388,7 +388,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     @Transactional
-    public void increaseProductQuantity(Long productId) {
+    public CartResponseDTO increaseProductQuantity(Long productId) {
 
         // 1. Récupérer l'employé concerné
         Users currentUser = getCurrentUser();
@@ -414,11 +414,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         item.setQuantity(item.getQuantity() + 1);
         cartItemRepository.save(item);
 
+        return getCart();
     }
 
     @Override
     @Transactional
-    public void decreaseProductQuantity(Long productId) {
+    public CartResponseDTO decreaseProductQuantity(Long productId) {
 
         // 1. Récupérer l'employé concerné
         Users currentUser = getCurrentUser();
@@ -449,11 +450,12 @@ public class EmployeeServiceImpl implements EmployeeService {
                     currentUser.getEmail(), product.getName(), item.getQuantity());
         }
 
+        return getCart();
     }
 
     @Override
     @Transactional
-    public void removeProductFromCart(Long productId) {
+    public CartResponseDTO removeProductFromCart(Long productId) {
 
         // 1. Récupérer l'employé concerné
         Users currentUser = getCurrentUser();
@@ -476,6 +478,8 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         log.info("Produit {} supprimé du panier de {}",
                 product.getName(), currentUser.getEmail());
+
+        return getCart();
     }
 
     // ============================================================================
@@ -2015,12 +2019,13 @@ public class EmployeeServiceImpl implements EmployeeService {
         dto.setCategoryName(product.getCategory() != null ? product.getCategory().getName() : null);
         dto.setOriginalPrice(product.getPrice());
 
-        // Calcul du prix promo si coupon actif
-        Coupon coupon = getActiveCouponForProduct(product);
-        if (coupon != null) {
-            BigDecimal promoPrice = calculatePromoPrice(product.getPrice(), coupon.getValue());
+        // Calcul du prix promo si promotion PRODUIT active (les coupons sont réservés au panier)
+        PromotionProduct activePromotionProduct = getActivePromotionForProduct(product);
+        if (activePromotionProduct != null && activePromotionProduct.getDiscountValue() != null) {
+            BigDecimal percent = activePromotionProduct.getDiscountValue();
+            BigDecimal promoPrice = calculatePromoPrice(product.getPrice(), percent);
             dto.setPromoPrice(promoPrice);
-            dto.setDiscountPercent(coupon.getValue().setScale(0, RoundingMode.HALF_UP).intValue());
+            dto.setDiscountPercent(percent.setScale(0, RoundingMode.HALF_UP).intValue());//setScale(0, RoundingMode.HALF_UP (on veut 0 chiffre après la virgule et si la partie décimale est >= 0.5 on arrondit au supérieur sinon vers le bas )
             dto.setHasPromo(true);
         } else {
             dto.setPromoPrice(null);
@@ -2122,15 +2127,15 @@ public class EmployeeServiceImpl implements EmployeeService {
             dto.setCategoryName(product.getCategory().getName());
         }
         dto.setOriginalPrice(product.getPrice());
-        Coupon coupon = getActiveCouponForProduct (product);
-        if (coupon != null) {
-            // PROMO EXISTE
-            BigDecimal promoPrice = calculatePromoPrice(product.getPrice(), coupon.getValue());
+        // Calcul du prix promo si promotion PRODUIT active (les coupons sont réservés au panier)
+        PromotionProduct activePromotionProduct = getActivePromotionForProduct(product);
+        if (activePromotionProduct != null && activePromotionProduct.getDiscountValue() != null) {
+            BigDecimal percent = activePromotionProduct.getDiscountValue();
+            BigDecimal promoPrice = calculatePromoPrice(product.getPrice(), percent);
             dto.setPromoPrice(promoPrice);
-            dto.setDiscountPercent(coupon.getValue().setScale(0, RoundingMode.HALF_UP).intValue());
+            dto.setDiscountPercent(percent.setScale(0, RoundingMode.HALF_UP).intValue());
             dto.setHasPromo(true);
         } else {
-            // PAS DE PROMO
             dto.setPromoPrice(null);
             dto.setDiscountPercent(null);
             dto.setHasPromo(false);

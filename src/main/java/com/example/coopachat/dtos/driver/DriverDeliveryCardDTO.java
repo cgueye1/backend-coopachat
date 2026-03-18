@@ -1,6 +1,7 @@
 package com.example.coopachat.dtos.driver;
 
 import com.example.coopachat.enums.OrderStatus;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -89,6 +90,7 @@ public class DriverDeliveryCardDTO {
     /**
      * Date de livraison
      */
+    @JsonFormat(pattern = "dd-MM-yyyy")
     private LocalDate deliveryDate;
 
 

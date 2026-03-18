@@ -7,8 +7,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 
 /**
- * DTO pour les détails produit côté mobile (sans champ "marche").
- */
+ * DTO pour les détails produit côté mobile  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

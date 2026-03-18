@@ -111,9 +111,9 @@ public class EmployeeController {
                     "Si le produit est déjà dans le panier, augmente sa quantité."
     )
     @PostMapping("/cart/items/{productId}")
-    public ResponseEntity<String> addToCart(@PathVariable Long productId) {
-        employeeService.addProductToCart(productId);
-        return ResponseEntity.ok("Produit ajouté avec succès à votre panier");
+    public ResponseEntity<CartResponseDTO> addToCart(@PathVariable Long productId) {
+        CartResponseDTO cart = employeeService.addProductToCart(productId);
+        return ResponseEntity.ok(cart);
     }
 
     @Operation(
@@ -131,9 +131,9 @@ public class EmployeeController {
             description = "Augmente de 1 la quantité d'un produit déjà présent dans le panier."
     )
     @PostMapping("/cart/items/{productId}/increase")
-    public ResponseEntity<String> increaseProductQuantity(@PathVariable Long productId) {
-        employeeService.increaseProductQuantity(productId);
-        return ResponseEntity.ok("Quantité augmentée avec succès");
+    public ResponseEntity<CartResponseDTO> increaseProductQuantity(@PathVariable Long productId) {
+        CartResponseDTO cart = employeeService.increaseProductQuantity(productId);
+        return ResponseEntity.ok(cart);
     }
 
     @Operation(
@@ -142,9 +142,9 @@ public class EmployeeController {
                     "Si la quantité atteint 0, l'article est supprimé du panier."
     )
     @PostMapping("/cart/items/{productId}/decrease")
-    public ResponseEntity<String> decreaseProductQuantity(@PathVariable Long productId) {
-        employeeService.decreaseProductQuantity(productId);
-        return ResponseEntity.ok("Quantité diminuée avec succès");
+    public ResponseEntity<CartResponseDTO> decreaseProductQuantity(@PathVariable Long productId) {
+        CartResponseDTO cart = employeeService.decreaseProductQuantity(productId);
+        return ResponseEntity.ok(cart);
     }
 
     @Operation(
@@ -152,9 +152,9 @@ public class EmployeeController {
             description = "Supprime complètement un produit du panier."
     )
     @DeleteMapping("/cart/items/{productId}")
-    public ResponseEntity<String> removeProductFromCart(@PathVariable Long productId) {
-        employeeService.removeProductFromCart(productId);
-        return ResponseEntity.ok("Produit supprimé du panier");
+    public ResponseEntity<CartResponseDTO> removeProductFromCart(@PathVariable Long productId) {
+        CartResponseDTO cart = employeeService.removeProductFromCart(productId);
+        return ResponseEntity.ok(cart);
     }
 
     // ============================================================================
