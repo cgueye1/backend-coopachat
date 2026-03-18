@@ -24,6 +24,8 @@ public class ProductMobileDetailsDTO {
     private BigDecimal promoPrice;
     private Integer discountPercent;
     private boolean hasPromo;
+    /** Quantité de CE produit déjà présente dans le panier de l'employé connecté. */
+    private Integer inCartQuantity;
     private Integer currentStock;
     private String currentStockStatus; // "En stock" ou "Rupture" (EtatStock)
     private Boolean status;

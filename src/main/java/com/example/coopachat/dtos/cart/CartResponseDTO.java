@@ -8,4 +8,5 @@ import java.util.List;
 public class CartResponseDTO {
     private List<CartItemDTO> items;      // Tous les articles du panier
     private BigDecimal totalPrice;        // Somme des sous-totaux
+    private Integer totalQuantity;        // Somme des quantités (tous produits)
 }
