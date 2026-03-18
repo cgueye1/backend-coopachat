@@ -115,6 +115,26 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("status") OrderStatus status);
 
     /**
+     * Détail complet pour le livreur : commande LIVREE appartenant au livreur (via tournée),
+     * avec chargement eager de employee+user, items+product et payment pour éviter LazyInitialization.
+     */
+    @Query("""
+           SELECT DISTINCT o
+           FROM Order o
+           JOIN FETCH o.employee e
+           JOIN FETCH e.user u
+           LEFT JOIN FETCH o.items it
+           LEFT JOIN FETCH it.product p
+           LEFT JOIN FETCH o.payment pay
+           JOIN o.deliveryTour t
+           WHERE o.id = :orderId
+             AND t.driver.id = :driverId
+           """)
+    java.util.Optional<Order> findDriverDeliveredOrderDetails(
+            @Param("orderId") Long orderId,
+            @Param("driverId") Long driverId);
+
+    /**
      * Commandes de l'employé ayant un paiement avec le statut donné (ex. PAID), tri par date de paiement décroissante.
      */
     @Query("SELECT o FROM Order o " +

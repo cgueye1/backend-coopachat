@@ -1,5 +1,6 @@
-package com.example.coopachat.dtos.order;
+package com.example.coopachat.dtos.driver;
 
+import com.example.coopachat.dtos.order.ClientOrderItemDTO;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,28 +12,33 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Détail d'une commande pour le profil client (écran "Détails" / "Voir plus").
- * driver : renseigné uniquement si statut = EN_COURS ou ARRIVE. Pas de rating/canRate ici (réservé à la liste "Mes commandes").
+ * Détail complet d'une commande pour le livreur.
+ * Règle métier : accessible uniquement si la commande est LIVREE et appartient au livreur connecté.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClientOrderDetailsDTO {
+public class DriverDeliveredOrderDetailsDTO {
     private Long orderId;
     private String orderNumber;
     @JsonFormat(pattern = "dd/MM/yyyy")
     private LocalDate orderDate;
     private String statusLabel;
+
+    /** Infos salarié */
+    private String employeeName;
+
+    /** Produits */
     private int productCount;
     private BigDecimal totalAmount;
     private List<ClientOrderItemDTO> items;
 
-
+    /** Adresse + date de livraison */
     private String deliveryAddress;
     @JsonFormat(pattern = "dd/MM/yyyy")
     private LocalDate deliveryDate;
 
-    /** Timeline (suivi de commande). */
+    /** Timeline */
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
     private LocalDateTime createdAt;
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
@@ -46,10 +52,8 @@ public class ClientOrderDetailsDTO {
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
     private LocalDateTime deliveryCompletedAt;
 
-    /** Infos livreur : présent uniquement si En cours de livraison / Arrivé. */
-    private DriverInfoForClientDTO driver;
-
-    /** Statut de paiement (ex. "Impayé", "Payé") et Moment de paiement  pour l’affichage "Informations de paiement". */
+    /** Paiement */
     private String paymentTimingType;
     private String paymentStatusLabel;
 }
+

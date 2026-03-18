@@ -3,6 +3,7 @@ package com.example.coopachat.services.DeliveryDriver;
 import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDashboardDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
+import com.example.coopachat.dtos.driver.DriverDeliveredOrderDetailsDTO;
 import com.example.coopachat.dtos.driver.DeliveryDetailDTO;
 import com.example.coopachat.dtos.driver.DeliveryIssueDTO;
 import com.example.coopachat.dtos.driver.DriverDeliveriesResponseDTO;
@@ -72,6 +73,9 @@ public interface DeliveryDriverService {
      * La commande doit appartenir à une tournée assignée au livreur connecté.
      */
     DeliveryDetailDTO getDeliveryDetail(Long orderId);
+
+    /** Détail complet d'une commande LIVREE pour le livreur connecté. */
+    DriverDeliveredOrderDetailsDTO getDeliveredOrderDetails(Long orderId);
 
     /** Récupère l'adresse du livreur connecté (formattedAddress + lat/long). */
     DriverAddressDTO getMyAddress();

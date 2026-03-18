@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
  * date : dd/MM/yyyy
  * pendingOrders : commandes EN_ATTENTE (non planifiées)
  * plannedOrders : commandes déjà planifiées (dans une tournée non annulée)
+ * overdueOrders : parmi les pendingOrders, celles dont la date est passée (date < aujourd'hui)
  */
 @Data
 @NoArgsConstructor
@@ -17,5 +18,6 @@ public class DeliveryPlanningCalendarDayDTO {
     private String date;
     private long pendingOrders;
     private long plannedOrders;
+    private long overdueOrders;
 }
 

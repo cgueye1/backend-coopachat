@@ -1515,6 +1515,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
          * - pendingOrders : commandes EN_ATTENTE, non planifiées (deliveryTour = NULL), groupées par deliveryDate
          * - plannedOrders : commandes déjà planifiées = dans une tournée (deliveryTour != NULL)
          *                 dont le statut est "actif" (ASSIGNEE/EN_COURS/TERMINEE), groupées par deliveryDate
+         * - overdueOrders : parmi pendingOrders, celles dont la date de livraison est passée (deliveryDate < aujourd'hui)
          *
          * Important:
          * - plannedOrders est  regroupé par Order.deliveryDate
@@ -1560,10 +1561,15 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // 3) Assemblage du résultat: 1 DTO par jour du mois (y compris jours à 0)
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         List<DeliveryPlanningCalendarDayDTO> result = new ArrayList<>();
+        LocalDate today = LocalDate.now();
         for (LocalDate d = monthStart; !d.isAfter(monthEnd); d = d.plusDays(1)) {
-            long pending = pendingByDay.getOrDefault(d, 0L);
+            long rawPending = pendingByDay.getOrDefault(d, 0L);
             long planned = plannedByDay.getOrDefault(d, 0L);
-            result.add(new DeliveryPlanningCalendarDayDTO(d.format(fmt), pending, planned));
+            // On ne veut plus afficher les jours "en retard" dans le calendrier (jours < aujourd'hui).
+            // On conserve quand même l'info dans overdueOrders pour calculer un total global côté front.
+            long overdue = (rawPending > 0 && d.isBefore(today)) ? rawPending : 0L;
+            long visiblePending = d.isBefore(today) ? 0L : rawPending;
+            result.add(new DeliveryPlanningCalendarDayDTO(d.format(fmt), visiblePending, planned, overdue));
         }
         return result;
     }
