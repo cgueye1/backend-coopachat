@@ -398,8 +398,9 @@ public class EmployeeController {
     public ResponseEntity<ClaimListResponseDTO> getMyClaims(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) ClaimStatus status) {
-        return ResponseEntity.ok(employeeService.getMyClaims(page, size, status));
+            @RequestParam(required = false) String status) {
+        ClaimStatus parsed = ClaimStatus.fromString(status);
+        return ResponseEntity.ok(employeeService.getMyClaims(page, size, parsed));
     }
 
     @Operation(

@@ -378,10 +378,16 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .map(cartItem -> cartItem.getSubtotal() != null ? cartItem.getSubtotal() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);//Commence à 0, puis ajoute chaque élément l'un après l'autre
 
+        // 4.b Calculer la quantité totale (somme des quantités)
+        int totalQuantity = cartItems.stream()
+                .map(ci -> ci.getQuantity() != null ? ci.getQuantity() : 0)
+                .reduce(0, Integer::sum);
+
         // 5. Retourner la réponse
         CartResponseDTO response = new CartResponseDTO();
         response.setItems(itemDTOs);
         response.setTotalPrice(totalPrice);
+        response.setTotalQuantity(totalQuantity);
 
         return response;
     }
@@ -402,9 +408,36 @@ public class EmployeeServiceImpl implements EmployeeService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Produit introuvable"));
 
-        // Chercher l'article existant pour le users connecté et le produit concerné
-        CartItem item = cartItemRepository.findByEmployeeAndProduct(employee, product)
-                .orElseThrow(() -> new RuntimeException("Produit non dans le panier"));
+        // Chercher l'article existant pour le user connecté et le produit concerné
+        CartItem item = cartItemRepository.findByEmployeeAndProduct(employee, product).orElse(null);
+
+        // Si le produit n'est pas encore dans le panier, on le crée (comportement "smart" pour le bouton + extérieur)
+        if (item == null) {
+            if (product.getCurrentStock() < 1) {
+                throw new RuntimeException("Stock insuffisant");
+            }
+            CartItem newItem = new CartItem();
+            newItem.setEmployee(employee);
+            newItem.setUser(currentUser);
+            newItem.setProduct(product);
+            newItem.setQuantity(1);
+
+            BigDecimal unitPrice = product.getPrice();
+            newItem.setUnitPrice(unitPrice);
+
+            PromotionProduct activePromotionProduct = getActivePromotionForProduct(product);
+            if (activePromotionProduct != null && activePromotionProduct.getDiscountValue() != null) {
+                BigDecimal percent = activePromotionProduct.getDiscountValue();
+                BigDecimal promoPrice = calculatePromoPrice(unitPrice, percent);
+                newItem.setPromoPrice(promoPrice);
+                newItem.setHasPromo(true);
+            } else {
+                newItem.setPromoPrice(null);
+                newItem.setHasPromo(false);
+            }
+            cartItemRepository.save(newItem);
+            return getCart();
+        }
 
         // Vérifier stock pour savoir si la quantité est suffisante ajouter à nouveau un produit dans le panier
         if (product.getCurrentStock() <= item.getQuantity()) {
@@ -2139,6 +2172,23 @@ public class EmployeeServiceImpl implements EmployeeService {
             dto.setPromoPrice(null);
             dto.setDiscountPercent(null);
             dto.setHasPromo(false);
+        }
+
+        // Quantité déjà présente dans le panier (pour affichage temps réel côté détail produit)
+        try {
+            Users currentUser = getCurrentUser();
+            Employee employee = employeeRepository.findByUser(currentUser).orElse(null);
+            if (employee != null) {
+                Integer qty = cartItemRepository.findByEmployeeAndProduct(employee, product)
+                        .map(CartItem::getQuantity)
+                        .orElse(0);
+                dto.setInCartQuantity(qty);
+            } else {
+                dto.setInCartQuantity(0);
+            }
+        } catch (Exception e) {
+            // Si pas d'utilisateur connecté (cas rare), on renvoie 0 pour ne pas casser l'API.
+            dto.setInCartQuantity(0);
         }
         // Stock
         Integer stock = product.getCurrentStock() != null ? product.getCurrentStock() : 0;
