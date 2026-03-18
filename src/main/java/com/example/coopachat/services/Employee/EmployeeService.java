@@ -70,7 +70,7 @@ public interface EmployeeService {
      * @param productId L'ID du produit à ajouter
      * @throws RuntimeException  si le stock est insuffisant ou si une erreur survient
      */
-    void addProductToCart(Long productId);
+    CartResponseDTO addProductToCart(Long productId);
 
     /**
      * Récupère le panier complet de l'utilisateur connecté.
@@ -86,7 +86,7 @@ public interface EmployeeService {
      * @param productId ID du produit à augmenter
      * @throws RuntimeException si produit non trouvé, non dans le panier ou stock insuffisant
      */
-    void increaseProductQuantity(Long productId);
+    CartResponseDTO increaseProductQuantity(Long productId);
 
     /**
      * Diminue de 1 la quantité d'un produit déjà présent dans le panier.
@@ -95,7 +95,7 @@ public interface EmployeeService {
      * @param productId ID du produit à diminuer
      * @throws RuntimeException si produit non trouvé ou non dans le panier
      */
-    void decreaseProductQuantity(Long productId);
+    CartResponseDTO decreaseProductQuantity(Long productId);
 
     /**
      * Supprime complètement un produit du panier.
@@ -103,7 +103,7 @@ public interface EmployeeService {
      * @param productId ID du produit à supprimer
      * @throws RuntimeException si produit non trouvé ou non dans le panier
      */
-    void removeProductFromCart(Long productId);
+    CartResponseDTO removeProductFromCart(Long productId);
 
     // ============================================================================
     // Préférences de Livraisons🛵
