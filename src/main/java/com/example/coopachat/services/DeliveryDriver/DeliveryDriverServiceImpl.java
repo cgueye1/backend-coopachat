@@ -7,8 +7,10 @@ import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.dtos.driver.DeliveryDetailDTO;
 import com.example.coopachat.dtos.driver.DeliveryIssueDTO;
+import com.example.coopachat.dtos.driver.DriverDeliveredOrderDetailsDTO;
 import com.example.coopachat.dtos.driver.DriverDeliveryCardDTO;
 import com.example.coopachat.dtos.driver.DriverDeliveriesResponseDTO;
+import com.example.coopachat.dtos.order.ClientOrderItemDTO;
 import com.example.coopachat.entities.*;
 import com.example.coopachat.enums.DeliveryIssueReportSource;
 import com.example.coopachat.enums.DeliveryTourStatus;
@@ -491,6 +493,78 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
 
         // 6. Montant total
         dto.setTotalAmount(order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO);
+
+        return dto;
+    }
+
+    // ========================================
+    // DÉTAIL COMPLET (commande livrée) — écran livreur
+    // ========================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public DriverDeliveredOrderDetailsDTO getDeliveredOrderDetails(Long orderId) {
+        Driver driver = getDriverOrThrow();
+        Order order = orderRepository.findDriverDeliveredOrderDetails(orderId, driver.getId())
+                .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        // Sécurité : la commande doit appartenir au livreur (via tournée)
+        if (order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
+            throw new RuntimeException("Vous n'êtes pas assigné à cette commande");
+        }
+        // Règle métier : détails complets uniquement si LIVREE
+        if (order.getStatus() != OrderStatus.LIVREE) {
+            throw new RuntimeException("Détails disponibles uniquement quand la commande est livrée");
+        }
+
+        DriverDeliveredOrderDetailsDTO dto = new DriverDeliveredOrderDetailsDTO();
+        dto.setOrderId(order.getId());
+        dto.setOrderNumber(order.getOrderNumber());
+        dto.setOrderDate(order.getDeliveryDate() != null ? order.getDeliveryDate()
+                : (order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate() : null));
+        dto.setStatusLabel(order.getStatus() != null ? order.getStatus().getLabel() : "");
+
+        // Nom du salarié
+        if (order.getEmployee() != null && order.getEmployee().getUser() != null) {
+            String first = order.getEmployee().getUser().getFirstName() != null ? order.getEmployee().getUser().getFirstName() : "";
+            String last = order.getEmployee().getUser().getLastName() != null ? order.getEmployee().getUser().getLastName() : "";
+            dto.setEmployeeName((first + " " + last).trim());
+        } else {
+            dto.setEmployeeName("");
+        }
+
+        dto.setProductCount(order.getItems() != null ? order.getItems().size() : 0);
+        dto.setTotalAmount(order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO);
+
+        dto.setDeliveryAddress(getDeliveryAddressFromOrder(order));
+        dto.setDeliveryDate(order.getDeliveryDate());
+
+        dto.setCreatedAt(order.getCreatedAt());
+        dto.setValidatedAt(order.getValidatedAt());
+        dto.setPickupStartedAt(order.getPickupStartedAt());
+        dto.setDeliveryStartedAt(order.getDeliveryStartedAt());
+        dto.setDeliveryArrivedAt(order.getDeliveryArrivedAt());
+        dto.setDeliveryCompletedAt(order.getDeliveryCompletedAt());
+
+        // Items
+        List<ClientOrderItemDTO> items = new ArrayList<>();
+        if (order.getItems() != null) {
+            for (OrderItem oi : order.getItems()) {
+                ClientOrderItemDTO itemDto = new ClientOrderItemDTO();
+                itemDto.setOrderItemId(oi.getId());
+                itemDto.setProductName(oi.getProduct() != null ? oi.getProduct().getName() : "");
+                itemDto.setQuantity(oi.getQuantity());
+                itemDto.setUnitPrice(oi.getUnitPrice());
+                itemDto.setImageUrl(oi.getProduct() != null ? oi.getProduct().getImage() : null);
+                items.add(itemDto);
+            }
+        }
+        dto.setItems(items);
+
+        // Paiement
+        Payment payment = order.getPayment();
+        dto.setPaymentTimingType(payment != null && payment.getPaymentTiming() != null ? payment.getPaymentTiming().getLabel() : null);
+        dto.setPaymentStatusLabel(payment != null && payment.getStatus() != null ? payment.getStatus().getLabel() : null);
 
         return dto;
     }

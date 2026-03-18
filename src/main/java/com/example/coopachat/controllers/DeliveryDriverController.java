@@ -5,6 +5,7 @@ import com.example.coopachat.dtos.DeliveryDriver.DriverDashboardDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
 import com.example.coopachat.dtos.driver.DeliveryDetailDTO;
 import com.example.coopachat.dtos.driver.DeliveryIssueDTO;
+import com.example.coopachat.dtos.driver.DriverDeliveredOrderDetailsDTO;
 import com.example.coopachat.dtos.driver.DriverDeliveriesResponseDTO;
 import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.services.DeliveryDriver.DeliveryDriverService;
@@ -84,6 +85,15 @@ public class DeliveryDriverController {
     @GetMapping("/deliveries/{orderId}/details")
     public ResponseEntity<DeliveryDetailDTO> getDeliveryDetail(@PathVariable Long orderId) {
         return ResponseEntity.ok(deliveryDriverService.getDeliveryDetail(orderId));
+    }
+
+    @Operation(
+            summary = "Détail complet commande livrée",
+            description = "Détail complet (items, paiement, timeline, salarié). Uniquement si la commande est LIVREE et appartient au livreur."
+    )
+    @GetMapping("/deliveries/{orderId}/delivered-details")
+    public ResponseEntity<DriverDeliveredOrderDetailsDTO> getDeliveredOrderDetails(@PathVariable Long orderId) {
+        return ResponseEntity.ok(deliveryDriverService.getDeliveredOrderDetails(orderId));
     }
 
     @Operation(summary = "Confirmer la récupération au dépôt", description = "Le livreur confirme avoir récupéré les colis → tournée EN_COURS.")

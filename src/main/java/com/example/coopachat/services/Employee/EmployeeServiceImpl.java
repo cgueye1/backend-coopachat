@@ -1767,9 +1767,9 @@ public class EmployeeServiceImpl implements EmployeeService {
             }
         }
         dto.setItems(items);//Liste des articles commandés
-        // Infos livreur (nom, téléphone) : uniquement si EN_COURS ou ARRIVE. Si statut = Validé seulement → pas d’infos livreur (null).
+        // Infos livreur (nom, téléphone) : uniquement si EN_COURS , LIVREEou ARRIVE. Si statut = Validé seulement → pas d’infos livreur (null).
         // Les infos de livraison (adresse, date) sont toujours dans le DTO. Les boutons (Noter, Télécharger facture, Réclamation) s’affichent côté UI si statut = Livrée.
-        if (order.getStatus() == OrderStatus.EN_COURS || order.getStatus() == OrderStatus.ARRIVE) {
+        if (order.getStatus() == OrderStatus.EN_COURS || order.getStatus() == OrderStatus.ARRIVE || order.getStatus() == OrderStatus.LIVREE) {
             dto.setDriver(buildDriverInfoForClient(order));
         } else {
             dto.setDriver(null);
@@ -1782,7 +1782,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     /**
      * Mappe une commande vers un item de la liste "Mes commandes".
-     * - driver : renseigné uniquement si statut = EN_COURS ou ARRIVE (en cours de livraison → afficher nom + téléphone).
+     * - driver : renseigné uniquement si statut = EN_COURS , ARRIVE ou LIVREE (en cours de livraison → afficher nom + téléphone).
      * - Noter / canRate : si LIVREE (il peut noter si statut = LIVREE), afficher la note si déjà noté, sinon canRate = true (bouton "Noter").
      */
     private ClientOrderListItemDTO mapOrderToClientOrderListItemDTO(Order order) {
@@ -1795,7 +1795,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         dto.setStatusLabel(order.getStatus() != null ? order.getStatus().getLabel() : "");//Statut de la commande
 
         // Infos livreur : seulement si En cours de livraison ou Arrivé (sinon null → pas d'affichage)
-        if (order.getStatus() == OrderStatus.EN_COURS || order.getStatus() == OrderStatus.ARRIVE) {
+        if (order.getStatus() == OrderStatus.EN_COURS || order.getStatus() == OrderStatus.ARRIVE || order.getStatus() == OrderStatus.LIVREE) {
             dto.setDriver(buildDriverInfoForClient(order));//Informations du livreur
         } else {
             dto.setDriver(null);//Pas de livreur
