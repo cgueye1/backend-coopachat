@@ -58,6 +58,7 @@ public class AuthServiceImpl implements AuthService {
     private final ActivationCodeRepository activationCodeRepository;
     private final TokenBlacklistService tokenBlacklistService;
     private final EmployeeRepository employeeRepository;
+    private final UserReferenceGenerator userReferenceGenerator;
 
     // ============================================================================
     // 👤 GESTION DES UTILISATEURS
