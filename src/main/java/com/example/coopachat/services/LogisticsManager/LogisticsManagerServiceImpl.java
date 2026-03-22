@@ -31,6 +31,7 @@ import com.example.coopachat.entities.util.GeoUtil;
 import com.example.coopachat.enums.*;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.DeliveryDriver.DriverNotificationService;
+import com.example.coopachat.services.user.UserReferenceGenerator;
 import com.example.coopachat.services.Employee.EmployeeNotificationService;
 import com.example.coopachat.services.auth.EmailService;
 import jakarta.persistence.EntityNotFoundException;
@@ -85,6 +86,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     private final EmailService emailService;
     private final EmployeeNotificationService employeeNotificationService;
     private final DriverNotificationService driverNotificationService;
+    private final UserReferenceGenerator userReferenceGenerator;
 
     // ============================================================================
     // 🚚CRÉER UN LIVREUR
@@ -127,6 +129,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         user.setPhone(driverDTO.getPhone());
         user.setRole(UserRole.DELIVERY_DRIVER);
         user.setIsActive(false);
+        user.setRefUser(userReferenceGenerator.generateUniqueRefUser());
 
         Users savedUser = userRepository.save(user);
 
@@ -1754,9 +1757,8 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // 4. CRÉATION DE LA TOURNÉE
         DeliveryTour tour = new DeliveryTour();
 
-        // Générer numéro unique
-        String tourNumber = "PL-" + LocalDate.now().getYear() + "-" +
-                String.format("%03d", deliveryTourRepository.count() + 1);
+        // Numéro unique aléatoire (même principe que les commandes CMD-XXXXXXXX)
+        String tourNumber = generateUniqueTourNumber();
         tour.setTourNumber(tourNumber);
 
         // Informations de base
@@ -1791,6 +1793,22 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
     }
 
+    /**
+     * Numéro de tournée unique aléatoire (même principe que les commandes salarié : {@code CMD-} + 8 caractères ).
+     * Format {@code PL-XXXXXXXX} — préfixe planification conservé, suffixe imprévisible (plus de séquence annuelle).
+     */
+    private String generateUniqueTourNumber() {
+        final int maxAttempts = 10;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+            String candidate = "PL-" + suffix;
+            if (!deliveryTourRepository.existsByTourNumber(candidate)) {
+                return candidate;
+            }
+        }
+        throw new RuntimeException("Impossible de générer un numéro de tournée unique");
+    }
+
     @Override
     @Transactional(readOnly = true)
     public DeliveryTourDetailsDTO getDeliveryTourDetails(Long tourId) {
@@ -1817,45 +1835,93 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             dto.setDriverPhone(deliveryTour.getDriver().getUser().getPhone());
         }
 
-        // Véhicule (type + plaque dans un seul champ côté entité)
-        String vehicleTypePlate = deliveryTour.getVehicleTypePlate();
-        if (vehicleTypePlate != null && !vehicleTypePlate.isBlank()) {
-            dto.setVehicleType(vehicleTypePlate);
-            dto.setVehiclePlate(vehicleTypePlate);
-        }
+        // Véhicule : type + matricule (séparés si stockés "Type — Plaque" dans vehicleTypePlate)
+        fillVehicleTypeAndPlate(deliveryTour.getVehicleTypePlate(), dto);
 
         if (deliveryTour.getNotes() != null && !deliveryTour.getNotes().isBlank()) {
             dto.setNotes(deliveryTour.getNotes());
         }
 
-        // Commandes : liste détaillée (ordre, salarié, adresse)
+        // Commandes : ordre de passage (validatedAt puis id), détails + récapitulatif
         if (deliveryTour.getOrders() != null && !deliveryTour.getOrders().isEmpty()) {
-            dto.setOrderCount(deliveryTour.getOrders().size());
-            List<com.example.coopachat.dtos.delivery.OrderInTourDTO> orderDtos = new ArrayList<>();
-            for (Order order : deliveryTour.getOrders()) {
+            List<Order> sortedOrders = new ArrayList<>(deliveryTour.getOrders());
+            sortedOrders.sort(Comparator
+                    .comparing((Order o) -> o.getValidatedAt() != null ? o.getValidatedAt() : LocalDateTime.MIN)
+                    .thenComparing(Order::getId));
+
+            dto.setOrderCount(sortedOrders.size());
+            List<OrderInTourDTO> orderDtos = new ArrayList<>();
+            int delivered = 0;
+            int failed = 0;
+            BigDecimal totalTourAmount = BigDecimal.ZERO;
+
+            for (Order order : sortedOrders) {
                 String empName = "";
+                String empFirst = "";
+                String empLast = "";
+                String companyName = "";
                 String addressLabel = "—";
-                if (order.getEmployee() != null && order.getEmployee().getUser() != null) {
-                    empName = (order.getEmployee().getUser().getFirstName() != null ? order.getEmployee().getUser().getFirstName() : "")
-                            + " " + (order.getEmployee().getUser().getLastName() != null ? order.getEmployee().getUser().getLastName() : "").trim();
-                    if (order.getEmployee().getAddresses() != null && !order.getEmployee().getAddresses().isEmpty()) {
-                        addressLabel = order.getEmployee().getAddresses().stream()
-                                .filter(a -> a.getFormattedAddress() != null && !a.getFormattedAddress().isBlank())
-                                .findFirst()
-                                .map(Address::getFormattedAddress)
-                                .orElse("—");
+                if (order.getEmployee() != null) {
+                    if (order.getEmployee().getCompany() != null && order.getEmployee().getCompany().getName() != null) {
+                        companyName = order.getEmployee().getCompany().getName();
+                    }
+                    if (order.getEmployee().getUser() != null) {
+                        empFirst = order.getEmployee().getUser().getFirstName() != null
+                                ? order.getEmployee().getUser().getFirstName().trim() : "";
+                        empLast = order.getEmployee().getUser().getLastName() != null
+                                ? order.getEmployee().getUser().getLastName().trim() : "";
+                        empName = (empFirst + " " + empLast).trim();
+                        if (order.getEmployee().getAddresses() != null && !order.getEmployee().getAddresses().isEmpty()) {
+                            addressLabel = order.getEmployee().getAddresses().stream()
+                                    .filter(a -> a.getFormattedAddress() != null && !a.getFormattedAddress().isBlank())
+                                    .sorted(Comparator.comparing((Address a) -> !a.isPrimary()))
+                                    .findFirst()
+                                    .map(Address::getFormattedAddress)
+                                    .orElse("—");
+                        }
                     }
                 }
-                orderDtos.add(new com.example.coopachat.dtos.delivery.OrderInTourDTO(
-                        order.getId(),
-                        order.getOrderNumber() != null ? order.getOrderNumber() : "",
-                        empName.trim(),
-                        addressLabel
-                ));
+
+                OrderStatus st = order.getStatus();
+                if (st == OrderStatus.LIVREE) {
+                    delivered++;
+                }
+                if (st == OrderStatus.ECHEC_LIVRAISON) {
+                    failed++;
+                }
+
+                BigDecimal lineTotal = order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;
+                totalTourAmount = totalTourAmount.add(lineTotal);
+
+                String paymentLabel = "—";
+                if (order.getPayment() != null && order.getPayment().getPaymentMethod() != null) {
+                    paymentLabel = order.getPayment().getPaymentMethod().getLabel();
+                }
+
+                OrderInTourDTO row = new OrderInTourDTO();
+                row.setOrderId(order.getId());
+                row.setOrderNumber(order.getOrderNumber() != null ? order.getOrderNumber() : "");
+                row.setEmployeeName(empName.trim());
+                row.setEmployeeFirstName(empFirst);
+                row.setEmployeeLastName(empLast);
+                row.setCompanyName(companyName);
+                row.setDeliveryAddress(addressLabel);
+                row.setTotalAmount(lineTotal);
+                row.setOrderStatus(st != null ? st.name() : "");
+                row.setOrderStatusLabel(st != null ? st.getLabel() : "");
+                row.setPaymentMethodLabel(paymentLabel);
+                orderDtos.add(row);
             }
+
             dto.setOrders(orderDtos);
+            dto.setDeliveredOrderCount(delivered);
+            dto.setFailedOrderCount(failed);
+            dto.setTotalTourAmount(totalTourAmount);
         } else {
             dto.setOrderCount(0);
+            dto.setDeliveredOrderCount(0);
+            dto.setFailedOrderCount(0);
+            dto.setTotalTourAmount(BigDecimal.ZERO);
         }
 
         return dto;
@@ -2873,6 +2939,29 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 .collect(java.util.stream.Collectors.joining(", "));
     }
 
+
+    /**
+     * Décompose le champ unique véhicule (ex. "Camion — DK-4521-A") en type et matricule.
+     */
+    private void fillVehicleTypeAndPlate(String vehicleTypePlate, DeliveryTourDetailsDTO dto) {
+        if (vehicleTypePlate == null || vehicleTypePlate.isBlank()) {
+            dto.setVehicleType(null);
+            dto.setVehiclePlate(null);
+            return;
+        }
+        String v = vehicleTypePlate.trim();
+        String[] separators = {" — ", " – ", " - ", "—", "–", "-"};
+        for (String sep : separators) {
+            int idx = v.indexOf(sep);
+            if (idx > 0) {
+                dto.setVehicleType(v.substring(0, idx).trim());
+                dto.setVehiclePlate(v.substring(idx + sep.length()).trim());
+                return;
+            }
+        }
+        dto.setVehicleType(v);
+        dto.setVehiclePlate(null);
+    }
 
     /**
      * Récupère l'utilisateur actuellement connecté

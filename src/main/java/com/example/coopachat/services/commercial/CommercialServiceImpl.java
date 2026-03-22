@@ -32,6 +32,7 @@ import com.example.coopachat.exceptions.EmailAlreadyExistsException;
 import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.auth.EmailService;
+import com.example.coopachat.services.user.UserReferenceGenerator;
 import com.example.coopachat.services.minio.MinioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -75,6 +76,7 @@ public class CommercialServiceImpl implements CommercialService {
     private final OrderRepository orderRepository;
     private final MinioService minioService;
     private final EmailService emailService;
+    private final UserReferenceGenerator userReferenceGenerator;
 
     // ============================================================================
     // 🏢 GESTION DES ENTREPRISES
@@ -555,6 +557,7 @@ public class CommercialServiceImpl implements CommercialService {
         user.setPhone(employee.getPhone());
         user.setRole(UserRole.EMPLOYEE);
         user.setIsActive(false); // Inactif jusqu'à activation
+        user.setRefUser(userReferenceGenerator.generateUniqueRefUser());
 
         Users userSaved = userRepository.save(user);
 

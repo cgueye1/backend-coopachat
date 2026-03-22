@@ -12,9 +12,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
 
 @Entity
 @AllArgsConstructor
@@ -28,7 +25,7 @@ public class Users {
     @Column(name = "id")
     private Long id;
 
-    /** Référence utilisateur unique (ex. US-2025-05), générée à la création. */
+    /** Référence utilisateur unique (ex. US-A1B2C3D4), générée aléatoirement à la création. */
     @Column(name = "ref_user", unique = true, length = 20)
     private String refUser;
 
@@ -70,12 +67,4 @@ public class Users {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    /** Référence simple : US-{année}-{id} (id s'incrémente). */
-    @PostPersist
-    public void generateRefUser() {
-        if (this.refUser == null || this.refUser.isEmpty()) {//si la référence est nulle ou vide, on la génère
-            int year = this.createdAt != null ? this.createdAt.getYear() : java.time.LocalDateTime.now().getYear();
-            this.refUser = "US-" + year + "-" + this.id;
-        }
-    }
 }

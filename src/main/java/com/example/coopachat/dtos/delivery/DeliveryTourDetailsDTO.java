@@ -2,6 +2,8 @@ package com.example.coopachat.dtos.delivery;
 
 import com.example.coopachat.enums.DeliveryTourStatus;
 import lombok.Data;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,8 +26,15 @@ public class DeliveryTourDetailsDTO {
 
     // === COMMANDES ===
     private Integer orderCount;          // 5
-    /** Liste des commandes de la tournée (ordre, numéro, salarié, adresse). */
+    /** Liste des commandes de la tournée (ordre de livraison, détails). */
     private List<OrderInTourDTO> orders = new ArrayList<>();
+
+    /** Récapitulatif : nombre de commandes livrées (LIVREE). */
+    private Integer deliveredOrderCount;
+    /** Récapitulatif : nombre d'échecs de livraison (ECHEC_LIVRAISON). */
+    private Integer failedOrderCount;
+    /** Récapitulatif : somme des montants des commandes de la tournée. */
+    private BigDecimal totalTourAmount;
 
     /** Note / commentaire sur la tournée (optionnel). */
     private String notes;

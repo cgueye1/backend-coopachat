@@ -18,6 +18,8 @@ import java.util.Optional;
 @Repository
 public interface DeliveryTourRepository extends JpaRepository<DeliveryTour, Long > {
 
+    boolean existsByTourNumber(String tourNumber);
+
     /**
      * Recherche paginée des tournées avec filtres
      * - Filtre par numéro de tournée (optionnel)
