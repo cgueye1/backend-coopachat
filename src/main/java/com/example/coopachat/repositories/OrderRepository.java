@@ -23,6 +23,9 @@ import java.util.List;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
+    @EntityGraph(attributePaths = {"employee", "employee.user"})
+    List<Order> findByDeliveryTour_Id(Long deliveryTourId);
+
     /**
      * Charge une commande avec ses lignes (items) et les produits associés, pour les détails RL.
      * Évite les chargements lazy et garantit que getItems() est rempli avec product + category.

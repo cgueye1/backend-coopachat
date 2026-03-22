@@ -1,6 +1,7 @@
 package com.example.coopachat.services.DeliveryDriver;
 
 import com.example.coopachat.entities.DeliveryTour;
+import com.example.coopachat.entities.Driver;
 import com.example.coopachat.entities.Order;
 import com.example.coopachat.entities.Users;
 import com.example.coopachat.services.auth.EmailService;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 /**
@@ -53,7 +55,7 @@ public class DriverNotificationService {
 
         String subject = "Tournée assignée - " + tourNumber;
         String body = String.format(
-                "Bonjour %s,n%n%nUne tournée vous a été assignée.%n%nNuméro de tournée : %s%nDate de livraison : %s%nNombre de commandes : %d%n%nConnectez-vous à votre espace livreur pour consulter les détails et l'itinéraire.%n%nL'équipe CoopAchat",
+                "Bonjour %s,%n%nUne tournée vous a été assignée.%n%nNuméro de tournée : %s%nDate de livraison : %s%nNombre de commandes : %d%n%nConnectez-vous à votre espace livreur pour consulter les détails et l'itinéraire.%n%nL'équipe CoopAchat",
                 firstName, tourNumber, deliveryDateStr, orderCount);
 
         // Envoyer l'email au livreur
@@ -61,6 +63,66 @@ public class DriverNotificationService {
             emailService.sendEmail(email, subject, body);
         } catch (Exception e) {
             log.error("Erreur envoi notification 'tournée assignée' à {}: {}", email, e.getMessage());
+        }
+    }
+
+    /**
+     * Le livreur assigné : la tournée a été modifiée (date, véhicule, etc.) par le RL.
+     */
+    public void notifyTourUpdated(DeliveryTour tour, int orderCount) {
+        if (tour == null || tour.getDriver() == null || tour.getDriver().getUser() == null) {
+            log.warn("Tournée ou livreur/user manquant, notification mise à jour ignorée");
+            return;
+        }
+        String email = tour.getDriver().getUser().getEmail();
+        if (email == null || email.isBlank()) {
+            log.warn("Pas d'email pour le livreur, notification mise à jour ignorée");
+            return;
+        }
+        String firstName = Optional.ofNullable(tour.getDriver().getUser().getFirstName()).orElse("Livreur");
+        String tourNumber = Optional.ofNullable(tour.getTourNumber()).orElse("-");
+        String deliveryDateStr = tour.getDeliveryDate() != null
+                ? tour.getDeliveryDate().format(DATE_FORMAT)
+                : "À définir";
+        String vehicle = Optional.ofNullable(tour.getVehicleTypePlate()).orElse("—");
+
+        String subject = "Tournée mise à jour - " + tourNumber;
+        String body = String.format(
+                "Bonjour %s,%n%nVotre tournée a été modifiée par le responsable logistique.%n%nNuméro : %s%nDate de livraison : %s%nVéhicule : %s%nNombre de commandes : %d%n%nConsultez votre espace livreur pour le détail.%n%nL'équipe CoopAchat",
+                firstName, tourNumber, deliveryDateStr, vehicle, orderCount);
+
+        try {
+            emailService.sendEmail(email, subject, body);
+        } catch (Exception e) {
+            log.error("Erreur envoi notification 'tournée mise à jour' à {}: {}", email, e.getMessage());
+        }
+    }
+
+    /**
+     * Ancien livreur : la tournée ne lui est plus assignée (réassignation).
+     */
+    public void notifyTourReassignedAway(Driver previousDriver, String tourNumber, LocalDate newDeliveryDate) {
+        if (previousDriver == null || previousDriver.getUser() == null) {
+            return;
+        }
+        String email = previousDriver.getUser().getEmail();
+        if (email == null || email.isBlank()) {
+            return;
+        }
+        String name = (Optional.ofNullable(previousDriver.getUser().getFirstName()).orElse("") + " "
+                + Optional.ofNullable(previousDriver.getUser().getLastName()).orElse("")).trim();
+        if (name.isBlank()) {
+            name = "Livreur";
+        }
+        String dateStr = newDeliveryDate != null ? newDeliveryDate.format(DATE_FORMAT) : "—";
+        String subject = "Tournée réassignée - " + Optional.ofNullable(tourNumber).orElse("-");
+        String body = String.format(
+                "Bonjour %s,%n%nLa tournée %s ne vous est plus assignée (réassignation à un autre livreur).%n%nLa livraison est prévue le %s.%n%nL'équipe CoopAchat",
+                name, Optional.ofNullable(tourNumber).orElse("-"), dateStr);
+        try {
+            emailService.sendEmail(email, subject, body);
+        } catch (Exception e) {
+            log.error("Erreur envoi notification réassignation livreur à {}: {}", email, e.getMessage());
         }
     }
 

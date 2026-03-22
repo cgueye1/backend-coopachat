@@ -500,11 +500,14 @@ public class LogisticsManagerController {
 
     @Operation(
             summary = "Récupérer les chauffeurs disponibles",
-            description = "Retourne la liste de tous les chauffeurs actifs (éligibles pour une tournée)."
+            description = "Chauffeurs actifs. Avec deliveryDate (dd-MM-yyyy), exclut ceux déjà engagés "
+                    + "(tournée ASSIGNEE ou EN_COURS ce jour). excludeTourId : ignorer cette tournée (modification)."
     )
     @GetMapping("/delivery-tours/available-drivers")
-    public ResponseEntity<List<AvailableDriverDTO>> getAvailableDrivers() {
-        List<AvailableDriverDTO> drivers = logisticsManagerService.getAvailableDrivers();
+    public ResponseEntity<List<AvailableDriverDTO>> getAvailableDrivers(
+            @RequestParam(required = false) @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate deliveryDate,
+            @RequestParam(required = false) Long excludeTourId) {
+        List<AvailableDriverDTO> drivers = logisticsManagerService.getAvailableDrivers(deliveryDate, excludeTourId);
         return ResponseEntity.ok(drivers);
     }
 
@@ -559,6 +562,8 @@ public class LogisticsManagerController {
             logisticsManagerService.updateDeliveryTour(tourId, dto);
             return ResponseEntity.ok("Tournée de livraison mis à jour avec succès");
         } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }

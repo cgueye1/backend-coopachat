@@ -31,6 +31,7 @@ import com.example.coopachat.entities.util.GeoUtil;
 import com.example.coopachat.enums.*;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.DeliveryDriver.DriverNotificationService;
+import com.example.coopachat.services.LogisticsManager.LogisticsManagerNotificationService;
 import com.example.coopachat.services.user.UserReferenceGenerator;
 import com.example.coopachat.services.Employee.EmployeeNotificationService;
 import com.example.coopachat.services.auth.EmailService;
@@ -86,6 +87,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     private final EmailService emailService;
     private final EmployeeNotificationService employeeNotificationService;
     private final DriverNotificationService driverNotificationService;
+    private final LogisticsManagerNotificationService logisticsManagerNotificationService;
     private final UserReferenceGenerator userReferenceGenerator;
 
     // ============================================================================
@@ -1718,22 +1720,38 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
 
     @Override
-    public List<AvailableDriverDTO> getAvailableDrivers() {
+    public List<AvailableDriverDTO> getAvailableDrivers(LocalDate deliveryDate, Long excludeTourId) {
 
-        // 1. VÉRIFICATION DES DROITS
         Users user = getCurrentUser();
         if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
             throw new RuntimeException("Seul un responsable logistique peut consulter les chauffeurs disponibles");
         }
 
-        // 2. Tous les livreurs actifs sont éligibles
-        return deliveryDriverRepository.findAll().stream()
+        List<Driver> activeDrivers = deliveryDriverRepository.findAll().stream()
                 .filter(driver -> driver.getUser() != null && driver.getUser().getIsActive())
-                .map(driver -> {
-                    String fullName = driver.getUser().getFirstName() + " " + driver.getUser().getLastName();
-                    return new AvailableDriverDTO(driver.getId(), fullName);
-                })
                 .toList();
+
+        if (deliveryDate == null) {
+            return activeDrivers.stream()
+                    .map(driver -> new AvailableDriverDTO(driver.getId(), driverFullName(driver)))
+                    .toList();
+        }
+
+        List<DeliveryTourStatus> activeStatuses = java.util.List.of(
+                DeliveryTourStatus.ASSIGNEE,
+                DeliveryTourStatus.EN_COURS);
+        java.util.Set<Long> busyDriverIds = new java.util.HashSet<>(
+                deliveryTourRepository.findDriverIdsWithActiveTourOnDateExcluding(
+                        deliveryDate, activeStatuses, excludeTourId));
+
+        return activeDrivers.stream()
+                .filter(driver -> !busyDriverIds.contains(driver.getId()))
+                .map(driver -> new AvailableDriverDTO(driver.getId(), driverFullName(driver)))
+                .toList();
+    }
+
+    private static String driverFullName(Driver driver) {
+        return driver.getUser().getFirstName() + " " + driver.getUser().getLastName();
     }
 
     @Override
@@ -1831,6 +1849,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
         // Chauffeur
         if (deliveryTour.getDriver() != null) {
+            dto.setDriverId(deliveryTour.getDriver().getId());
             dto.setDriverName(deliveryTour.getDriver().getUser().getFirstName()+ " "+ deliveryTour.getDriver().getUser().getLastName());
             dto.setDriverPhone(deliveryTour.getDriver().getUser().getPhone());
         }
@@ -1893,9 +1912,10 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 BigDecimal lineTotal = order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;
                 totalTourAmount = totalTourAmount.add(lineTotal);
 
-                String paymentLabel = "—";
-                if (order.getPayment() != null && order.getPayment().getPaymentMethod() != null) {
-                    paymentLabel = order.getPayment().getPaymentMethod().getLabel();
+                String paymentStatusLabel = PaymentStatus.UNPAID.getLabel();
+                Payment pay = order.getPayment();
+                if (pay != null && pay.getStatus() != null) {
+                    paymentStatusLabel = pay.getStatus().getLabel();
                 }
 
                 OrderInTourDTO row = new OrderInTourDTO();
@@ -1909,7 +1929,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 row.setTotalAmount(lineTotal);
                 row.setOrderStatus(st != null ? st.name() : "");
                 row.setOrderStatusLabel(st != null ? st.getLabel() : "");
-                row.setPaymentMethodLabel(paymentLabel);
+                row.setPaymentStatusLabel(paymentStatusLabel);
                 orderDtos.add(row);
             }
 
@@ -1970,32 +1990,51 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     @Transactional
     public void updateDeliveryTour(Long tourId, UpdateDeliveryTourDTO dto) {
 
-        // 1. Vérification droits
         Users currentUser = getCurrentUser();
         if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
             throw new RuntimeException("Accès refusé");
         }
 
-        // 2. Récupération tournée
         DeliveryTour deliveryTour = deliveryTourRepository.findById(tourId)
                 .orElseThrow(() -> new EntityNotFoundException("Tournée non trouvée"));
 
-        // 3. Vérification statut modifiable (ASSIGNEE uniquement)
         if (!deliveryTour.canBeModified()) {
-            throw new IllegalStateException("Modification impossible : tournée déjà en cours ou terminée");
+            throw new IllegalStateException("Modification impossible : la tournée n'est plus au statut Assignée.");
         }
 
-        // 4. Mise à jour véhicule
+        LocalDate oldDate = deliveryTour.getDeliveryDate();
+        Driver oldDriver = deliveryTour.getDriver();
+
+        LocalDate targetDate = dto.getDeliveryDate() != null ? dto.getDeliveryDate() : deliveryTour.getDeliveryDate();
+        Driver targetDriver = deliveryTour.getDriver();
+        if (dto.getDriverId() != null) {
+            targetDriver = deliveryDriverRepository.findById(dto.getDriverId())
+                    .orElseThrow(() -> new EntityNotFoundException("Livreur introuvable"));
+        }
+
+        List<DeliveryTourStatus> activeStatuses = java.util.List.of(
+                DeliveryTourStatus.ASSIGNEE,
+                DeliveryTourStatus.EN_COURS);
+        if (deliveryTourRepository.countActiveToursForDriverOnDateExcluding(
+                targetDriver.getId(), targetDate, activeStatuses, tourId) > 0) {
+            throw new IllegalStateException(
+                    "Ce livreur a déjà une tournée assignée ou en cours à la date choisie. Choisissez une autre date ou un autre livreur.");
+        }
+
+        if (dto.getDeliveryDate() != null) {
+            deliveryTour.setDeliveryDate(dto.getDeliveryDate());
+        }
+        if (dto.getDriverId() != null) {
+            deliveryTour.setDriver(targetDriver);
+        }
         if (dto.getVehicleInfo() != null) {
             deliveryTour.setVehicleTypePlate(dto.getVehicleInfo());
         }
-
-        // 5. Mise à jour notes
         if (dto.getNotes() != null) {
             deliveryTour.setNotes(dto.getNotes());
         }
+        deliveryTour.setUpdatedBy(currentUser);
 
-        // 6. Liste des commandes à conserver (décocher = retirer de la tournée)
         if (dto.getOrderIds() != null) {
             java.util.Set<Long> idsToKeep = new java.util.HashSet<>(dto.getOrderIds());
             if (idsToKeep.isEmpty()) {
@@ -2009,21 +2048,68 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                     }
                 }
             }
-            // Vérifier qu'il reste au moins une commande
             deliveryTour = deliveryTourRepository.findById(tourId).orElseThrow();
             if (deliveryTour.getOrders() == null || deliveryTour.getOrders().isEmpty()) {
                 throw new IllegalArgumentException("Pas de tournée sans commande");
             }
         }
 
-        // 7. Mise à jour statut (si fourni)
-        if (dto.getStatus() != null && dto.getStatus() != deliveryTour.getStatus()) {
-            deliveryTour.setStatus(dto.getStatus());
+        deliveryTourRepository.save(deliveryTour);
+        deliveryTourRepository.flush();
+
+        LocalDate finalDate = deliveryTour.getDeliveryDate();
+        if (dto.getDeliveryDate() != null && oldDate != null && !oldDate.equals(finalDate)) {
+            for (Order o : orderRepository.findByDeliveryTour_Id(tourId)) {
+                o.setDeliveryDate(finalDate);
+                orderRepository.save(o);
+            }
         }
 
-        // 8. Sauvegarde
-        deliveryTourRepository.save(deliveryTour);
+        DeliveryTour reloaded = deliveryTourRepository.findById(tourId).orElseThrow();
+        List<Order> ordersInTour = orderRepository.findByDeliveryTour_Id(tourId);
+        int orderCount = ordersInTour.size();
+
+        String summary = summarizeTourChanges(oldDate, reloaded.getDeliveryDate(), oldDriver, reloaded.getDriver());
+        try {
+            if (oldDriver != null && reloaded.getDriver() != null
+                    && !oldDriver.getId().equals(reloaded.getDriver().getId())) {
+                driverNotificationService.notifyTourReassignedAway(oldDriver, reloaded.getTourNumber(), reloaded.getDeliveryDate());
+            }
+            driverNotificationService.notifyTourUpdated(reloaded, orderCount);
+            for (Order o : ordersInTour) {
+                employeeNotificationService.notifyTourUpdatedForEmployee(o, reloaded);
+            }
+            logisticsManagerNotificationService.notifyTourModificationConfirmation(currentUser, reloaded, summary);
+        } catch (Exception e) {
+            log.warn("Notifications post-modification tournée {} : {}", tourId, e.getMessage());
+        }
+
         log.info("Tournée {} mise à jour par {}", tourId, currentUser.getEmail());
+    }
+
+    private String summarizeTourChanges(LocalDate oldDate, LocalDate newDate, Driver oldDriver, Driver newDriver) {
+        StringBuilder sb = new StringBuilder();
+        if (oldDate != null && newDate != null && !oldDate.equals(newDate)) {
+            sb.append("Date : ").append(oldDate).append(" → ").append(newDate).append(". ");
+        }
+        if (oldDriver != null && newDriver != null && !oldDriver.getId().equals(newDriver.getId())) {
+            String o = driverDisplayName(oldDriver);
+            String n = driverDisplayName(newDriver);
+            sb.append("Livreur : ").append(o).append(" → ").append(n).append(". ");
+        }
+        if (sb.isEmpty()) {
+            return "Véhicule, notes ou liste des commandes ont pu être ajustés.";
+        }
+        return sb.toString().trim();
+    }
+
+    private static String driverDisplayName(Driver d) {
+        if (d == null || d.getUser() == null) {
+            return "—";
+        }
+        String fn = Optional.ofNullable(d.getUser().getFirstName()).orElse("");
+        String ln = Optional.ofNullable(d.getUser().getLastName()).orElse("");
+        return (fn + " " + ln).trim();
     }
 
     // ========================================

@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,6 +20,29 @@ import java.util.Optional;
 public interface DeliveryTourRepository extends JpaRepository<DeliveryTour, Long > {
 
     boolean existsByTourNumber(String tourNumber);
+
+    /**
+     * Nombre d'autres tournées (hors {@code excludeTourId}) pour le même livreur, même date, statuts actifs.
+     */
+    @Query("SELECT COUNT(t) FROM DeliveryTour t " +
+            "WHERE t.driver.id = :driverId AND t.deliveryDate = :deliveryDate " +
+            "AND t.status IN :statuses AND t.id <> :excludeTourId")
+    long countActiveToursForDriverOnDateExcluding(
+            @Param("driverId") Long driverId,
+            @Param("deliveryDate") LocalDate deliveryDate,
+            @Param("statuses") Collection<DeliveryTourStatus> statuses,
+            @Param("excludeTourId") Long excludeTourId);
+
+    /**
+     * Livreurs ayant au moins une tournée ASSIGNEE ou EN_COURS à cette date (hors {@code excludeTourId} si renseigné).
+     */
+    @Query("SELECT DISTINCT t.driver.id FROM DeliveryTour t " +
+            "WHERE t.deliveryDate = :deliveryDate AND t.status IN :statuses " +
+            "AND (:excludeTourId IS NULL OR t.id <> :excludeTourId)")
+    List<Long> findDriverIdsWithActiveTourOnDateExcluding(
+            @Param("deliveryDate") LocalDate deliveryDate,
+            @Param("statuses") Collection<DeliveryTourStatus> statuses,
+            @Param("excludeTourId") Long excludeTourId);
 
     /**
      * Recherche paginée des tournées avec filtres

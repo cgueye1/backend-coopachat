@@ -26,6 +26,6 @@ public class OrderInTourDTO {
     private String orderStatus;
     /** Libellé français du statut. */
     private String orderStatusLabel;
-    /** Libellé du mode de paiement (ex. Mobile Money). */
-    private String paymentMethodLabel;
+    /** Libellé du statut du paiement (Impayé, Payé, En attente de confirmation, …). */
+    private String paymentStatusLabel;
 }
