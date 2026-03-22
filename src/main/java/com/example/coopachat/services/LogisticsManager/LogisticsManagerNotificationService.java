@@ -1,5 +1,6 @@
 package com.example.coopachat.services.LogisticsManager;
 
+import com.example.coopachat.entities.DeliveryTour;
 import com.example.coopachat.entities.Order;
 import com.example.coopachat.entities.Users;
 import com.example.coopachat.enums.OrderStatus;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Service dédié aux notifications envoyées au(x) Responsable(s) Logistique (RL) :
@@ -65,5 +67,26 @@ public class LogisticsManagerNotificationService {
         }
 
         log.info("Notification commandes en retard envoyée à {} RL(s), {} commande(s)", rlUsers.size(), lateOrders.size());
+    }
+
+    /**
+     * Confirmation au RL ayant effectué la modification d'une tournée.
+     */
+    public void notifyTourModificationConfirmation(Users modifier, DeliveryTour tour, String changesSummary) {
+        if (modifier == null || modifier.getEmail() == null || modifier.getEmail().isBlank()) {
+            return;
+        }
+        String firstName = Optional.ofNullable(modifier.getFirstName()).orElse("Responsable logistique");
+        String tourNumber = tour != null && tour.getTourNumber() != null ? tour.getTourNumber() : "—";
+        String subject = "Confirmation — tournée modifiée - " + tourNumber;
+        String summary = changesSummary != null && !changesSummary.isBlank() ? changesSummary : "Modifications enregistrées.";
+        String body = String.format(
+                "Bonjour %s,%n%nLa tournée %s a été mise à jour avec succès.%n%n%s%n%n— CoopAchat (notification automatique)",
+                firstName, tourNumber, summary);
+        try {
+            emailService.sendEmail(modifier.getEmail(), subject, body);
+        } catch (Exception e) {
+            log.error("Erreur envoi confirmation modification tournée à {}: {}", modifier.getEmail(), e.getMessage());
+        }
     }
 }

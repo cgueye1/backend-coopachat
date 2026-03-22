@@ -303,10 +303,10 @@ public interface LogisticsManagerService {
 
 
     /**
-     * Récupère la liste de tous les chauffeurs actifs (éligibles pour une tournée).
-     * @return Liste des chauffeurs disponibles
+     * Chauffeurs actifs. Si {@code deliveryDate} est renseigné, exclut ceux qui ont déjà une tournée
+     * ASSIGNEE ou EN_COURS à cette date ; {@code excludeTourId} permet d'ignorer une tournée (édition).
      */
-    List<AvailableDriverDTO> getAvailableDrivers();
+    List<AvailableDriverDTO> getAvailableDrivers(LocalDate deliveryDate, Long excludeTourId);
 
     /**
      * Vue calendrier (mois) pour la planification : compte par jour des commandes en attente vs déjà planifiées.

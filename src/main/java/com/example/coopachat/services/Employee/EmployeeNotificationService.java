@@ -1,6 +1,7 @@
 package com.example.coopachat.services.Employee;
 
 import com.example.coopachat.entities.Address;
+import com.example.coopachat.entities.DeliveryTour;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Order;
 import com.example.coopachat.services.auth.EmailService;
@@ -261,6 +262,46 @@ public class EmployeeNotificationService {
             emailService.sendEmail(email, subject, body);
         } catch (Exception e) {
             log.error("Erreur envoi notification 'commande annulée après échec' à {}: {}", email, e.getMessage());
+        }
+    }
+
+    /**
+     * Le salarié : la tournée contenant sa commande a été modifiée (date, livreur, etc.).
+     */
+    public void notifyTourUpdatedForEmployee(Order order, DeliveryTour tour) {
+        if (order == null || order.getEmployee() == null || order.getEmployee().getUser() == null) {
+            log.warn("Order ou employee/user manquant, notification mise à jour tournée ignorée");
+            return;
+        }
+        String email = order.getEmployee().getUser().getEmail();
+        if (email == null || email.isBlank()) {
+            log.warn("Pas d'email pour le salarié, notification mise à jour tournée ignorée");
+            return;
+        }
+        String firstName = Optional.ofNullable(order.getEmployee().getUser().getFirstName()).orElse("Salarié");
+        String orderNumber = Optional.ofNullable(order.getOrderNumber()).orElse("-");
+        String tourNumber = tour != null && tour.getTourNumber() != null ? tour.getTourNumber() : "—";
+        String deliveryDateStr = order.getDeliveryDate() != null
+                ? order.getDeliveryDate().format(DATE_FORMAT)
+                : "À définir";
+        String driverLine = "—";
+        if (tour != null && tour.getDriver() != null && tour.getDriver().getUser() != null) {
+            driverLine = (Optional.ofNullable(tour.getDriver().getUser().getFirstName()).orElse("") + " "
+                    + Optional.ofNullable(tour.getDriver().getUser().getLastName()).orElse("")).trim();
+            if (driverLine.isBlank()) {
+                driverLine = "—";
+            }
+        }
+
+        String subject = "Votre livraison a été mise à jour - " + orderNumber;
+        String body = String.format(
+                "Bonjour %s,%n%nLe responsable logistique a modifié les informations de livraison de votre commande %s.%n%nTournée : %s%nNouvelle date prévue : %s%nLivreur : %s%n%nConsultez votre espace pour le détail.%n%nL'équipe CoopAchat",
+                firstName, orderNumber, tourNumber, deliveryDateStr, driverLine);
+
+        try {
+            emailService.sendEmail(email, subject, body);
+        } catch (Exception e) {
+            log.error("Erreur envoi notification 'tournée mise à jour salarié' à {}: {}", email, e.getMessage());
         }
     }
 

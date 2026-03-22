@@ -17,6 +17,8 @@ public class DeliveryTourDetailsDTO {
     private DeliveryTourStatus status;
 
     // === CHAUFFEUR ===
+    /** Identifiant du livreur (pour liste déroulante édition). */
+    private Long driverId;
     private String driverName;           // Jean Dupont
     private String driverPhone;          // +221 77 123 45 67
 
