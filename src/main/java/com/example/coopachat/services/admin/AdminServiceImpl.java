@@ -43,6 +43,7 @@ import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.auth.ActivationCodeService;
 import com.example.coopachat.services.auth.EmailService;
+import com.example.coopachat.services.user.UserReferenceGenerator;
 import com.example.coopachat.services.minio.MinioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -102,6 +103,7 @@ public class AdminServiceImpl implements AdminService {
     private final DeliveryIssueReasonRepository deliveryIssueReasonRepository;
     private final EmployeeDeliveryIssueReasonRepository employeeDeliveryIssueReasonRepository;
     private final CompanySectorRepository companySectorRepository;
+    private final UserReferenceGenerator userReferenceGenerator;
 
     // ============================================================================
     // 📁 GESTION DES CATÉGORIES
@@ -804,6 +806,7 @@ public class AdminServiceImpl implements AdminService {
         user.setProfilePhotoUrl(dto.getProfilePhoto());
         user.setCompanyCommercial(dto.getCompanyCommercial());
         user.setIsActive(false);
+        user.setRefUser(userReferenceGenerator.generateUniqueRefUser());
 
         Users savedUser = userRepository.save(user);
 
@@ -851,8 +854,7 @@ public class AdminServiceImpl implements AdminService {
                     dto.setId(u.getId());
                     String ref = u.getRefUser();
                     if (ref == null || ref.isEmpty()) {
-                        int year = u.getCreatedAt() != null ? u.getCreatedAt().getYear() : LocalDateTime.now().getYear();
-                        ref = "US-" + year + "-" + u.getId();
+                        ref = "US-LEGACY-" + u.getId();
                     }
                     dto.setReference(ref);
                     dto.setFirstName(u.getFirstName());

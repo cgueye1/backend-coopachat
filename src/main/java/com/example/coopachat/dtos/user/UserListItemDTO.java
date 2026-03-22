@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 public class UserListItemDTO {
 
     private Long id;
-    private String reference;      // ex. US-2025-05
+    private String reference;      // ex. US-A1B2C3D4 (aléatoire)
     private String firstName;
     private String lastName;
     private String email;

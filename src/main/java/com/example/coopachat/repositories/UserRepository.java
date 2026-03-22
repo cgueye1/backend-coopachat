@@ -20,6 +20,8 @@ public interface UserRepository extends JpaRepository<Users, Long> {
     // 🔍 RECHERCHES
     // ============================================================================
 
+    boolean existsByRefUser(String refUser);
+
     /** Vérifie si un email existe déjà dans la base de données */
     Boolean existsByEmail(String email);
 

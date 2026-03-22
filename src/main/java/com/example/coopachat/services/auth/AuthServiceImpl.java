@@ -18,6 +18,7 @@ import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
 import com.example.coopachat.repositories.ActivationCodeRepository;
 import com.example.coopachat.repositories.EmployeeRepository;
 import com.example.coopachat.repositories.UserRepository;
+import com.example.coopachat.services.user.UserReferenceGenerator;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -86,6 +87,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Mapping : convertir le DTO en entité
         Users user = convertToEntity(userDto);
+        user.setRefUser(userReferenceGenerator.generateUniqueRefUser());
 
         // Sauvegarde : enregistrer l'utilisateur en base de données
         userRepository.save(user);
