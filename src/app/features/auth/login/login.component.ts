@@ -86,10 +86,8 @@ export class LoginComponent implements OnInit {
               store('profilePhotoUrl', response.profilePhotoUrl);
             }
 
-        
-
             const role = response.role;
-            if (role === 'Administrateur' || role === 'ADMIN') {
+            if (role === 'Administrateur' || role === 'Admin') {
               this.router.navigate(['/admin/dashboardadmin']);
             } else if (role === 'Responsable Logistique') {
               this.router.navigate(['/log/dashboardlog']);
@@ -105,11 +103,17 @@ export class LoginComponent implements OnInit {
           this.isLoading = false;
           const backendMessage = error?.error?.message;
           if (backendMessage) {
-            this.errorMessage = backendMessage;
+            if (backendMessage.includes('email OTP') || backendMessage.includes('OTP')) {
+              this.errorMessage = 'Le serveur utilise encore l\'ancienne version (envoi OTP). Rebuild et redéployez le backend sur le VPS pour activer la connexion directe sans OTP.';
+            } else {
+              this.errorMessage = backendMessage;
+            }
           } else if (error.status === 401) {
             this.errorMessage = 'Email ou mot de passe incorrect';
           } else if (error.status === 0) {
-            this.errorMessage = 'Impossible de se connecter au serveur';
+            this.errorMessage = 'Serveur inaccessible (timeout ou backend non démarré). Vérifiez l\'URL dans environment et que le backend tourne sur le port indiqué.';
+          } else if (error.status === 500) {
+            this.errorMessage = 'Erreur interne du serveur (500). Consultez les logs du backend sur le VPS pour en identifier la cause.';
           } else {
             this.errorMessage = 'Une erreur est survenue';
           }

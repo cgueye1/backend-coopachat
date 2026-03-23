@@ -182,9 +182,12 @@ export class FournisseurComponent {
     return this.selectedCommandeItems;
   }
 
+  /** Ouvre le module de modification directement depuis la page de détail (charge les données et affiche le formulaire d'édition). */
   modifierCommande(): void {
-    console.log('Modifier commande:', this.selectedCommande);
+    if (!this.selectedCommande?.id) return;
+    const orderId = this.selectedCommande.id;
     this.closeDetailModal();
+    this.editCommande(orderId);
   }
 
   annulerCommande(): void {

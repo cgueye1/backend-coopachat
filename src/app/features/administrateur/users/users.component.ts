@@ -312,7 +312,7 @@ export class UsersComponent implements OnInit {
   loadStats() {
     this.adminService.getUsersStats().subscribe({
       next: (s: UserStatsDTO) => {
-        this.metricsData = [
+    this.metricsData = [
           { title: 'Utilisateurs', value: String(s.totalUsers).padStart(2, '0'), icon: '/icones/utilisateurs.svg' },
           { title: 'Actifs', value: String(s.activeUsers).padStart(2, '0'), icon: '/icones/GreenUser.svg' },
           { title: 'Inactifs', value: String(s.inactiveUsers).padStart(2, '0'), icon: '/icones/OrangeUser.svg' }
@@ -441,7 +441,7 @@ export class UsersComponent implements OnInit {
     this.adminService.getUserById(user.id).subscribe({
       next: (d: UserDetailsDTO) => {
         this.selectedUser = this.mapDetailsToDisplay(d);
-        this.showUserModal = true;
+    this.showUserModal = true;
       },
       error: () => {}
     });
@@ -460,7 +460,7 @@ export class UsersComponent implements OnInit {
   }
 
   annulerUser() {
-    this.closeUserModal();
+      this.closeUserModal();
   }
 
   editUser(user: UserDisplay) {

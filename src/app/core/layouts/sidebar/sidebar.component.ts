@@ -20,6 +20,8 @@ export class SidebarComponent implements OnChanges, OnInit {
   @Output() closeSidebar = new EventEmitter<void>();
 
   userMenuOpen = false;
+  /** Sous-menu Offres (Codes promo / Promotions) ouvert ou non. */
+  offresExpanded = true;
 
   // Informations utilisateur affichées dans le profil
   displayName = 'Utilisateur';
@@ -33,12 +35,27 @@ export class SidebarComponent implements OnChanges, OnInit {
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
-  private readonly menuItems = [
+  /** Item sans enfants : lien direct. Item avec enfants : sous-menu (Offres). */
+  private readonly menuItems: Array<{
+    label: string;
+    icon: string;
+    link?: string;
+    active?: boolean;
+    children?: Array<{ label: string; link: string; active?: boolean }>;
+  }> = [
     { label: 'Tableau de bord', icon: 'dashboard', link: '/com/dashboard', active: false },
     { label: 'Prospections', icon: 'prospection', link: '/com/prospections', active: false },
     { label: 'Entreprises', icon: 'entreprises', link: '/com/entreprises', active: false },
     { label: 'Gestion salariés', icon: 'salaries', link: '/com/salaries', active: false },
-    { label: 'Promotions/Coupons', icon: 'promotion', link: '/com/promotions', active: false },
+    {
+      label: 'Offres',
+      icon: 'promotion',
+      active: false,
+      children: [
+        { label: 'Codes promo', link: '/com/promotions', active: false },
+        { label: 'Promotions', link: '/com/promotions-produits', active: false },
+      ],
+    },
 
     { label: 'Tableau de bord', icon: 'dashboard', link: '/log/dashboardlog', active: false },
     { label: 'Commandes Fournisseurs', icon: 'fournisseurs', link: '/log/fournisseurs', active: false },
@@ -85,7 +102,15 @@ export class SidebarComponent implements OnChanges, OnInit {
   private updateActiveState(): void {
     const currentUrl = this.router.url;
     this.filteredMenuItems.forEach(item => {
-      item.active = currentUrl === item.link || currentUrl.startsWith(item.link + '/');
+      if (item.children) {
+        item.children.forEach(child => {
+          child.active = currentUrl === child.link || currentUrl.startsWith(child.link + '/');
+        });
+        item.active = item.children.some(c => c.active);
+        if (item.active) this.offresExpanded = true;
+      } else if (item.link) {
+        item.active = currentUrl === item.link || currentUrl.startsWith(item.link + '/');
+      }
     });
   }
 
@@ -106,7 +131,9 @@ export class SidebarComponent implements OnChanges, OnInit {
     }
 
     const prefix = normalized === 'com' ? '/com' : normalized === 'log' ? '/log' : '/admin';
-    this.filteredMenuItems = this.menuItems.filter(item => item.link.startsWith(prefix));
+    this.filteredMenuItems = this.menuItems.filter(item =>
+      item.link ? item.link.startsWith(prefix) : (item.children?.some(c => c.link.startsWith(prefix)) ?? false)
+    );
     this.updateActiveState();
   }
 
@@ -118,6 +145,10 @@ export class SidebarComponent implements OnChanges, OnInit {
   // Toggle user menu
   toggleUserMenu() {
     this.userMenuOpen = !this.userMenuOpen;
+  }
+
+  toggleOffres() {
+    this.offresExpanded = !this.offresExpanded;
   }
 
   // Close all menus

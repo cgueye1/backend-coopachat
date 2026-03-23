@@ -46,7 +46,7 @@ export class GestionRetoursComponent {
   validationOption: 'reintegrer' | 'rembourser' = 'reintegrer';
   validationOptions = [
     { value: 'reintegrer', label: 'Réintégrer au stock' },
-    { value: 'rembourser', label: 'Rembourser le stock' }
+    { value: 'rembourser', label: 'Remboursement (montant)' }
   ];
   showRefundModal = false;
   refundAmount: number | null = null;
@@ -199,11 +199,13 @@ export class GestionRetoursComponent {
     return 'bg-gray-500';
   }
 
-  productImageUrl(img: string | null): string {
-    if (!img) return '';
-    if (img.startsWith('http')) return img;
-    const base = (environment as { apiUrl?: string }).apiUrl ?? '';
-    return base ? `${base.replace(/\/api\/?$/, '')}${img.startsWith('/') ? '' : '/'}${img}` : img;
+  /** Même logique que la page Produits/Catalogue. */
+  buildImageUrl(image: string | null | undefined): string {
+    if (!image) return '/icones/default-product.svg';
+    if (image.startsWith('file://')) return '/icones/default-product.svg';
+    if (image.startsWith('http') || image.startsWith('/')) return image;
+    const base = environment.imageServerUrl;
+    return `${base}/files/${image}`;
   }
 
   isPending(status: string): boolean {
@@ -351,7 +353,7 @@ export class GestionRetoursComponent {
 
   showRefundSuccessMessage(): void {
     Swal.fire({
-      title: 'Retour enregistré - Remboursement validé',
+      title: 'Remboursé avec succès',
       iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
       showConfirmButton: false,
       timer: 1500,

@@ -77,6 +77,8 @@ export class GestionCommandesComponent implements AfterViewInit {
   totalPages = 1;
   totalElements = 0;
   loadingList = false;
+  /** True si le chargement de la liste a échoué (erreur API). */
+  listError = false;
 
   commandes: Commande[] = [];
 
@@ -351,10 +353,12 @@ export class GestionCommandesComponent implements AfterViewInit {
           this.totalElements = res.totalElements ?? 0;
           this.totalPages = res.totalPages ?? 1;
           this.loadingList = false;
+          this.listError = false;
         },
         error: () => {
           this.commandes = [];
           this.loadingList = false;
+          this.listError = true;
         }
       });
   }

@@ -347,9 +347,32 @@ export class LogisticsService {
         return this.http.get<EligibleOrderLot[]>(`${this.apiUrl}/logistics/delivery-tours/eligible-orders/grouped`, { params });
     }
 
-    /** Chauffeurs disponibles (pour planifier une tournée) */
-    getAvailableDrivers(): Observable<AvailableDriver[]> {
-        return this.http.get<AvailableDriver[]>(`${this.apiUrl}/logistics/delivery-tours/available-drivers`);
+    /**
+     * Chauffeurs actifs. Avec deliveryDate (dd-MM-yyyy), exclut ceux ayant déjà une tournée assignée ou en cours ce jour.
+     * excludeTourId : à la modification, ignorer cette tournée pour que le livreur actuel reste listé.
+     */
+    getAvailableDrivers(deliveryDateDdMmYyyy?: string, excludeTourId?: number): Observable<AvailableDriver[]> {
+        let params = new HttpParams();
+        if (deliveryDateDdMmYyyy?.trim()) {
+            params = params.set('deliveryDate', deliveryDateDdMmYyyy.trim());
+        }
+        if (excludeTourId != null && excludeTourId !== undefined) {
+            params = params.set('excludeTourId', String(excludeTourId));
+        }
+        return this.http.get<AvailableDriver[]>(`${this.apiUrl}/logistics/delivery-tours/available-drivers`, {
+            params
+        });
+    }
+
+    /** Calendrier de planification (mois) : nb commandes en attente / déjà planifiées par jour. */
+    getPlanningCalendar(year: number, month: number): Observable<DeliveryPlanningCalendarDay[]> {
+        let params = new HttpParams()
+            .set('year', year.toString())
+            .set('month', month.toString());
+        return this.http.get<DeliveryPlanningCalendarDay[]>(
+            `${this.apiUrl}/logistics/delivery-tours/planning-calendar`,
+            { params }
+        );
     }
 
     /** Créer une tournée de livraison */
@@ -397,9 +420,15 @@ export class LogisticsService {
         return this.http.get<DeliveryTourDetails>(`${this.apiUrl}/logistics/delivery-tours/${tourId}`);
     }
 
-    /** Mettre à jour une tournée (PUT /logistics/delivery-tours/{tourId}). vehicleInfo, notes, orderIds (commandes à garder). */
-    updateDeliveryTour(tourId: number, body: { vehicleInfo?: string; notes?: string | null; orderIds?: number[] }): Observable<string> {
-        return this.http.put(
+    /** Mettre à jour une tournée (PATCH). Date, livreur, véhicule, notes, commandes à garder — tournée ASSIGNEE uniquement. */
+    updateDeliveryTour(tourId: number, body: {
+        vehicleInfo?: string;
+        notes?: string | null;
+        orderIds?: number[];
+        deliveryDate?: string;
+        driverId?: number;
+    }): Observable<string> {
+        return this.http.patch(
             `${this.apiUrl}/logistics/delivery-tours/${tourId}`,
             body,
             { responseType: 'text' }
@@ -669,12 +698,32 @@ export interface DeliveryTourListItem {
     status: string;  // ASSIGNEE | EN_COURS | TERMINEE | ANNULEE
 }
 
+export interface DeliveryPlanningCalendarDay {
+    /** Date au format dd/MM/yyyy */
+    date: string;
+    pendingOrders: number;
+    plannedOrders: number;
+    /** Parmi les pendingOrders, celles dont la date est passée (date < aujourd'hui). */
+    overdueOrders: number;
+}
+
 /** Une commande dans la liste des commandes d'une tournée. */
 export interface OrderInTour {
     orderId: number;
     orderNumber: string;
     employeeName: string;
+    employeeFirstName?: string;
+    employeeLastName?: string;
+    /** Entreprise du salarié */
+    companyName?: string;
     deliveryAddress: string;
+    /** Montant total commande */
+    totalAmount?: number;
+    /** Code statut (EN_COURS, LIVREE, ECHEC_LIVRAISON, …) */
+    orderStatus?: string;
+    orderStatusLabel?: string;
+    /** Libellé du statut du paiement (Impayé, Payé, …) — détail tournée */
+    paymentStatusLabel?: string;
 }
 
 /** Détails d'une tournée (GET /logistics/delivery-tours/{tourId}). */
@@ -682,13 +731,23 @@ export interface DeliveryTourDetails {
     id: number;
     tourNumber?: string;
     deliveryDate?: string;
+    /** Id livreur (liste déroulante édition) */
+    driverId?: number;
     driverName?: string;
+    /** Téléphone du livreur */
+    driverPhone?: string;
     vehicle?: string;
     vehicleType?: string;
     vehiclePlate?: string;
     orderCount?: number;
     status?: string;
     orders?: OrderInTour[];
+    /** Récap : commandes livrées */
+    deliveredOrderCount?: number;
+    /** Récap : échecs livraison */
+    failedOrderCount?: number;
+    /** Récap : montant total des commandes */
+    totalTourAmount?: number;
     /** Note / commentaire (affiché en modification si présent). */
     notes?: string;
 }
@@ -699,11 +758,15 @@ export interface EmployeeOrderDetails {
     validationDate: string;
     employeeName: string;
     status: string;
+    /** Nom complet du livreur ayant livré la commande (si disponible). */
+    driverName?: string;
     listProducts: Array<{
         image: string;
         name: string;
         categoryName: string;
-        currentStock: number;
+        currentStock?: number;
+        /** Quantité commandée pour ce produit */
+        quantity?: number;
     }>;
 }
 

@@ -119,9 +119,7 @@
                                 <div class="flex items-center gap-3">
                                     <div
                                         class="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
-                                        <img *ngIf="item.productImage" [src]="productImageUrl(item.productImage)" [alt]="item.productName"
-                                            class="w-8 h-8 object-contain">
-                                        <img *ngIf="!item.productImage" [src]="getIconPath('water')" [alt]="item.productName"
+                                        <img [src]="buildImageUrl(item.productImage)" [alt]="item.productName"
                                             class="w-8 h-8 object-contain">
                                     </div>
                                     <div>
@@ -221,8 +219,7 @@
                     <!-- Product Info -->
                     <div class="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 mb-6 sm:mb-8">
                         <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-[#E2E2E2] flex-shrink-0 overflow-hidden flex items-center justify-center mx-auto sm:mx-0">
-                            <img *ngIf="selectedDetail.productImage" [src]="productImageUrl(selectedDetail.productImage)" [alt]="selectedDetail.productName" class="w-12 h-12 sm:w-16 sm:h-16 object-contain">
-                            <img *ngIf="!selectedDetail.productImage" [src]="getIconPath('water')" [alt]="selectedDetail.productName" class="w-12 h-12 sm:w-16 sm:h-16 object-contain">
+                            <img [src]="buildImageUrl(selectedDetail.productImage)" [alt]="selectedDetail.productName" class="w-12 h-12 sm:w-16 sm:h-16 object-contain">
                         </div>
                         <div class="flex-1 text-center sm:text-left">
                             <h3 class="text-base sm:text-xl font-semibold text-[#333333] mb-1 sm:mb-2">{{ selectedDetail.productName }}</h3>
@@ -252,6 +249,9 @@
                         <div>
                             <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Montant</div>
                             <div class="text-sm sm:text-base font-bold text-[#4B4848]">{{ selectedDetail.subtotalProduct | number:'1.0-0' }} Fcfa</div>
+                            <div *ngIf="selectedDetail.refundAmount != null" class="text-xs sm:text-sm text-emerald-700 mt-1">
+                                Remboursé : {{ selectedDetail.refundAmount | number:'1.0-0' }} Fcfa
+                            </div>
                         </div>
                         <div>
                             <div class="text-xs sm:text-sm text-[#6B7280] mb-0.5 sm:mb-1">Quantité</div>

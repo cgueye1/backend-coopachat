@@ -382,14 +382,7 @@ export class CommercialService {
     // COUPONS / PROMOTIONS
     // ==================================================
 
-    /** Types et scopes alignés sur le backend */
     static readonly DISCOUNT_TYPE = { PERCENTAGE: 'PERCENTAGE', FIXED_AMOUNT: 'FIXED_AMOUNT' } as const;
-    static readonly COUPON_SCOPE = {
-        CART_TOTAL: 'CART_TOTAL',
-        ALL_PRODUCTS: 'ALL_PRODUCTS',
-        PRODUCTS: 'PRODUCTS',
-        CATEGORIES: 'CATEGORIES'
-    } as const;
     static readonly COUPON_STATUS = { PLANNED: 'PLANNED', ACTIVE: 'ACTIVE', EXPIRED: 'EXPIRED', DISABLED: 'DISABLED' } as const;
 
     getCoupons(
@@ -397,7 +390,6 @@ export class CommercialService {
         size: number,
         search?: string,
         status?: string,
-        scope?: string,
         isActive?: boolean
     ): Observable<CouponListResponse> {
         let params = new HttpParams()
@@ -405,7 +397,6 @@ export class CommercialService {
             .set('size', size.toString());
         if (search && search.trim()) params = params.set('search', search.trim());
         if (status) params = params.set('status', status);
-        if (scope) params = params.set('scope', scope);
         if (isActive !== undefined && isActive !== null) params = params.set('isActive', String(isActive));
         return this.http.get<CouponListResponse>(`${this.apiUrl}/commercial/coupons`, { params });
     }
@@ -451,6 +442,103 @@ export class CommercialService {
             { responseType: 'text' }
         );
     }
+
+    /** Produits pour création de promotion (optionnel : filtrer par catégorie). */
+    getProductsForPromotion(categoryId?: number): Observable<{ id: number; name: string }[]> {
+        const params = categoryId != null ? { params: { categoryId: categoryId.toString() } } : {};
+        return this.http.get<{ id: number; name: string }[]>(`${this.apiUrl}/commercial/promotions/products`, params);
+    }
+
+    /** Créer une promotion (nom, dates, liste produit + réduction %). */
+    createPromotion(payload: CreatePromotionPayload): Observable<string> {
+        return this.http.post(
+            `${this.apiUrl}/commercial/promotions`,
+            payload,
+            { responseType: 'text' }
+        );
+    }
+
+    /** Liste paginée des promotions (produit) avec recherche et filtre par statut. */
+    getPromotions(
+        page: number,
+        size: number,
+        search?: string,
+        status?: string
+    ): Observable<PromotionListResponse> {
+        let params = new HttpParams()
+            .set('page', page.toString())
+            .set('size', size.toString());
+        if (search?.trim()) params = params.set('search', search.trim());
+        if (status) params = params.set('status', status);
+        return this.http.get<PromotionListResponse>(`${this.apiUrl}/commercial/promotions`, { params });
+    }
+
+    /** Statistiques des promotions (total, actives, planifiées, expirées, désactivées, produits concernés). */
+    getPromotionStats(): Observable<PromotionStats> {
+        return this.http.get<PromotionStats>(`${this.apiUrl}/commercial/promotions/stats`);
+    }
+
+    /** Détails d'une promotion (nom, dates, statut, produits avec réduction). */
+    getPromotionById(id: number): Observable<PromotionDetails> {
+        return this.http.get<PromotionDetails>(`${this.apiUrl}/commercial/promotions/${id}`);
+    }
+
+    /** Activer ou désactiver une promotion (comme pour les coupons). */
+    updatePromotionStatus(id: number, isActive: boolean): Observable<string> {
+        return this.http.patch(
+            `${this.apiUrl}/commercial/promotions/${id}/status`,
+            { isActive },
+            { responseType: 'text' }
+        );
+    }
+}
+
+// --- Types pour les promotions (produit)
+export interface PromotionListResponse {
+    content: PromotionListItem[];
+    totalElements: number;
+    totalPages: number;
+    currentPage: number;
+    pageSize: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+}
+
+export interface PromotionListItem {
+    id: number;
+    name: string;
+    status: string;
+    isActive: boolean;
+    startDate: string;
+    endDate: string;
+    productCount: number;
+}
+
+export interface PromotionDetails {
+    id: number;
+    name: string;
+    status: string;
+    isActive: boolean;
+    startDate: string;
+    endDate: string;
+    products: { productId: number; productName: string; image?: string; discountValue: number }[];
+}
+
+export interface PromotionStats {
+    totalPromotions: number;
+    promotionsActives: number;
+    promotionsPlanifiees: number;
+    promotionsExpirees: number;
+    promotionsDesactivees: number;
+    totalProduitsConcernes: number;
+}
+
+/** Payload création promotion : name, startDate, endDate, productItems (productId, discountValue en %). */
+export interface CreatePromotionPayload {
+    name: string;
+    startDate: string;
+    endDate: string;
+    productItems: { productId: number; discountValue: number }[];
 }
 
 // --- Stats coupons panier (CART_TOTAL)
@@ -477,7 +565,6 @@ export interface CouponListItem {
     name: string;
     discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
     value: number;
-    scope: string;
     status: string;
     validFrom: string;
     validTo: string;
@@ -491,14 +578,12 @@ export interface CouponDetails {
     name: string;
     discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
     value: number;
-    scope: string;
     status: string;
     isActive: boolean;
     validFrom: string;
     validTo: string;
     usageCount?: number;
     totalGenerated?: number;
-    products: { id: number; name: string; categoryName?: string; description?: string; currentStock?: number; image?: string }[];
 }
 
 export interface CreateCouponPayload {
@@ -506,11 +591,8 @@ export interface CreateCouponPayload {
     name: string;
     discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
     value: number;
-    scope: string;
     status: string;
-    startDate: string; // ISO date or datetime
+    startDate: string;
     endDate: string;
-    productIds?: number[];
-    categoryIds?: number[];
 }
 

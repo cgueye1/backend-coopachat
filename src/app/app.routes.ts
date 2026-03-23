@@ -111,6 +111,14 @@ export const routes: Routes = [
     loadComponent: () => import('./features/commercial/promotions/promotions.component').then(c => c.PromotionsManagementComponent)
   },
   {
+    path: 'com/promotions-produits',
+    loadComponent: () => import('./features/commercial/promotions-list/promotions-list.component').then(c => c.PromotionsListComponent)
+  },
+  {
+    path: 'com/promotions-produits/create',
+    loadComponent: () => import('./features/commercial/promotions-produits/promotions-produits.component').then(c => c.PromotionsProduitsComponent)
+  },
+  {
     path: 'portail',
     loadComponent: () => import('./features/portail/portail.component').then(c => c.PortailComponent)
   },

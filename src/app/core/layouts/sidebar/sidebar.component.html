@@ -26,7 +26,46 @@
   <!-- Menu -->
   <nav class="flex-1 px-2 py-2 overflow-auto sm:px-3 lg:pr-1 lg:pl-2">
     <ul class="space-y-2 md:space-y-3 lg:space-y-4">
-      <li *ngFor="let item of filteredMenuItems">
+      <ng-container *ngFor="let item of filteredMenuItems">
+        <!-- Item avec sous-menu (ex. Offres) -->
+        <li *ngIf="item.children">
+          <button type="button" (click)="toggleOffres()"
+            class="group flex items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5 lg:py-3 transition-all duration-150 w-full rounded-md text-left"
+            [ngClass]="{ 
+              'opacity-100': item.active,
+              'opacity-60 hover:opacity-100': !item.active
+            }" [style.background-color]="item.active ? '#FFFFFF1A' : 'transparent'">
+            <ng-container [ngSwitch]="item.icon">
+              <ng-container *ngSwitchCase="'promotion'">
+                <svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg" class="shrink-0">
+                  <path [attr.fill]="item.active ? 'white' : 'none'" [attr.stroke]="item.active ? 'none' : 'white'"
+                    [attr.stroke-opacity]="item.active ? '0' : '0.6'"
+                    d="M0.000150994 1.47932C-0.00265553 1.28429 0.0336873 1.09069 0.107029 0.909961C0.18037 0.729233 0.28922 0.565052 0.427136 0.427136C0.565052 0.28922 0.729233 0.18037 0.909961 0.107029C1.09069 0.0336873 1.28429 -0.00265553 1.47932 0.000150994L7.71932 0.0793177C8.31817 0.0865669 8.89038 0.327957 9.31348 0.751818L15.396 6.83348C15.7485 7.18598 16.061 7.69515 16.1893 8.23932C16.3193 8.79265 16.2693 9.46932 15.7485 9.98932L9.99015 15.7485C9.46932 16.2693 8.79265 16.3193 8.23932 16.1893C7.70796 16.0559 7.22234 15.7819 6.83348 15.396L0.751818 9.31348C0.328704 8.88988 0.0874488 8.31798 0.0793177 7.71932L0.000150994 1.47932ZM4.66015 3.38765C4.54167 3.27725 4.38497 3.21715 4.22305 3.22001C4.06113 3.22286 3.90664 3.28846 3.79213 3.40297C3.67762 3.51748 3.61203 3.67196 3.60917 3.83388C3.60631 3.9958 3.66642 4.1525 3.77682 4.27098L4.36598 4.86098C4.48391 4.97478 4.64182 5.0377 4.80569 5.0362C4.96957 5.0347 5.12629 4.9689 5.24212 4.85296C5.35795 4.73703 5.4236 4.58024 5.42495 4.41636C5.4263 4.25249 5.36322 4.09464 5.24932 3.97682L4.66015 3.38765Z"
+                    stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </ng-container>
+            </ng-container>
+            <span class="text-xs sm:text-sm font-medium tracking-tight leading-snug flex-1">{{ item.label }}</span>
+            <svg class="w-4 h-4 transition-transform shrink-0" [class.rotate-180]="offresExpanded" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <ul *ngIf="offresExpanded" class="mt-1 ml-4 pl-2 border-l border-white/20 space-y-1">
+            <li *ngFor="let child of item.children">
+              <a [routerLink]="child.link" (click)="isOpen && toggleMobile()"
+                class="group flex items-center gap-2 px-2 py-1.5 sm:px-3 rounded-md transition-all duration-150 w-full text-sm"
+                [ngClass]="{ 
+                  'opacity-100': child.active,
+                  'opacity-60 hover:opacity-100': !child.active
+                }" [style.background-color]="child.active ? '#FFFFFF1A' : 'transparent'"
+                [attr.aria-current]="child.active ? 'page' : null">
+                <span class="text-xs sm:text-sm font-medium tracking-tight">{{ child.label }}</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+        <!-- Item simple (lien direct) -->
+        <li *ngIf="!item.children">
         <a [routerLink]="item.link" (click)="isOpen && toggleMobile()"
           class="group flex items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5 lg:py-3 transition-all duration-150 w-full rounded-md"
           [ngClass]="{ 
@@ -177,7 +216,8 @@
 
           <span class="text-xs sm:text-sm font-medium tracking-tight leading-snug">{{ item.label }}</span>
         </a>
-      </li>
+        </li>
+      </ng-container>
     </ul>
   </nav>
 

@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, 
          FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthLayoutComponent } from '../auth-layout/auth-layout.component';

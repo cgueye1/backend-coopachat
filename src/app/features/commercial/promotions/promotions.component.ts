@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
-import { CouponModalComponent, CouponFormData, ProductOption, CategoryOption } from '../../../shared/components/coupon-modal/coupon-modal.component';
+import { CouponModalComponent, CouponFormData } from '../../../shared/components/coupon-modal/coupon-modal.component';
 import { CommercialService, CouponListResponse, CouponListItem, CouponDetails } from '../../../shared/services/commercial.service';
 import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
@@ -40,9 +40,6 @@ export class PromotionsManagementComponent {
   showDetailModal = false;
   selectedCouponDetail: CouponDetails | null = null;
 
-  couponModalProducts: ProductOption[] = [];
-  couponModalCategories: CategoryOption[] = [];
-
   statsCards: StatCard[] = [
     { title: 'Coupons actives', value: 0, icon: '/icones/label.svg' },
     { title: 'Utilisations totales', value: 0, icon: '/icones/cart.svg' },
@@ -50,12 +47,8 @@ export class PromotionsManagementComponent {
     { title: 'Panier moyen', value: '', icon: '/icones/money-filled-orange.svg', subtitle: 'totalGenerated / totalUsages' }
   ];
 
-  constructor(
-    private commercialService: CommercialService
-  ) {
+  constructor(private commercialService: CommercialService) {
     this.loadCoupons();
-    this.loadProductsForModal();
-    this.loadCategoriesForModal();
   }
 
   get content(): CouponListItem[] {
@@ -75,7 +68,7 @@ export class PromotionsManagementComponent {
     const page = this.currentPage - 1;
     const status = this.selectedStatusFilter === 'Actif' ? 'ACTIVE' : this.selectedStatusFilter === 'Inactif' ? 'DISABLED' : this.selectedStatusFilter === 'Expiré' ? 'EXPIRED' : this.selectedStatusFilter === 'Planifié' ? 'PLANNED' : undefined;
     forkJoin({
-      list: this.commercialService.getCoupons(page, this.itemsPerPage, this.searchTerm || undefined, status, undefined, undefined),
+      list: this.commercialService.getCoupons(page, this.itemsPerPage, this.searchTerm || undefined, status, undefined),
       stats: this.commercialService.getCartTotalCouponStats()
     }).subscribe({
       next: ({ list, stats }) => {
@@ -93,35 +86,8 @@ export class PromotionsManagementComponent {
     });
   }
 
-  loadProductsForModal(): void {
-    this.commercialService.getActiveProductsForCoupon().subscribe({
-      next: (list) => {
-        this.couponModalProducts = (list || []).map((p) => ({ id: p.id, name: p.name }));
-      }
-    });
-  }
-
-  loadCategoriesForModal(): void {
-    this.commercialService.getCategoriesForCoupon().subscribe({
-      next: (list) => {
-        this.couponModalCategories = (list || []).map((c) => ({ id: c.id, name: c.name }));
-      }
-    });
-  }
-
-  /** Met à jour la carte « Panier moyen » à partir de la liste (utilisée si on ne passe pas par les stats API). */
-  updateStatsCardsFromList(): void {
-    const list = this.listResponse?.content ?? [];
-    const couponsOnly = list.filter(c => c.scope === 'CART_TOTAL');
-    const totalUsage = couponsOnly.reduce((s, c) => s + (c.usageCount ?? 0), 0);
-    const totalGen = couponsOnly.reduce((s, c) => s + (Number(c.totalGenerated) || 0), 0);
-    this.statsCards[3].value = totalUsage > 0 ? `${Math.round(totalGen / totalUsage).toLocaleString('fr-FR')} F` : '-';
-  }
-
   openCouponModal(): void {
     this.isModalOpen = true;
-    this.loadProductsForModal();
-    this.loadCategoriesForModal();
   }
 
   closeCouponModal(): void {
@@ -131,9 +97,13 @@ export class PromotionsManagementComponent {
   onSubmitCoupon(couponData: CouponFormData): void {
     this.isSubmitting = true;
     const payload = {
-      ...couponData,
       code: couponData.code.trim().toUpperCase(),
-      status: 'PLANNED' as const
+      name: couponData.name,
+      discountType: couponData.discountType,
+      value: couponData.value,
+      status: 'PLANNED' as const,
+      startDate: couponData.startDate,
+      endDate: couponData.endDate
     };
     this.commercialService.createCoupon(payload).subscribe({
       next: () => {
@@ -155,26 +125,6 @@ export class PromotionsManagementComponent {
     return `${item.value}%`;
   }
 
-  formatScope(item: CouponListItem): string {
-    const map: Record<string, string> = {
-      CART_TOTAL: 'Total du panier',
-      ALL_PRODUCTS: 'Tous les produits',
-      PRODUCTS: 'Produits spécifiques',
-      CATEGORIES: 'Catégories spécifiques'
-    };
-    return map[item.scope] || item.scope;
-  }
-
-  /** True si c'est un coupon (code panier), false si promotion (catégorie/produits). */
-  isCoupon(item: CouponListItem): boolean {
-    return item.scope === 'CART_TOTAL';
-  }
-
-  /** Label type pour affichage : Coupon ou Promotion */
-  getTypeLabel(item: CouponListItem): string {
-    return this.isCoupon(item) ? 'Coupon' : 'Promotion';
-  }
-
   formatStatut(status: string): string {
     const map: Record<string, string> = {
       PLANNED: 'Planifié',
@@ -193,15 +143,25 @@ export class PromotionsManagementComponent {
 
   fmtDate(d: string): string {
     if (!d) return '';
-    const parts = d.split('-');
-    if (parts.length >= 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    const sep = d.includes('-') ? '-' : d.includes('/') ? '/' : null;
+    if (!sep) return d;
+    const parts = d.split(sep);
+    if (parts.length < 3) return d;
+    if (parts[0].length === 4) {
+      // yyyy-mm-dd ou yyyy/mm/dd -> dd/MM/yyyy
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    if (parts[2].length === 4) {
+      // déjà dd/mm/yyyy
+      return `${parts[0]}/${parts[1]}/${parts[2]}`;
+    }
     return d;
   }
 
   formatMontant(item: CouponListItem): string {
     const v = item.totalGenerated;
-    if (v == null || Number(v) === 0) return '- Fcfa';
-    return `${Number(v).toLocaleString('fr-FR')} Fcfa`;
+    if (v == null || Number(v) === 0) return '–';
+    return `${Number(v).toLocaleString('fr-FR')} F`;
   }
 
   toggleStatusDropdown(): void {
@@ -290,8 +250,8 @@ export class PromotionsManagementComponent {
     });
   }
 
-  togglePromotionStatus(promotionId: number, action: 'activer' | 'desactiver'): void {
-    const item = this.content.find(p => p.id === promotionId);
+  toggleCouponStatusFromList(couponId: number, action: 'activer' | 'desactiver'): void {
+    const item = this.content.find(c => c.id === couponId);
     if (!item) return;
     const isActive = action === 'activer';
     Swal.fire({
@@ -338,16 +298,6 @@ export class PromotionsManagementComponent {
   getDetailReduction(d: CouponDetails): string {
     if (d.discountType === 'FIXED_AMOUNT') return `${Number(d.value).toLocaleString('fr-FR')} F CFA`;
     return `${d.value}%`;
-  }
-
-  getDetailScopeLabel(d: CouponDetails): string {
-    const map: Record<string, string> = {
-      CART_TOTAL: 'Total du panier',
-      ALL_PRODUCTS: 'Tous les produits',
-      PRODUCTS: 'Produits spécifiques',
-      CATEGORIES: 'Catégories spécifiques'
-    };
-    return map[d.scope] || d.scope;
   }
 
   getDetailStatutLabel(d: CouponDetails): string {

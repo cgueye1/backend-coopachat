@@ -6,7 +6,7 @@
                 <div class="text-sm text-[#707EAE] mb-1">Pages / Planification Livraisons</div>
                 <h1 class="text-2xl sm:text-3xl font-bold text-[#2B3674]">Planification Livraisons</h1>
             </div>
-            <button (click)="openModal()"
+            <button (click)="openCalendar()"
                 class="bg-[#2B3674] text-white px-6 py-3 rounded-full text-sm font-medium flex items-center gap-2 hover:bg-[#1a214d] transition-colors">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
@@ -130,7 +130,7 @@
                 </div>
             </div>
 
-            <!-- Liste des tournées (MODIF: colonnes N° Tour | Date | Chauffeur | Véhicule | Nb Cmd | Statut | Actions) -->
+            <!-- Liste des tournées (MODIF: colonnes N° Tour | Date | Livreur | Véhicule | Nb Cmd | Statut | Actions) -->
             <div class="overflow-x-auto">
                 <!-- Loading -->
                 <div *ngIf="loadingTours" class="p-8 text-center text-gray-500">Chargement des tournées...</div>
@@ -140,7 +140,7 @@
                     <div class="hidden lg:grid lg:grid-cols-7 bg-[#F4F7FE] border-b border-gray-100">
                         <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">N° Tour</div>
                     <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">Date</div>
-                        <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">Chauffeur</div>
+                        <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">Livreur</div>
                         <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">Véhicule</div>
                         <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">Nb Cmd</div>
                     <div class="text-left text-xs text-[#2C3E50] font-semibold p-4">Statut</div>
@@ -156,10 +156,10 @@
                         </div>
                         <div class="lg:py-3 lg:px-4">
                             <div class="lg:hidden text-xs text-gray-500 mb-1">Date</div>
-                            <div class="text-sm font-medium text-gray-600">{{ item.deliveryDate }}</div>
+                            <div class="text-sm font-medium text-gray-600">{{ formatTourDate(item.deliveryDate) }}</div>
                         </div>
                         <div class="lg:py-3 lg:px-4">
-                            <div class="lg:hidden text-xs text-gray-500 mb-1">Chauffeur</div>
+                            <div class="lg:hidden text-xs text-gray-500 mb-1">Livreur</div>
                             <div class="text-sm font-medium text-gray-600">{{ item.driverName }}</div>
                         </div>
                         <div class="lg:py-3 lg:px-4">
@@ -191,9 +191,12 @@
                             </button>
                             <div *ngIf="activeActionId === item.id"
                                 class="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
-                                <button *ngFor="let option of getTourActionOptions(item)" (click)="handleAction(option.action, item)"
-                                    class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-gray-50 transition-colors"
-                                    [class]="option.color || 'text-gray-700'">
+                                <button *ngFor="let option of getTourActionOptions(item)" type="button"
+                                    (click)="onTourActionClick(option, item, $event)"
+                                    [disabled]="option.disabled === true"
+                                    [title]="option.tooltip || ''"
+                                    class="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 transition-colors"
+                                    [class]="(option.disabled ? 'opacity-50 cursor-not-allowed text-gray-400 ' : 'hover:bg-gray-50 ') + (option.color || 'text-gray-700')">
                                     <img [src]="option.icon" [alt]="option.label" class="w-4 h-4">
                                     <span>{{ option.label }}</span>
                                 </button>
@@ -237,6 +240,119 @@
         </div>
     </div>
 
+    <!-- Modal Calendrier (vue globale commandes avant planification) -->
+    <div *ngIf="showCalendarModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 transition-opacity duration-300"
+        (click)="closeCalendar()">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col relative"
+            (click)="$event.stopPropagation()">
+            <div class="flex items-center justify-between p-5 sm:p-6 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <h2 class="text-lg sm:text-xl font-bold text-[#2C3E50]">{{ calendarTitle }}</h2>
+                    <div class="flex items-center gap-2">
+                        <button (click)="prevMonth()" class="px-3 py-1.5 rounded-lg border border-gray-200 text-sm hover:bg-gray-50">← Préc.</button>
+                        <button (click)="nextMonth()" class="px-3 py-1.5 rounded-lg border border-gray-200 text-sm hover:bg-gray-50">Suiv. →</button>
+                    </div>
+                </div>
+                <button (click)="closeCalendar()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-5 sm:p-6 overflow-y-auto flex-1 space-y-6">
+
+                <!-- Calendrier -->
+                <div class="rounded-2xl border border-gray-100 bg-white">
+                    <div class="grid grid-cols-7 gap-2 p-3 text-xs font-semibold text-gray-500">
+                        <div class="text-center">Lun</div>
+                        <div class="text-center">Mar</div>
+                        <div class="text-center">Mer</div>
+                        <div class="text-center">Jeu</div>
+                        <div class="text-center">Ven</div>
+                        <div class="text-center">Sam</div>
+                        <div class="text-center">Dim</div>
+                    </div>
+                    <div *ngIf="calendarLoading" class="p-6 text-center text-sm text-gray-500">Chargement du calendrier...</div>
+                    <div *ngIf="!calendarLoading" class="grid grid-cols-7 gap-2 p-3">
+                        <button *ngFor="let d of calendarDays"
+                            type="button"
+                            [disabled]="isCalendarDayPast(d)"
+                            (click)="selectCalendarDay(d)"
+                            class="relative h-20 rounded-xl border border-gray-100 text-left p-2 transition-colors"
+                            [ngClass]="{
+                              'ring-2 ring-[#2B3674]': selectedCalendarDay?.date === d.date && !isCalendarDayPast(d),
+                              'border-orange-400': (!isCalendarDayPast(d) && d.pendingOrders > 0) || (isCalendarDayToday(d) && totalOverdueOrdersInView > 0),
+                              'bg-orange-50 shadow-sm': isCalendarDayToday(d),
+                              'opacity-50 cursor-not-allowed hover:border-gray-100 hover:bg-transparent': isCalendarDayPast(d),
+                              'hover:border-[#2B3674] hover:bg-gray-50': !isCalendarDayPast(d)
+                            }">
+                            <div class="text-xs font-semibold text-gray-700">{{ d.date.split('/')[0] }}</div>
+                    <div *ngIf="!isCalendarDayPast(d) && d.pendingOrders > 0" class="mt-1 inline-flex items-center gap-1 text-[11px] text-orange-700 bg-orange-50 border border-orange-200 rounded-full px-2 py-0.5">
+                                {{ d.pendingOrders }} commandes
+                            </div>
+                    <div *ngIf="isCalendarDayToday(d) && totalOverdueOrdersInView > 0" class="mt-1 inline-flex items-center gap-1 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">
+                                {{ totalOverdueOrdersInView }} en retard
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide-over (modal spécifique) : saisie rapide "1 chiffre" -->
+            <div *ngIf="showCalendarQuickPlan && selectedCalendarDay"
+                class="absolute inset-y-0 right-0 w-full sm:w-[420px] bg-white border-l border-gray-100 shadow-2xl">
+                <div class="h-full flex flex-col">
+                    <div class="flex items-start justify-between p-5 border-b border-gray-100">
+                        <div>
+                            <div class="text-xs text-gray-500">Date de livraison</div>
+                            <div class="text-base font-semibold text-[#2C3E50]">{{ selectedCalendarDay.date }}</div>
+                        </div>
+                        <button type="button"
+                            class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            (click)="showCalendarQuickPlan = false; selectedCalendarDay = null">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto p-5 space-y-4">
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="rounded-xl bg-gray-50 border border-gray-100 p-4">
+                                <div class="text-xs text-gray-500">Commandes du jour</div>
+                                <div class="text-xl font-semibold text-[#2B3674]">{{ selectedCalendarDay.pendingOrders }}</div>
+                            </div>
+                            <div class="rounded-xl bg-[#F4F7FE] border border-[#E6ECFF] p-4">
+                                <div class="text-xs text-[#2B3674]">Total commandes</div>
+                                <div class="text-xl font-semibold text-[#2B3674]">{{ selectedTotalOrdersForPlanning }}</div>
+                            </div>
+                            <div class="rounded-xl bg-white border border-gray-100 p-4">
+                                <div class="text-xs text-gray-500">Tournées à créer</div>
+                                <div class="text-xl font-semibold text-[#2B3674]">{{ toursToCreate }}</div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-xl bg-[#F8FAFC] border border-gray-100 p-4 space-y-2">
+                            <div class="text-sm font-medium text-gray-700">Commandes par tournée</div>
+                            <input type="number" min="1" [(ngModel)]="calendarLotSize"
+                                class="w-full p-3 rounded-xl border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-2 focus:ring-[#2B3674]/20 outline-none text-base text-center text-gray-700">
+                            <div class="text-xs text-gray-500">Le système calcule automatiquement le nombre de tournées à créer.</div>
+                        </div>
+                    </div>
+
+                    <div class="p-5 border-t border-gray-100">
+                        <button type="button" (click)="startPlanningFromCalendar()"
+                            class="w-full py-3 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-xl font-medium text-sm">
+                            Voir les lots ↗
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Détails Tournée de livraison -->
     <div *ngIf="showDetailModal && selectedLivraison"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 transition-opacity duration-300"
@@ -247,9 +363,14 @@
             <div class="flex items-center justify-between p-5 sm:p-7 border-b border-gray-100 shrink-0">
                 <h2 class="text-lg sm:text-xl font-bold text-[#2C3E50]">Tournée {{ selectedLivraison.tourNumber }}</h2>
                 <div class="flex items-center gap-2">
-                    <button *ngIf="selectedTourDetails && selectedTourDetails.status === 'ASSIGNEE'"
+                    <button *ngIf="selectedTourDetails?.status === 'ASSIGNEE'" type="button"
                         (click)="openEditModalFromDetail()"
                         class="px-4 py-2 bg-[#2B3674] text-white rounded-lg text-sm font-medium hover:bg-[#1a214d] transition-colors">
+                        Modifier
+                    </button>
+                    <button *ngIf="selectedTourDetails?.status === 'EN_COURS'" type="button" disabled
+                        title="Tournée déjà démarrée"
+                        class="px-4 py-2 bg-gray-200 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed opacity-80">
                         Modifier
                     </button>
                     <button *ngIf="selectedTourDetails && selectedTourDetails.status === 'ASSIGNEE' && selectedLivraison"
@@ -268,57 +389,114 @@
             <!-- Chargement -->
             <div *ngIf="loadingTourDetails" class="p-8 text-center text-gray-500">Chargement des détails...</div>
 
-            <!-- Body -->
+            <!-- Body : 3 blocs (infos tournée / commandes / récap) -->
             <div *ngIf="!loadingTourDetails && selectedTourDetails" class="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6">
-                <!-- Ligne : Date • Chauffeur • Véhicule [STATUT] -->
-                <div class="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-[#4B4848]">
-                    <span class="flex items-center gap-1.5">
-                        <img src="/icones/date.svg" alt="" class="w-5 h-5 shrink-0" aria-hidden="true">
-                        {{ formatTourDate(selectedTourDetails.deliveryDate) }}
-                    </span>
-                    <span class="text-gray-300">•</span>
-                    <span class="flex items-center gap-1.5">
-                        <svg class="w-5 h-5 shrink-0 text-[#2B3674]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
-                        {{ selectedTourDetails.driverName || '—' }}
-                    </span>
-                    <span class="text-gray-300">•</span>
-                    <span class="flex items-center gap-1.5">
-                        <svg class="w-5 h-5 shrink-0 text-[#DC2626]" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
-                        {{ selectedTourDetails.vehicleType || selectedTourDetails.vehicle || selectedLivraison.vehicle || '—' }}
-                    </span>
-                    <span
-                        [class]="'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ml-auto ' + getStatusClass(selectedTourDetails.status || '')">
-                        <span [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(selectedTourDetails.status || '')"></span>
-                        {{ statusDisplay(selectedTourDetails.status || '') }}
-                    </span>
+                <!-- BLOC 1 — Infos tournée (Date · Livreur · Contact · Véhicule sur une ligne) -->
+                <div class="rounded-2xl border border-gray-100 bg-[#F8FAFC] p-4 sm:p-5 space-y-3">
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Infos tournée</h3>
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="text-lg font-bold text-[#2C3E50]">N° {{ selectedTourDetails.tourNumber || selectedLivraison.tourNumber }}</div>
+                        <span
+                            [class]="'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 ' + getStatusClass(selectedTourDetails.status || '')">
+                            <span [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(selectedTourDetails.status || '')"></span>
+                            {{ statusDisplay(selectedTourDetails.status || '') }}
+                        </span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-2 sm:gap-x-3 text-sm pt-3 border-t border-gray-200/80 bg-white/60 rounded-xl px-3 py-3 border border-gray-100/80">
+                        <span class="inline-flex items-center gap-1.5 min-w-0">
+                            <img src="/icones/date.svg" alt="" class="w-4 h-4 shrink-0 opacity-60" aria-hidden="true">
+                            <span class="text-gray-500 text-xs shrink-0">Date</span>
+                            <span class="font-semibold text-[#2C3E50]">{{ formatTourDate(selectedTourDetails.deliveryDate) }}</span>
+                        </span>
+                        <span class="text-gray-300 select-none hidden sm:inline" aria-hidden="true">·</span>
+                        <span class="inline-flex items-center gap-1.5 min-w-0 max-w-full">
+                            <span class="text-gray-500 text-xs shrink-0">Livreur</span>
+                            <span class="font-medium text-[#2C3E50] truncate">{{ selectedTourDetails.driverName || '—' }}</span>
+                        </span>
+                        <span class="text-gray-300 select-none hidden sm:inline" aria-hidden="true">·</span>
+                        <span class="inline-flex items-center gap-1.5 shrink-0">
+                            <span class="text-gray-500 text-xs">Contact</span>
+                            <span class="font-medium text-[#2C3E50] tabular-nums">{{ selectedTourDetails.driverPhone || '—' }}</span>
+                        </span>
+                        <span class="text-gray-300 select-none" aria-hidden="true">·</span>
+                        <span class="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
+                            <span class="text-gray-500 text-xs shrink-0">Véhicule</span>
+                            <ng-container *ngIf="tourDetailVehicleParts.plate !== '—'; else vehOneLineFallback">
+                                <ng-container *ngIf="tourDetailVehicleParts.type !== '—'">
+                                    <span class="font-medium text-[#2C3E50]">{{ tourDetailVehicleParts.type }}</span>
+                                    <span class="text-gray-300 mx-0.5">—</span>
+                                </ng-container>
+                                <span class="font-mono font-semibold text-[#2C3E50] tracking-wide">{{ formatVehiclePlate(tourDetailVehicleParts.plate) }}</span>
+                            </ng-container>
+                            <ng-template #vehOneLineFallback>
+                                <span class="font-medium text-[#2C3E50]">{{ tourDetailVehicleParts.type !== '—' ? tourDetailVehicleParts.type : tourVehicleLine(selectedTourDetails, selectedLivraison.vehicle) }}</span>
+                            </ng-template>
+                        </span>
+                    </div>
                 </div>
 
-                <!-- Section Commandes (n) [+ Ajouter] -->
-                <div class="border-t border-gray-100 pt-4">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-base font-semibold text-[#2C3E50]">Commandes ({{ selectedTourDetails.orders?.length ?? selectedTourDetails.orderCount ?? 0 }})</h3>
-                    </div>
-                    <ul class="space-y-2">
-                        <li *ngFor="let order of (selectedTourDetails.orders || [])"
-                            class="flex items-center justify-between gap-3 py-2.5 px-3 rounded-lg border border-gray-100 hover:bg-gray-50">
-                            <span class="flex items-center gap-2 text-sm text-[#4B4848]">
-                                <span class="text-emerald-600">☑</span>
-                                <span class="font-medium">{{ order.orderNumber }}</span>
-                                <span class="text-gray-400">•</span>
-                                <span>{{ order.employeeName }}</span>
-                                <span class="text-gray-400">•</span>
-                                <span class="text-gray-600">{{ order.deliveryAddress || '—' }}</span>
-                            </span>
-                            <button *ngIf="selectedTourDetails.status === 'ASSIGNEE' && selectedTourDetails.id"
-                                (click)="removeOrderFromTour(selectedTourDetails.id, order.orderId)"
-                                class="text-xs font-medium text-[#6B7280] hover:text-[#FF0909] transition-colors shrink-0">
-                                Retirer
-                            </button>
+                <!-- BLOC 2 — Commandes (ordre livraison : validatedAt puis id côté API) -->
+                <div class="rounded-2xl border border-gray-100 p-4 sm:p-5">
+                    <h3 class="text-base font-semibold text-[#2C3E50] mb-3">
+                        Commandes de la tournée
+                        <span class="text-gray-500 font-normal">({{ selectedTourDetails.orders?.length ?? selectedTourDetails.orderCount ?? 0 }})</span>
+                    </h3>
+                    <ul class="space-y-3">
+                        <li *ngFor="let order of (selectedTourDetails.orders || []); let i = index"
+                            class="rounded-xl border border-gray-100 bg-white p-3 sm:p-4 shadow-sm">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex gap-3 min-w-0 flex-1">
+                                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FF6B00]/15 text-sm font-bold text-[#FF6B00]">{{ i + 1 }}</span>
+                                    <div class="min-w-0 space-y-2">
+                                        <div class="text-xs text-gray-500 font-medium">{{ order.orderNumber }}</div>
+                                        <div class="font-semibold text-[#2C3E50]">{{ tourOrderEmployeeDisplayName(order) }}</div>
+                                        <div class="text-sm text-gray-600 leading-snug">
+                                            <ng-container *ngIf="order.companyName">{{ order.companyName }}</ng-container>
+                                            <ng-container *ngIf="order.companyName && order.deliveryAddress"><span class="text-gray-300 mx-1">·</span></ng-container>
+                                            <ng-container *ngIf="order.deliveryAddress">{{ order.deliveryAddress }}</ng-container>
+                                            <ng-container *ngIf="!order.companyName && !order.deliveryAddress">—</ng-container>
+                                        </div>
+                                        <div>
+                                            <span [class]="'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ' + getOrderStatusBadgeClass(order.orderStatus)"
+                                                [attr.title]="order.orderStatus || ''">
+                                                {{ order.orderStatusLabel || order.orderStatus || '—' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0 space-y-1">
+                                    <div class="text-sm font-bold text-[#2C3E50]">{{ formatTourMoney(order.totalAmount) }}</div>
+                                    <div class="text-xs text-gray-500 max-w-[140px]">{{ order.paymentStatusLabel || 'Impayé' }}</div>
+                                </div>
+                            </div>
                         </li>
-                        <li *ngIf="!selectedTourDetails.orders?.length" class="py-4 text-center text-sm text-gray-500">
+                        <li *ngIf="!selectedTourDetails.orders?.length" class="py-6 text-center text-sm text-gray-500">
                             Aucune commande dans cette tournée.
                         </li>
                     </ul>
+                </div>
+
+                <!-- BLOC 3 — Récapitulatif -->
+                <div class="rounded-2xl border border-gray-100 bg-[#F8FAFC] p-4 sm:p-5">
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Récapitulatif</h3>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div class="rounded-xl bg-white border border-gray-100 p-4 text-center">
+                            <div class="text-2xl font-bold text-[#2C3E50]">{{ tourRecapTotalOrders(selectedTourDetails) }}</div>
+                            <div class="text-xs text-gray-500 mt-1">Total commandes</div>
+                        </div>
+                        <div class="rounded-xl bg-white border border-gray-100 p-4 text-center">
+                            <div class="text-2xl font-bold text-emerald-600">{{ tourRecapDelivered(selectedTourDetails) }}</div>
+                            <div class="text-xs text-gray-500 mt-1">Livrées</div>
+                        </div>
+                        <div class="rounded-xl bg-white border border-gray-100 p-4 text-center">
+                            <div class="text-2xl font-bold text-red-600">{{ tourRecapFailed(selectedTourDetails) }}</div>
+                            <div class="text-xs text-gray-500 mt-1">En échec</div>
+                        </div>
+                        <div class="rounded-xl bg-white border border-gray-100 p-4 text-center lg:col-span-1 col-span-2">
+                            <div class="text-xl font-bold text-[#2B3674]">{{ tourRecapAmount(selectedTourDetails) }}</div>
+                            <div class="text-xs text-gray-500 mt-1">Montant total</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -364,44 +542,6 @@
                 </div>
             </div>
 
-            <!-- Étape 1 : Date + taille des lots -->
-            <div *ngIf="planifierStep === 1" class="p-3 sm:p-4 space-y-5">
-                <div class="space-y-2">
-                    <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
-                        <span class="text-[#2C2D5B]">📅</span> Date de livraison <span class="text-red-500">*</span>
-                    </label>
-                        <div class="relative">
-                            <input type="date" [(ngModel)]="newTournee.deliveryDate" [min]="minDate" #dateInput
-                                (ngModelChange)="loadGroupedLots()"
-                                [class.border-red-500]="errors.deliveryDate"
-                            class="w-full p-3 pr-12 rounded-xl border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-2 focus:ring-[#2B3674]/20 outline-none text-base text-gray-700 placeholder:text-gray-400 appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0">
-                        <button type="button" (click)="dateInput.showPicker()" class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" aria-label="Ouvrir le calendrier">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        </button>
-                    </div>
-                    <p *ngIf="errors.deliveryDate" class="text-red-500 text-xs mt-1">{{ errors.deliveryDate }}</p>
-                    <p *ngIf="newTournee.deliveryDate && !errors.deliveryDate" class="text-sm text-[#6B7280] mt-1">
-                        {{ getDeliveryDateDayName() }}<span *ngIf="allEligibleOrders.length > 0"> • {{ allEligibleOrders.length }} commande(s) disponible(s)</span>
-                    </p>
-                    </div>
-
-                <div class="space-y-2">
-                    <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
-                        <span class="text-[#2C2D5B]">📦</span> Taille des lots
-                    </label>
-                    <div class="flex gap-2 items-stretch">
-                            <input type="number" [(ngModel)]="newTournee.lotSize" min="1" max="50"
-                                (ngModelChange)="loadGroupedLots()"
-                            class="w-20 sm:w-24 p-3 rounded-xl border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-2 focus:ring-[#2B3674]/20 outline-none text-base text-center text-gray-700">
-                        <button type="button" (click)="loadGroupedLotsAndGoNext()" [disabled]="loadingLots"
-                            class="px-4 py-3 rounded-xl bg-[#2C2D5B] text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap hover:bg-[#232b5c] transition-colors">
-                                {{ loadingLots ? 'Chargement...' : 'Afficher les lots' }}
-                            </button>
-                    </div>
-                    <p *ngIf="loadLotsMessage" class="text-sm mt-1" [class.text-amber-600]="loadLotsMessage.indexOf('Aucune') === 0" [class.text-red-500]="loadLotsMessage.indexOf('Erreur') === 0">{{ loadLotsMessage }}</p>
-                </div>
-            </div>
-
             <!-- Étape 2 : Commandes et préférences (par lots) -->
             <div *ngIf="planifierStep === 2" class="p-3 sm:p-4 space-y-4">
                 <div class="rounded-lg bg-[#F4F7FE] px-3 py-2 text-sm font-medium text-[#2B3674]">Étape 2 : Commandes et préférences</div>
@@ -420,7 +560,10 @@
                                         class="w-5 h-5 mt-0.5 border-2 border-gray-300 rounded text-[#2B3674] focus:ring-[#2B3674] cursor-pointer flex-shrink-0">
                                     <div class="flex flex-col min-w-0 flex-1">
                                         <span class="text-sm font-medium text-[#374151]">{{ order.orderNumber }} — {{ order.customerName }}</span>
-                                        <span *ngIf="order.daysOverdue != null && order.daysOverdue > 0" class="text-xs font-medium text-red-600 mt-0.5">En retard ({{ order.daysOverdue }} j)</span>
+                                        <span *ngIf="order.daysOverdue != null && order.daysOverdue > 0"
+                                            class="mt-1 inline-flex items-center text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-0.5 w-fit">
+                                            En retard ({{ order.daysOverdue }} j)
+                                        </span>
                                         <span *ngIf="order.formattedAddress" class="text-xs text-[#6B7280] mt-0.5 flex items-center gap-1">
                                             <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
                                             {{ order.formattedAddress }}
@@ -456,7 +599,7 @@
                 </div>
                     </div>
 
-            <!-- Étape 3 : Assigner (chauffeur, véhicule, note) -->
+            <!-- Étape 3 : Assigner (livreur, véhicule, note) -->
             <div *ngIf="planifierStep === 3" class="p-3 sm:p-4 space-y-4">
                 <div class="rounded-lg bg-[#F4F7FE] px-3 py-2 text-sm font-medium text-[#2B3674]">Étape 3 : Assigner la tournée</div>
                 <p class="text-sm text-gray-600">{{ newTournee.orderIds.length }} commande(s) sélectionnée(s)</p>
@@ -466,11 +609,11 @@
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div class="space-y-2">
-                        <label class="text-sm font-medium text-gray-700">Chauffeur <span class="text-red-500">*</span></label>
+                        <label class="text-sm font-medium text-gray-700">Livreur <span class="text-red-500">*</span></label>
                         <div class="relative">
                             <select [(ngModel)]="newTournee.driverId" [class.border-red-500]="errors.driverId"
                                 class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base text-gray-600 appearance-none bg-white">
-                                <option [ngValue]="null">Sélectionner un chauffeur</option>
+                                <option [ngValue]="null">Sélectionner un livreur</option>
                                 <option *ngFor="let d of availableDrivers" [ngValue]="d.driverId">{{ d.fullName }}</option>
                             </select>
                             <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
@@ -503,20 +646,10 @@
             <div
                 class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 p-3 sm:p-4 lg:p-6 border-t border-gray-100 sticky bottom-0 bg-white">
                 <ng-container [ngSwitch]="planifierStep">
-                    <ng-container *ngSwitchCase="1">
-                        <button (click)="nextPlanifierStep()"
-                            class="w-full py-2.5 sm:py-3 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium text-sm">
-                            Suivant
-                        </button>
-                        <button (click)="closeModal()"
-                            class="w-full py-2.5 sm:py-3 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 rounded-lg font-medium text-sm">
-                            Annuler
-                        </button>
-                    </ng-container>
                     <ng-container *ngSwitchCase="2">
                         <button (click)="prevPlanifierStep()"
                             class="w-full py-2.5 sm:py-3 border border-gray-200 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50">
-                            ← Retour
+                            ← Calendrier
                         </button>
                         <button (click)="nextPlanifierStep()"
                             class="w-full py-2.5 sm:py-3 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium text-sm">
@@ -614,15 +747,18 @@
                     <span>📅</span> INFORMATIONS GÉNÉRALES
                 </div>
                 <div class="space-y-2">
-                    <label class="text-sm font-medium text-gray-700">Date de livraison</label>
+                    <label class="text-sm font-medium text-gray-700">Date de livraison <span class="text-red-500">*</span></label>
                     <div class="flex items-center gap-2 flex-wrap">
-                        <input type="text" [value]="formatTourDate(editTourDetails.deliveryDate)" readonly
-                            class="w-full max-w-[140px] p-2.5 rounded-lg border border-[#CBD5E1] bg-gray-50 text-gray-700 text-sm">
+                        <input type="date" [(ngModel)]="editTourDeliveryDateIso" [min]="minDate"
+                            (ngModelChange)="onEditTourDeliveryDateChanged()"
+                            [class.border-red-500]="errors.date"
+                            class="w-full max-w-[180px] p-2.5 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-sm">
                         <span class="text-sm text-[#6B7280] flex items-center gap-1">
                             <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9z" clip-rule="evenodd"/></svg>
                             {{ getEditTourDayName() }} • {{ editTourDetails.orders?.length ?? editTourDetails.orderCount ?? 0 }} commande(s)
                         </span>
                     </div>
+                    <p *ngIf="errors.date" class="text-red-500 text-xs">{{ errors.date }}</p>
                 </div>
 
                 <!-- AFFECTATION -->
@@ -631,15 +767,21 @@
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div class="space-y-2">
-                        <label class="text-sm font-medium text-gray-700">Chauffeur</label>
-                        <input type="text" [(ngModel)]="editTournee.chauffeur" readonly
-                            class="w-full p-2.5 rounded-lg border border-[#CBD5E1] bg-gray-50 text-gray-700">
+                        <label class="text-sm font-medium text-gray-700">Livreur assigné <span class="text-red-500">*</span></label>
+                        <select [(ngModel)]="editTourDriverId" (ngModelChange)="errors.chauffeur = ''"
+                            [class.border-red-500]="errors.chauffeur"
+                            class="w-full p-2.5 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none bg-white text-gray-700">
+                            <option [ngValue]="null">Sélectionner un livreur</option>
+                            <option *ngFor="let d of availableDrivers" [ngValue]="d.driverId">{{ d.fullName }}</option>
+                        </select>
+                        <p *ngIf="errors.chauffeur" class="text-red-500 text-xs">{{ errors.chauffeur }}</p>
                     </div>
                     <div class="space-y-2">
                         <label class="text-sm font-medium text-gray-700">Véhicule (type / plaque) <span class="text-red-500">*</span></label>
-                        <input type="text" [(ngModel)]="editTournee.vehicule" placeholder="Ex: 4x4, DK-1234-AA"
+                        <input type="text" [(ngModel)]="editTournee.vehicule" placeholder="Ex: Camion — AA-12345-AB"
                             [class.border-red-500]="errors.vehicule"
-                            class="w-full p-2.5 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none">
+                            class="w-full p-2.5 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none placeholder:text-[#6B7280]">
+                        <p class="text-[11px] text-gray-500 mt-1">La plaque doit respecter le format <span class="font-mono font-medium">AA-12345-AB</span>.</p>
                         <p *ngIf="errors.vehicule" class="text-red-500 text-xs mt-1">{{ errors.vehicule }}</p>
                     </div>
                 </div>

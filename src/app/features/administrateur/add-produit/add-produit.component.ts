@@ -270,7 +270,7 @@ export class AddProduitComponent implements OnInit {
         formData.append('currentStock', String(this.newProduct.stock ?? 0));
         formData.append('description', this.newProduct.description);
         formData.append('minThreshold', '0');
-        formData.append('status', 'true');
+        formData.append('status', 'false'); // Nouveau produit inactif par défaut
       } else {
         if (this.newProduct.description) {
           formData.append('description', this.newProduct.description);

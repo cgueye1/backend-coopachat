@@ -372,15 +372,50 @@ export class GestionStockComponent implements OnInit {
 
   saveStockEntry() {
     if (this.selectedStockItem && this.stockEntryQuantity > 0) {
+      const qty = this.stockEntryQuantity;
       this.logisticsService.increaseStock(this.selectedStockItem.id, this.stockEntryQuantity).subscribe({
         next: () => {
           this.closeStockEntryModal();
           this.loadStockStats();
           this.loadStockList();
           this.loadStockAlerts();
+          Swal.fire({
+            iconHtml: '<img src="/icones/message success.svg" style="width: 95px; height: 95px; margin: 0 auto;" />',
+            title: 'Entrée de stock enregistrée',
+            text: `${qty} unité(s) ajoutée(s) au stock.`,
+            showConfirmButton: false,
+            timer: 1800,
+            buttonsStyling: false,
+            customClass: {
+              popup: 'rounded-3xl p-6',
+              title: 'text-xl font-medium text-gray-900',
+              htmlContainer: 'text-base text-gray-600',
+              icon: 'border-none'
+            },
+            backdrop: `rgba(0,0,0,0.2)`,
+            width: '580px'
+          });
         },
         error: (error) => {
           console.error('Erreur lors de l\'entrée de stock:', error);
+          Swal.fire({
+            iconHtml: `<svg width="95" height="95" viewBox="0 0 95 95" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M47.5 0C21.266 0 0 21.266 0 47.5C0 73.734 21.266 95 47.5 95C73.734 95 95 73.734 95 47.5C95 21.266 73.734 0 47.5 0ZM47.5 86.25C26.095 86.25 8.75 68.905 8.75 47.5C8.75 26.095 26.095 8.75 47.5 8.75C68.905 8.75 86.25 26.095 86.25 47.5C86.25 68.905 68.905 86.25 47.5 86.25ZM43.125 24.375V52.5H51.875V24.375H43.125ZM43.125 60.625V69.375H51.875V60.625H43.125Z" fill="#F87171"/>
+          </svg>`,
+            title: 'Entrée de stock impossible',
+            text: error?.error?.message || 'Une erreur est survenue lors de l\'enregistrement.',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            buttonsStyling: false,
+            customClass: {
+              popup: 'rounded-3xl p-6',
+              title: 'text-xl font-medium text-gray-900',
+              htmlContainer: 'text-base text-gray-600',
+              confirmButton: 'bg-[#2C2D5B] hover:bg-[#232b5c] text-white px-8 py-3 rounded-lg font-medium text-base shadow-none border-none'
+            },
+            backdrop: `rgba(0,0,0,0.2)`,
+            width: '580px'
+          });
         }
       });
     }
@@ -404,15 +439,50 @@ export class GestionStockComponent implements OnInit {
 
   saveStockExit() {
     if (this.selectedStockItem && this.stockExitQuantity > 0) {
+      const qty = this.stockExitQuantity;
       this.logisticsService.decreaseStock(this.selectedStockItem.id, this.stockExitQuantity).subscribe({
         next: () => {
           this.closeStockExitModal();
           this.loadStockStats();
           this.loadStockList();
           this.loadStockAlerts();
+          Swal.fire({
+            iconHtml: '<img src="/icones/message success.svg" style="width: 95px; height: 95px; margin: 0 auto;" />',
+            title: 'Sortie de stock effectuée',
+            text: `${qty} unité(s) déduite(s) du stock.`,
+            showConfirmButton: false,
+            timer: 1800,
+            buttonsStyling: false,
+            customClass: {
+              popup: 'rounded-3xl p-6',
+              title: 'text-xl font-medium text-gray-900',
+              htmlContainer: 'text-base text-gray-600',
+              icon: 'border-none'
+            },
+            backdrop: `rgba(0,0,0,0.2)`,
+            width: '580px'
+          });
         },
         error: (error) => {
           console.error('Erreur lors de la sortie de stock:', error);
+          Swal.fire({
+            iconHtml: `<svg width="95" height="95" viewBox="0 0 95 95" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M47.5 0C21.266 0 0 21.266 0 47.5C0 73.734 21.266 95 47.5 95C73.734 95 95 73.734 95 47.5C95 21.266 73.734 0 47.5 0ZM47.5 86.25C26.095 86.25 8.75 68.905 8.75 47.5C8.75 26.095 26.095 8.75 47.5 8.75C68.905 8.75 86.25 26.095 86.25 47.5C86.25 68.905 68.905 86.25 47.5 86.25ZM43.125 24.375V52.5H51.875V24.375H43.125ZM43.125 60.625V69.375H51.875V60.625H43.125Z" fill="#F87171"/>
+          </svg>`,
+            title: 'Sortie de stock impossible',
+            text: error?.error?.message || 'Une erreur est survenue lors de la déduction.',
+            showConfirmButton: true,
+            confirmButtonText: 'OK',
+            buttonsStyling: false,
+            customClass: {
+              popup: 'rounded-3xl p-6',
+              title: 'text-xl font-medium text-gray-900',
+              htmlContainer: 'text-base text-gray-600',
+              confirmButton: 'bg-[#2C2D5B] hover:bg-[#232b5c] text-white px-8 py-3 rounded-lg font-medium text-base shadow-none border-none'
+            },
+            backdrop: `rgba(0,0,0,0.2)`,
+            width: '580px'
+          });
         }
       });
     }
