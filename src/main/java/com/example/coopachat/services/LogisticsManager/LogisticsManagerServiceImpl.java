@@ -1782,7 +1782,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // Informations de base
         tour.setDeliveryDate(dto.getDeliveryDate());
         tour.setDriver(driver);
-        tour.setVehicleTypePlate(dto.getVehicleType());
+        tour.setVehicleTypePlate(buildVehicleTypePlate(dto.getVehicleType(), dto.getVehiclePlate()));
         tour.setCreatedBy(currentUser);
         tour.setUpdatedBy(currentUser);
         tour.setNotes(dto.getNotes());
@@ -3025,6 +3025,21 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 .collect(java.util.stream.Collectors.joining(", "));
     }
 
+
+    /**
+     * Concatène type + plaque pour {@link DeliveryTour#vehicleTypePlate} (même format que le parsing {@link #fillVehicleTypeAndPlate}).
+     */
+    private static String buildVehicleTypePlate(String vehicleType, String vehiclePlate) {
+        String t = vehicleType != null ? vehicleType.trim() : "";
+        String p = vehiclePlate != null ? vehiclePlate.trim() : "";
+        if (t.isEmpty()) {
+            return p.isEmpty() ? "Non spécifié" : p;
+        }
+        if (p.isEmpty()) {
+            return t;
+        }
+        return t + " — " + p;
+    }
 
     /**
      * Décompose le champ unique véhicule (ex. "Camion — DK-4521-A") en type et matricule.
