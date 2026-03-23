@@ -83,7 +83,8 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
                 user.getFirstName(),
                 user.getLastName(),
                 user.getPhone(),
-                user.getEmail()
+                user.getEmail(),
+                user.getProfilePhotoUrl()
         );
     }
 
