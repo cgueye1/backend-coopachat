@@ -51,13 +51,13 @@ public interface DeliveryTourRepository extends JpaRepository<DeliveryTour, Long
      *
      * @param tourNumber  Numéro de tournée à rechercher (optionnel)
      * @param status      Statut de la tournée (optionnel)
-     * @return Tournées paginées triées par date de livraison décroissante puis par date de création décroissante
+     * @return Tournées paginées triées par date de création décroissante (dernière créée en tête)
      */
     @Query("SELECT dt FROM DeliveryTour dt " +
             "WHERE (:tourNumber IS NULL OR " +
             "       LOWER(dt.tourNumber) LIKE LOWER(CONCAT('%', :tourNumber, '%'))) " +
             "AND (:status IS NULL OR dt.status = :status) " +
-            "ORDER BY dt.deliveryDate DESC, dt.createdAt DESC")
+            "ORDER BY dt.createdAt DESC")
     Page<DeliveryTour> findDeliveryTourWithFilters(
             @Param("tourNumber") String tourNumber,
             @Param("status") DeliveryTourStatus status,

@@ -1086,7 +1086,9 @@ public class CommercialServiceImpl implements CommercialService {
         if (commercial.getRole() != UserRole.COMMERCIAL) {
             throw new RuntimeException("Seuls les commerciaux peuvent consulter les catégories pour coupons");
         }
-        return categoryRepository.findAll().stream()
+        // Ne remonter que les catégories ayant au moins un produit actif
+        // (évite d'afficher des catégories "vides" sur les écrans promotions/coupons du commercial)
+        return categoryRepository.findCategoriesWithAtLeastOneActiveProduct().stream()
                 .sorted(java.util.Comparator.comparing(Category::getName, String.CASE_INSENSITIVE_ORDER))
                 .map(c -> new IdNameDTO(c.getId(), c.getName()))
                 .collect(Collectors.toList());
