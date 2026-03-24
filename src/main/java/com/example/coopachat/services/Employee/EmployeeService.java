@@ -68,9 +68,10 @@ public interface EmployeeService {
      * Ajoute un produit au panier de l'utilisateur connecté.
      * Si le produit est déjà dans le panier, augmente sa quantité.
      * @param productId L'ID du produit à ajouter
+     * @param requestedQuantity  la quantité demandée
      * @throws RuntimeException  si le stock est insuffisant ou si une erreur survient
      */
-    CartResponseDTO addProductToCart(Long productId);
+    CartResponseDTO addProductToCart(Long productId , int requestedQuantity);
 
     /**
      * Récupère le panier complet de l'utilisateur connecté.
@@ -80,13 +81,6 @@ public interface EmployeeService {
      */
     CartResponseDTO getCart();
 
-    /**
-     * Augmente de 1 la quantité d'un produit déjà présent dans le panier.
-     *
-     * @param productId ID du produit à augmenter
-     * @throws RuntimeException si produit non trouvé, non dans le panier ou stock insuffisant
-     */
-    CartResponseDTO increaseProductQuantity(Long productId);
 
     /**
      * Diminue de 1 la quantité d'un produit déjà présent dans le panier.

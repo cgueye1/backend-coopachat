@@ -108,11 +108,11 @@ public class EmployeeController {
     @Operation(
             summary = "Ajouter un produit au panier",
             description = "Ajoute un produit au panier de l'utilisateur connecté. " +
-                    "Si le produit est déjà dans le panier, augmente sa quantité."
+                    "Si le produit est déjà dans le panier, augmente sa quantité de 1."
     )
     @PostMapping("/cart/items/{productId}")
-    public ResponseEntity<CartResponseDTO> addToCart(@PathVariable Long productId) {
-        CartResponseDTO cart = employeeService.addProductToCart(productId);
+    public ResponseEntity<CartResponseDTO> addToCart(@PathVariable Long productId, @RequestParam Integer requestedQuantity ) {
+        CartResponseDTO cart = employeeService.addProductToCart(productId, requestedQuantity);
         return ResponseEntity.ok(cart);
     }
 
@@ -126,15 +126,6 @@ public class EmployeeController {
         return ResponseEntity.ok(cart);
     }
 
-    @Operation(
-            summary = "Augmenter la quantité d'un produit",
-            description = "Augmente de 1 la quantité d'un produit déjà présent dans le panier."
-    )
-    @PostMapping("/cart/items/{productId}/increase")
-    public ResponseEntity<CartResponseDTO> increaseProductQuantity(@PathVariable Long productId) {
-        CartResponseDTO cart = employeeService.increaseProductQuantity(productId);
-        return ResponseEntity.ok(cart);
-    }
 
     @Operation(
             summary = "Diminuer la quantité d'un produit",

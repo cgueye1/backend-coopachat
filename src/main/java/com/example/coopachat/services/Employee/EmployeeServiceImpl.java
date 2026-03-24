@@ -280,7 +280,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     // ============================================================================
     @Override
     @Transactional
-    public CartResponseDTO addProductToCart(Long productId) {
+    public CartResponseDTO addProductToCart(Long productId, int requestedQuantity ) {
 
         // 1. Récupérer l'employé concerné
         Users currentUser = getCurrentUser();
@@ -294,8 +294,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Produit introuvable"));
 
-        // Déterminer quantité (1 par défaut)
-        Integer requestedQuantity = 1;
 
         //Vérifier stock
         if (product.getCurrentStock() < requestedQuantity) {
@@ -310,18 +308,18 @@ public class EmployeeServiceImpl implements EmployeeService {
             // CAS : Déjà dans panier → augmenter quantité
 
             // Calculer nouvelle quantité totale
-            int newTotalQuantity = existingItem.getQuantity() + requestedQuantity;
+            int newTotalQuantity = existingItem.getQuantity() + 1;
 
             // Re-vérifier stock avec total
             if (product.getCurrentStock() < newTotalQuantity) {
-                throw new RuntimeException("Stock insuffisant pour quantité totale");
+                throw new RuntimeException("Stock insuffisant pour cette quantité");
             }
 
             // Mettre à jour
             existingItem.setQuantity(newTotalQuantity);
             cartItemRepository.save(existingItem);
         } else {
-            // CAS : Nouveau dans panier → créer article
+            // CAS : Nouveau dans panier → créer article avec la quantité choisie
 
             CartItem newItem = new CartItem();
             newItem.setEmployee(employee);
@@ -390,64 +388,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         response.setTotalQuantity(totalQuantity);
 
         return response;
-    }
-
-    @Override
-    @Transactional
-    public CartResponseDTO increaseProductQuantity(Long productId) {
-
-        // 1. Récupérer l'employé concerné
-        Users currentUser = getCurrentUser();
-        ensureCompanyActive(currentUser);
-
-        Employee employee = employeeRepository.findByUser(currentUser)
-                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
-
-
-        //Récupérer le produit
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Produit introuvable"));
-
-        // Chercher l'article existant pour le user connecté et le produit concerné
-        CartItem item = cartItemRepository.findByEmployeeAndProduct(employee, product).orElse(null);
-
-        // Si le produit n'est pas encore dans le panier, on le crée (comportement "smart" pour le bouton + extérieur)
-        if (item == null) {
-            if (product.getCurrentStock() < 1) {
-                throw new RuntimeException("Stock insuffisant");
-            }
-            CartItem newItem = new CartItem();
-            newItem.setEmployee(employee);
-            newItem.setUser(currentUser);
-            newItem.setProduct(product);
-            newItem.setQuantity(1);
-
-            BigDecimal unitPrice = product.getPrice();
-            newItem.setUnitPrice(unitPrice);
-
-            PromotionProduct activePromotionProduct = getActivePromotionForProduct(product);
-            if (activePromotionProduct != null && activePromotionProduct.getDiscountValue() != null) {
-                BigDecimal percent = activePromotionProduct.getDiscountValue();
-                BigDecimal promoPrice = calculatePromoPrice(unitPrice, percent);
-                newItem.setPromoPrice(promoPrice);
-                newItem.setHasPromo(true);
-            } else {
-                newItem.setPromoPrice(null);
-                newItem.setHasPromo(false);
-            }
-            cartItemRepository.save(newItem);
-            return getCart();
-        }
-
-        // Vérifier stock pour savoir si la quantité est suffisante ajouter à nouveau un produit dans le panier
-        if (product.getCurrentStock() <= item.getQuantity()) {
-            throw new RuntimeException("Stock insuffisant");
-
-        }
-        item.setQuantity(item.getQuantity() + 1);
-        cartItemRepository.save(item);
-
-        return getCart();
     }
 
     @Override
