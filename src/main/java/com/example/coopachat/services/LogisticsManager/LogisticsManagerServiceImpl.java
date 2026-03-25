@@ -1861,6 +1861,10 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             dto.setNotes(deliveryTour.getNotes());
         }
 
+        if (deliveryTour.getCancellationReason() != null && !deliveryTour.getCancellationReason().isBlank()) {
+            dto.setCancellationReason(deliveryTour.getCancellationReason());
+        }
+
         // Commandes : ordre de passage (validatedAt puis id), détails + récapitulatif
         if (deliveryTour.getOrders() != null && !deliveryTour.getOrders().isEmpty()) {
             List<Order> sortedOrders = new ArrayList<>(deliveryTour.getOrders());
