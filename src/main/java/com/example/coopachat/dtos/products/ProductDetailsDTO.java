@@ -21,6 +21,8 @@ public class ProductDetailsDTO {
     private String categoryName; // Nom de la catégorie
     private BigDecimal price; // Prix unitaire
     private Boolean status; // Statut actif/inactif (true = actif, false = inactif)
+    /** Quantité en stock (pour affichage / formulaire d’édition). */
+    private Integer currentStock;
     private String currentStockStatus; //statut (En Stock/Rupture)
 }
 
