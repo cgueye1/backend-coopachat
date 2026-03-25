@@ -41,4 +41,7 @@ public class DeliveryTourDetailsDTO {
     /** Note / commentaire sur la tournée (optionnel). */
     private String notes;
 
+    /** Motif d'annulation (entité {@code DeliveryTour.cancellationReason}) si la tournée est annulée. */
+    private String cancellationReason;
+
 }
