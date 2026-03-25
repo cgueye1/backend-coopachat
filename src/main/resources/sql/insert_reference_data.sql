@@ -1,8 +1,0 @@
--- =============================================================================
--- Référentiels gérés par l'admin (aucune insertion ici).
--- L'admin paramètre tout via l'API :
---   GET/POST/PUT/DELETE /api/admin/claim-problem-types
---   GET/POST/PUT/DELETE /api/admin/delivery-issue-reasons
---   GET/POST/PUT/DELETE /api/admin/employee-delivery-issue-reasons
---   GET/POST/PUT/DELETE /api/admin/company-sectors
--- =============================================================================

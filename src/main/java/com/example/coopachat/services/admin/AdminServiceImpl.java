@@ -1127,7 +1127,7 @@ public class AdminServiceImpl implements AdminService {
         long payes = paymentRepository.countByStatus(PaymentStatus.PAID);
         paiementsParStatut.add(new PaymentStatusItemDTO(PaymentStatus.PAID.getLabel(), payes));
         long enAttente = paymentRepository.countByStatus(PaymentStatus.UNPAID);
-        paiementsParStatut.add(new PaymentStatusItemDTO(PaymentStatus.PENDING.getLabel(), enAttente));
+        paiementsParStatut.add(new PaymentStatusItemDTO(PaymentStatus.UNPAID.getLabel(), enAttente));
         long echoues = paymentRepository.countByStatus(PaymentStatus.FAILED);
         paiementsParStatut.add(new PaymentStatusItemDTO(PaymentStatus.FAILED.getLabel(), echoues));
 
@@ -1525,6 +1525,7 @@ public class AdminServiceImpl implements AdminService {
         dto.setCategoryName(product.getCategory().getName());
         dto.setPrice(product.getPrice());
         dto.setStatus(product.getStatus());
+        dto.setCurrentStock(product.getCurrentStock() != null ? product.getCurrentStock() : 0);
         dto.setCurrentStockStatus(getStockStatus(product.getCurrentStock())); // "En stock" ou "Rupture" (EtatStock)
         return dto;
     }
