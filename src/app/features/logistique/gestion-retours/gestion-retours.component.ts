@@ -50,6 +50,7 @@ export class GestionRetoursComponent {
   ];
   showRefundModal = false;
   refundAmount: number | null = null;
+  isRefundSubmitting = false;
   showRejectModal = false;
   rejectReason = '';
   selectedClaimToReject: ClaimListItem | null = null;
@@ -252,7 +253,8 @@ export class GestionRetoursComponent {
         error: (err) => this.showError(err?.error ?? 'Erreur lors de la validation')
       });
     } else {
-      this.closeValidationModal();
+      // Important: on garde selectedClaim pour l'appel API de remboursement.
+      this.showValidationModal = false;
       this.showRefundModal = true;
       this.refundAmount = null;
     }
@@ -264,26 +266,46 @@ export class GestionRetoursComponent {
   }
 
   closeRefundModal(): void {
+    if (this.isRefundSubmitting) return;
     this.showRefundModal = false;
     this.refundAmount = null;
     this.selectedClaim = null;
   }
 
   saveRefund(): void {
-    if (!this.selectedClaim || this.refundAmount == null || this.refundAmount <= 0) {
+    if (this.isRefundSubmitting) {
       return;
     }
+    if (!this.selectedClaim) {
+      this.showError('Réclamation introuvable pour le remboursement');
+      return;
+    }
+    if (this.refundAmount == null || this.refundAmount <= 0) {
+      this.showError('Veuillez saisir un montant de remboursement valide');
+      return;
+    }
+    const maxRefund = this.selectedDetail?.subtotalProduct;
+    //On vérifie que le montant remboursé ne dépasse pas le montant total de la commande
+    if (maxRefund != null && this.refundAmount > Number(maxRefund)) {
+      this.showError(`Le montant remboursé ne peut pas dépasser ${Number(maxRefund).toLocaleString('fr-FR')} Fcfa`);
+      return;
+    }
+    this.isRefundSubmitting = true;
     this.logisticsService.validateClaim(this.selectedClaim.claimId, {
       decisionType: 'REMBOURSEMENT',
       refundAmount: this.refundAmount
     }).subscribe({
       next: () => {
+        this.isRefundSubmitting = false;
         this.closeRefundModal();
         this.showRefundSuccessMessage();
         this.loadStats();
         this.loadClaims();
       },
-      error: (err) => this.showError(err?.error ?? 'Erreur lors du remboursement')
+      error: (err) => {
+        this.isRefundSubmitting = false;
+        this.showError(err?.error ?? 'Erreur lors du remboursement');
+      }
     });
   }
 

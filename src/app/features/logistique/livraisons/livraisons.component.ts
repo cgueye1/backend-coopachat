@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { LogisticsService, EligibleOrder, EligibleOrderLot, AvailableDriver, DeliveryTourListItem, DeliveryTourDetails, DeliveryPlanningCalendarDay, OrderInTour } from '../../../shared/services/logistics.service';
 import { PAGE_SIZE_OPTIONS } from '../../../shared/constants/pagination';
+import { finalize } from 'rxjs';
 import Swal from 'sweetalert2';
 
 // MODIF: interfaces conservées pour les métriques (pourraient venir de l'API plus tard)
@@ -11,6 +12,16 @@ interface Metric {
   title: string;
   value: string;
   icon: string;
+}
+
+/** Une entrée du menu « … » sur une ligne de tournée (références stables pour *ngFor). */
+interface TourRowActionOption {
+  label: string;
+  icon: string;
+  action: string;
+  color?: string;
+  disabled?: boolean;
+  tooltip?: string;
 }
 
 
@@ -279,6 +290,15 @@ export class LivraisonsComponent implements OnInit {
     return { type: line, plate: '—' };
   }
 
+  /** Motif d'annulation (champ API `cancellationReason` uniquement). */
+  get cancellationReasonText(): string {
+    const d = this.selectedTourDetails;
+    if (!d || d.status !== 'ANNULEE') {
+      return '';
+    }
+    return (d.cancellationReason ?? '').trim();
+  }
+
   // Modal Logic (MODIF: types alignés sur l'API tournées)
   showModal = false;
   // Vue calendrier (vue globale avant planification)
@@ -299,6 +319,8 @@ export class LivraisonsComponent implements OnInit {
   /** Détails complets de la tournée (chargés via API à l'ouverture du modal). */
   selectedTourDetails: DeliveryTourDetails | null = null;
   loadingTourDetails = false;
+  /** Message si GET détails échoue (droits, réseau, etc.). */
+  tourDetailsLoadError: string | null = null;
   showCommandesDropdown = false;
   showReportModal = false;
   showEditModal = false;
@@ -351,6 +373,22 @@ export class LivraisonsComponent implements OnInit {
   loadingDrivers = false;
   loadingLots = false;
 
+  /** Autocomplete livreur — étape Planifier (étape 3). */
+  planDriverSearchQuery = '';
+  planDriverDropdownOpen = false;
+  private planDriverInputLock = false;
+
+  /** Autocomplete livreur — modal Modifier. */
+  editDriverSearchQuery = '';
+  editDriverDropdownOpen = false;
+  private editDriverInputLock = false;
+  /** POST création tournée (bouton Planifier). */
+  savingNewTour = false;
+  /** PATCH modification tournée (bouton Enregistrer). */
+  savingEditTour = false;
+  /** POST annulation tournée (modal Annuler). */
+  cancellingTour = false;
+
   // Pour le modal Modifier (données chargées via API)
   editTourDetails: DeliveryTourDetails | null = null;
   /** IDs des commandes cochées dans le modal Modifier (pour pouvoir décocher). */
@@ -383,6 +421,8 @@ export class LivraisonsComponent implements OnInit {
     this.planifierStep = 2;
     this.loadLotsMessage = '';
     this.showCommandesDropdown = false;
+    this.planDriverSearchQuery = '';
+    this.planDriverDropdownOpen = false;
     this.newTournee = {
       deliveryDate: '',
       driverId: null,
@@ -566,12 +606,21 @@ export class LivraisonsComponent implements OnInit {
         this.availableDrivers = list || [];
         if (this.newTournee.driverId != null && !this.availableDrivers.some((d) => d.driverId === this.newTournee.driverId)) {
           this.newTournee.driverId = null;
+          this.planDriverSearchQuery = '';
+        }
+        if (this.newTournee.driverId != null) {
+          const picked = this.availableDrivers.find((x) => x.driverId === this.newTournee.driverId);
+          if (picked) {
+            this.planDriverSearchQuery = picked.fullName ?? '';
+          }
         }
         this.loadingDrivers = false;
       },
       error: () => {
         this.loadingDrivers = false;
         this.availableDrivers = [];
+        this.planDriverSearchQuery = '';
+        this.newTournee.driverId = null;
       }
     });
   }
@@ -664,21 +713,155 @@ export class LivraisonsComponent implements OnInit {
   }
 
   closeModal() {
+    this.savingNewTour = false;
     this.showModal = false;
     this.planifierStep = 2;
     this.showCommandesDropdown = false;
+    this.planDriverSearchQuery = '';
+    this.planDriverDropdownOpen = false;
+  }
+
+  /** Filtre livreurs par nom (autocomplete). */
+  private filterDriversByQuery(list: AvailableDriver[], q: string): AvailableDriver[] {
+    const t = q.trim().toLowerCase();
+    if (!t) {
+      return list;
+    }
+    return list.filter((d) => (d.fullName ?? '').toLowerCase().includes(t));
+  }
+
+  get filteredPlanningDrivers(): AvailableDriver[] {
+    return this.filterDriversByQuery(this.availableDrivers, this.planDriverSearchQuery);
+  }
+
+  get filteredEditDrivers(): AvailableDriver[] {
+    return this.filterDriversByQuery(this.availableDrivers, this.editDriverSearchQuery);
+  }
+
+  selectPlanDriver(event: MouseEvent, d: AvailableDriver) {
+    event.preventDefault();
+    this.planDriverInputLock = true;
+    this.newTournee.driverId = d.driverId;
+    this.planDriverSearchQuery = d.fullName ?? '';
+    this.planDriverDropdownOpen = false;
+    this.errors.driverId = '';
+    queueMicrotask(() => {
+      this.planDriverInputLock = false;
+    });
+  }
+
+  onPlanDriverInput() {
+    if (this.planDriverInputLock) {
+      return;
+    }
+    this.errors.driverId = '';
+    this.newTournee.driverId = null;
+  }
+
+  onPlanDriverFocus() {
+    this.planDriverDropdownOpen = true;
+  }
+
+  onPlanDriverBlur() {
+    setTimeout(() => {
+      this.planDriverDropdownOpen = false;
+    }, 200);
+  }
+
+  togglePlanDriverDropdown(event: MouseEvent) {
+    event.preventDefault();
+    if (this.loadingDrivers) {
+      return;
+    }
+    this.planDriverDropdownOpen = !this.planDriverDropdownOpen;
+  }
+
+  selectEditDriver(event: MouseEvent, d: AvailableDriver) {
+    event.preventDefault();
+    this.editDriverInputLock = true;
+    this.editTourDriverId = d.driverId;
+    this.editDriverSearchQuery = d.fullName ?? '';
+    this.editDriverDropdownOpen = false;
+    this.errors.chauffeur = '';
+    queueMicrotask(() => {
+      this.editDriverInputLock = false;
+    });
+  }
+
+  onEditDriverInput() {
+    if (this.editDriverInputLock) {
+      return;
+    }
+    this.errors.chauffeur = '';
+    this.editTourDriverId = null;
+  }
+
+  onEditDriverFocus() {
+    this.editDriverDropdownOpen = true;
+  }
+
+  onEditDriverBlur() {
+    setTimeout(() => {
+      this.editDriverDropdownOpen = false;
+    }, 200);
+  }
+
+  toggleEditDriverDropdown(event: MouseEvent) {
+    event.preventDefault();
+    if (this.loadingDrivers) {
+      return;
+    }
+    this.editDriverDropdownOpen = !this.editDriverDropdownOpen;
+  }
+
+  /** Étape 2 → 3 : lots chargés + au moins une commande cochée. */
+  get canGoToPlanningStep3(): boolean {
+    return (
+      !this.loadingLots &&
+      this.groupedLots.length > 0 &&
+      this.newTournee.orderIds.length > 0
+    );
+  }
+
+  /** Validation live de la plaque en étape 3 (AA-12345-AB). */
+  get isPlanningPlateInvalid(): boolean {
+    const plateRaw = this.newTournee.vehiclePlate?.trim() || '';
+    if (!plateRaw) return false;
+    return !LivraisonsComponent.VEHICLE_PLATE_REGEX.test(plateRaw.toUpperCase());
+  }
+
+  /** Étape 3 : champs obligatoires remplis avant envoi API. */
+  get canSubmitPlanningTour(): boolean {
+    if (this.planifierStep !== 3 || this.savingNewTour || this.loadingDrivers) {
+      return false;
+    }
+    if (!this.newTournee.deliveryDate?.trim() || this.newTournee.orderIds.length === 0) {
+      return false;
+    }
+    if (this.newTournee.driverId == null) {
+      return false;
+    }
+    const plateRaw = this.newTournee.vehiclePlate?.trim() || '';
+    if (!plateRaw || this.isPlanningPlateInvalid) {
+      return false;
+    }
+    return !!this.newTournee.vehicleType?.trim();
   }
 
   /** Passer à l’étape suivante (2→3). */
   nextPlanifierStep() {
     if (this.planifierStep === 2) {
+      this.errors.orderIds = '';
+      if (this.loadingLots) {
+        return;
+      }
       if (this.groupedLots.length === 0) {
         this.loadLotsMessage = 'Aucun lot chargé. Revenez au calendrier et cliquez sur "Voir les lots".';
         return;
       }
-      // On peut passer à l'étape 3 même sans sélection (validation au Planifier)
-      if (false && this.newTournee.orderIds.length === 0) {
-        return; // on peut bloquer ou laisser passer et valider à l’envoi
+      if (this.newTournee.orderIds.length === 0) {
+        this.errors.orderIds = 'Sélectionnez au moins une commande pour cette tournée.';
+        return;
       }
       this.planifierStep = 3;
       this.loadAvailableDrivers();
@@ -713,6 +896,9 @@ export class LivraisonsComponent implements OnInit {
       this.newTournee.orderIds.splice(idx, 1);
     } else {
       this.newTournee.orderIds.push(id);
+    }
+    if (this.newTournee.orderIds.length > 0) {
+      this.errors.orderIds = '';
     }
   }
 
@@ -784,6 +970,19 @@ export class LivraisonsComponent implements OnInit {
   }
 
   saveTournee() {
+    if (this.planifierStep !== 3) {
+      void Swal.fire({
+        icon: 'warning',
+        title: 'Étapes incomplètes',
+        text: 'Validez d’abord l’étape des lots (commandes à inclure), puis l’attribution (livreur, véhicule), avant de planifier.',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+    if (this.loadingLots || this.loadingDrivers) {
+      return;
+    }
+
     this.errors = {
       deliveryDate: '',
       driverId: '',
@@ -839,65 +1038,101 @@ export class LivraisonsComponent implements OnInit {
       notes: this.newTournee.notes?.trim() || undefined
     };
 
-    this.logistics.createDeliveryTour(payload).subscribe({
-      next: () => {
-        Swal.fire({ title: 'Succès', text: 'Tournée créée avec succès', icon: 'success', confirmButtonText: 'OK' });
-        this.closeModal();
-        this.loadDeliveryTours();
-        this.loadDeliveryTourStats();
-        // Rafraîchir le calendrier immédiatement (sans rechargement de page)
-        // pour que les commandes nouvellement planifiées ne restent pas visibles.
-        this.loadPlanningCalendar();
-        // Si le calendrier était ouvert / une date sélectionnée, on force un reset de la sélection
-        // pour éviter d'afficher un tiroir basé sur des compteurs périmés.
-        this.selectedCalendarDay = null;
-        this.showCalendarQuickPlan = false;
-      },
-      error: (err) => {
-        const msg = err?.error?.message || err?.message || 'Erreur lors de la création de la tournée';
-        const isNetworkError = err?.status === 0 || (typeof msg === 'string' && msg.toLowerCase().includes('fetch'));
-        const displayMsg = isNetworkError
-          ? 'Impossible de joindre le serveur. Vérifiez que le back-office est démarré (port 8082) et que la base de données est à jour (enum status, updated_by_id).'
-          : msg;
-        Swal.fire({ title: 'Erreur', text: displayMsg, icon: 'error', confirmButtonText: 'OK' });
-      }
-    });
+    this.savingNewTour = true;
+    this.logistics
+      .createDeliveryTour(payload)
+      .pipe(finalize(() => (this.savingNewTour = false)))
+      .subscribe({
+        next: () => {
+          Swal.fire({ title: 'Succès', text: 'Tournée créée avec succès', icon: 'success', confirmButtonText: 'OK' });
+          this.closeModal();
+          this.loadDeliveryTours();
+          this.loadDeliveryTourStats();
+          this.loadPlanningCalendar();
+          this.selectedCalendarDay = null;
+          this.showCalendarQuickPlan = false;
+        },
+        error: (err) => {
+          const msg = err?.error?.message || err?.message || 'Erreur lors de la création de la tournée';
+          const isNetworkError = err?.status === 0 || (typeof msg === 'string' && msg.toLowerCase().includes('fetch'));
+          const displayMsg = isNetworkError
+            ? 'Impossible de joindre le serveur. Vérifiez que le back-office est démarré (port 8082) et que la base de données est à jour (enum status, updated_by_id).'
+            : msg;
+          Swal.fire({ title: 'Erreur', text: displayMsg, icon: 'error', confirmButtonText: 'OK' });
+        }
+      });
   }
 
   // Action Menu Logic (MODIF: id peut être number pour les tournées API)
   activeActionId: string | number | null = null;
   menuPosition = { left: 0, top: 0 };
 
-  /** Menu actions : Voir détails ; Modifier (Assignée actif, En cours grisé) ; Annuler si Assignée. */
-  private readonly actionView: { label: string; icon: string; action: string; color?: string } = { label: 'Voir détails', icon: '/icones/voir details.svg', action: 'view' };
-  private readonly actionEdit: { label: string; icon: string; action: string; color?: string } = { label: 'Modifier', icon: '/icones/modifier.svg', action: 'edit' };
-  private readonly actionCancel: { label: string; icon: string; action: string; color?: string } = { label: 'Annuler la tournée', icon: '/icones/alerte.svg', action: 'cancel', color: 'text-red-600' };
+  /**
+   * Cache des entrées de menu par statut : même référence de tableau / d’objets à chaque CD.
+   * Sans cela, *ngFor recréait les lignes (et les <img>) à chaque cycle ; l’événement load des images
+   * relançait Zone.js → détection des changements en boucle → gel du navigateur (« Page ne répond pas »).
+   */
+  private readonly tourActionOptionsByStatus = new Map<string, TourRowActionOption[]>();
 
-  getTourActionOptions(item: DeliveryTourListItem): Array<{ label: string; icon: string; action: string; color?: string; disabled?: boolean; tooltip?: string }> {
-    const options: Array<{ label: string; icon: string; action: string; color?: string; disabled?: boolean; tooltip?: string }> = [this.actionView];
-    if (item.status === 'ASSIGNEE' || item.status === 'EN_COURS') {
-      options.push({
-        ...this.actionEdit,
-        disabled: item.status === 'EN_COURS',
-        tooltip: item.status === 'EN_COURS' ? 'Tournée déjà démarrée' : undefined
-      });
-    }
-    if (item.status === 'ASSIGNEE') {
-      options.push(this.actionCancel);
-    }
-    return options;
+  /** trackBy lignes tournées */
+  trackByTourId(_index: number, item: DeliveryTourListItem): number {
+    return item.id;
   }
 
-  onTourActionClick(
-    option: { action: string; disabled?: boolean; tooltip?: string },
-    item: DeliveryTourListItem,
-    event: Event
-  ) {
+  /** trackBy entrées du menu contextuel */
+  trackByTourActionOption(_index: number, option: TourRowActionOption): string {
+    return `${option.action}-${option.disabled ? '1' : '0'}`;
+  }
+
+  private ensureTourActionMenusInitialized(): void {
+    if (this.tourActionOptionsByStatus.size > 0) {
+      return;
+    }
+    const view: TourRowActionOption = { label: 'Voir détails', icon: '/icones/voir details.svg', action: 'view' };
+    const editOff: TourRowActionOption = {
+      label: 'Modifier',
+      icon: '/icones/modifier.svg',
+      action: 'edit',
+      disabled: true,
+      tooltip: 'Tournée déjà démarrée'
+    };
+    const editOn: TourRowActionOption = {
+      label: 'Modifier',
+      icon: '/icones/modifier.svg',
+      action: 'edit',
+      disabled: false
+    };
+    const cancel: TourRowActionOption = {
+      label: 'Annuler la tournée',
+      icon: '/icones/alerte.svg',
+      action: 'cancel',
+      color: 'text-red-600'
+    };
+    const viewOnly: TourRowActionOption[] = [view];
+    this.tourActionOptionsByStatus.set('ASSIGNEE', [view, editOn, cancel]);
+    this.tourActionOptionsByStatus.set('EN_COURS', [view, editOff]);
+    this.tourActionOptionsByStatus.set('TERMINEE', viewOnly);
+    this.tourActionOptionsByStatus.set('ANNULEE', viewOnly);
+  }
+
+  getTourActionOptions(item: DeliveryTourListItem): TourRowActionOption[] {
+    this.ensureTourActionMenusInitialized();
+    const key = item.status ?? '';
+    const cached = this.tourActionOptionsByStatus.get(key);
+    if (cached) {
+      return cached;
+    }
+    const fallback = this.tourActionOptionsByStatus.get('TERMINEE')!;
+    return fallback;
+  }
+
+  onTourActionClick(option: TourRowActionOption, item: DeliveryTourListItem, event: Event) {
     if (option.disabled) {
       event.preventDefault();
       event.stopPropagation();
       return;
     }
+    event.stopPropagation();
     this.handleAction(option.action, item);
   }
 
@@ -930,20 +1165,34 @@ export class LivraisonsComponent implements OnInit {
   openDetailModal(tour: DeliveryTourListItem) {
     this.selectedLivraison = tour;
     this.selectedTourDetails = null;
+    this.tourDetailsLoadError = null;
     this.showDetailModal = true;
     this.loadTourDetails(tour.id);
   }
 
   loadTourDetails(tourId: number) {
     this.loadingTourDetails = true;
+    this.tourDetailsLoadError = null;
     this.logistics.getDeliveryTourDetails(tourId).subscribe({
       next: (details) => {
         this.selectedTourDetails = details;
         this.loadingTourDetails = false;
       },
-      error: () => {
+      error: (err: unknown) => {
         this.loadingTourDetails = false;
         this.selectedTourDetails = null;
+        const status = (err as { status?: number })?.status;
+        if (status === 401 || status === 403) {
+          this.tourDetailsLoadError =
+            'Accès refusé ou session expirée. Reconnectez-vous ou vérifiez les droits logistique.';
+        } else if (status === 404) {
+          this.tourDetailsLoadError = 'Cette tournée est introuvable (déjà supprimée ou identifiant invalide).';
+        } else if (status === 0 || status === undefined) {
+          this.tourDetailsLoadError =
+            'Impossible de joindre le serveur. Vérifiez la connexion et que l’API est démarrée.';
+        } else {
+          this.tourDetailsLoadError = 'Impossible de charger le détail de la tournée. Réessayez plus tard.';
+        }
       }
     });
   }
@@ -952,6 +1201,7 @@ export class LivraisonsComponent implements OnInit {
     this.showDetailModal = false;
     this.selectedLivraison = null;
     this.selectedTourDetails = null;
+    this.tourDetailsLoadError = null;
   }
 
   /** Format date API (yyyy-MM-dd | dd-MM-yyyy | dd/MM/yyyy) vers affichage dd/MM/yyyy */
@@ -1007,6 +1257,7 @@ export class LivraisonsComponent implements OnInit {
         this.editTourSelectedOrderIds = (details.orders ?? []).map(o => o.orderId);
         this.editTourDeliveryDateIso = dateStr;
         this.editTourDriverId = details.driverId ?? null;
+        this.editDriverSearchQuery = (details.driverName ?? '').trim();
         this.ensureAvailableDriversForEdit();
         this.loadingEditDetails = false;
       },
@@ -1016,6 +1267,7 @@ export class LivraisonsComponent implements OnInit {
         this.editTourSelectedOrderIds = [];
         this.editTourDeliveryDateIso = '';
         this.editTourDriverId = null;
+        this.editDriverSearchQuery = '';
       }
     });
   }
@@ -1031,12 +1283,21 @@ export class LivraisonsComponent implements OnInit {
         this.availableDrivers = list || [];
         if (this.editTourDriverId != null && !this.availableDrivers.some((d) => d.driverId === this.editTourDriverId)) {
           this.editTourDriverId = null;
+          this.editDriverSearchQuery = '';
+        }
+        if (this.editTourDriverId != null) {
+          const picked = this.availableDrivers.find((x) => x.driverId === this.editTourDriverId);
+          if (picked) {
+            this.editDriverSearchQuery = picked.fullName ?? '';
+          }
         }
         this.loadingDrivers = false;
       },
       error: () => {
         this.availableDrivers = [];
         this.loadingDrivers = false;
+        this.editDriverSearchQuery = '';
+        this.editTourDriverId = null;
       }
     });
   }
@@ -1117,36 +1378,45 @@ export class LivraisonsComponent implements OnInit {
   cancelTournee(tour: DeliveryTourListItem) {
     this.selectedLivraisonToCancel = tour;
     this.cancelReason = '';
+    this.cancellingTour = false;
     this.showCancelModal = true;
   }
 
   closeCancelModal() {
+    this.cancellingTour = false;
     this.showCancelModal = false;
     this.selectedLivraisonToCancel = null;
     this.cancelReason = '';
   }
 
   confirmCancelTournee() {
+    if (this.cancellingTour) {
+      return;
+    }
     if (!this.cancelReason.trim()) {
       return;
     }
     const tour = this.selectedLivraisonToCancel;
     if (!tour) return;
-    this.logistics.cancelDeliveryTour(tour.id, { reason: this.cancelReason.trim() }).subscribe({
-      next: () => {
-        this.closeCancelModal();
-        this.showCancelSuccessMessage();
-        this.closeDetailModal();
-        this.loadDeliveryTours();
-        this.loadDeliveryTourStats();
-      },
-      error: (err: unknown) => {
-        const msg = (err as { error?: { message?: string }; message?: string })?.error?.message
-          ?? (err as { message?: string })?.message
-          ?? 'Erreur lors de l\'annulation de la tournée.';
-        Swal.fire({ title: 'Erreur', text: msg, icon: 'error', confirmButtonText: 'OK' });
-      }
-    });
+    this.cancellingTour = true;
+    this.logistics
+      .cancelDeliveryTour(tour.id, { reason: this.cancelReason.trim() })
+      .pipe(finalize(() => (this.cancellingTour = false)))
+      .subscribe({
+        next: () => {
+          this.closeCancelModal();
+          this.showCancelSuccessMessage();
+          this.closeDetailModal();
+          this.loadDeliveryTours();
+          this.loadDeliveryTourStats();
+        },
+        error: (err: unknown) => {
+          const msg = (err as { error?: { message?: string }; message?: string })?.error?.message
+            ?? (err as { message?: string })?.message
+            ?? 'Erreur lors de l\'annulation de la tournée.';
+          Swal.fire({ title: 'Erreur', text: msg, icon: 'error', confirmButtonText: 'OK' });
+        }
+      });
   }
 
   showSuccessMessage() {
@@ -1286,12 +1556,17 @@ export class LivraisonsComponent implements OnInit {
       note: ''
     };
     this.errors = { date: '', chauffeur: '', vehicule: '' };
+    this.editDriverSearchQuery = '';
+    this.editDriverDropdownOpen = false;
     this.showEditModal = true;
     this.loadTourDetailsForEdit(tour.id);
   }
 
   closeEditModal() {
+    this.savingEditTour = false;
     this.showEditModal = false;
+    this.editDriverSearchQuery = '';
+    this.editDriverDropdownOpen = false;
     this.selectedLivraisonToEdit = null;
     this.editTourDetails = null;
     this.editTourSelectedOrderIds = [];
@@ -1370,33 +1645,37 @@ export class LivraisonsComponent implements OnInit {
     const tour = this.selectedLivraisonToEdit;
     if (!tour) return;
     const vehicleInfo = veh.replace(/[A-Za-z]{2}-\d{5}-[A-Za-z]{2}/g, (m: string) => m.toUpperCase());
-    this.logistics.updateDeliveryTour(tour.id, {
-      vehicleInfo,
-      notes: this.editTournee.note?.trim() || null,
-      orderIds: this.editTourSelectedOrderIds,
-      deliveryDate: this.editTourDeliveryDateIso.trim(),
-      driverId: this.editTourDriverId
-    }).subscribe({
-      next: () => {
-        this.closeEditModal();
-        this.showEditSuccessMessage();
-        this.loadDeliveryTours();
-        this.loadDeliveryTourStats();
-      },
-      error: (err: unknown) => {
-        const e = err as { error?: { message?: string } | string; message?: string };
-        let msg: string | null = null;
-        if (typeof e?.error === 'string' && e.error.trim()) {
-          msg = e.error;
-        } else if (typeof e?.error === 'object' && e?.error?.message) {
-          msg = String(e.error.message);
+    this.savingEditTour = true;
+    this.logistics
+      .updateDeliveryTour(tour.id, {
+        vehicleInfo,
+        notes: this.editTournee.note?.trim() || null,
+        orderIds: this.editTourSelectedOrderIds,
+        deliveryDate: this.editTourDeliveryDateIso.trim(),
+        driverId: this.editTourDriverId
+      })
+      .pipe(finalize(() => (this.savingEditTour = false)))
+      .subscribe({
+        next: () => {
+          this.closeEditModal();
+          this.showEditSuccessMessage();
+          this.loadDeliveryTours();
+          this.loadDeliveryTourStats();
+        },
+        error: (err: unknown) => {
+          const e = err as { error?: { message?: string } | string; message?: string };
+          let msg: string | null = null;
+          if (typeof e?.error === 'string' && e.error.trim()) {
+            msg = e.error;
+          } else if (typeof e?.error === 'object' && e?.error?.message) {
+            msg = String(e.error.message);
+          }
+          if (!msg) {
+            msg = e?.message ?? 'Erreur lors de la modification.';
+          }
+          Swal.fire({ title: 'Erreur', text: String(msg), icon: 'error', confirmButtonText: 'OK' });
         }
-        if (!msg) {
-          msg = e?.message ?? 'Erreur lors de la modification.';
-        }
-        Swal.fire({ title: 'Erreur', text: String(msg), icon: 'error', confirmButtonText: 'OK' });
-      }
-    });
+      });
   }
 
   showEditSuccessMessage() {
@@ -1424,7 +1703,12 @@ export class LivraisonsComponent implements OnInit {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
-    if (this.activeActionId) {
+    const t = event.target;
+    // SVG (path, etc.) n’est pas HTMLElement : closest doit quand même être testé.
+    if (t instanceof Element && typeof t.closest === 'function' && t.closest('[data-tour-actions]')) {
+      return;
+    }
+    if (this.activeActionId !== null) {
       this.activeActionId = null;
     }
   }

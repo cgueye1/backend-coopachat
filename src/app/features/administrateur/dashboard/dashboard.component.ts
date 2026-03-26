@@ -78,7 +78,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
       icon: '/icones/temps.svg'
     },
     {
-      title: 'Réclamations ouvertes',
+      title: 'Réclamations à traiter',
       value: '—',//valeur par défaut
       icon: '/icones/users.svg'
     }
@@ -90,7 +90,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
    */
   paymentStatusData: PaymentStatusSlice[] = [
     { status: 'Payé', value: 0, color: '#22C55F' },
-    { status: 'En attente de confirmation', value: 0, color: '#EAB308' },
+    { status: 'Impayé', value: 0, color: '#EAB308' },
     { status: 'Échoué', value: 0, color: '#FFD3D3' }
   ];
 
@@ -290,7 +290,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
         // 2) Mapper la réponse "paiements par statut" vers le format du graphique (status, value, color)
         const colors: Record<string, string> = {
           'Payé': '#22C55F',//couleur du statut Payé
-          'En attente de confirmation': '#FFE7C2',//couleur du statut En attente de confirmation
+          'Impayé': '#FFE7C2',//couleur du statut Impayé
           'Échoué': '#FFD3D3',//couleur du statut Échoué
         };
         //on mappe la réponse "paiements par statut" vers le format du graphique (status, value, color)

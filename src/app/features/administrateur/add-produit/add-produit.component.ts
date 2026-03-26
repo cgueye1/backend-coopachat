@@ -86,6 +86,10 @@ export class AddProduitComponent implements OnInit {
           this.newProduct.categoryId = this.findCategoryIdByName(this.newProduct.categoryName);
           this.categorySearchText = this.newProduct.categoryName ?? '';
           this.newProduct.price = details?.price ?? this.newProduct.price;
+          const s = details?.currentStock;
+          if (s !== undefined && s !== null) {
+            this.newProduct.stock = typeof s === 'number' ? s : Number(s);
+          }
           this.imageRemoved = false;
           if (details?.image) {
             this.imagePreview = this.buildImageUrl(details.image);
@@ -276,6 +280,9 @@ export class AddProduitComponent implements OnInit {
           formData.append('description', this.newProduct.description);
         }
         formData.append('minThreshold', '0');
+        if (this.newProduct.stock != null) {
+          formData.append('currentStock', String(this.newProduct.stock));
+        }
         if (this.imageRemoved) {
           formData.append('removeImage', 'true');
         }

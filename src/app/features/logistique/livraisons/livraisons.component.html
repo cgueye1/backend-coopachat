@@ -148,7 +148,7 @@
                 </div>
 
                     <!-- Lignes (données API) -->
-                    <div *ngFor="let item of deliveryTours"
+                    <div *ngFor="let item of deliveryTours; trackBy: trackByTourId"
                         class="grid grid-cols-1 lg:grid-cols-7 gap-3 lg:gap-0 border border-gray-100 lg:border-0 lg:border-b lg:border-gray-100 rounded-xl lg:rounded-none mb-3 lg:mb-0 hover:shadow-md lg:hover:shadow-none hover:bg-gray-50 transition-all p-3 sm:p-4 lg:p-0">
                         <div class="lg:py-3 lg:px-4">
                             <div class="lg:hidden text-xs text-gray-500 mb-1">N° Tour</div>
@@ -179,8 +179,8 @@
                         </span>
                     </div>
                         <div class="lg:py-3 lg:px-4 lg:text-center flex items-center justify-end lg:justify-center">
-                        <div class="relative inline-block">
-                            <button (click)="toggleActionMenu(item.id, $event)"
+                        <div class="relative inline-block" data-tour-actions>
+                            <button type="button" (click)="toggleActionMenu(item.id, $event)"
                                 class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 hover:bg-[#F0F5FA] hover:rounded-full">
                                 <svg width="6" height="21" viewBox="0 0 6 21" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">
@@ -191,7 +191,7 @@
                             </button>
                             <div *ngIf="activeActionId === item.id"
                                 class="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
-                                <button *ngFor="let option of getTourActionOptions(item)" type="button"
+                                <button *ngFor="let option of getTourActionOptions(item); trackBy: trackByTourActionOption" type="button"
                                     (click)="onTourActionClick(option, item, $event)"
                                     [disabled]="option.disabled === true"
                                     [title]="option.tooltip || ''"
@@ -344,8 +344,10 @@
 
                     <div class="p-5 border-t border-gray-100">
                         <button type="button" (click)="startPlanningFromCalendar()"
-                            class="w-full py-3 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-xl font-medium text-sm">
-                            Voir les lots ↗
+                            [disabled]="loadingLots"
+                            class="w-full py-3 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#2C2D5B]">
+                            <span *ngIf="loadingLots" class="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin shrink-0" aria-hidden="true"></span>
+                            {{ loadingLots ? 'Chargement des lots…' : 'Voir les lots ↗' }}
                         </button>
                     </div>
                 </div>
@@ -388,6 +390,16 @@
 
             <!-- Chargement -->
             <div *ngIf="loadingTourDetails" class="p-8 text-center text-gray-500">Chargement des détails...</div>
+
+            <!-- Erreur API (403, réseau, etc.) — évite un modal vide « bloqué » -->
+            <div *ngIf="!loadingTourDetails && !selectedTourDetails && tourDetailsLoadError"
+                class="p-8 text-center space-y-4">
+                <p class="text-red-600 text-sm">{{ tourDetailsLoadError }}</p>
+                <button type="button" (click)="closeDetailModal()"
+                    class="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#2B3674] px-8 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1a214d] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2B3674]/40 focus-visible:ring-offset-2">
+                    Fermer
+                </button>
+            </div>
 
             <!-- Body : 3 blocs (infos tournée / commandes / récap) -->
             <div *ngIf="!loadingTourDetails && selectedTourDetails" class="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6">
@@ -432,6 +444,14 @@
                                 <span class="font-medium text-[#2C3E50]">{{ tourDetailVehicleParts.type !== '—' ? tourDetailVehicleParts.type : tourVehicleLine(selectedTourDetails, selectedLivraison.vehicle) }}</span>
                             </ng-template>
                         </span>
+                    </div>
+                    <div *ngIf="selectedTourDetails.notes?.trim()" class="rounded-xl border border-gray-200 bg-white px-3 py-3 mt-2">
+                        <div class="text-xs text-gray-500 font-semibold mb-1">Notes</div>
+                        <div class="text-sm text-[#2C3E50] whitespace-pre-wrap">{{ selectedTourDetails.notes }}</div>
+                    </div>
+                    <div *ngIf="(selectedTourDetails.status === 'ANNULEE')" class="rounded-xl border border-red-200 bg-red-50 px-3 py-3">
+                        <div class="text-xs text-red-700 font-semibold mb-1">Motif d'annulation</div>
+                        <div class="text-sm text-red-800">{{ cancellationReasonText || 'Aucun motif fourni.' }}</div>
                     </div>
                 </div>
 
@@ -507,13 +527,19 @@
     <div *ngIf="showModal"
         class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/30 transition-opacity duration-300">
         <div
-            class="bg-white rounded-xl shadow-xl w-full max-w-full sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto">
+            class="bg-white rounded-xl shadow-xl w-full max-w-full sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto relative">
+            <div *ngIf="savingNewTour"
+                class="absolute inset-0 z-[60] bg-white/75 flex flex-col items-center justify-center gap-3 rounded-xl backdrop-blur-[1px]"
+                role="status" aria-live="polite">
+                <div class="w-11 h-11 border-4 border-[#2C2D5B]/25 border-t-[#2C2D5B] rounded-full animate-spin" aria-hidden="true"></div>
+                <p class="text-sm font-medium text-[#2B3674] px-4 text-center">Création de la tournée en cours…</p>
+            </div>
             <!-- Header -->
             <div
                 class="flex items-center justify-between p-3 sm:p-4 lg:p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
                 <h2 class="text-base sm:text-lg lg:text-xl font-bold text-[#2C3E50]">Planifier une tournée</h2>
-                <button (click)="closeModal()"
-                    class="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">
+                <button type="button" (click)="closeModal()" [disabled]="savingNewTour"
+                    class="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 disabled:opacity-40 disabled:pointer-events-none">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                             stroke-linejoin="round" />
@@ -543,10 +569,21 @@
             </div>
 
             <!-- Étape 2 : Commandes et préférences (par lots) -->
-            <div *ngIf="planifierStep === 2" class="p-3 sm:p-4 space-y-4">
+            <div *ngIf="planifierStep === 2" class="p-3 sm:p-4 space-y-4 relative min-h-[220px]">
+                <div *ngIf="loadingLots"
+                    class="absolute inset-0 z-20 bg-white/90 flex flex-col items-center justify-center gap-3 rounded-lg border border-gray-100"
+                    role="status" aria-live="polite">
+                    <div class="w-10 h-10 border-4 border-[#2C2D5B]/25 border-t-[#2C2D5B] rounded-full animate-spin" aria-hidden="true"></div>
+                    <p class="text-sm font-medium text-[#2B3674] px-4 text-center">Chargement des lots en cours…</p>
+                </div>
                 <div class="rounded-lg bg-[#F4F7FE] px-3 py-2 text-sm font-medium text-[#2B3674]">Étape 2 : Commandes et préférences</div>
-                <p class="text-sm text-gray-600">{{ allEligibleOrders.length }} commande(s) trouvée(s) · {{ groupedLots.length }} lot(s) suggéré(s)</p>
-                <div class="rounded-lg border border-[#CBD5E1] divide-y divide-gray-100 max-h-[50vh] overflow-y-auto">
+                <p class="text-sm text-gray-600" *ngIf="!loadingLots">{{ allEligibleOrders.length }} commande(s) trouvée(s) · {{ groupedLots.length }} lot(s) suggéré(s)</p>
+                <p *ngIf="errors.orderIds" class="text-sm text-red-600">{{ errors.orderIds }}</p>
+                <p *ngIf="!loadingLots && groupedLots.length > 0 && newTournee.orderIds.length === 0" class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    Cochez au moins une commande pour passer à l’étape suivante.
+                </p>
+                <div class="rounded-lg border border-[#CBD5E1] divide-y divide-gray-100 max-h-[50vh] overflow-y-auto relative"
+                    [class.opacity-50]="loadingLots" [class.pointer-events-none]="loadingLots">
                     <ng-container *ngFor="let lot of groupedLots">
                         <div class="p-3">
                             <div class="flex items-center gap-2 text-sm font-medium text-[#374151] mb-2">
@@ -603,6 +640,13 @@
             <div *ngIf="planifierStep === 3" class="p-3 sm:p-4 space-y-4">
                 <div class="rounded-lg bg-[#F4F7FE] px-3 py-2 text-sm font-medium text-[#2B3674]">Étape 3 : Assigner la tournée</div>
                 <p class="text-sm text-gray-600">{{ newTournee.orderIds.length }} commande(s) sélectionnée(s)</p>
+                <p *ngIf="loadingDrivers" class="text-xs text-[#2B3674] flex items-center gap-2">
+                    <span class="w-4 h-4 border-2 border-[#2C2D5B]/30 border-t-[#2C2D5B] rounded-full animate-spin shrink-0" aria-hidden="true"></span>
+                    Chargement des livreurs disponibles…
+                </p>
+                <p *ngIf="!canSubmitPlanningTour && !savingNewTour && !loadingDrivers" class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    Renseignez le livreur, la plaque (format AA-12345-AB) et le type de véhicule pour activer « Planifier ».
+                </p>
                 <div *ngIf="countOrdersOutOfPreferences > 0" class="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
                     <span class="inline-flex w-6 h-6 items-center justify-center rounded bg-amber-100 text-amber-600">!</span>
                     {{ countOrdersOutOfPreferences }} commande(s) hors préférences client (livrable).
@@ -611,20 +655,49 @@
                     <div class="space-y-2">
                         <label class="text-sm font-medium text-gray-700">Livreur <span class="text-red-500">*</span></label>
                         <div class="relative">
-                            <select [(ngModel)]="newTournee.driverId" [class.border-red-500]="errors.driverId"
-                                class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base text-gray-600 appearance-none bg-white">
-                                <option [ngValue]="null">Sélectionner un livreur</option>
-                                <option *ngFor="let d of availableDrivers" [ngValue]="d.driverId">{{ d.fullName }}</option>
-                            </select>
-                            <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            <input type="text"
+                                [(ngModel)]="planDriverSearchQuery"
+                                (focus)="onPlanDriverFocus()"
+                                (blur)="onPlanDriverBlur()"
+                                (input)="onPlanDriverInput()"
+                                [disabled]="loadingDrivers"
+                                [placeholder]="loadingDrivers ? 'Chargement…' : 'Rechercher un livreur…'"
+                                [class.border-red-500]="errors.driverId"
+                                autocomplete="off"
+                                class="w-full p-2.5 sm:p-3 pr-10 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none text-base text-gray-700 bg-white disabled:bg-gray-50 disabled:text-gray-500" />
+                            <button type="button"
+                                (mousedown)="togglePlanDriverDropdown($event)"
+                                [disabled]="loadingDrivers"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-gray-400 hover:text-[#2B3674] hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none"
+                                aria-label="Ouvrir la liste des livreurs">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div *ngIf="planDriverDropdownOpen && !loadingDrivers"
+                                class="absolute left-0 right-0 top-full z-[70] mt-1 max-h-52 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                                <ng-container *ngIf="availableDrivers.length === 0">
+                                    <div class="px-3 py-2.5 text-sm text-gray-500">Aucun livreur dispo</div>
+                                </ng-container>
+                                <ng-container *ngIf="availableDrivers.length > 0">
+                                    <button type="button" *ngFor="let d of filteredPlanningDrivers"
+                                        (mousedown)="selectPlanDriver($event, d)"
+                                        class="w-full px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-[#F4F7FE] focus:bg-[#F4F7FE] focus:outline-none">
+                                        {{ d.fullName }}
+                                    </button>
+                                    <div *ngIf="filteredPlanningDrivers.length === 0" class="px-3 py-2.5 text-sm text-gray-500">
+                                        Aucun livreur ne correspond à votre recherche
+                                    </div>
+                                </ng-container>
+                            </div>
                         </div>
+                        <p *ngIf="!loadingDrivers && availableDrivers.length === 0" class="text-xs text-amber-700">Aucun livreur dispo pour cette date.</p>
                         <p *ngIf="errors.driverId" class="text-red-500 text-xs">{{ errors.driverId }}</p>
                     </div>
                     <div class="space-y-2">
                         <label class="text-sm font-medium text-gray-700">Plaque véhicule <span class="text-red-500">*</span></label>
                         <input type="text" [(ngModel)]="newTournee.vehiclePlate" placeholder="Ex: AA-12345-AB"
-                            [class.border-red-500]="errors.vehiclePlate"
+                            [class.border-red-500]="errors.vehiclePlate || isPlanningPlateInvalid"
                             class="w-full p-2.5 sm:p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none placeholder:text-[#6B7280]">
+                        <p *ngIf="isPlanningPlateInvalid" class="text-red-500 text-xs">Format invalide : utilisez AA-12345-AB</p>
                         <p *ngIf="errors.vehiclePlate" class="text-red-500 text-xs">{{ errors.vehiclePlate }}</p>
                     </div>
                     <div class="space-y-2 md:col-span-2">
@@ -647,28 +720,30 @@
                 class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 p-3 sm:p-4 lg:p-6 border-t border-gray-100 sticky bottom-0 bg-white">
                 <ng-container [ngSwitch]="planifierStep">
                     <ng-container *ngSwitchCase="2">
-                        <button (click)="prevPlanifierStep()"
-                            class="w-full py-2.5 sm:py-3 border border-gray-200 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50">
+                        <button type="button" (click)="prevPlanifierStep()" [disabled]="savingNewTour || loadingLots"
+                            class="w-full py-2.5 sm:py-3 border border-gray-200 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
                             ← Calendrier
                         </button>
-                        <button (click)="nextPlanifierStep()"
-                            class="w-full py-2.5 sm:py-3 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium text-sm">
-                            Suivant
+                        <button type="button" (click)="nextPlanifierStep()" [disabled]="savingNewTour || !canGoToPlanningStep3"
+                            class="w-full py-2.5 sm:py-3 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2C2D5B]">
+                            <span *ngIf="loadingLots" class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin shrink-0" aria-hidden="true"></span>
+                            {{ loadingLots ? 'Chargement…' : 'Suivant' }}
                         </button>
                     </ng-container>
                     <ng-container *ngSwitchCase="3">
-                        <button (click)="prevPlanifierStep()"
-                            class="w-full py-2.5 sm:py-3 border border-gray-200 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50">
+                        <button type="button" (click)="prevPlanifierStep()" [disabled]="savingNewTour"
+                            class="w-full py-2.5 sm:py-3 border border-gray-200 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
                             ← Retour
                         </button>
-                <button (click)="saveTournee()"
-                            class="w-full py-2.5 sm:py-3 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium text-sm">
-                    Planifier
-                </button>
-                <button (click)="closeModal()"
-                            class="w-full py-2.5 sm:py-3 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 rounded-lg font-medium text-sm">
-                    Annuler
-                </button>
+                        <button type="button" (click)="saveTournee()" [disabled]="savingNewTour || !canSubmitPlanningTour"
+                            class="w-full py-2.5 sm:py-3 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2C2D5B]">
+                            <span *ngIf="savingNewTour" class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin shrink-0" aria-hidden="true"></span>
+                            {{ savingNewTour ? 'Planification…' : 'Planifier' }}
+                        </button>
+                        <button type="button" (click)="closeModal()" [disabled]="savingNewTour"
+                            class="w-full py-2.5 sm:py-3 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 rounded-lg font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                            Annuler
+                        </button>
                     </ng-container>
                 </ng-container>
             </div>
@@ -723,13 +798,19 @@
     <div *ngIf="showEditModal"
         class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/30 transition-opacity duration-300">
         <div
-            class="bg-white rounded-xl shadow-xl w-full max-w-full sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto">
+            class="bg-white rounded-xl shadow-xl w-full max-w-full sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto relative">
+            <div *ngIf="savingEditTour"
+                class="absolute inset-0 z-[60] bg-white/75 flex flex-col items-center justify-center gap-3 rounded-xl backdrop-blur-[1px]"
+                role="status" aria-live="polite">
+                <div class="w-11 h-11 border-4 border-[#2C2D5B]/25 border-t-[#2C2D5B] rounded-full animate-spin" aria-hidden="true"></div>
+                <p class="text-sm font-medium text-[#2B3674] px-4 text-center">Enregistrement en cours…</p>
+            </div>
             <!-- Header -->
             <div
                 class="flex items-center justify-between p-3 sm:p-4 lg:p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
                 <h2 class="text-base sm:text-lg lg:text-xl font-bold text-[#2C3E50]">Modifier la tournée {{ selectedLivraisonToEdit?.tourNumber }}</h2>
-                <button (click)="closeEditModal()"
-                    class="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">
+                <button type="button" (click)="closeEditModal()" [disabled]="savingEditTour"
+                    class="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 disabled:opacity-40 disabled:pointer-events-none">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                             stroke-linejoin="round" />
@@ -768,12 +849,42 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div class="space-y-2">
                         <label class="text-sm font-medium text-gray-700">Livreur assigné <span class="text-red-500">*</span></label>
-                        <select [(ngModel)]="editTourDriverId" (ngModelChange)="errors.chauffeur = ''"
-                            [class.border-red-500]="errors.chauffeur"
-                            class="w-full p-2.5 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none bg-white text-gray-700">
-                            <option [ngValue]="null">Sélectionner un livreur</option>
-                            <option *ngFor="let d of availableDrivers" [ngValue]="d.driverId">{{ d.fullName }}</option>
-                        </select>
+                        <div class="relative">
+                            <input type="text"
+                                [(ngModel)]="editDriverSearchQuery"
+                                (focus)="onEditDriverFocus()"
+                                (blur)="onEditDriverBlur()"
+                                (input)="onEditDriverInput()"
+                                [disabled]="loadingDrivers || loadingEditDetails"
+                                [placeholder]="loadingDrivers ? 'Chargement…' : 'Rechercher un livreur…'"
+                                [class.border-red-500]="errors.chauffeur"
+                                autocomplete="off"
+                                class="w-full p-2.5 pr-10 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none bg-white text-gray-700 disabled:bg-gray-50 disabled:text-gray-500" />
+                            <button type="button"
+                                (mousedown)="toggleEditDriverDropdown($event)"
+                                [disabled]="loadingDrivers || loadingEditDetails"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-gray-400 hover:text-[#2B3674] hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none"
+                                aria-label="Ouvrir la liste des livreurs">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div *ngIf="editDriverDropdownOpen && !loadingDrivers && !loadingEditDetails"
+                                class="absolute left-0 right-0 top-full z-[70] mt-1 max-h-52 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                                <ng-container *ngIf="availableDrivers.length === 0">
+                                    <div class="px-3 py-2.5 text-sm text-gray-500">Aucun livreur dispo</div>
+                                </ng-container>
+                                <ng-container *ngIf="availableDrivers.length > 0">
+                                    <button type="button" *ngFor="let d of filteredEditDrivers"
+                                        (mousedown)="selectEditDriver($event, d)"
+                                        class="w-full px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-[#F4F7FE] focus:bg-[#F4F7FE] focus:outline-none">
+                                        {{ d.fullName }}
+                                    </button>
+                                    <div *ngIf="filteredEditDrivers.length === 0" class="px-3 py-2.5 text-sm text-gray-500">
+                                        Aucun livreur ne correspond à votre recherche
+                                    </div>
+                                </ng-container>
+                            </div>
+                        </div>
+                        <p *ngIf="!loadingDrivers && !loadingEditDetails && availableDrivers.length === 0" class="text-xs text-amber-700">Aucun livreur dispo pour cette date.</p>
                         <p *ngIf="errors.chauffeur" class="text-red-500 text-xs">{{ errors.chauffeur }}</p>
                     </div>
                     <div class="space-y-2">
@@ -821,19 +932,21 @@
             <!-- Footer -->
             <div *ngIf="!loadingEditDetails && editTourDetails"
                 class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 p-3 sm:p-4 lg:p-6 border-t border-gray-100 sticky bottom-0 bg-white">
-                <button *ngIf="editTourDetails.status === 'ASSIGNEE' && selectedLivraisonToEdit"
+                <button *ngIf="editTourDetails.status === 'ASSIGNEE' && selectedLivraisonToEdit" type="button"
+                    [disabled]="savingEditTour"
                     (click)="cancelTournee(selectedLivraisonToEdit); closeEditModal()"
-                    class="order-2 sm:order-1 py-2.5 sm:py-3 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg font-medium text-sm transition-colors">
+                    class="order-2 sm:order-1 py-2.5 sm:py-3 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     Annuler la tournée
                 </button>
                 <div class="flex gap-2 order-1 sm:order-2 flex-1 sm:justify-end">
-                    <button (click)="closeEditModal()"
-                        class="py-2.5 sm:py-3 px-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 rounded-lg font-medium text-sm">
+                    <button type="button" (click)="closeEditModal()" [disabled]="savingEditTour"
+                        class="py-2.5 sm:py-3 px-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 rounded-lg font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                         Annuler
                     </button>
-                    <button (click)="saveEditTournee()"
-                        class="py-2.5 sm:py-3 px-4 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium text-sm">
-                        Enregistrer les modifications
+                    <button type="button" (click)="saveEditTournee()" [disabled]="savingEditTour"
+                        class="py-2.5 sm:py-3 px-4 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-wait">
+                        <span *ngIf="savingEditTour" class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin shrink-0" aria-hidden="true"></span>
+                        {{ savingEditTour ? 'Enregistrement…' : 'Enregistrer les modifications' }}
                     </button>
                 </div>
             </div>
@@ -843,12 +956,18 @@
     <!-- Modal Annuler Tournée -->
     <div *ngIf="showCancelModal"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 transition-opacity duration-300"
-        (click)="closeCancelModal()">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg" (click)="$event.stopPropagation()">
+        (click)="!cancellingTour && closeCancelModal()">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg relative" (click)="$event.stopPropagation()">
+            <div *ngIf="cancellingTour"
+                class="absolute inset-0 z-10 bg-white/70 rounded-2xl flex items-center justify-center">
+                <div class="w-10 h-10 border-4 border-[#EF4444]/30 border-t-[#EF4444] rounded-full animate-spin"
+                    aria-hidden="true"></div>
+            </div>
             <!-- Header -->
             <div class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100">
                 <h2 class="text-xl sm:text-2xl font-medium text-[231F20]">Annuler cette tournée ?</h2>
-                <button (click)="closeCancelModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <button (click)="closeCancelModal()" [disabled]="cancellingTour"
+                    class="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                             stroke-linejoin="round" />
@@ -863,18 +982,20 @@
                 <div class="space-y-2">
                     <label class="text-sm sm:text-base font-medium text-[#374151]">Motif du rejet</label>
                     <textarea [(ngModel)]="cancelReason" placeholder="Saisir" rows="4"
+                        [disabled]="cancellingTour"
                         class="w-full p-3 rounded-lg border border-gray-200 focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-sm placeholder:text-gray-400 resize-none"></textarea>
                 </div>
             </div>
 
             <!-- Footer -->
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 p-4 sm:p-6">
-                <button (click)="confirmCancelTournee()" [disabled]="!cancelReason.trim()"
-                    class="flex-1 py-4 bg-[#EF4444] hover:bg-[#DC2626] text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                    Confirmer
+                <button (click)="confirmCancelTournee()" [disabled]="!cancelReason.trim() || cancellingTour"
+                    class="flex-1 py-4 bg-[#EF4444] hover:bg-[#DC2626] text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    <span *ngIf="cancellingTour" class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin shrink-0" aria-hidden="true"></span>
+                    {{ cancellingTour ? 'Annulation...' : 'Confirmer' }}
                 </button>
-                <button (click)="closeCancelModal()"
-                    class="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors">
+                <button (click)="closeCancelModal()" [disabled]="cancellingTour"
+                    class="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     Annuler
                 </button>
             </div>

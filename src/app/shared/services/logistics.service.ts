@@ -750,6 +750,8 @@ export interface DeliveryTourDetails {
     totalTourAmount?: number;
     /** Note / commentaire (affiché en modification si présent). */
     notes?: string;
+    /** Motif d'annulation (DeliveryTour.cancellationReason) si statut ANNULEE. */
+    cancellationReason?: string;
 }
 
 /** Réponse GET /api/logistics/employee-order/{id} (détails commande + produits avec image) */
@@ -760,6 +762,8 @@ export interface EmployeeOrderDetails {
     status: string;
     /** Nom complet du livreur ayant livré la commande (si disponible). */
     driverName?: string;
+    /** Motif d'échec de livraison (si statut échec). */
+    failureReason?: string | null;
     listProducts: Array<{
         image: string;
         name: string;
