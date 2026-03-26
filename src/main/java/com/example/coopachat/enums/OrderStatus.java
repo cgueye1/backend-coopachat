@@ -45,7 +45,7 @@ public enum OrderStatus {
      * Quand ? Après que le livreur confirme la récupération (swipe "Confirmer récupération")
      * Qui peut agir ?
      *   - RL : peut encore annuler la tournée (si aucune livraison démarrée)
-     *   - Livreur : doit démarrer chaque livraison individuellement
+     *   - Livreur : doit démarrer chaque livraison individuellement, peut signaler un problème
      * Affichage salarié / livreur : "En préparation" (colis récupéré, à livrer au client)
      * Tournée : EN_COURS
      * Paiement : UNPAID (ou PAID si paiement en ligne)

@@ -76,4 +76,14 @@ public class Claim {
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
     private String rejectionReason;
 
+    /** Date/heure de traitement de la réclamation (validation ou rejet). */
+    @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
+    @Column(name = "processed_at")
+    private LocalDateTime processedAt;
+
+    /** RL ayant traité la réclamation (validation ou rejet). */
+    @ManyToOne
+    @JoinColumn(name = "processed_by_id")
+    private Users processedBy;
+
 }

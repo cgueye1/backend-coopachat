@@ -1,6 +1,7 @@
 package com.example.coopachat.services.Employee;
 
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
+import com.example.coopachat.dtos.employee.EmployeeDeliveryIssueDTO;
 import com.example.coopachat.dtos.employees.DeliveryPreferenceDTO;
 import com.example.coopachat.dtos.cart.CartItemDTO;
 import com.example.coopachat.dtos.cart.CartResponseDTO;
@@ -80,6 +81,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final ClaimRepository claimRepository;
     private final ClaimProblemTypeRepository claimProblemTypeRepository;
     private final EmployeeDeliveryIssueReasonRepository employeeDeliveryIssueReasonRepository;
+    private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final EmployeeNotificationService employeeNotificationService;
     private final DeliveryIssueReportRepository deliveryIssueReportRepository;
     private final com.example.coopachat.services.DeliveryDriver.DriverNotificationService driverNotificationService;
@@ -1579,15 +1581,51 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (order.getStatus() != OrderStatus.EN_ATTENTE) {
             throw new RuntimeException("Annulation impossible : seules les commandes en attente peuvent être annulées");
         }
+
+        // 1) Remettre en stock les quantités "réservées" par la commande annulée.
+        //    La commande étant EN_ATTENTE, on doit restaurer l'inventaire produit.
+        if (order.getItems() != null) {
+            //On parcourt la liste des items de la commande
+            for (OrderItem item : order.getItems()) {
+                //On vérifie que l'item, le produit et la quantité ne sont pas null ,si c'est null on continue sur l'autre item , on n'essaie pas de remettre en stock pour éviter null pointer
+                if (item == null || item.getProduct() == null || item.getQuantity() == null) {
+                    continue;
+                }
+                Product product = item.getProduct();
+                //On récupère le stock actuel du produit, si le stock est null on met 0
+                int currentStock = product.getCurrentStock() != null ? product.getCurrentStock() : 0;
+                //On ajoute la quantité de l'item à la quantité actuelle du produit
+                product.setCurrentStock(currentStock + item.getQuantity());
+                //On sauvegarde le produit
+                productRepository.save(product);
+            }
+        }
+
+        // 2) Changer le statut de la commande puis persister.
+        OrderStatus fromStatus = order.getStatus();
         order.setStatus(OrderStatus.ANNULEE);
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+
+        // 3) Tracer la transition dans l'historique (acteur = salarié connecté).
+        OrderStatusHistory statusHistory = new OrderStatusHistory();
+        statusHistory.setOrder(savedOrder);
+        statusHistory.setFromStatus(fromStatus);
+        statusHistory.setToStatus(OrderStatus.ANNULEE);
+        statusHistory.setChangedByUser(currentUser);
+        statusHistory.setChangedByRole(currentUser.getRole());
+        statusHistory.setActorFirstName(currentUser.getFirstName());
+        statusHistory.setActorLastName(currentUser.getLastName());
+        statusHistory.setReason("Commande annulée par le salarié");
+        statusHistory.setSourceAction("EMPLOYEE_CANCEL");
+        orderStatusHistoryRepository.save(statusHistory);
+
         log.info("Commande {} annulée par le salarié", order.getOrderNumber());
     }
 
     // ---------- reportDeliveryIssue : signaler un problème sur sa commande (salarié) ----------
     @Override
     @Transactional
-    public void reportDeliveryIssue(Long orderId, com.example.coopachat.dtos.employee.EmployeeDeliveryIssueDTO dto) {
+    public void reportDeliveryIssue(Long orderId, EmployeeDeliveryIssueDTO dto) {
         Users currentUser = getCurrentUser();
         ensureCompanyActive(currentUser);
         Employee employee = employeeRepository.findByUser(currentUser)
@@ -1600,8 +1638,8 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new RuntimeException("Cette commande ne vous appartient pas");
         }
 
-        if (order.getStatus() != OrderStatus.EN_PREPARATION && order.getStatus() != OrderStatus.EN_COURS && order.getStatus() != OrderStatus.ARRIVE) {
-            throw new RuntimeException("Seule une livraison en préparation ou en cours peut être signalée");
+        if ( order.getStatus() != OrderStatus.VALIDEE && order.getStatus() != OrderStatus.EN_PREPARATION && order.getStatus() != OrderStatus.EN_COURS && order.getStatus() != OrderStatus.ARRIVE) {
+            throw new RuntimeException("Seule une livraison validée, en préparation, en cours ou arrivée peut être signalée");
         }
         // 1. Raison (référentiel admin)
         EmployeeDeliveryIssueReason reasonEntity = employeeDeliveryIssueReasonRepository.findById(dto.getReasonId())

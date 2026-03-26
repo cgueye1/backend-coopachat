@@ -41,4 +41,8 @@ public class ClaimDetailDTO {
     private String decisionTypeLabel;  // Réintégration au stock / Remboursement
     private BigDecimal refundAmount;
     private String rejectionReason;   // Motif si rejeté
+    /** Date/heure à laquelle le RL a traité la réclamation. */
+    private LocalDateTime processedAt;
+    /** Nom complet du RL ayant traité la réclamation. */
+    private String processedByName;
 }
