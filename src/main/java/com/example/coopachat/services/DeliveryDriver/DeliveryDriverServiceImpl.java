@@ -65,6 +65,7 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     private final DeliveryIssueReportRepository deliveryIssueReportRepository;
     private final DeliveryIssueReasonRepository deliveryIssueReasonRepository;
     private final DriverEarningRepository driverEarningRepository;
+    private final OrderStatusHistoryRepository orderStatusHistoryRepository;
 
 
     // ========================================
@@ -254,12 +255,26 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         }
 
         // 9. Passer la commande en EN_PREPARATION et enregistrer l'heure de récupération
+        OrderStatus fromStatus = order.getStatus();
         order.setStatus(OrderStatus.EN_PREPARATION);
         order.setPickupStartedAt(LocalDateTime.now());
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+
+        // Historique de statut : VALIDEE -> EN_PREPARATION (acteur = livreur connecté)
+        OrderStatusHistory statusHistory = new OrderStatusHistory();
+        statusHistory.setOrder(savedOrder);
+        statusHistory.setFromStatus(fromStatus);
+        statusHistory.setToStatus(OrderStatus.EN_PREPARATION);
+        statusHistory.setChangedByUser(currentUser);
+        statusHistory.setChangedByRole(currentUser.getRole());
+        statusHistory.setActorFirstName(currentUser.getFirstName());
+        statusHistory.setActorLastName(currentUser.getLastName());
+        statusHistory.setReason("Récupération de commande confirmée par le livreur");
+        statusHistory.setSourceAction("DRIVER_CONFIRM_PICKUP");
+        orderStatusHistoryRepository.save(statusHistory);
 
         // 10. Notifier le salarié que le livreur a récupéré sa commande
-        employeeNotificationService.notifyPickupConfirmed(order);
+        employeeNotificationService.notifyPickupConfirmed(savedOrder);
 
         // Une seule commande en cours à la fois : la première récupérée fait passer la tournée en EN_COURS
         long nbDejaRecuperees = tour.getOrders().stream()
@@ -301,11 +316,24 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         }
 
         // 5. Passer la commande en EN_COURS et enregistrer l'heure de départ
+        OrderStatus fromStatus = order.getStatus();
         order.setStatus(OrderStatus.EN_COURS);
         order.setDeliveryStartedAt(LocalDateTime.now());
 
-        // 6. Sauvegarder la commande
-        orderRepository.save(order);
+        // 6. Sauvegarder la commande + historique
+        Order savedOrder = orderRepository.save(order);
+
+        OrderStatusHistory statusHistory = new OrderStatusHistory();
+        statusHistory.setOrder(savedOrder);
+        statusHistory.setFromStatus(fromStatus);
+        statusHistory.setToStatus(OrderStatus.EN_COURS);
+        statusHistory.setChangedByUser(currentUser);
+        statusHistory.setChangedByRole(currentUser.getRole());
+        statusHistory.setActorFirstName(currentUser.getFirstName());
+        statusHistory.setActorLastName(currentUser.getLastName());
+        statusHistory.setReason("Livraison démarrée par le livreur");
+        statusHistory.setSourceAction("DRIVER_START_DELIVERY");
+        orderStatusHistoryRepository.save(statusHistory);
 
         log.info("Livraison {} démarrée par {}", order.getOrderNumber(), currentUser.getEmail());
     }
@@ -320,6 +348,7 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
 
         // 2. Récupérer le livreur connecté
+        Users currentUser = getCurrentUser();
         Driver driver = getDriverOrThrow();
 
         // 3. Vérifier que la commande appartient à une tournée assignée au livreur
@@ -333,11 +362,25 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         }
 
         // 5. Passer la commande en ARRIVE et enregistrer l'heure d'arrivée
+        OrderStatus fromStatus = order.getStatus();
         order.setStatus(OrderStatus.ARRIVE);
         order.setDeliveryArrivedAt(LocalDateTime.now());
 
-        // 6. Sauvegarder la commande
-        orderRepository.save(order);
+        // 6. Sauvegarder la commande + historique
+        Order savedOrder = orderRepository.save(order);
+
+        OrderStatusHistory statusHistory = new OrderStatusHistory();
+        statusHistory.setOrder(savedOrder);
+        statusHistory.setFromStatus(fromStatus);
+        statusHistory.setToStatus(OrderStatus.ARRIVE);
+        statusHistory.setChangedByUser(currentUser);
+        statusHistory.setChangedByRole(currentUser.getRole());
+        statusHistory.setActorFirstName(currentUser.getFirstName());
+        statusHistory.setActorLastName(currentUser.getLastName());
+        statusHistory.setReason("Arrivée confirmée par le livreur");
+        statusHistory.setSourceAction("DRIVER_CONFIRM_ARRIVAL");
+        orderStatusHistoryRepository.save(statusHistory);
+
         log.info("Arrivée confirmée pour {}", order.getOrderNumber());
     }
 
@@ -351,6 +394,7 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
 
         // 2. Récupérer le livreur connecté
+        Users currentUser = getCurrentUser();
         Driver driver = getDriverOrThrow();
 
         // 3. Vérifier que la commande appartient à une tournée assignée au livreur
@@ -370,9 +414,22 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         }
 
         // 6. Passer la commande en LIVREE et enregistrer l'heure de remise
+        OrderStatus fromStatus = order.getStatus();
         order.setStatus(OrderStatus.LIVREE);
         order.setDeliveryCompletedAt(LocalDateTime.now());
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+
+        OrderStatusHistory statusHistory = new OrderStatusHistory();
+        statusHistory.setOrder(savedOrder);
+        statusHistory.setFromStatus(fromStatus);
+        statusHistory.setToStatus(OrderStatus.LIVREE);
+        statusHistory.setChangedByUser(currentUser);
+        statusHistory.setChangedByRole(currentUser.getRole());
+        statusHistory.setActorFirstName(currentUser.getFirstName());
+        statusHistory.setActorLastName(currentUser.getLastName());
+        statusHistory.setReason("Livraison finalisée par le livreur");
+        statusHistory.setSourceAction("DRIVER_COMPLETE_DELIVERY");
+        orderStatusHistoryRepository.save(statusHistory);
 
         // 6bis. Créditer le compte livreur (tarif par livraison, ex. 500 F)
         creditDriverEarning(driver, order);
@@ -601,6 +658,7 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
 
         // 2. Vérifier que le livreur connecté est bien assigné à la tournée de cette commande
+        Users currentUser = getCurrentUser();
         Driver driver = getDriverOrThrow();
         if (order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
             throw new RuntimeException("Vous n'êtes pas assigné à cette commande");
@@ -627,20 +685,35 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         deliveryIssueReportRepository.save(report);
 
         // 6. Mettre la commande en échec
+        OrderStatus fromStatus = order.getStatus();
         order.setStatus(OrderStatus.ECHEC_LIVRAISON);
         order.setFailureReason(reasonLabel);
         order.setFailureReportedAt(LocalDateTime.now());
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+
+        //  Historiser la transition de statut avec motif/commentaire du signalement
+        OrderStatusHistory statusHistory = new OrderStatusHistory();
+        statusHistory.setOrder(savedOrder);
+        statusHistory.setFromStatus(fromStatus);
+        statusHistory.setToStatus(OrderStatus.ECHEC_LIVRAISON);
+        statusHistory.setChangedByUser(currentUser);
+        statusHistory.setChangedByRole(currentUser.getRole());
+        statusHistory.setActorFirstName(currentUser.getFirstName());
+        statusHistory.setActorLastName(currentUser.getLastName());
+        statusHistory.setReason(reasonLabel);
+        statusHistory.setComment(dto.getComment());
+        statusHistory.setSourceAction("DRIVER_REPORT_ISSUE");
+        orderStatusHistoryRepository.save(statusHistory);
 
         // 7. Notifier le salarié
-        employeeNotificationService.notifyDeliveryFailed(order, reasonLabel);
+        employeeNotificationService.notifyDeliveryFailed(savedOrder, reasonLabel);
 
         // 8. Notifier le RL
-        Users rl = order.getDeliveryTour() != null ? order.getDeliveryTour().getCreatedBy() : null;
+        Users rl = savedOrder.getDeliveryTour() != null ? savedOrder.getDeliveryTour().getCreatedBy() : null;
         if (rl != null && rl.getEmail() != null && !rl.getEmail().isBlank()) {
-            String deliveryAddress = getDeliveryAddressFromOrder(order);
+            String deliveryAddress = getDeliveryAddressFromOrder(savedOrder);
             driverNotificationService.notifyLogisticsManagerOfDeliveryFailure(
-                    order,
+                    savedOrder,
                     reasonLabel,
                     dto.getComment() != null ? dto.getComment() : "",
                     deliveryAddress != null ? deliveryAddress : "Non renseignée"
@@ -648,8 +721,8 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         }
 
         // 9. Vérifier fin de tournée
-        if (order.getDeliveryTour() != null) {
-            checkTourCompletion(order.getDeliveryTour());
+        if (savedOrder.getDeliveryTour() != null) {
+            checkTourCompletion(savedOrder.getDeliveryTour());
         }
 
         log.info("Échec livraison {} signalé par {} : {}", order.getOrderNumber(), DeliveryIssueReportSource.DRIVER, reasonLabel);

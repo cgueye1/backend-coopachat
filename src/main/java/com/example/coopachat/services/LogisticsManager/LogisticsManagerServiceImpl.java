@@ -83,6 +83,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     private final OrderItemRepository orderItemRepository;
     private final DeliveryDriverRepository deliveryDriverRepository;
     private final DeliveryTourRepository deliveryTourRepository;
+    private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final ClaimRepository claimRepository;
     private final EmailService emailService;
     private final EmployeeNotificationService employeeNotificationService;
@@ -1326,8 +1327,34 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             driverName = ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
         }
 
+        String failureReason = order.getFailureReason();
+        if (failureReason != null && failureReason.isBlank()) {
+            failureReason = null;
+        }
+
+        // Récupérer la dernière transition d'historique pour identifier l'acteur
+        // qui a posé le statut courant de la commande.
+        Optional<OrderStatusHistory> latestStatusHistory = orderStatusHistoryRepository
+                .findTopByOrderIdOrderByChangedAtDesc(order.getId());
+
+        String currentStatusChangedByName = null;
+        LocalDateTime currentStatusChangedAt = null;
+        String currentStatusChangedByRole = null;
+        if (latestStatusHistory.isPresent()) {
+            OrderStatusHistory h = latestStatusHistory.get();
+            String first = h.getActorFirstName() != null ? h.getActorFirstName().trim() : "";
+            String last = h.getActorLastName() != null ? h.getActorLastName().trim() : "";
+            String actorName = (first + " " + last).trim();
+            currentStatusChangedByName = actorName.isBlank() ? null : actorName;
+            currentStatusChangedAt = h.getChangedAt();
+            currentStatusChangedByRole = h.getChangedByRole() != null
+                    ? h.getChangedByRole().getLabel()
+                    : null;
+        }
+
         // On prépare un DTO contenant :
         // - les infos générales de la commande
+        // - l'acteur/date ayant posé le statut courant
         // - éventuellement le nom du livreur
         // - la liste des produits associés à la commande
         return new OrderItemDetailsDTO(
@@ -1335,7 +1362,11 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 order.getCreatedAt().toLocalDate(),
                 employeeName.trim(),
                 order.getStatus().getLabel(),
+                currentStatusChangedByName,
+                currentStatusChangedAt,
+                currentStatusChangedByRole,
                 driverName,
+                failureReason,
                 order.getItems().stream()
                         .filter(item -> item.getProduct() != null)
                         .map(item -> new ProductPreviewDTO(
@@ -1509,7 +1540,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<com.example.coopachat.dtos.delivery.DeliveryPlanningCalendarDayDTO> getDeliveryPlanningCalendar(int year, int month) {
+    public List<DeliveryPlanningCalendarDayDTO> getDeliveryPlanningCalendar(int year, int month) {
         /*
          * Objectif (vue globale RL)
          * - Construire un calendrier pour un mois donné.
@@ -1794,12 +1825,28 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
         // 6. ASSIGNATION DES COMMANDES + passage en VALIDEE (RL valide en les mettant dans la tournée)
         for (Order order : orders) {
+            OrderStatus fromStatus = order.getStatus();
             order.setDeliveryTour(savedTour);
             order.setStatus(OrderStatus.VALIDEE);
             order.setValidatedAt(LocalDateTime.now());
-            orderRepository.save(order);
+            Order savedOrder = orderRepository.save(order);
+
+            // Historique de statut : état précédent -> VALIDEE par le RL courant.
+            // Ce log alimentera la timeline détaillée de la commande côté back-office.
+            OrderStatusHistory statusHistory = new OrderStatusHistory();
+            statusHistory.setOrder(savedOrder);
+            statusHistory.setFromStatus(fromStatus);
+            statusHistory.setToStatus(OrderStatus.VALIDEE);
+            statusHistory.setChangedByUser(currentUser);
+            statusHistory.setChangedByRole(currentUser.getRole());
+            statusHistory.setActorFirstName(currentUser.getFirstName());
+            statusHistory.setActorLastName(currentUser.getLastName());
+            statusHistory.setReason("Commande validée et affectée à la tournée " + tourNumber);
+            statusHistory.setSourceAction("TOUR_CREATED");
+            orderStatusHistoryRepository.save(statusHistory);
+
             // Notification au salarié que sa commande a été validée
-            employeeNotificationService.notifyOrderScheduled(order);
+            employeeNotificationService.notifyOrderScheduled(savedOrder);
         }
 
         // Notification au livreur qu'une tournée lui a été assignée
@@ -2430,9 +2477,22 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             if (dto.getRefundAmount() == null || dto.getRefundAmount().signum() < 0) {
                 throw new RuntimeException("Le montant du remboursement est obligatoire et doit être positif");
             }
+            if (claim.getOrderItem() == null) {
+                throw new RuntimeException("Réclamation sans produit associé : impossible de rembourser");
+            }
+            //On récupère le montant total de la commande
+            BigDecimal maxRefund = claim.getOrderItem().getSubtotal() != null
+                    ? claim.getOrderItem().getSubtotal()
+                    : BigDecimal.ZERO;
+                    //On vérifie que le montant remboursé ne dépasse pas le montant total de la commande si c'est le cas on lance une exception
+            if (dto.getRefundAmount().compareTo(maxRefund) > 0) {
+                throw new RuntimeException("Le montant remboursé ne peut pas dépasser le montant du produit concerné");
+            }
             claim.setRefundAmount(dto.getRefundAmount());
         }
         claim.setStatus(ClaimStatus.VALIDE);
+        claim.setProcessedAt(LocalDateTime.now());
+        claim.setProcessedBy(currentUser);
         claimRepository.save(claim);
     }
 
@@ -2450,6 +2510,8 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         }
         claim.setStatus(ClaimStatus.REJETE);
         claim.setRejectionReason(dto.getRejectionReason());
+        claim.setProcessedAt(LocalDateTime.now());
+        claim.setProcessedBy(currentUser);
         claimRepository.save(claim);
     }
 
@@ -2720,6 +2782,12 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         dto.setDecisionTypeLabel(c.getDecisionType() != null ? c.getDecisionType().getLabel() : null);
         dto.setRefundAmount(c.getRefundAmount());
         dto.setRejectionReason(c.getRejectionReason());
+        dto.setProcessedAt(c.getProcessedAt());
+        if (c.getProcessedBy() != null) {
+            String firstName = c.getProcessedBy().getFirstName() != null ? c.getProcessedBy().getFirstName().trim() : "";
+            String lastName = c.getProcessedBy().getLastName() != null ? c.getProcessedBy().getLastName().trim() : "";
+            dto.setProcessedByName((firstName + " " + lastName).trim());
+        }
         return dto;
     }
 

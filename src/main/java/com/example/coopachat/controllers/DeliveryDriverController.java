@@ -11,6 +11,7 @@ import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.services.DeliveryDriver.DeliveryDriverService;
 import com.example.coopachat.services.admin.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/driver")
+@Tag(name = "Livreur", description = "API pour les actions du Livreur")
 public class DeliveryDriverController {
 
     private final DeliveryDriverService deliveryDriverService;

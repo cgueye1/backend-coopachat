@@ -28,13 +28,13 @@ public enum ClaimStatus {
         String v = value.trim();
         if (v.isEmpty()) return null;
 
-        // 1) Match par name (case-insensitive)
+        // 1) Match par name
         for (ClaimStatus s : values()) {
             if (s.name().equalsIgnoreCase(v)) {
                 return s;
             }
         }
-        // 2) Match par label (case-insensitive)
+        // 2) Match par label
         for (ClaimStatus s : values()) {
             if (s.label.equalsIgnoreCase(v)) {
                 return s;
