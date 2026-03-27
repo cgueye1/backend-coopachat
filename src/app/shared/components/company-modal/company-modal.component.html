@@ -1,0 +1,119 @@
+<ui-modal [isOpen]="isOpen" [title]="title" (close)="onClose()">
+  <form #formContainer [formGroup]="companyForm" (ngSubmit)="onSubmit()" class="relative">
+    <div class="space-y-3 sm:space-y-4 px-1 sm:px-2 max-h-[65vh] overflow-y-auto lg:max-h-none lg:overflow-visible">
+      <div class="grid grid-cols-1 gap-4 sm:gap-6 mb-3 sm:mb-4 md:grid-cols-2">
+        <!-- Nom de l'entreprise -->
+        <ui-form-field label="Nom de l'entreprise" type="text" placeholder="Saisir" [required]="true"
+          [control]="companyForm.get('nom')!" [error]="getFieldError('nom')" class="max-md:mb-2">
+        </ui-form-field>
+
+        <!-- Secteur d'activité (autocomplete : saisir pour filtrer les suggestions) -->
+        <div class="space-y-2 max-md:mb-2" (click)="$event.stopPropagation()">
+          <label class="text-[15px] font-medium text-gray-700">Secteur d'activité</label>
+          <div class="relative">
+            <input type="text"
+              formControlName="secteur"
+              placeholder="Saisir ou sélectionner"
+              (input)="onSectorInput()"
+              (focus)="onSectorInput(); showSectorDropdown = true"
+              class="w-full p-3 rounded-md border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-base placeholder:text-[#6B7280] placeholder:font-light">
+            <div *ngIf="showSectorDropdown" class="absolute left-0 right-0 top-full mt-1 bg-white border border-[#CBD5E1] rounded-md shadow-lg z-20 max-h-48 overflow-y-auto">
+              <button *ngFor="let opt of filteredSectors" type="button"
+                (click)="selectSector(opt)"
+                class="w-full text-left px-3 py-2.5 text-sm hover:bg-[#2B3674]/5 transition-colors first:rounded-t-md last:rounded-b-md">
+                {{ opt }}
+              </button>
+              <div *ngIf="filteredSectors.length === 0" class="px-3 py-2.5 text-sm text-gray-500">
+                Aucun secteur trouvé
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Localisation -->
+        <ui-form-field label="Localisation" type="text" placeholder="Saisir" [required]="true"
+          [control]="companyForm.get('localisation')!" [error]="getFieldError('localisation')" class="max-md:mb-2">
+        </ui-form-field>
+
+        <!-- Statut -->
+        <ui-form-field label="Statut" type="select" placeholder="Sélectionner" [control]="companyForm.get('statut')!"
+          [options]="[
+            {value: 'En attente', label: 'En attente'},
+            {value: 'Relancée', label: 'Relancée'},
+            {value: 'Intéressée', label: 'Intéressée'},
+            {value: 'Refusée', label: 'Refusée'},
+            {value: 'Partenaire signé', label: 'Partenaire signé'}
+          ]" class="max-md:mb-2">
+        </ui-form-field>
+
+        <!-- Nom du contact -->
+        <ui-form-field label="Nom du contact" type="text" placeholder="Saisir" [required]="true"
+          [control]="companyForm.get('contact')!" [error]="getFieldError('contact')" class="max-md:mb-2">
+        </ui-form-field>
+
+        <!-- Email du contact -->
+        <ui-form-field label="Email du contact" type="email" placeholder="Saisir" [required]="true"
+          [control]="companyForm.get('email')!" [error]="getFieldError('email')" class="max-md:mb-2">
+        </ui-form-field>
+
+        <!-- Téléphone -->
+        <ui-form-field label="Téléphone" type="tel" placeholder="Saisir" [required]="true"
+          [control]="companyForm.get('telephone')!" [error]="getFieldError('telephone')" class="max-md:mb-2">
+        </ui-form-field>
+
+        <!-- Logo -->
+        <div class="space-y-2 max-md:mb-2">
+          <label class="text-[15px] font-medium text-gray-700">Logo</label>
+          <div class="flex items-center gap-3">
+            <div class="w-14 h-14 rounded-lg border border-[#CBD5E1] overflow-hidden bg-gray-50 flex-shrink-0 flex items-center justify-center">
+              <ng-container *ngIf="!deleteLogoRequested && (selectedLogoPreviewUrl || logoPreviewUrl); else noLogo">
+                <img [src]="selectedLogoPreviewUrl || logoPreviewUrl" alt="Logo" class="w-full h-full object-contain" />
+              </ng-container>
+              <ng-template #noLogo>
+                <span class="text-gray-400 text-xs">Aucun</span>
+              </ng-template>
+            </div>
+            <div class="flex flex-col gap-1">
+              <input #logoInput type="file" accept="image/jpeg,image/jpg,image/png" class="hidden"
+                (change)="onLogoSelected($event)" />
+              <button type="button" (click)="logoInput.click()"
+                class="text-sm font-medium text-[#2B3674] hover:underline">
+                {{ selectedLogoFile ? 'Changer' : 'Ajouter un logo' }}
+              </button>
+              <span class="text-xs text-gray-500">JPG, PNG, max 5 Mo</span>
+              <button *ngIf="(selectedLogoFile || logoPreviewUrl) && !deleteLogoRequested" type="button"
+                (click)="onDeleteLogoClick()" class="text-xs text-red-600 hover:underline">
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Note -->
+      <ui-form-field label="Note" type="textarea" placeholder="Saisir" [control]="companyForm.get('note')!" [rows]="2"
+        class="max-md:mb-2">
+      </ui-form-field>
+    </div>
+
+    <!-- Loader overlay pendant l'envoi -->
+    <div *ngIf="isSubmitting" class="absolute inset-0 bg-white/70 flex items-center justify-center rounded-xl z-10">
+      <div class="flex flex-col items-center gap-3">
+        <div class="w-10 h-10 border-4 border-[#2C2D5B]/30 border-t-[#2C2D5B] rounded-full animate-spin"></div>
+        <span class="text-sm font-medium text-gray-600">Enregistrement en cours...</span>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex flex-col-reverse gap-2 pt-4 sm:pt-6 sm:flex-row sm:items-center sm:justify-between">
+      <button type="button" (click)="onClose()"
+        class="w-full py-3 sm:py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 hover:text-gray-800 rounded-md font-medium transition-colors">
+        Annuler
+      </button>
+      <button type="submit" [disabled]="companyForm.invalid || isSubmitting"
+        class="w-full py-3 sm:py-4 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-md font-medium transition-colors">
+        {{ isSubmitting ? 'Enregistrement...' : 'Enregistrer' }}
+      </button>
+    </div>
+  </form>
+</ui-modal>

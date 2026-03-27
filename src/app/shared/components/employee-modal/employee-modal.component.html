@@ -1,0 +1,68 @@
+<ui-modal [isOpen]="isOpen" [title]="title" (close)="onClose()">
+    <!-- ===================== FORMULAIRE SALARIE ===================== -->
+    <form [formGroup]="employeeForm" (ngSubmit)="onSubmit()">
+        <div class="space-y-3 sm:space-y-4 px-1 sm:px-2 max-h-[65vh] overflow-y-auto lg:max-h-none lg:overflow-visible">
+            <div class="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
+                <ui-form-field label="Prénom" type="text" placeholder="Saisir" [required]="true"
+                    [control]="employeeForm.get('prenom')!" [error]="getFieldError('prenom')" class="max-md:mb-2">
+                </ui-form-field>
+
+                <ui-form-field label="Nom" type="text" placeholder="Saisir" [required]="true"
+                    [control]="employeeForm.get('nom')!" [error]="getFieldError('nom')" class="max-md:mb-2">
+                </ui-form-field>
+
+                <ui-form-field label="Adresse e-mail professionnelle" type="email" placeholder="Saisir"
+                    [required]="true" [control]="employeeForm.get('email')!" [error]="getFieldError('email')"
+                    class="max-md:mb-2">
+                </ui-form-field>
+
+                <ui-form-field label="Numéro de téléphone" type="tel" placeholder="Saisir" [required]="true"
+                    [control]="employeeForm.get('telephone')!" [error]="getFieldError('telephone')" class="max-md:mb-2">
+                </ui-form-field>
+
+                <ui-form-field label="Adresse" type="text" placeholder="Saisir" [required]="true"
+                    [control]="employeeForm.get('adresse')!" [error]="getFieldError('adresse')" class="max-md:mb-2">
+                </ui-form-field>
+
+                <!-- Entreprise associée (autocomplete pour gérer 100+ entreprises) -->
+                <div class="max-md:mb-2 space-y-1">
+                    <label class="block text-sm font-medium text-gray-700">
+                        Entreprise associée <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative" (click)="$event.stopPropagation()">
+                        <input type="text"
+                            [(ngModel)]="companySearchTerm"
+                            [ngModelOptions]="{standalone: true}"
+                            (focus)="showCompanyDropdown = true"
+                            (input)="onCompanySearchInput()"
+                            placeholder="Rechercher une entreprise..."
+                            class="w-full px-3 py-2 border rounded-md border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-sm"
+                            [class.border-red-500]="getFieldError('entreprise')">
+                        <div *ngIf="showCompanyDropdown" class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            <p *ngIf="!filteredCompanies.length" class="px-3 py-2 text-sm text-gray-500">Aucune entreprise trouvée.</p>
+                            <button type="button" *ngFor="let c of filteredCompanies"
+                                (click)="selectCompany(c)"
+                                class="w-full text-left px-3 py-2 text-sm hover:bg-[#2C2D5B]/5 focus:bg-[#2C2D5B]/5 focus:outline-none">
+                                {{ c.name }}
+                            </button>
+                        </div>
+                    </div>
+                    <p *ngIf="getFieldError('entreprise')" class="text-xs text-red-500">{{ getFieldError('entreprise') }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== FOOTER ===================== -->
+        <div class="flex flex-col-reverse gap-2 pt-4 sm:pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <button type="submit" [disabled]="employeeForm.invalid || isSubmitting"
+                class="w-full py-3 sm:py-4 bg-[#2C2D5B] hover:bg-[#232b5c] text-white rounded-lg font-medium transition-colors">
+                {{ isSubmitting ? 'Patienter...' : "Envoyer l'invitation" }}
+            </button>
+            <button type="button" (click)="onClose()"
+                class="w-full py-3 sm:py-4 bg-[#DDE2E433] text-gray-600 hover:bg-gray-50 hover:text-gray-800 rounded-lg font-medium transition-colors">
+                Annuler
+            </button>
+
+        </div>
+    </form>
+</ui-modal>

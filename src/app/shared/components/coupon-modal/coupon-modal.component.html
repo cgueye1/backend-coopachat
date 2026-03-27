@@ -1,0 +1,67 @@
+<ui-modal [isOpen]="isOpen" title="Créer un nouveau coupon" (close)="onClose()">
+  <form [formGroup]="couponForm" (ngSubmit)="onSubmit()">
+    <div class="space-y-4 px-1 max-h-[70vh] overflow-y-auto">
+      <p class="text-sm text-gray-600">Code promo à saisir sur le panier (réduction sur le total).</p>
+
+      <!-- Nom / Code -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ui-form-field label="Nom" type="text" placeholder="Ex: Été 2025" [required]="true"
+          [control]="couponForm.get('name')!" [error]="getFieldError('name')">
+        </ui-form-field>
+        <ui-form-field label="Code" type="text" placeholder="Ex: ETE2025" [required]="true"
+          [control]="couponForm.get('code')!" [error]="getFieldError('code')">
+        </ui-form-field>
+      </div>
+
+      <!-- Type de réduction -->
+      <div class="space-y-2">
+        <label class="text-[15px] font-medium text-gray-700">Type de réduction <span class="text-red-500">*</span></label>
+        <div class="flex flex-wrap gap-6">
+          <label class="inline-flex items-center gap-2 cursor-pointer">
+            <input type="radio" formControlName="discountType" [value]="DISCOUNT_TYPE.PERCENTAGE"
+              class="w-4 h-4 text-[#2B3674] border-gray-300 focus:ring-[#2B3674]">
+            <span>Pourcentage (%)</span>
+          </label>
+          <label class="inline-flex items-center gap-2 cursor-pointer">
+            <input type="radio" formControlName="discountType" [value]="DISCOUNT_TYPE.FIXED_AMOUNT"
+              class="w-4 h-4 text-[#2B3674] border-gray-300 focus:ring-[#2B3674]">
+            <span>Montant fixe (F CFA)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Valeur -->
+      <div class="flex items-end gap-2 flex-wrap">
+        <div class="min-w-[120px] flex-1">
+          <ui-form-field label="Valeur" type="text" placeholder="10" [required]="true"
+            [control]="couponForm.get('value')!" [error]="getFieldError('value')">
+          </ui-form-field>
+        </div>
+        <span class="pb-3 text-gray-600">{{ isFixedAmount ? 'F CFA' : '%' }}</span>
+      </div>
+
+      <!-- Dates -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ui-form-field label="Date début" type="date" [required]="true"
+          [control]="couponForm.get('dateDebut')!" [error]="getFieldError('dateDebut')">
+        </ui-form-field>
+        <ui-form-field label="Date fin" type="date" [required]="true"
+          [control]="couponForm.get('dateFin')!" [error]="getFieldError('dateFin')">
+        </ui-form-field>
+      </div>
+      <p *ngIf="dateRangeError" class="text-red-500 text-xs">{{ dateRangeError }}</p>
+    </div>
+
+    <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-4 mt-4 border-t border-gray-100">
+      <button type="button" (click)="onClose()"
+        class="px-4 py-3 bg-[#DDE2E433] text-gray-600 hover:bg-gray-100 rounded-lg font-medium">
+        Annuler
+      </button>
+      <button type="submit"
+        [disabled]="couponForm.invalid || isSubmitting || !!dateRangeError"
+        class="px-4 py-3 bg-[#2C2D5B] hover:bg-[#232b5c] disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium">
+        {{ isSubmitting ? 'Création...' : 'Créer le coupon' }}
+      </button>
+    </div>
+  </form>
+</ui-modal>

@@ -1,0 +1,153 @@
+<ui-modal [isOpen]="isOpen" title="Créer une promotion" (close)="onClose()">
+  <div class="space-y-4 px-1 max-h-[70vh] overflow-y-auto">
+    <!-- Étape 1 — Infos générales -->
+    <section *ngIf="step === 1">
+      <h2 class="text-lg font-semibold text-[#2B3674] mb-4">Étape 1 — Infos générales</h2>
+      <div class="space-y-4 max-w-xl">
+        <div>
+          <label class="block text-sm font-medium text-[#6B7280] mb-1">Nom de la promotion <span class="text-red-500">*</span></label>
+          <input type="text" [(ngModel)]="name" placeholder="Ex. Soldes mars"
+            class="w-full px-4 py-2.5 border border-[#E0E5EC] rounded-lg focus:ring-2 focus:ring-[#FF6B00] focus:border-[#FF6B00]">
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-[#6B7280] mb-1">Date début <span class="text-red-500">*</span></label>
+            <input type="date" [(ngModel)]="startDate"
+              class="w-full px-4 py-2.5 border border-[#E0E5EC] rounded-lg focus:ring-2 focus:ring-[#FF6B00] focus:border-[#FF6B00]">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-[#6B7280] mb-1">Date fin <span class="text-red-500">*</span></label>
+            <input type="date" [(ngModel)]="endDate"
+              class="w-full px-4 py-2.5 border border-[#E0E5EC] rounded-lg focus:ring-2 focus:ring-[#FF6B00] focus:border-[#FF6B00]">
+          </div>
+        </div>
+        <div>
+          <span class="block text-sm font-medium text-[#6B7280] mb-2">Type</span>
+          <div class="flex gap-6">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="promoType" value="product" [(ngModel)]="promotionType">
+              <span>Produit spécifique</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="promoType" value="category" [(ngModel)]="promotionType">
+              <span>Catégorie spécifique</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Étape 2A — Produit spécifique -->
+    <section *ngIf="step === 2 && promotionType === 'product'">
+      <h2 class="text-lg font-semibold text-[#2B3674] mb-4">Étape 2A — Si Produit spécifique</h2>
+      <div class="mb-4 relative max-w-md">
+        <input type="text" [(ngModel)]="productSearch" placeholder="Rechercher un produit..."
+          class="w-full pl-10 pr-4 py-2.5 border border-[#E0E5EC] rounded-lg focus:ring-2 focus:ring-[#FF6B00] focus:border-[#FF6B00]">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+      </div>
+      <p *ngIf="!productOptionsLoading && productOptions.length === 0" class="text-amber-600 text-sm mb-2">
+        Aucun produit actif disponible. Veuillez en ajouter au catalogue.
+      </p>
+      <div *ngIf="productSearch.trim()" class="mb-4 border border-[#E0E5EC] rounded-lg max-w-md max-h-48 overflow-auto bg-white shadow-sm">
+        <button *ngFor="let p of filteredProductOptions" type="button"
+          (click)="addProductFromSearch(p)"
+          class="w-full text-left px-4 py-2 hover:bg-[#F5F6FA] flex items-center gap-2">
+          <span class="text-[#2B3674]">📦</span>
+          <span>{{ p.name }}</span>
+        </button>
+        <p *ngIf="filteredProductOptions.length === 0 && !productOptionsLoading" class="px-4 py-2 text-sm text-[#6B7280]">Aucun produit trouvé.</p>
+      </div>
+      <div class="overflow-x-auto border border-[#E0E5EC] rounded-lg">
+        <table class="w-full text-sm">
+          <thead class="bg-[#F5F6FA]">
+            <tr>
+              <th class="text-left px-4 py-3 text-[#6B7280] font-medium">Produit</th>
+              <th class="text-left px-4 py-3 text-[#6B7280] font-medium w-32">Réduction</th>
+              <th class="w-12"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of productRows; let i = index" class="border-t border-[#E0E5EC]">
+              <td class="px-4 py-3">📦 {{ row.productName }}</td>
+              <td class="px-4 py-3">
+                <input type="number" min="1" max="100" [(ngModel)]="row.discountValue" placeholder="—"
+                  class="w-20 px-2 py-1.5 border border-[#E0E5EC] rounded text-center"> %
+              </td>
+              <td class="px-2 py-3">
+                <button type="button" (click)="removeProductRow(i)" class="p-1.5 text-red-500 hover:bg-red-50 rounded" title="Supprimer">🗑</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p *ngIf="productRows.length === 0" class="px-4 py-6 text-[#6B7280] text-center">Aucun produit ajouté. Recherchez et ajoutez des produits ci-dessus.</p>
+      </div>
+      <p class="text-sm text-[#6B7280] mt-2">+ Ajouter un produit : utilisez la recherche puis cliquez sur un produit.</p>
+    </section>
+
+    <!-- Étape 2B — Catégorie spécifique -->
+    <section *ngIf="step === 2 && promotionType === 'category'">
+      <h2 class="text-lg font-semibold text-[#2B3674] mb-4">Étape 2B — Si Catégorie spécifique</h2>
+      <div class="mb-4 max-w-md">
+        <label class="block text-sm font-medium text-[#6B7280] mb-1">Sélectionner une catégorie</label>
+        <select [(ngModel)]="selectedCategoryId" (ngModelChange)="onCategoryChange()"
+          class="w-full px-4 py-2.5 border border-[#E0E5EC] rounded-lg focus:ring-2 focus:ring-[#FF6B00] focus:border-[#FF6B00]">
+          <option [ngValue]="null">— Choisir —</option>
+          <option *ngFor="let c of categories" [ngValue]="c.id">{{ c.name }}</option>
+        </select>
+        <p *ngIf="categoriesLoaded && categories.length === 0" class="text-amber-600 text-sm mt-1">
+          Aucune catégorie disponible. Créez des catégories pour proposer des promotions par catégorie.
+        </p>
+      </div>
+      <p class="text-sm text-[#6B7280] mb-2">+ Ajouter un produit : cochez les produits et indiquez la réduction en %.</p>
+      <div *ngIf="categoryProductsLoading" class="py-4 text-[#6B7280]">Chargement des produits...</div>
+      <div *ngIf="!categoryProductsLoading && categoryProducts.length > 0" class="overflow-x-auto border border-[#E0E5EC] rounded-lg">
+        <table class="w-full text-sm">
+          <thead class="bg-[#F5F6FA]">
+            <tr>
+              <th class="text-left px-4 py-3 text-[#6B7280] font-medium w-12"></th>
+              <th class="text-left px-4 py-3 text-[#6B7280] font-medium">Produit</th>
+              <th class="text-left px-4 py-3 text-[#6B7280] font-medium w-32">Réduction</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of categoryProducts" class="border-t border-[#E0E5EC]">
+              <td class="px-4 py-3">
+                <input type="checkbox" [(ngModel)]="row.selected">
+              </td>
+              <td class="px-4 py-3">{{ row.productName }}</td>
+              <td class="px-4 py-3">
+                <input type="number" *ngIf="row.selected" min="1" max="100" [(ngModel)]="row.discountValue" placeholder="—"
+                  class="w-20 px-2 py-1.5 border border-[#E0E5EC] rounded text-center"> %
+                <span *ngIf="!row.selected" class="text-[#9CA3AF]">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p *ngIf="selectedCategoryId != null && !categoryProductsLoading && categoryProducts.length === 0" class="py-4 text-amber-600 text-sm">
+        Aucun produit actif dans cette catégorie.
+      </p>
+    </section>
+  </div>
+
+  <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-4 mt-4 border-t border-gray-100">
+    <button type="button" (click)="step === 1 ? onClose() : backToStep1()"
+      class="px-4 py-3 bg-[#DDE2E433] text-gray-600 hover:bg-gray-100 rounded-lg font-medium">
+      {{ step === 1 ? 'Annuler' : 'Retour' }}
+    </button>
+    <ng-container *ngIf="step === 1">
+      <button type="button" (click)="nextToStep2()" [disabled]="!canGoStep2"
+        class="px-4 py-3 bg-[#2C2D5B] hover:bg-[#232b5c] disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium">
+        Suivant
+      </button>
+    </ng-container>
+    <ng-container *ngIf="step === 2">
+      <button type="button" (click)="submit()" [disabled]="!canSubmit || submitting"
+        class="px-4 py-3 bg-[#2C2D5B] hover:bg-[#232b5c] disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium">
+        {{ submitting ? 'Création...' : 'Créer la promotion' }}
+      </button>
+    </ng-container>
+  </div>
+</ui-modal>
