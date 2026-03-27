@@ -98,7 +98,8 @@ public class EmailServiceImpl implements EmailService {
         } catch (Exception e) {
             log.error("Erreur lors de l'envoi du code OTP à {}: {}", 
                     email, e.getMessage(), e);
-            throw new RuntimeException("Impossible d'envoyer l'email OTP: " + e.getMessage(), e);
+            // Message utilisateur volontairement simple (les détails techniques restent dans les logs).
+            throw new RuntimeException("Impossible d'envoyer le code de vérification pour le moment. Veuillez réessayer dans quelques instants.");
         }
     }
 
