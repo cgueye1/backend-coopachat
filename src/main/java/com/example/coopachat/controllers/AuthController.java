@@ -3,6 +3,7 @@ package com.example.coopachat.controllers;
 import com.example.coopachat.dtos.user.UserDetailsDTO;
 import com.example.coopachat.dtos.user.UserDto;
 import com.example.coopachat.dtos.auth.*;
+import com.example.coopachat.enums.PasswordResetChannel;
 import com.example.coopachat.services.auth.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -158,11 +159,15 @@ public class AuthController {
     @Operation(
             summary = "Demander la réinitialisation de mot de passe",
             description = "Génère un token de réinitialisation et l'envoie par email à l'utilisateur. " +
-                    "Le token expire dans 15 minutes."
+                    "Le token expire dans 15 minutes. " +
+                    "Champ optionnel channel : WEB (défaut, lien navigateur) ou MOBILE (deep link application)."
     )
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@RequestBody @Valid ForgotPasswordRequestDTO requestDTO) {
-        authService.generatePasswordResetToken(requestDTO.getEmail());
+        PasswordResetChannel channel = requestDTO.getChannel() != null
+                ? requestDTO.getChannel()
+                : PasswordResetChannel.WEB;
+        authService.generatePasswordResetToken(requestDTO.getEmail(), channel);
         return ResponseEntity.ok("Un lien de réinitialisation a été envoyé à votre adresse email");
     }
 

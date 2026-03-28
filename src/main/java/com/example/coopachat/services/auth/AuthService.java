@@ -4,6 +4,7 @@ import com.example.coopachat.dtos.user.UserDetailsDTO;
 import com.example.coopachat.dtos.user.UserDto;
 import com.example.coopachat.dtos.auth.LoginResponseDTO;
 import com.example.coopachat.dtos.auth.RegisterMobileDTO;
+import com.example.coopachat.enums.PasswordResetChannel;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
 import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
 
@@ -81,9 +82,10 @@ public interface AuthService {
      * Génère un token de réinitialisation de mot de passe et l'envoie par email
      *
      * @param email L'email de l'utilisateur qui demande la réinitialisation
+     * @param channel Canal du lien dans l'email (web ou mobile)
      * @throws RuntimeException si l'utilisateur n'existe pas ou si le compte n'est pas actif
      */
-    void generatePasswordResetToken(String email);
+    void generatePasswordResetToken(String email, PasswordResetChannel channel);
 
 
     /**

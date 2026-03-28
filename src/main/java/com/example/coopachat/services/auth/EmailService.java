@@ -1,5 +1,7 @@
 package com.example.coopachat.services.auth;
 
+import com.example.coopachat.enums.PasswordResetChannel;
+
 /**
  * Interface pour le service d'envoi d'emails
  * Gère l'envoi d'emails pour l'activation de compte et autres notifications
@@ -30,8 +32,9 @@ public interface EmailService {
      * @param email L'email de l'utilisateur
      * @param token Le token unique de réinitialisation
      * @param firstName Le prénom de l'utilisateur (pour personnaliser l'email)
+     * @param channel WEB (URL navigateur) ou MOBILE (deep link application)
      */
-    void sendPasswordResetLink(String email, String token, String firstName);
+    void sendPasswordResetLink(String email, String token, String firstName, PasswordResetChannel channel);
 
     /**
      * Envoie un code d'activation par email à un salarié créé par un commercial

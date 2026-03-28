@@ -12,6 +12,7 @@ import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Users;
 import com.example.coopachat.entities.auth.ActivationCode;
 import com.example.coopachat.enums.CodeType;
+import com.example.coopachat.enums.PasswordResetChannel;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
 import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
@@ -396,7 +397,7 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     @Transactional
-    public void generatePasswordResetToken(String email) {
+    public void generatePasswordResetToken(String email, PasswordResetChannel channel) {
 
         // Vérifier si l'email existe
         Users user = getUserByEmail(email)
@@ -426,8 +427,8 @@ public class AuthServiceImpl implements AuthService {
 
         activationCodeRepository.save(activationCode);
 
-        // Envoyer l'email avec le lien de réinitialisation
-        emailService.sendPasswordResetLink(email, resetToken, user.getFirstName());
+        PasswordResetChannel resolvedChannel = channel != null ? channel : PasswordResetChannel.WEB;
+        emailService.sendPasswordResetLink(email, resetToken, user.getFirstName(), resolvedChannel);
     }
 
     /**
