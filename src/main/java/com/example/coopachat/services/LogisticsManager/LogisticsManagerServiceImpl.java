@@ -2451,9 +2451,18 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             throw new RuntimeException("Seule une réclamation en attente peut être validée");
         }
         claim.setDecisionType(dto.getDecisionType());
+
+        if (claim.getOrderItem() == null) {
+            throw new RuntimeException("Réclamation sans ligne commande associée : traitement impossible");
+        
+        BigDecimal lineRefund = claim.getOrderItem().getSubtotal();
+        if (lineRefund == null || lineRefund.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Montant de la ligne commande introuvable ou invalide pour le remboursement");
+        }
+
         if (dto.getDecisionType() == ClaimDecisionType.REINTEGRATION) {
-            // Réintégration : remettre tout ou partie de la quantité en stock
-            if (claim.getOrderItem() == null || claim.getOrderItem().getProduct() == null) {
+            // Réintégration au stock + remboursement du montant de la ligne (quantité concernée)
+            if (claim.getOrderItem().getProduct() == null) {
                 throw new RuntimeException("Réclamation sans produit associé : impossible de réintégrer au stock");
             }
             Product product = claim.getOrderItem().getProduct();
@@ -2461,7 +2470,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             if (quantityOrdered <= 0) {
                 throw new RuntimeException("Quantité commandée invalide pour la réintégration");
             }
-            // Si quantityToReintegrate fourni : doit être entre 1 et quantityOrdered ; sinon on réintègre toute la quantité
             int quantity = dto.getQuantityToReintegrate() != null
                     ? dto.getQuantityToReintegrate()
                     : quantityOrdered;
@@ -2471,29 +2479,21 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             int currentStock = product.getCurrentStock() != null ? product.getCurrentStock() : 0;
             product.setCurrentStock(currentStock + quantity);
             productRepository.save(product);
-            claim.setRefundAmount(null);
+            claim.setRefundAmount(lineRefund);
         } else {
-            // Remboursement : montant obligatoire
-            if (dto.getRefundAmount() == null || dto.getRefundAmount().signum() < 0) {
-                throw new RuntimeException("Le montant du remboursement est obligatoire et doit être positif");
-            }
-            if (claim.getOrderItem() == null) {
-                throw new RuntimeException("Réclamation sans produit associé : impossible de rembourser");
-            }
-            //On récupère le montant total de la commande
-            BigDecimal maxRefund = claim.getOrderItem().getSubtotal() != null
-                    ? claim.getOrderItem().getSubtotal()
-                    : BigDecimal.ZERO;
-                    //On vérifie que le montant remboursé ne dépasse pas le montant total de la commande si c'est le cas on lance une exception
-            if (dto.getRefundAmount().compareTo(maxRefund) > 0) {
-                throw new RuntimeException("Le montant remboursé ne peut pas dépasser le montant du produit concerné");
-            }
-            claim.setRefundAmount(dto.getRefundAmount());
+            // Remboursement seul : montant = sous-total ligne (saisie front ignorée)
+            claim.setRefundAmount(lineRefund);
         }
         claim.setStatus(ClaimStatus.VALIDE);
         claim.setProcessedAt(LocalDateTime.now());
         claim.setProcessedBy(currentUser);
         claimRepository.save(claim);
+
+        try {
+            employeeNotificationService.notifyClaimValidated(claim, dto.getDecisionType(), claim.getRefundAmount());
+        } catch (Exception e) {
+            log.warn("Notification salarié après validation réclamation {} : {}", id, e.getMessage());
+        }
     }
 
     @Override

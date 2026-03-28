@@ -16,6 +16,7 @@ import com.example.coopachat.enums.PasswordResetChannel;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
 import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
+import com.example.coopachat.exceptions.ResourceNotFoundException;
 import com.example.coopachat.repositories.ActivationCodeRepository;
 import com.example.coopachat.repositories.EmployeeRepository;
 import com.example.coopachat.repositories.UserRepository;
@@ -399,13 +400,15 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void generatePasswordResetToken(String email, PasswordResetChannel channel) {
 
-        // Vérifier si l'email existe
+        // Vérifier si l'email existe (404 + message lisible pour l'utilisateur final)
         Users user = getUserByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Aucun compte n'est associé à cette adresse e-mail. Vérifiez l'orthographe ou inscrivez-vous si vous n'avez pas encore de compte."));
 
         // Vérifier si le compte est actif
         if (!user.getIsActive()) {
-            throw new RuntimeException("Votre compte n'est pas actif");
+            throw new RuntimeException(
+                    "Votre compte n'est pas actif. La réinitialisation du mot de passe n'est pas disponible pour le moment. Contactez le support si vous avez besoin d'aide.");
         }
 
         // Supprimer les tokens existants pour cet email
