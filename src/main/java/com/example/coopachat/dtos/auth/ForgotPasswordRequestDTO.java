@@ -1,5 +1,7 @@
 package com.example.coopachat.dtos.auth;
 
+import com.example.coopachat.enums.PasswordResetChannel;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
@@ -18,4 +20,12 @@ public class ForgotPasswordRequestDTO {
     @NotBlank(message = "L'email est obligatoire")
     @Email(message = "Format d'email invalide")
     private String email;
+
+    /**
+     * Canal du lien dans l'email : {@link PasswordResetChannel#WEB} (navigateur) ou {@link PasswordResetChannel#MOBILE} (app).
+     * Optionnel : si absent, le backend utilise {@link PasswordResetChannel#WEB}.
+     * JSON : chaînes {@code "WEB"} ou {@code "MOBILE"}.
+     */
+    @Schema(description = "WEB (défaut si absent) ou MOBILE", allowableValues = {"WEB", "MOBILE"})
+    private PasswordResetChannel channel;
 }

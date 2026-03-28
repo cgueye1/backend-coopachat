@@ -1,6 +1,7 @@
 
 package com.example.coopachat.services.auth;
 
+import com.example.coopachat.enums.PasswordResetChannel;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,8 +34,11 @@ public class EmailServiceImpl implements EmailService {
     @Value("${mail.app.name:CoopAchat}")
     private String appName;
 
-    @Value("${app.frontend.reset-password-url:http://localhost:4200/reset-password?token=}")
+    @Value("${app.frontend.reset-password-url:http://localhost:4200/create-password?token=}")
     private String resetPasswordUrl;
+
+    @Value("${app.frontend.reset-password-url-mobile:coopachat://reset-password/}")
+    private String resetPasswordUrlMobile;
 
     // ============================================================================
     // 📧 ENVOI D'EMAILS - ACTIVATION DE COMPTE
@@ -111,7 +115,7 @@ public class EmailServiceImpl implements EmailService {
      * Envoie un lien de réinitialisation de mot de passe par email
      */
     @Override
-    public void sendPasswordResetLink(String email, String token, String firstName) {
+    public void sendPasswordResetLink(String email, String token, String firstName, PasswordResetChannel channel) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -120,11 +124,27 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(email);
             helper.setSubject("Réinitialisation de mot de passe - " + appName);
 
-            String resetUrl = resetPasswordUrl + token;
-            String body = String.format(
-                "Bonjour %s,%n%nPour réinitialiser votre mot de passe, cliquez ou copiez ce lien :%n%n%s%n%nExpire dans 15 minutes.%n%nSi vous n'êtes pas à l'origine de cette demande, ignorez cet email. Votre mot de passe actuel reste inchangé.%n%nL'équipe Support %s",
-                firstName != null ? firstName : "", resetUrl, appName
-            );
+            // Canal effectif : si l'appelant n'a pas passé de canal (null), on considère que c'est une demande "navigateur" (WEB).
+            PasswordResetChannel resolved = channel != null ? channel : PasswordResetChannel.WEB;
+
+            // Construction de l'URL complète du lien dans l'email :
+            // - MOBILE → préfixe deep link  + token UUID collé à la fin ;
+            // - WEB     → URL https du front (ex. .../create-password?token=) + token.
+            //resetUrl = resetPasswordUrlMobile + token si resolved = PasswordResetChannel.MOBILE sinon resetPasswordUrl + token(le web )
+            String resetUrl = resolved == PasswordResetChannel.MOBILE
+                    ? resetPasswordUrlMobile + token
+                    : resetPasswordUrl + token;
+
+            // Texte du mail : même information, formulations différentes selon le canal (app vs navigateur).
+            String body = resolved == PasswordResetChannel.MOBILE
+                    ? String.format(
+                    "Bonjour %s,%n%nPour réinitialiser votre mot de passe, ouvrez ce lien depuis l'application %s :%n%n%s%n%nExpire dans 15 minutes.%n%nSi vous n'êtes pas à l'origine de cette demande, ignorez cet email.%n%nL'équipe Support %s",
+                    firstName != null ? firstName : "", appName, resetUrl, appName)
+                    : String.format(
+                    "Bonjour %s,%n%nPour réinitialiser votre mot de passe, cliquez ou copiez ce lien :%n%n%s%n%nExpire dans 15 minutes.%n%nSi vous n'êtes pas à l'origine de cette demande, ignorez cet email. Votre mot de passe actuel reste inchangé.%n%nL'équipe Support %s",
+                    firstName != null ? firstName : "", resetUrl, appName);
+
+            // Corps en texte brut (pas HTML).
             helper.setText(body, false);
             mailSender.send(message);
 

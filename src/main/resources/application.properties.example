@@ -41,7 +41,9 @@ mail.app.name=CoopAchat
 app.frontend.base-url=http://localhost:4200
 
 # Frontend URLs complètes (sans le token, qui sera ajouté dynamiquement)
-app.frontend.reset-password-url=http://localhost:4200/reset-password?token=
+# Autre port : http://localhost:4300/create-password?token=
+app.frontend.reset-password-url=http://localhost:4200/create-password?token=
+app.frontend.reset-password-url-mobile=coopachat://reset-password/
 app.frontend.activate-employee-url=http://localhost:4200/activate?token=
 
 
