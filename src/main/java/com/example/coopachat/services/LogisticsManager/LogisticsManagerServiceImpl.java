@@ -2740,8 +2740,12 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         dto.setStatus(c.getStatus() != null ? c.getStatus().getLabel() : null);
         // Date de création
         dto.setCreatedAt(c.getCreatedAt());
-        // Décision et montant remboursé (si validé)
-        dto.setDecisionLabel(c.getDecisionType() != null ? c.getDecisionType().getLabel() : null);
+        // Décision : réintégration / remboursement si validé ; « Rejeté » si rejeté (évite colonne vide)
+        if (c.getStatus() == ClaimStatus.REJETE) {
+            dto.setDecisionLabel(ClaimStatus.REJETE.getLabel());
+        } else {
+            dto.setDecisionLabel(c.getDecisionType() != null ? c.getDecisionType().getLabel() : null);
+        }
         dto.setRefundAmount(c.getRefundAmount());
         return dto;
     }
@@ -2779,8 +2783,12 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         dto.setComment(c.getComment());
         // URLs des photos
         dto.setPhotoUrls(c.getPhotoUrls());
-        // Décision (si validé ou rejeté)
-        dto.setDecisionTypeLabel(c.getDecisionType() != null ? c.getDecisionType().getLabel() : null);
+        // Décision : réintégration / remboursement si validé ; « Rejeté » si rejeté
+        if (c.getStatus() == ClaimStatus.REJETE) {
+            dto.setDecisionTypeLabel(ClaimStatus.REJETE.getLabel());
+        } else {
+            dto.setDecisionTypeLabel(c.getDecisionType() != null ? c.getDecisionType().getLabel() : null);
+        }
         dto.setRefundAmount(c.getRefundAmount());
         dto.setRejectionReason(c.getRejectionReason());
         dto.setProcessedAt(c.getProcessedAt());
