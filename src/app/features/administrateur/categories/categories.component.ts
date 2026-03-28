@@ -16,6 +16,7 @@ import Swal from 'sweetalert2';
 })
 export class CategoriesComponent implements OnInit {
   categories: CategoryListItemDTO[] = [];
+  loadingList = false;
   showModal = false;
   isEdit = false;
   editingId: number | null = null;
@@ -36,16 +37,19 @@ export class CategoriesComponent implements OnInit {
   /** @param forceRefresh après création/édition, force un rechargement sans cache.
    * @param onLoaded appelé après mise à jour de la liste (ex. afficher un SweetAlert). */
   loadCategories(forceRefresh = false, onLoaded?: () => void): void {
+    this.loadingList = true;
     this.iconLoadFailedIds.clear();
     this.adminService.getCategories(forceRefresh).subscribe({
       next: (list) => {
         const data = Array.isArray(list) ? list : [];
         // Dernière catégorie créée en premier (tri décroissant par id)
         this.categories = [...data].sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
+        this.loadingList = false;
         onLoaded?.();
       },
       error: (err) => {
         console.error('Erreur chargement catégories', err);
+        this.loadingList = false;
         onLoaded?.();
       }
     });

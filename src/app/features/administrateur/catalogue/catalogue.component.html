@@ -38,6 +38,12 @@
                         </tr>
                     </thead>
                     <tbody>
+                        <tr *ngIf="loadingList" class="hover:bg-gray-50">
+                            <td colspan="7" class="py-8 text-center text-sm text-[#6B7280]">Chargement...</td>
+                        </tr>
+                        <tr *ngIf="!loadingList && filteredProducts.length === 0" class="hover:bg-gray-50">
+                            <td colspan="7" class="py-8 text-center text-sm text-[#6B7280]">Aucun produit trouvé.</td>
+                        </tr>
                         <tr *ngFor="let product of filteredProducts" class="border-b border-[#F4F7FE] hover:bg-gray-50">
                             <!-- Product -->
                             <td class="px-2 py-2 sm:px-4 sm:py-3">

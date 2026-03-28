@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+
 import {
   FormsModule,
   ReactiveFormsModule,
@@ -44,9 +45,6 @@ export class LoginComponent implements OnInit {
     this.showPassword = !this.showPassword;
   }
 
-  loginWithGoogle(): void {
-    // TODO: implémenter la connexion OAuth Google
-  }
 
   onSubmit(): void {
     if (this.loginForm.valid) {
@@ -60,12 +58,14 @@ export class LoginComponent implements OnInit {
         next: (response) => {
           this.isLoading = false;
 
+          //si la réponse contient requiresOtp, c'est que l'utilisateur doit entrer un code OTP
           if (response.requiresOtp) {
             sessionStorage.setItem('otpEmail', email);
             this.router.navigate(['/otp-verification']);
             return;
           }
 
+          //si la réponse contient accessToken, c'est que l'utilisateur est connecté directement sans OTP
           if (response.accessToken) {
             const store = (key: string, value: string) => {
               sessionStorage.setItem(key, value);
@@ -101,13 +101,13 @@ export class LoginComponent implements OnInit {
 
         error: (error) => {
           this.isLoading = false;
-          const backendMessage = error?.error?.message;
+          console.error('Erreur login:', error);
+          const backendMessage =
+            (typeof error?.error === 'string' ? error.error : null) ||
+            error?.error?.message ||
+            error?.message;
           if (backendMessage) {
-            if (backendMessage.includes('email OTP') || backendMessage.includes('OTP')) {
-              this.errorMessage = 'Le serveur utilise encore l\'ancienne version (envoi OTP). Rebuild et redéployez le backend sur le VPS pour activer la connexion directe sans OTP.';
-            } else {
-              this.errorMessage = backendMessage;
-            }
+            this.errorMessage = backendMessage;
           } else if (error.status === 401) {
             this.errorMessage = 'Email ou mot de passe incorrect';
           } else if (error.status === 0) {

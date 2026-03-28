@@ -99,8 +99,9 @@
             <div class="overflow-x-auto">
                 <!-- Table Responsive -->
                 <div class="space-y-2 md:space-y-0 md:overflow-x-auto">
+                    <div *ngIf="loadingList" class="p-8 text-center text-sm text-[#6B7280]">Chargement...</div>
                     <!-- Mobile: Cards, Desktop: Table -->
-                    <ng-container *ngIf="filteredCommandes.length > 0">
+                    <ng-container *ngIf="!loadingList && filteredCommandes.length > 0">
                         <!-- Mobile layout -->
                         <div class="flex flex-col gap-2 md:hidden">
                             <div *ngFor="let commande of filteredCommandes"
@@ -218,6 +219,10 @@
                             </tbody>
                         </table>
                     </ng-container>
+                    <div *ngIf="!loadingList && filteredCommandes.length === 0"
+                        class="p-8 text-center text-gray-500 text-sm">
+                        Aucune commande trouvée.
+                    </div>
                 </div>
                 <!-- Pagination -->
                 <div

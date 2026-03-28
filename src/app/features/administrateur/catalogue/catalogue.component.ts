@@ -248,6 +248,7 @@ export class CatalogueComponent implements OnInit, OnDestroy {
   metricsData: MetricCard[] = [];
 
   products: Product[] = [];
+  loadingList = false;
 
   updateMetrics(stats?: { totalProducts: number; activeProducts: number; inactiveProducts: number }) {
     const total = stats?.totalProducts ?? this.products.length;
@@ -475,6 +476,7 @@ export class CatalogueComponent implements OnInit, OnDestroy {
   }
 
   private loadProducts() {
+    this.loadingList = true;
     const statusFilter = this.getStatusFilter();
 
     this.productService
@@ -485,9 +487,11 @@ export class CatalogueComponent implements OnInit, OnDestroy {
           this.products = products.map((item: any) => this.mapApiProductToFrontend(item));
           this.totalElements = response?.totalElements ?? this.products.length;
           this.totalPages = Math.max(1, response?.totalPages ?? 1);
+          this.loadingList = false;
         },
         error: (error) => {
           console.error('Erreur lors du chargement des produits:', error);
+          this.loadingList = false;
         }
       });
   }

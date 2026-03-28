@@ -79,6 +79,33 @@ export class AuthService {
     //----------------------------------------
 
     /**
+     * Demande un lien de réinitialisation par email (flux web : channel WEB).
+     */
+    forgotPassword(email: string): Observable<string> {
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json'
+        });
+        return this.http.post(
+            `${this.apiUrl}/auth/forgot-password`,{ email, channel: 'WEB' },
+            { headers, responseType: 'text' }
+        );
+    }
+
+    /**
+     * Nouveau mot de passe via le token du lien email (mot de passe oublié).
+     */
+    resetPassword(token: string, newPassword: string, confirmPassword: string): Observable<string> {
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json'
+        });
+        return this.http.post(
+            `${this.apiUrl}/auth/reset-password`,
+            { token, newPassword, confirmPassword },
+            { headers, responseType: 'text' }
+        );
+    }
+
+    /**
      * Crée le mot de passe après vérification du code OTP.
      * Étape finale de l'inscription avant la connexion.
      */

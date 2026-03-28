@@ -128,6 +128,7 @@ export class FournisseurComponent {
   }
 
   commandes: Commande[] = [];
+  loadingList = false;
 
   currentPage = 1;
   totalPages = 1;
@@ -461,6 +462,7 @@ export class FournisseurComponent {
   }
 
   private loadOrders(): void {
+    this.loadingList = true;
     const statusFilter = this.getStatusFilter();
     this.logisticsService
       .getSupplierOrders(
@@ -475,9 +477,11 @@ export class FournisseurComponent {
           const orders = response?.content ?? [];
           this.commandes = orders.map((order: any) => this.mapOrderListItemToCommande(order));
           this.totalPages = Math.max(1, response?.totalPages ?? 1);
+          this.loadingList = false;
         },
         error: (error) => {
           console.error('Erreur lors du chargement des commandes:', error);
+          this.loadingList = false;
         }
       });
   }

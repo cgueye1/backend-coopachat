@@ -725,27 +725,33 @@ export class GestionStockComponent implements OnInit {
   }
 
   private loadStockList(): void {
+    this.loadingStockList = true;
     const categoryId = this.findCategoryIdByName(this.selectedCategory);
     this.logisticsService.getStockList(0, 1000, this.searchText, categoryId ?? undefined).subscribe({
       next: (response) => {
         const items = response?.content ?? [];
         this.stockItems = items.map((item: any) => this.mapApiStockItem(item));
+        this.loadingStockList = false;
       },
       error: (error) => {
         console.error('Erreur lors du chargement des stocks:', error);
+        this.loadingStockList = false;
       }
     });
   }
 
   private loadStockAlerts(): void {
+    this.loadingAlertList = true;
     const categoryId = this.findCategoryIdByName(this.selectedCategory);
     this.logisticsService.getStockAlerts(0, 1000, this.searchText, categoryId ?? undefined).subscribe({
       next: (response) => {
         const items = response?.content ?? [];
         this.alertItems = items.map((item: any) => this.mapApiStockItem(item));
+        this.loadingAlertList = false;
       },
       error: (error) => {
         console.error('Erreur lors du chargement des alertes:', error);
+        this.loadingAlertList = false;
       }
     });
   }
@@ -837,6 +843,8 @@ export class GestionStockComponent implements OnInit {
 
   stockItems: StockItem[] = [];
   alertItems: StockItem[] = [];
+  loadingStockList = false;
+  loadingAlertList = false;
 
   getStatusClass(status: string): string {
     switch (status) {
