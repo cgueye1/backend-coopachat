@@ -2454,7 +2454,8 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
         if (claim.getOrderItem() == null) {
             throw new RuntimeException("Réclamation sans ligne commande associée : traitement impossible");
-        
+        }
+
         BigDecimal lineRefund = claim.getOrderItem().getSubtotal();
         if (lineRefund == null || lineRefund.compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Montant de la ligne commande introuvable ou invalide pour le remboursement");
