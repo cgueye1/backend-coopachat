@@ -1693,8 +1693,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         dto.setProblemTypeLabel(c.getProblemType() != null ? c.getProblemType().getName() : null);
         dto.setStatus(c.getStatus() != null ? c.getStatus().getLabel() : null);
         dto.setCreatedAt(c.getCreatedAt());
-        // Décision et montant remboursé (si la réclamation a été traitée)
-        dto.setDecisionLabel(c.getDecisionType() != null ? c.getDecisionType().getLabel() : null);
+        // Décision : réintégration / remboursement si validé ; « Rejeté » si rejeté
+        if (c.getStatus() == ClaimStatus.REJETE) {
+            dto.setDecisionLabel(ClaimStatus.REJETE.getLabel());
+        } else {
+            dto.setDecisionLabel(c.getDecisionType() != null ? c.getDecisionType().getLabel() : null);
+        }
         dto.setRefundAmount(c.getRefundAmount());
         return dto;
     }
@@ -1729,8 +1733,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         dto.setProblemTypeLabel(c.getProblemType() != null ? c.getProblemType().getName() : null);
         dto.setComment(c.getComment());
         dto.setPhotoUrls(c.getPhotoUrls());
-        // Décision (réintégration / remboursement) et motif de rejet si rejeté
-        dto.setDecisionTypeLabel(c.getDecisionType() != null ? c.getDecisionType().getLabel() : null);
+        // Décision : réintégration / remboursement si validé ; « Rejeté » si rejeté
+        if (c.getStatus() == ClaimStatus.REJETE) {
+            dto.setDecisionTypeLabel(ClaimStatus.REJETE.getLabel());
+        } else {
+            dto.setDecisionTypeLabel(c.getDecisionType() != null ? c.getDecisionType().getLabel() : null);
+        }
         dto.setRefundAmount(c.getRefundAmount());
         dto.setRejectionReason(c.getRejectionReason());
         return dto;
