@@ -1,9 +1,11 @@
 package com.example.coopachat.services.Employee;
 
 import com.example.coopachat.entities.Address;
+import com.example.coopachat.entities.Claim;
 import com.example.coopachat.entities.DeliveryTour;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Order;
+import com.example.coopachat.enums.ClaimDecisionType;
 import com.example.coopachat.services.auth.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -302,6 +304,53 @@ public class EmployeeNotificationService {
             emailService.sendEmail(email, subject, body);
         } catch (Exception e) {
             log.error("Erreur envoi notification 'tournée mise à jour salarié' à {}: {}", email, e.getMessage());
+        }
+    }
+
+    /**
+     * Notifie le salarié que sa réclamation (retour) a été acceptée : réintégration et/ou remboursement selon la décision du RL.
+     */
+    public void notifyClaimValidated(Claim claim, ClaimDecisionType decisionType, BigDecimal refundAmount) {
+        if (claim == null || claim.getEmployee() == null || claim.getEmployee().getUser() == null) {
+            log.warn("Claim ou salarié/user manquant, notification retour validé ignorée");
+            return;
+        }
+        String email = claim.getEmployee().getUser().getEmail();
+        if (email == null || email.isBlank()) {
+            log.warn("Pas d'email pour le salarié, notification retour validé ignorée");
+            return;
+        }
+        String firstName = Optional.ofNullable(claim.getEmployee().getUser().getFirstName()).orElse("Salarié");
+        String orderNumber = claim.getOrder() != null && claim.getOrder().getOrderNumber() != null
+                ? claim.getOrder().getOrderNumber()
+                : "-";
+        String productName = "-";
+        if (claim.getOrderItem() != null && claim.getOrderItem().getProduct() != null
+                && claim.getOrderItem().getProduct().getName() != null) {
+            productName = claim.getOrderItem().getProduct().getName();
+        }
+        String amountStr = formatAmount(refundAmount);
+
+        String subject = "Réclamation acceptée - Commande " + orderNumber;
+        String body;
+        if (decisionType == ClaimDecisionType.REINTEGRATION) {
+            body = String.format(
+                    "Bonjour %s,%n%nVotre réclamation concernant la commande %s (produit : %s) a été acceptée.%n%n"
+                            + "Le produit a été réintégré au stock et un remboursement de %s (montant de la ligne concernée) vous est accordé, selon les délais habituels de traitement.%n%n"
+                            + "L'équipe CoopAchat",
+                    firstName, orderNumber, productName, amountStr);
+        } else {
+            body = String.format(
+                    "Bonjour %s,%n%nVotre réclamation concernant la commande %s (produit : %s) a été acceptée.%n%n"
+                            + "Un remboursement de %s a été validé pour la quantité concernée, selon les délais habituels de traitement.%n%n"
+                            + "L'équipe CoopAchat",
+                    firstName, orderNumber, productName, amountStr);
+        }
+
+        try {
+            emailService.sendEmail(email, subject, body);
+        } catch (Exception e) {
+            log.error("Erreur envoi notification 'réclamation validée' à {}: {}", email, e.getMessage());
         }
     }
 
