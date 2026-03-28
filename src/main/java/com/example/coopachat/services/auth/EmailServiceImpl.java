@@ -9,9 +9,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
 
 /**
- * Service d'envoi d'emails - format texte simple et lisible .
+ * Service d'envoi d'emails — texte brut et, pour la réinitialisation, variante HTML avec lien cliquable.
  */
 @Service
 @RequiredArgsConstructor
@@ -144,8 +145,36 @@ public class EmailServiceImpl implements EmailService {
                     "Bonjour %s,%n%nPour réinitialiser votre mot de passe, cliquez ou copiez ce lien :%n%n%s%n%nExpire dans 15 minutes.%n%nSi vous n'êtes pas à l'origine de cette demande, ignorez cet email. Votre mot de passe actuel reste inchangé.%n%nL'équipe Support %s",
                     firstName != null ? firstName : "", resetUrl, appName);
 
-            // Corps en texte brut (pas HTML).
-            helper.setText(body, false);
+            String safeName = HtmlUtils.htmlEscape(firstName != null ? firstName : "");
+            String safeApp = HtmlUtils.htmlEscape(appName);
+            String hrefUrl = HtmlUtils.htmlEscape(resetUrl);
+
+            String htmlBody = resolved == PasswordResetChannel.MOBILE
+                    ? String.format(
+                    "<html><body style=\"font-family:sans-serif;font-size:15px;line-height:1.5;color:#333;\">" +
+                            "<p>Bonjour %s,</p>" +
+                            "<p>Pour réinitialiser votre mot de passe depuis l'application <strong>%s</strong>, utilisez le lien ci-dessous :</p>" +
+                            "<p style=\"margin:24px 0;\"><a href=\"%s\" style=\"display:inline-block;padding:12px 24px;background-color:#ea580c;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;\">Ouvrir dans l'application</a></p>" +
+                            "<p style=\"word-break:break-all;font-size:13px;color:#555;\">%s</p>" +
+                            "<p>Ce lien expire dans <strong>15 minutes</strong>.</p>" +
+                            "<p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>" +
+                            "<p>L'équipe Support %s</p>" +
+                            "</body></html>",
+                    safeName, safeApp, hrefUrl, hrefUrl, safeApp)
+                    : String.format(
+                    "<html><body style=\"font-family:sans-serif;font-size:15px;line-height:1.5;color:#333;\">" +
+                            "<p>Bonjour %s,</p>" +
+                            "<p>Pour réinitialiser votre mot de passe, cliquez sur le bouton ci-dessous :</p>" +
+                            "<p style=\"margin:24px 0;\"><a href=\"%s\" style=\"display:inline-block;padding:12px 24px;background-color:#ea580c;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;\">Réinitialiser mon mot de passe</a></p>" +
+                            "<p style=\"font-size:13px;color:#555;\">Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :</p>" +
+                            "<p style=\"word-break:break-all;font-size:13px;\">%s</p>" +
+                            "<p>Ce lien expire dans <strong>15 minutes</strong>.</p>" +
+                            "<p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email. Votre mot de passe actuel reste inchangé.</p>" +
+                            "<p>L'équipe Support %s</p>" +
+                            "</body></html>",
+                    safeName, hrefUrl, hrefUrl, safeApp);
+
+            helper.setText(body, htmlBody);
             mailSender.send(message);
 
             log.info("Lien de réinitialisation de mot de passe envoyé avec succès à: {}", email);
