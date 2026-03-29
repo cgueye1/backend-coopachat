@@ -8,7 +8,6 @@ import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
 import com.example.coopachat.dtos.claim.ClaimStatsDTO;
 import com.example.coopachat.dtos.claim.RejectClaimDTO;
 import com.example.coopachat.dtos.claim.ValidateClaimDTO;
-import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.CommandesParJourDTO;
@@ -244,9 +243,9 @@ public interface LogisticsManagerService {
      OrderEmployeeListResponseDTO getAllEmployeeOrders(int page, int size, String search, OrderStatus status);
 
     /**
-     * Récupère les statistiques pour la page Gestion des commandes : EN ATTENTE, EN RETARD, EN COURS, LIVRÉES ce mois.
+     * Récupère les statistiques pour la page Gestion des commandes : total commandes (hors ANNULEE), EN ATTENTE, EN RETARD, EN COURS, VALIDÉES, LIVRÉES ce mois.
      *
-     * @return EmployeeOrderStatsDTO (enAttente, enRetard, enCours, livreesCeMois)
+     * @return EmployeeOrderStatsDTO (totalCommandes, enAttente, enRetard, enCours, validees, livreesCeMois)
      */
     EmployeeOrderStatsDTO getEmployeeOrderStats();
 
@@ -432,8 +431,11 @@ public interface LogisticsManagerService {
     /** Graphique "Taux de retours (%)" : 7 derniers jours (date, tauxPercent). Taux = réclamations créées ce jour / commandes ce jour × 100. */
     List<TauxRetoursParJourDTO> getTauxRetoursParJour();
 
-    /** Graphique "Commandes vs Livraisons" : 7 derniers jours (date, commandesEnAttente, livraisons). */
-    List<CommandesVsLivraisonsDayDTO> getCommandesVsLivraisons();
+    /**
+     * Graphique tableau de bord RL (7 jours) : même sémantique que {@link #getLivraisonsParJour()}
+     * (date prévue, livrées à la date, retard EN_ATTENTE).
+     */
+    List<LivraisonParJourDTO> getCommandesVsLivraisons();
 
     /** Donut "Stocks - État global" : normal, sous seuil, critique. */
     StockEtatGlobalDTO getStockEtatGlobal();

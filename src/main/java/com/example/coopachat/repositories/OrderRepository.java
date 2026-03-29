@@ -241,17 +241,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     /** Nombre de commandes ayant le statut donné (ex. VALIDEE). */
     long countByStatus(OrderStatus status);
 
+    /** Tous statuts sauf celui exclu (ex. {@link OrderStatus#ANNULEE} pour le total KPI RL). */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status <> :excluded")
+    long countByStatusNot(@Param("excluded") OrderStatus excluded);
+
     /** Nombre de commandes créées dans la période [start, end] (tous statuts). Pour graphique "Commandes par jour". */
     long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 
     /** Nombre de commandes ayant utilisé un coupon (coupon non null), créées entre start et end. Pour graphique "Coupons utilisés par jour". */
     long countByCouponIsNotNullAndCreatedAtBetween(LocalDateTime start, LocalDateTime end);
-
-    /** Nombre de commandes dont le statut est dans la liste et la date de livraison = day. */
-    @Query("SELECT COUNT(o) FROM Order o WHERE o.status IN :statuses AND o.deliveryDate = :day")
-    long countByStatusInAndDeliveryDate(
-            @Param("statuses") List<OrderStatus> statuses,
-            @Param("day") LocalDate day);
 
     /** Date de livraison prévue = jour, hors annulées. Dashboard livraisons par jour ({@code nbPrevues}). */
     @Query("SELECT COUNT(o) FROM Order o WHERE o.deliveryDate = :day AND o.status <> :annulee")
@@ -261,12 +259,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     /** Statut et date de livraison prévue = jour (ex. LIVREE pour {@code nbLivreesALaDate}). */
     long countByStatusAndDeliveryDate(OrderStatus status, LocalDate deliveryDate);
-
-    /** Nombre de commandes EN_ATTENTE, date de livraison = day, non assignées à une tournée. */
-    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = :status AND o.deliveryDate = :day AND o.deliveryTour IS NULL")
-    long countByStatusAndDeliveryDateAndDeliveryTourIsNull(
-            @Param("status") OrderStatus status,
-            @Param("day") LocalDate day);
 
     /**
      * Calendrier RL (mois) — commandes EN_ATTENTE non planifiées, groupées par deliveryDate.
