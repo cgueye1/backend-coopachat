@@ -229,7 +229,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("status") OrderStatus status,
             @Param("now") LocalDate now);
 
-    /** Nombre de commandes ayant le statut donné et date de livraison avant :now (livraisons en retard). Utilisé par GET /admin/alerts. */
+    /**
+     * Nombre de commandes avec le statut donné et date de livraison prévue strictement avant {@code now}.
+     * GET /admin/alerts ; dashboard livraisons par jour ({@code nbRetard} avec statut EN_ATTENTE).
+     */
     @Query("SELECT COUNT(o) FROM Order o WHERE o.status = :status AND o.deliveryDate < :now")
     long countByStatusAndDeliveryDateBefore(
             @Param("status") OrderStatus status,
@@ -244,13 +247,22 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     /** Nombre de commandes ayant utilisé un coupon (coupon non null), créées entre start et end. Pour graphique "Coupons utilisés par jour". */
     long countByCouponIsNotNullAndCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 
-    /** Nombre de commandes dont le statut est dans la liste et la date de livraison = day. Pour livraisons par jour (nbAssignes). */
+    /** Nombre de commandes dont le statut est dans la liste et la date de livraison = day. */
     @Query("SELECT COUNT(o) FROM Order o WHERE o.status IN :statuses AND o.deliveryDate = :day")
     long countByStatusInAndDeliveryDate(
             @Param("statuses") List<OrderStatus> statuses,
             @Param("day") LocalDate day);
 
-    /** Nombre de commandes EN_ATTENTE, date de livraison = day, non assignées à une tournée. Pour livraisons par jour (nbEnAttente). */
+    /** Date de livraison prévue = jour, hors annulées. Dashboard livraisons par jour ({@code nbPrevues}). */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.deliveryDate = :day AND o.status <> :annulee")
+    long countByDeliveryDateExcludingCancelled(
+            @Param("day") LocalDate day,
+            @Param("annulee") OrderStatus annulee);
+
+    /** Statut et date de livraison prévue = jour (ex. LIVREE pour {@code nbLivreesALaDate}). */
+    long countByStatusAndDeliveryDate(OrderStatus status, LocalDate deliveryDate);
+
+    /** Nombre de commandes EN_ATTENTE, date de livraison = day, non assignées à une tournée. */
     @Query("SELECT COUNT(o) FROM Order o WHERE o.status = :status AND o.deliveryDate = :day AND o.deliveryTour IS NULL")
     long countByStatusAndDeliveryDateAndDeliveryTourIsNull(
             @Param("status") OrderStatus status,

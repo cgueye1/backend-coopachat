@@ -266,7 +266,7 @@ public interface AdminService {
     StockEtatGlobalDTO getStockEtatGlobal();
 
     /**
-     * Graphique "Livraisons 7 jours" : pour chaque des 7 derniers jours, date + nbLivrees, nbAssignes, nbEnAttente.
+     * Graphique « Livraisons 7 jours » : pour chaque des 7 derniers jours, date + nbPrevues, nbLivreesALaDate, nbRetard.
      */
     List<LivraisonParJourDTO> getLivraisonsParJour();
 

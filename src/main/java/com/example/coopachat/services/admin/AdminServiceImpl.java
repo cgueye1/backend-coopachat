@@ -1187,19 +1187,14 @@ public class AdminServiceImpl implements AdminService {
     public List<LivraisonParJourDTO> getLivraisonsParJour() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
         LocalDate today = LocalDate.now();
-        List<OrderStatus> assignesStatuses = Arrays.asList(
-                OrderStatus.VALIDEE, OrderStatus.EN_PREPARATION, OrderStatus.EN_COURS, OrderStatus.ARRIVE);
         List<LivraisonParJourDTO> result = new ArrayList<>();
         for (int i = 6; i >= 0; i--) {
             LocalDate day = today.minusDays(i);
-            LocalDateTime dayStart = day.atStartOfDay();
-            LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);
-            long nbLivrees = orderRepository.countByStatusAndDeliveryCompletedAtBetween(
-                    OrderStatus.LIVREE, dayStart, dayEnd);
-            long nbAssignes = orderRepository.countByStatusInAndDeliveryDate(assignesStatuses, day);
-            long nbEnAttente = orderRepository.countByStatusAndDeliveryDateAndDeliveryTourIsNull(
-                    OrderStatus.EN_ATTENTE, day);
-            result.add(new LivraisonParJourDTO(day.format(formatter), nbLivrees, nbAssignes, nbEnAttente));
+            long nbPrevues = orderRepository.countByDeliveryDateExcludingCancelled(day, OrderStatus.ANNULEE);
+            long nbLivreesALaDate = orderRepository.countByStatusAndDeliveryDate(OrderStatus.LIVREE, day);
+            long nbRetard = orderRepository.countByStatusAndDeliveryDateBefore(OrderStatus.EN_ATTENTE, day);
+            result.add(new LivraisonParJourDTO(
+                    day.format(formatter), nbPrevues, nbLivreesALaDate, nbRetard));
         }
         return result;
     }

@@ -438,7 +438,7 @@ public interface LogisticsManagerService {
     /** Donut "Stocks - État global" : normal, sous seuil, critique. */
     StockEtatGlobalDTO getStockEtatGlobal();
 
-    /** Graphique "Livraisons 7 jours" : pour chaque jour (date, nbLivrees, nbAssignes, nbEnAttente). */
+    /** Graphique « Livraisons 7 jours » : pour chaque jour (date, nbPrevues, nbLivreesALaDate, nbRetard). */
     List<LivraisonParJourDTO> getLivraisonsParJour();
 
     /**

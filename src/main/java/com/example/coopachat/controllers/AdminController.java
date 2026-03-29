@@ -731,7 +731,7 @@ public class AdminController {
 
     @Operation(
             summary = "Livraisons par jour (7 derniers jours)",
-            description = "Pour chaque jour : date (dd/MM), nbLivrees, nbAssignes, nbEnAttente. Graphique « Livraisons » admin."
+            description = "Pour chaque jour : date (dd/MM), nbPrevues, nbLivreesALaDate, nbRetard (date prévue vs livré vs retard). Graphique « Livraisons » admin."
     )
     @GetMapping("/dashboard/livraisons-par-jour")
     public ResponseEntity<List<LivraisonParJourDTO>> getLivraisonsParJour() {

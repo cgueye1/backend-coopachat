@@ -5,8 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Un point du graphique "Livraisons 7 jours" (Admin et RL).
- * Pour chaque jour : date, nbLivrees, nbAssignes, nbEnAttente.
+ * Un point du graphique « Livraisons 7 jours » (Admin et RL), homogène sur la date de livraison prévue.
+ * Pour chaque jour affiché : effectifs basés sur {@code Order.deliveryDate} (sauf mention contraire).
  */
 @Data
 @NoArgsConstructor
@@ -16,12 +16,21 @@ public class LivraisonParJourDTO {
     /** Libellé du jour (ex. "06/09"). */
     private String date;
 
-    /** Nombre de commandes livrées ce jour (LIVREE, deliveryCompletedAt ce jour). */
-    private long nbLivrees;
+    /**
+     * Nombre de commandes dont la date de livraison prévue est ce jour, hors annulées
+     * ({@code deliveryDate} = jour, statut ≠ ANNULEE).
+     */
+    private long nbPrevues;
 
-    /** Nombre de commandes assignées à une tournée ce jour (VALIDEE, EN_PREPARATION, EN_COURS, ARRIVE) avec deliveryDate = ce jour. */
-    private long nbAssignes;
+    /**
+     * Parmi le prévu ce jour, commandes effectivement livrées
+     * ({@code deliveryDate} = jour et statut LIVREE).
+     */
+    private long nbLivreesALaDate;
 
-    /** Nombre de commandes en attente ce jour (EN_ATTENTE avec deliveryDate = ce jour, non encore en tournée). */
-    private long nbEnAttente;
+    /**
+     * Commandes EN_ATTENTE dont la date de livraison prévue est strictement avant ce jour
+     * (non planifiées / date dépassée au sens calendrier prévu).
+     */
+    private long nbRetard;
 }
