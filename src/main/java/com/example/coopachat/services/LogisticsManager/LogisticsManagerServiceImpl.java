@@ -1401,6 +1401,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ByteArrayResource exportEmployeeOrders(String search, OrderStatus status) {
 
         // Récupérer l'utilisateur connecté
@@ -2282,6 +2283,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ByteArrayResource exportDeliveryTours(String tourNumber, DeliveryTourStatus status) {
 
         // 1. VÉRIFICATION DES DROITS
@@ -2698,30 +2700,21 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     }
 
     /**
-     * Par jour sur les 7 derniers jours : nb livrées, nb assignées à une tournée, nb en attente (non assignées).
+     * Par jour sur les 7 derniers jours : prévu à la date, livrées à la date prévue, retard (date prévue dépassée).
      * Utilisé pour le graphique Livraisons (Admin et RL).
      */
     @Override
     public List<LivraisonParJourDTO> getLivraisonsParJour() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
         LocalDate today = LocalDate.now();
-        // Statuts considérés comme "assignés" (en tournée ou en préparation)
-        List<OrderStatus> assignesStatuses = Arrays.asList(
-                OrderStatus.VALIDEE, OrderStatus.EN_PREPARATION, OrderStatus.EN_COURS, OrderStatus.ARRIVE);
         List<LivraisonParJourDTO> result = new ArrayList<>();
         for (int i = 6; i >= 0; i--) {
             LocalDate day = today.minusDays(i);
-            LocalDateTime dayStart = day.atStartOfDay();
-            LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);
-            // Livrées ce jour (LIVREE, deliveryCompletedAt dans la journée)
-            long nbLivrees = orderRepository.countByStatusAndDeliveryCompletedAtBetween(
-                    OrderStatus.LIVREE, dayStart, dayEnd);
-            // Assignées à une tournée ce jour (statut dans assignesStatuses, deliveryDate = day)
-            long nbAssignes = orderRepository.countByStatusInAndDeliveryDate(assignesStatuses, day);
-            // EN_ATTENTE avec deliveryDate = day et pas encore en tournée
-            long nbEnAttente = orderRepository.countByStatusAndDeliveryDateAndDeliveryTourIsNull(
-                    OrderStatus.EN_ATTENTE, day);
-            result.add(new LivraisonParJourDTO(day.format(formatter), nbLivrees, nbAssignes, nbEnAttente));
+            long nbPrevues = orderRepository.countByDeliveryDateExcludingCancelled(day, OrderStatus.ANNULEE);
+            long nbLivreesALaDate = orderRepository.countByStatusAndDeliveryDate(OrderStatus.LIVREE, day);
+            long nbRetard = orderRepository.countByStatusAndDeliveryDateBefore(OrderStatus.EN_ATTENTE, day);
+            result.add(new LivraisonParJourDTO(
+                    day.format(formatter), nbPrevues, nbLivreesALaDate, nbRetard));
         }
         return result;
     }

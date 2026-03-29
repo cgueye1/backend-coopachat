@@ -746,7 +746,7 @@ public class LogisticsManagerController {
         return ResponseEntity.ok(logisticsManagerService.getStockEtatGlobal());
     }
 
-    @Operation(summary = "Livraisons par jour (7 derniers jours)", description = "Pour chaque jour : date, nbLivrees, nbAssignes, nbEnAttente.")
+    @Operation(summary = "Livraisons par jour (7 derniers jours)", description = "Pour chaque jour : date, nbPrevues, nbLivreesALaDate, nbRetard.")
     @GetMapping("/dashboard/livraisons-par-jour")
     public ResponseEntity<List<LivraisonParJourDTO>> getLivraisonsParJour() {
         return ResponseEntity.ok(logisticsManagerService.getLivraisonsParJour());
