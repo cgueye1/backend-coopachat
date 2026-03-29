@@ -27,6 +27,8 @@ public class OrderItemDetailsDTO {
     private String currentStatusChangedByRole;
     /** Nom complet du livreur qui a livré la commande (null si aucun livreur associé). */
     private String driverName;
+    /** Téléphone du livreur (Users.phone), null si inconnu. */
+    private String driverPhone;
     /** Raison saisie par le livreur en cas d'échec de livraison (Order.failureReason). */
     private String failureReason;
     private List<ProductPreviewDTO> listProducts;
