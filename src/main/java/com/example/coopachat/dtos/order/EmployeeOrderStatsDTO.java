@@ -5,12 +5,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Statistiques pour la page Gestion des commandes (RL) : EN ATTENTE, EN RETARD, EN COURS, LIVRÉES ce mois.
+ * Statistiques pour la page Gestion des commandes (RL) : total (hors annulées), EN ATTENTE, EN RETARD, EN COURS, VALIDÉES, LIVRÉES ce mois.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class EmployeeOrderStatsDTO {
+
+    /** Nombre total de commandes (tous statuts sauf ANNULEE). */
+    private long totalCommandes;
 
     /** Commandes en attente (non affectées à une tournée) — À valider par le RL. */
     private long enAttente;

@@ -3,7 +3,6 @@ package com.example.coopachat.controllers;
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.CancelDeliveryTourDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
-import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.CommandesParJourDTO;
@@ -380,7 +379,7 @@ public class LogisticsManagerController {
 
     @Operation(
             summary = "Statistiques des commandes salariés",
-            description = "Retourne les compteurs pour la page Gestion des commandes : EN ATTENTE, EN RETARD, EN COURS, LIVRÉES ce mois."
+            description = "Retourne les compteurs pour la page Gestion des commandes : total commandes (hors annulées), EN ATTENTE, EN RETARD, EN COURS, VALIDÉES, LIVRÉES ce mois."
     )
     @GetMapping(value = "/employee-orders/stats", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EmployeeOrderStatsDTO> getEmployeeOrderStats() {
@@ -734,9 +733,12 @@ public class LogisticsManagerController {
         return ResponseEntity.ok(logisticsManagerService.getTop5ProductUsage());
     }
 
-    @Operation(summary = "Commandes vs Livraisons (7 derniers jours)", description = "Pour chaque jour : date, commandesEnAttente, livraisons.")
+    @Operation(
+            summary = "Livraisons par jour — tableau de bord RL (7 jours)",
+            description = "Même payload que GET .../livraisons-par-jour : date, nbPrevues, nbLivreesALaDate, nbRetard (date de livraison prévue)."
+    )
     @GetMapping("/dashboard/commandes-vs-livraisons")
-    public ResponseEntity<List<CommandesVsLivraisonsDayDTO>> getCommandesVsLivraisons() {
+    public ResponseEntity<List<LivraisonParJourDTO>> getCommandesVsLivraisons() {
         return ResponseEntity.ok(logisticsManagerService.getCommandesVsLivraisons());
     }
 

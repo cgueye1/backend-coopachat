@@ -9,7 +9,6 @@ import com.example.coopachat.dtos.claim.ClaimListResponseDTO;
 import com.example.coopachat.dtos.claim.ClaimStatsDTO;
 import com.example.coopachat.dtos.claim.RejectClaimDTO;
 import com.example.coopachat.dtos.claim.ValidateClaimDTO;
-import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.CommandesParJourDTO;
@@ -582,10 +581,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 row.createCell(4).setCellValue(order.getStatus().getLabel());
 
             }
-            // Ajuster la largeur des colonnes pour une meilleure lecture
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
+            autoSizeColumnsSafe(sheet, headers.length);
             // Convertir le classeur en bytes pour l'envoyer au client
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             workbook.write(outputStream);
@@ -698,6 +694,21 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             return EtatStock.SOUS_SEUIL;
         }
         return EtatStock.SUFFISANT;
+    }
+
+    /**
+     * Ajuste la largeur des colonnes Excel. Sur serveur headless (Linux sans AWT),
+     * {@link Sheet#autoSizeColumn(int)} échoue souvent — on applique alors une largeur par défaut.
+     */
+    private void autoSizeColumnsSafe(Sheet sheet, int columnCount) {
+        for (int i = 0; i < columnCount; i++) {
+            try {
+                sheet.autoSizeColumn(i);
+            } catch (Throwable e) {
+                log.debug("autoSizeColumn({}) ignoré (headless / polices): {}", i, e.getMessage());
+                sheet.setColumnWidth(i, 20 * 256);
+            }
+        }
     }
 
     // ============================================================================
@@ -942,7 +953,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // 📤 EXPORT DES ALERTES DE STOCK
     // ============================================================================
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public ByteArrayResource exportStockAlerts(String search, Long categoryId) {
 
         // Récupérer l'utilisateur connecté
@@ -1015,10 +1026,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 row.createCell(4).setCellValue(product.getMinThreshold() != null ? product.getMinThreshold() : 0);
             }
 
-            // Ajuster la largeur des colonnes pour une meilleure lecture
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
+            autoSizeColumnsSafe(sheet, headers.length);
 
             // Convertir le classeur en bytes pour l'envoyer au client
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -1033,7 +1041,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // 📤 EXPORT DU SUIVI DES STOCKS
     // ============================================================================
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public ByteArrayResource exportStockList(String search, Long categoryId, Boolean status) {
 
         // Récupérer l'utilisateur connecté
@@ -1137,10 +1145,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 row.createCell(5).setCellValue(etatStock.getLabel());
             }
 
-            // Ajuster la largeur des colonnes pour une meilleure lecture
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
+            autoSizeColumnsSafe(sheet, headers.length);
 
             // Convertir le classeur en bytes pour l'envoyer au client
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -1283,8 +1288,9 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         LocalDateTime monthStart = today.withDayOfMonth(1).atStartOfDay();
         LocalDateTime monthEnd = today.withDayOfMonth(today.lengthOfMonth()).atTime(23, 59, 59, 999_000_000);
         long livreesCeMois = orderRepository.countByStatusAndDeliveryCompletedAtBetween(OrderStatus.LIVREE, monthStart, monthEnd);
+        long totalCommandes = orderRepository.countByStatusNot(OrderStatus.ANNULEE);
 
-        return new EmployeeOrderStatsDTO(enAttente, enRetard, enCours, validees, livreesCeMois);
+        return new EmployeeOrderStatsDTO(totalCommandes, enAttente, enRetard, enCours, validees, livreesCeMois);
     }
 
     @Transactional(readOnly = true)
@@ -1484,10 +1490,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 row.createCell(5).setCellValue(order.getStatus().getLabel());
 
             }
-            // Augmente la largeur de la colonne 'i' pour que tout son contenu soit visible
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
+            autoSizeColumnsSafe(sheet, headers.length);
 
             // ByteArrayOutputStream = "Un conteneur temporaire en mémoire"
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -2366,10 +2369,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 row.createCell(5).setCellValue(tour.getStatus().getDisplayName());
             }
 
-            // Augmente la largeur de la colonne 'i' pour que tout son contenu soit visible
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
+            autoSizeColumnsSafe(sheet, headers.length);
 
             // ByteArrayOutputStream = "Un conteneur temporaire en mémoire"
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -2643,47 +2643,8 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     }
 
     @Override
-    public List<CommandesVsLivraisonsDayDTO> getCommandesVsLivraisons() {
-
-        // Définit le format d'affichage de la date (ex : 25/02)
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
-
-        // Récupère la date du jour
-        LocalDate today = LocalDate.now();
-
-        // Liste qui va contenir les résultats des 7 derniers jours
-        List<CommandesVsLivraisonsDayDTO> result = new ArrayList<>();
-
-        // Boucle sur les 7 derniers jours (de J-6 jusqu'à aujourd'hui)
-        for (int i = 6; i >= 0; i--) {
-
-            // Calcule la date du jour en cours dans la boucle
-            LocalDate day = today.minusDays(i);
-
-            // Définit le début de la journée (00:00:00)
-            LocalDateTime dayStart = day.atStartOfDay();
-
-            // Définit la fin de la journée (23:59:59.999999999)
-            LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);
-
-            // Compte les commandes créées ce jour-là avec le statut EN_ATTENTE
-            long commandesEnAttente = orderRepository.countByStatusAndCreatedAtBetween(
-                    OrderStatus.EN_ATTENTE, dayStart, dayEnd);
-
-            // Compte les commandes livrées ce jour-là (date de livraison effective)
-            long livraisons = orderRepository.countByStatusAndDeliveryCompletedAtBetween(
-                    OrderStatus.LIVREE, dayStart, dayEnd);
-
-            // Ajoute les données du jour dans la liste (date + commandes + livraisons)
-            result.add(new CommandesVsLivraisonsDayDTO(
-                    day.format(formatter),
-                    commandesEnAttente,
-                    livraisons
-            ));
-        }
-
-        // Retourne la liste complète pour alimenter le graphique
-        return result;
+    public List<LivraisonParJourDTO> getCommandesVsLivraisons() {
+        return getLivraisonsParJour();
     }
 
     @Override
