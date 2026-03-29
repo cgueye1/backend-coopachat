@@ -1317,14 +1317,23 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                   + (order.getEmployee().getUser().getLastName() != null ? order.getEmployee().getUser().getLastName() : "")
                 : "";
 
-        // Construire le nom du livreur (si la commande est rattachée à une tournée avec un driver)
+        // Construire le nom et le téléphone du livreur (tournée + driver → user)
         String driverName = null;
+        String driverPhone = null;
         if (order.getDeliveryTour() != null
                 && order.getDeliveryTour().getDriver() != null
                 && order.getDeliveryTour().getDriver().getUser() != null) {
-            String first = order.getDeliveryTour().getDriver().getUser().getFirstName();
-            String last = order.getDeliveryTour().getDriver().getUser().getLastName();
+            var driverUser = order.getDeliveryTour().getDriver().getUser();
+            String first = driverUser.getFirstName();
+            String last = driverUser.getLastName();
             driverName = ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
+            if (driverName.isEmpty()) {
+                driverName = null;
+            }
+            String phone = driverUser.getPhone();
+            if (phone != null && !phone.isBlank()) {
+                driverPhone = phone.trim();
+            }
         }
 
         String failureReason = order.getFailureReason();
@@ -1355,7 +1364,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // On prépare un DTO contenant :
         // - les infos générales de la commande
         // - l'acteur/date ayant posé le statut courant
-        // - éventuellement le nom du livreur
+        // - éventuellement le nom / téléphone du livreur
         // - la liste des produits associés à la commande
         return new OrderItemDetailsDTO(
                 order.getOrderNumber(),
@@ -1366,6 +1375,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 currentStatusChangedAt,
                 currentStatusChangedByRole,
                 driverName,
+                driverPhone,
                 failureReason,
                 order.getItems().stream()
                         .filter(item -> item.getProduct() != null)
