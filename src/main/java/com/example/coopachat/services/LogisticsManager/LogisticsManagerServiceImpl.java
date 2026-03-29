@@ -2398,9 +2398,10 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         long inProgress = deliveryTourRepository.countByStatus(DeliveryTourStatus.EN_COURS);
         long completed = deliveryTourRepository.countByStatus(DeliveryTourStatus.TERMINEE);
         long cancelled = deliveryTourRepository.countByStatus(DeliveryTourStatus.ANNULEE);
+        long total = assigned + inProgress + completed + cancelled;
 
         // 3. RETOUR DU DTO
-        return new DeliveryTourStatsDTO(assigned, inProgress, completed, cancelled);
+        return new DeliveryTourStatsDTO(total, assigned, inProgress, completed, cancelled);
     }
 
     // ============================================================================

@@ -5,12 +5,17 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * DTO pour les statistiques des tournées par statut (4 statuts : ASSIGNEE, EN_COURS, TERMINEE, ANNULEE).
+ * DTO pour les statistiques des tournées : total + répartition par statut (ASSIGNEE, EN_COURS, TERMINEE, ANNULEE).
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class DeliveryTourStatsDTO {
+
+    /**
+     * Nombre total de tournées (tous statuts confondus).
+     */
+    private long totalTours;
 
     /**
      * Tournées assignées au livreur

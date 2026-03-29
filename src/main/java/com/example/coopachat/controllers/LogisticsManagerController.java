@@ -614,7 +614,7 @@ public class LogisticsManagerController {
 
     @Operation(
             summary = "Récupérer les statistiques des tournées",
-            description = "Retourne le nombre de tournées par statut"
+            description = "Retourne le total des tournées et le nombre par statut (assignée, en cours, terminée, annulée)"
     )
     @GetMapping("/delivery-tours/stats")
     public ResponseEntity<DeliveryTourStatsDTO> getDeliveryTourStats() {
