@@ -1349,6 +1349,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         String currentStatusChangedByName = null;
         LocalDateTime currentStatusChangedAt = null;
         String currentStatusChangedByRole = null;
+        String previousStatusLabel = null;
         if (latestStatusHistory.isPresent()) {
             OrderStatusHistory h = latestStatusHistory.get();
             String first = h.getActorFirstName() != null ? h.getActorFirstName().trim() : "";
@@ -1359,6 +1360,14 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             currentStatusChangedByRole = h.getChangedByRole() != null
                     ? h.getChangedByRole().getLabel()
                     : null;
+            // Statut précédent : même entrée d'historique si la dernière transition est * → ANNULEE
+            // (tracée notamment dans EmployeeServiceImpl.cancelOrder avec setFromStatus).
+            if (order.getStatus() == OrderStatus.ANNULEE
+                    && h.getToStatus() == OrderStatus.ANNULEE
+                    && h.getFromStatus() != null) {
+                String pl = h.getFromStatus().getLabel();
+                previousStatusLabel = (pl != null && !pl.isBlank()) ? pl.trim() : null;
+            }
         }
 
         // On prépare un DTO contenant :
@@ -1377,6 +1386,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 driverName,
                 driverPhone,
                 failureReason,
+                previousStatusLabel,
                 order.getItems().stream()
                         .filter(item -> item.getProduct() != null)
                         .map(item -> new ProductPreviewDTO(
