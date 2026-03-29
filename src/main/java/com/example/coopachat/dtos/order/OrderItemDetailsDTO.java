@@ -31,5 +31,10 @@ public class OrderItemDetailsDTO {
     private String driverPhone;
     /** Raison saisie par le livreur en cas d'échec de livraison (Order.failureReason). */
     private String failureReason;
+    /**
+     * Libellé du statut avant annulation, si commande {@code ANNULEE} et que la dernière ligne d'historique
+     * est la transition vers ANNULEE (ex. salarié : {@code fromStatus} = EN_ATTENTE).
+     */
+    private String previousStatusLabel;
     private List<ProductPreviewDTO> listProducts;
 }
