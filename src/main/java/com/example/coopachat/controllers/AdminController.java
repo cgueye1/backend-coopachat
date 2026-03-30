@@ -24,10 +24,10 @@ import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminAlertsDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
-import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
 import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.StatutTourneesDTO;
 import com.example.coopachat.dtos.reference.CreateReferenceItemDTO;
 import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.enums.UserRole;
@@ -719,14 +719,13 @@ public class AdminController {
     }
 
     @Operation(
-            summary = "Commandes vs Livraisons (7 derniers jours)",
-            description = "Retourne pour chacun des 7 derniers jours : date (dd/MM), nombre de commandes en attente (EN_ATTENTE), " +
-                    "nombre de livraisons (LIVREE). Utilisé par le graphique du tableau de bord admin. "
+            summary = "Livraisons par jour — alias (7 derniers jours)",
+            description = "Même payload que GET .../livraisons-par-jour : date, nbPrevues, nbLivreesALaDate, nbRetard. " +
+                    "Conservé sous l’URL historique commandes-vs-livraisons pour compatibilité."
     )
     @GetMapping("/dashboard/commandes-vs-livraisons")
-    public ResponseEntity<List<CommandesVsLivraisonsDayDTO>> getCommandesVsLivraisons() {
-        List<CommandesVsLivraisonsDayDTO> list = adminService.getCommandesVsLivraisons();
-        return ResponseEntity.ok(list);
+    public ResponseEntity<List<LivraisonParJourDTO>> getCommandesVsLivraisons() {
+        return ResponseEntity.ok(adminService.getCommandesVsLivraisons());
     }
 
     @Operation(
@@ -745,6 +744,15 @@ public class AdminController {
     @GetMapping("/dashboard/stocks-etat-global")
     public ResponseEntity<StockEtatGlobalDTO> getStockEtatGlobal() {
         return ResponseEntity.ok(adminService.getStockEtatGlobal());
+    }
+
+    @Operation(
+            summary = "Statut des livraisons (tournées)",
+            description = "Effectif des tournées par statut (ASSIGNEE, EN_COURS, TERMINEE, ANNULEE) pour le donut du tableau de bord admin."
+    )
+    @GetMapping("/dashboard/statut-tournees")
+    public ResponseEntity<StatutTourneesDTO> getStatutTournees() {
+        return ResponseEntity.ok(adminService.getStatutTournees());
     }
 
     @Operation(
