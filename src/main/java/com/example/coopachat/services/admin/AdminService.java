@@ -1,6 +1,5 @@
 package com.example.coopachat.services.admin;
 
-import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
 import com.example.coopachat.dtos.fee.CreateFeeDTO;
 import com.example.coopachat.dtos.fee.FeeDTO;
@@ -28,6 +27,7 @@ import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
 import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.StatutTourneesDTO;
 import com.example.coopachat.dtos.reference.CreateReferenceItemDTO;
 import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.enums.UserRole;
@@ -253,17 +253,20 @@ public interface AdminService {
     AdminDashboardStatsDTO getDashboardStats(String periode);
 
     /**
-     * Liste des 7 derniers jours avec pour chaque jour : date (dd/MM), nombre de commandes en attente (EN_ATTENTE), nombre de livraisons (LIVREE).
-     * Utilisé par le graphique "Commandes vs Livraisons".
-     *
-     * @return Liste de 7 éléments, du plus ancien au plus récent
+     * Alias historique : même résultat que {@link #getLivraisonsParJour()} (date prévue, livrées à la date, retard).
+     * GET /admin/dashboard/commandes-vs-livraisons — conservé pour compatibilité clients.
      */
-    List<CommandesVsLivraisonsDayDTO> getCommandesVsLivraisons();
+    List<LivraisonParJourDTO> getCommandesVsLivraisons();
 
     /**
      * Effectifs pour le donut "Stocks - État global" : Normal, Sous seuil, Critique (rupture).
      */
     StockEtatGlobalDTO getStockEtatGlobal();
+
+    /**
+     * Effectifs des tournées par statut (ASSIGNEE, EN_COURS, TERMINEE, ANNULEE) pour le donut « Statut des livraisons ».
+     */
+    StatutTourneesDTO getStatutTournees();
 
     /**
      * Graphique « Livraisons 7 jours » : pour chaque des 7 derniers jours, date + nbPrevues, nbLivreesALaDate, nbRetard.

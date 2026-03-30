@@ -27,11 +27,12 @@ import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminAlertsDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
 import com.example.coopachat.dtos.dashboard.admin.AlertItemDTO;
-import com.example.coopachat.dtos.dashboard.admin.CommandesVsLivraisonsDayDTO;
 import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.PaymentStatusItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.StatutTourneesDTO;
+import com.example.coopachat.dtos.dashboard.logisticsManager.StatusCountDTO;
 import com.example.coopachat.dtos.reference.CreateReferenceItemDTO;
 import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.entities.*;
@@ -39,6 +40,7 @@ import com.example.coopachat.enums.ClaimStatus;
 import com.example.coopachat.enums.EtatStock;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.PaymentStatus;
+import com.example.coopachat.enums.DeliveryTourStatus;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.auth.ActivationCodeService;
@@ -67,7 +69,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import java.util.ArrayList;
@@ -104,6 +108,7 @@ public class AdminServiceImpl implements AdminService {
     private final EmployeeDeliveryIssueReasonRepository employeeDeliveryIssueReasonRepository;
     private final CompanySectorRepository companySectorRepository;
     private final UserReferenceGenerator userReferenceGenerator;
+    private final DeliveryTourRepository deliveryTourRepository;
 
     // ============================================================================
     // 📁 GESTION DES CATÉGORIES
@@ -1140,47 +1145,8 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public List<CommandesVsLivraisonsDayDTO> getCommandesVsLivraisons() {
-
-        // Définit le format d'affichage de la date (ex : 25/02)
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
-
-        // Récupère la date du jour
-        LocalDate today = LocalDate.now();
-
-        // Liste qui va contenir les résultats des 7 derniers jours
-        List<CommandesVsLivraisonsDayDTO> result = new ArrayList<>();
-
-        // Boucle sur les 7 derniers jours (de J-6 jusqu'à aujourd’hui)
-        for (int i = 6; i >= 0; i--) {
-
-            // Calcule la date du jour en cours dans la boucle
-            LocalDate day = today.minusDays(i);
-
-            // Définit le début de la journée (00:00:00)
-            LocalDateTime dayStart = day.atStartOfDay();
-
-            // Définit la fin de la journée (23:59:59.999999999)
-            LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);
-
-            // Compte les commandes créées ce jour-là avec le statut EN_ATTENTE
-            long commandesEnAttente = orderRepository.countByStatusAndCreatedAtBetween(
-                    OrderStatus.EN_ATTENTE, dayStart, dayEnd);
-
-            // Compte les commandes livrées ce jour-là (date de livraison effective)
-            long livraisons = orderRepository.countByStatusAndDeliveryCompletedAtBetween(
-                    OrderStatus.LIVREE, dayStart, dayEnd);
-
-            // Ajoute les données du jour dans la liste (date + commandes + livraisons)
-            result.add(new CommandesVsLivraisonsDayDTO(
-                    day.format(formatter),
-                    commandesEnAttente,
-                    livraisons
-            ));
-        }
-
-        // Retourne la liste complète pour alimenter le graphique
-        return result;
+    public List<LivraisonParJourDTO> getCommandesVsLivraisons() {
+        return getLivraisonsParJour();
     }
 
     @Override
@@ -1222,6 +1188,19 @@ public class AdminServiceImpl implements AdminService {
         long critique = productRepository.countByCurrentStock(0);
         long normal = total - sousSeuil - critique;
         return new StockEtatGlobalDTO(normal, sousSeuil, critique);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StatutTourneesDTO getStatutTournees() {
+        Map<String, Long> parStatut = new LinkedHashMap<>();
+        for (DeliveryTourStatus s : DeliveryTourStatus.values()) {
+            parStatut.put(s.name(), 0L);
+        }
+        for (StatusCountDTO row : deliveryTourRepository.countGroupByStatus()) {
+            parStatut.put(row.status().name(), row.count());
+        }
+        return new StatutTourneesDTO(parStatut);
     }
 
     /**
