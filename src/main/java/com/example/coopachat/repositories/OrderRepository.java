@@ -214,6 +214,23 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
 
+    /**
+     * Commandes livrées dans la fenêtre [start, end] ayant au moins une réclamation (peu importe la date de création de la réclamation).
+     * Graphique « Taux de retours (%) » RL : numérateur du taux par jour.
+     * Sélectionne les commandes livrées dans la fenêtre [start, end] ayant au moins une réclamation (peu importe la date de création de la réclamation).
+     */
+    @Query("""
+            SELECT COUNT(DISTINCT o.id) FROM Order o
+            WHERE o.status = :status
+              AND o.deliveryCompletedAt IS NOT NULL
+              AND o.deliveryCompletedAt BETWEEN :start AND :end
+              AND EXISTS (SELECT 1 FROM Claim c WHERE c.order.id = o.id)
+            """)
+    long countDeliveredBetweenWithAtLeastOneClaim(
+            @Param("status") OrderStatus status,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
     /** Commandes avec le statut donné et non affectées à une tournée (à valider par le RL). */
     long countByStatusAndDeliveryTourIsNull(OrderStatus status);
 

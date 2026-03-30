@@ -720,7 +720,7 @@ public class LogisticsManagerController {
 
     @Operation(
             summary = "Taux de retours par jour (7 derniers jours)",
-            description = "Pour chaque jour : date (dd/MM), tauxPercent = (réclamations créées ce jour / commandes ce jour) × 100. Alimente le graphique « Taux de retours (%) » du tableau de bord RL."
+            description = "Pour chaque jour : date (dd/MM), tauxPercent = (commandes livrées ce jour avec au moins une réclamation / commandes livrées ce jour) × 100. La réclamation peut avoir été créée après la livraison."
     )
     @GetMapping("/dashboard/taux-retours-par-jour")
     public ResponseEntity<List<TauxRetoursParJourDTO>> getTauxRetoursParJour() {

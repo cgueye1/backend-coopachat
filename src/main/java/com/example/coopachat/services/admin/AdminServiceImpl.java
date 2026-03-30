@@ -1158,7 +1158,8 @@ public class AdminServiceImpl implements AdminService {
             LocalDate day = today.minusDays(i);
             long nbPrevues = orderRepository.countByDeliveryDateExcludingCancelled(day, OrderStatus.ANNULEE);
             long nbLivreesALaDate = orderRepository.countByStatusAndDeliveryDate(OrderStatus.LIVREE, day);
-            long nbRetard = orderRepository.countByStatusAndDeliveryDateBefore(OrderStatus.EN_ATTENTE, day);
+            // Retard par jour : date prévue = ce jour, encore EN_ATTENTE (pas un cumul « livraison avant ce jour »).
+            long nbRetard = orderRepository.countByStatusAndDeliveryDate(OrderStatus.EN_ATTENTE, day);
             result.add(new LivraisonParJourDTO(
                     day.format(formatter), nbPrevues, nbLivreesALaDate, nbRetard));
         }

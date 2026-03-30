@@ -16,10 +16,7 @@ import java.time.LocalDateTime;
 @Repository
 public interface ClaimRepository extends JpaRepository<Claim, Long> {
 
-    /**
-     * Compte le nombre de réclamations (retours) créées entre deux dates (inclus).
-     * Utilisé pour le graphique « Taux de retours par jour » du tableau de bord RL.
-     */
+    /** Compte le nombre de réclamations créées entre deux dates (inclus). */
     long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 
     /**
