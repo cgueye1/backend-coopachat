@@ -1013,6 +1013,17 @@ public class CommercialServiceImpl implements CommercialService {
         Coupon coupon = couponRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Coupon introuvable"));
 
+        // Garde-fou métier : on ne peut pas activer un coupon avant sa date de début ou après sa date de fin.
+        if (Boolean.TRUE.equals(updateCouponStatusDTO.getIsActive())) {
+            LocalDateTime now = LocalDateTime.now();
+            if (now.isBefore(coupon.getStartDate())) {
+                throw new RuntimeException("Impossible d'activer : la date de début n'est pas encore arrivée");
+            }
+            if (now.isAfter(coupon.getEndDate())) {
+                throw new RuntimeException("Impossible d'activer : le coupon est expiré");
+            }
+        }
+
         coupon.setIsActive(updateCouponStatusDTO.getIsActive());
         coupon.setStatus(computeStatus(coupon.getStartDate(), coupon.getEndDate(), updateCouponStatusDTO.getIsActive()));
 
@@ -1024,6 +1035,18 @@ public class CommercialServiceImpl implements CommercialService {
     public void updatePromotionStatus(Long id, UpdateCouponStatusDTO updateCouponStatusDTO) {
         Promotion promotion = promotionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Promotion introuvable"));
+
+        // Même règle que les coupons : impossible d'activer hors fenêtre de validité.
+        if (Boolean.TRUE.equals(updateCouponStatusDTO.getIsActive())) {
+            LocalDateTime now = LocalDateTime.now();
+            if (now.isBefore(promotion.getStartDate())) {
+                throw new RuntimeException("Impossible d'activer : la date de début n'est pas encore arrivée");
+            }
+            if (now.isAfter(promotion.getEndDate())) {
+                throw new RuntimeException("Impossible d'activer : la promotion est expirée");
+            }
+        }
+
         promotion.setIsActive(updateCouponStatusDTO.getIsActive());
         promotion.setStatus(computeStatus(promotion.getStartDate(), promotion.getEndDate(), updateCouponStatusDTO.getIsActive()));
         promotionRepository.save(promotion);

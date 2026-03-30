@@ -9,6 +9,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+
 /**
  * Repository pour l'entité Promotion.
  */
@@ -30,4 +34,9 @@ public interface PromotionRepository extends JpaRepository<Promotion, Long> {
 
     /** Nombre de promotions par statut. */
     long countByStatus(CouponStatus status);
+
+    /**
+     * Promotions dont la date de fin est passée mais encore ACTIVE ou PLANNED (à passer en EXPIRED par le scheduler).
+     */
+    List<Promotion> findByEndDateBeforeAndStatusIn(LocalDateTime now, Collection<CouponStatus> statuses);
 }
