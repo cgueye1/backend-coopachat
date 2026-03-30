@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,6 +50,11 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
      * Récupère les coupons expirés (date de fin dépassée)
      */
     List<Coupon> findByEndDateBefore(LocalDateTime now);
+
+    /**
+     * Coupons dont la date de fin est passée mais encore marqués ACTIVE ou PLANNED (à passer en EXPIRED par le scheduler).
+     */
+    List<Coupon> findByEndDateBeforeAndStatusIn(LocalDateTime now, Collection<CouponStatus> statuses);
 
     /**
      * Vérifie s'il existe un coupon avec le code fourni et Active
