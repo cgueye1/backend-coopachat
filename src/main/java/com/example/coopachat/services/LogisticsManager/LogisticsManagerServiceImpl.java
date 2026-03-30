@@ -2602,21 +2602,27 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
     /**
      * Graphique « Taux de retours (%) » : 7 derniers jours.
-     * Pour chaque jour : taux = (nombre de réclamations créées ce jour / nombre de commandes ce jour) × 100.
-     * Si aucune commande ce jour, le taux est 0.
+     * Pour chaque jour : taux = (commandes livrées ce jour ayant au moins une réclamation / commandes livrées ce jour) × 100.
+     * La date de création de la réclamation peut être postérieure à la livraison. Si aucune livraison ce jour, le taux est 0.
      */
     @Override
     public List<TauxRetoursParJourDTO> getTauxRetoursParJour() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
         LocalDate today = LocalDate.now();
         List<TauxRetoursParJourDTO> result = new ArrayList<>();
+        // Pour chaque jour de la semaine, on calcule le taux de retours
         for (int i = 6; i >= 0; i--) {
-            LocalDate day = today.minusDays(i);
-            LocalDateTime dayStart = day.atStartOfDay();
-            LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);
-            long nbCommandes = orderRepository.countByCreatedAtBetween(dayStart, dayEnd);
-            long nbReclamations = claimRepository.countByCreatedAtBetween(dayStart, dayEnd);
-            double tauxPercent = nbCommandes > 0 ? (nbReclamations * 100.0 / nbCommandes) : 0.0;
+            LocalDate day = today.minusDays(i);//date du jour - i jours
+            LocalDateTime dayStart = day.atStartOfDay();//date du jour - i jours à 00:00:00
+            LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);//date du jour - i jours à 23:59:59:999999999
+            long nbLivrees = orderRepository.countByStatusAndDeliveryCompletedAtBetween(//commandes livrées dans la fenêtre [start, end]
+                    OrderStatus.LIVREE, dayStart, dayEnd);
+            long nbAvecReclamation = orderRepository.countDeliveredBetweenWithAtLeastOneClaim(//commandes livrées dans la fenêtre [start, end] ayant au moins une réclamation
+                    OrderStatus.LIVREE, dayStart, dayEnd);
+            //taux de retours = (commandes livrées ce jour ayant au moins une réclamation / commandes livrées ce jour) × 100 ou nbAvecReclamation * 100.0 / nbLivrees.
+            double tauxPercent = nbLivrees > 0 ? (nbAvecReclamation * 100.0 / nbLivrees) : 0.0;
+
+            //on ajoute le taux de retours au résultat (Math.round(tauxPercent * 100) / 100.0) pour arrondir le taux de retours à 2 décimales
             result.add(new TauxRetoursParJourDTO(day.format(formatter), Math.round(tauxPercent * 100) / 100.0));
         }
         return result;
@@ -2661,7 +2667,8 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     }
 
     /**
-     * Par jour sur les 7 derniers jours : prévu à la date, livrées à la date prévue, retard (date prévue dépassée).
+     * Par jour sur les 7 derniers jours : prévu à la date, livrées à la date prévue,
+     * retard = prévues pour ce jour-là encore EN_ATTENTE (pas livrées / pas planifiées en tournée).
      * Utilisé pour le graphique Livraisons (Admin et RL).
      */
     @Override
@@ -2673,7 +2680,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             LocalDate day = today.minusDays(i);
             long nbPrevues = orderRepository.countByDeliveryDateExcludingCancelled(day, OrderStatus.ANNULEE);
             long nbLivreesALaDate = orderRepository.countByStatusAndDeliveryDate(OrderStatus.LIVREE, day);
-            long nbRetard = orderRepository.countByStatusAndDeliveryDateBefore(OrderStatus.EN_ATTENTE, day);
+            long nbRetard = orderRepository.countByStatusAndDeliveryDate(OrderStatus.EN_ATTENTE, day);
             result.add(new LivraisonParJourDTO(
                     day.format(formatter), nbPrevues, nbLivreesALaDate, nbRetard));
         }

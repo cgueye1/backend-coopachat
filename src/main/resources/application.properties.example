@@ -33,9 +33,6 @@ spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
 spring.mail.properties.mail.smtp.ssl.trust=smtp.gmail.com
 
-# Configuration des emails
-mail.from=${MAIL_FROM:admincoopachat@yopmail.com}
-mail.app.name=CoopAchat
 
 # Frontend base URL used in emails
 app.frontend.base-url=http://localhost:4200
@@ -44,7 +41,7 @@ app.frontend.base-url=http://localhost:4200
 # Autre port : http://localhost:4300/create-password?token=
 app.frontend.reset-password-url=http://localhost:4200/create-password?token=
 app.frontend.reset-password-url-mobile=coopachat://reset-password/
-app.frontend.activate-employee-url=http://localhost:4200/activate?token=
+
 
 
 #Compte à rebours
