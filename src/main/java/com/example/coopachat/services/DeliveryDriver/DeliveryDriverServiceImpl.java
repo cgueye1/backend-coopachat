@@ -431,7 +431,7 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         statusHistory.setSourceAction("DRIVER_COMPLETE_DELIVERY");
         orderStatusHistoryRepository.save(statusHistory);
 
-        // 6bis. Créditer le compte livreur (tarif par livraison, ex. 500 F)
+        // 6. Créditer le compte livreur (tarif par livraison, ex. 500 F)
         creditDriverEarning(driver, order);
 
         // 7. Vérifier si toutes les commandes de la tournée sont dans un état final (LIVREE ou ECHEC_LIVRAISON)
@@ -1006,9 +1006,9 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
      * Montant = tarif par livraison (configuré par l'admin via frais "Tarif livreur").
      */
     private void creditDriverEarning(Driver driver, Order order) {
-        BigDecimal rate = feeService.getDriverRatePerDelivery();
-        if (rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) return;
-        DriverEarning earning = new DriverEarning();
+        BigDecimal rate = feeService.getDriverRatePerDelivery();// on récupère le  pourcentage(gain) du livreur pour chaque Commande "LIVREE"
+        if (rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) return;//si le taux est nul ou négatif, on ne crédite pas le compte du livreur
+        DriverEarning earning = new DriverEarning();  //on crée un nouveau DriverEarning (gain du livreur pour chaque Commande "LIVREE")
         earning.setDriver(driver);
         earning.setOrder(order);
         earning.setAmount(rate);

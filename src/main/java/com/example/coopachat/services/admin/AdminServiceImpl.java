@@ -110,6 +110,20 @@ public class AdminServiceImpl implements AdminService {
     private final UserReferenceGenerator userReferenceGenerator;
     private final DeliveryTourRepository deliveryTourRepository;
 
+    /**
+     * Ajuste la largeur des colonnes Excel pour éviter les erreurs
+     */
+    private void autoSizeColumnsSafe(Sheet sheet, int columnCount) {
+        for (int i = 0; i < columnCount; i++) {
+            try {
+                sheet.autoSizeColumn(i);
+            } catch (Throwable e) {
+                log.debug("autoSizeColumn({}) ignoré (headless / polices): {}", i, e.getMessage());
+                sheet.setColumnWidth(i, 20 * 256);
+            }
+        }
+    }
+
     // ============================================================================
     // 📁 GESTION DES CATÉGORIES
     // ============================================================================
@@ -562,10 +576,7 @@ public class AdminServiceImpl implements AdminService {
                 }
             }
 
-            // Ajuster la largeur des colonnes
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
+            autoSizeColumnsSafe(sheet, headers.length);
 
             // Convertir le workbook en byte array pour l'envoyer au client
             // Le navigateur attend des données binaires (bytes) pour télécharger le fichier Excel
@@ -573,6 +584,8 @@ public class AdminServiceImpl implements AdminService {
             workbook.write(outputStream); // Écrire le workbook dans le flux de sortie
             return new ByteArrayResource(outputStream.toByteArray()); // Retourner le byte array sous forme de ByteArrayResource (enveloppe Spring qui contient les bytes du fichier Excel)
         } catch (IOException e) {
+            throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
+        } catch (Exception e) {
             throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
         }
     }
