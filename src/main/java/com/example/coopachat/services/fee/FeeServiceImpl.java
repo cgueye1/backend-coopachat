@@ -27,12 +27,13 @@ public class FeeServiceImpl implements FeeService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);//on calcule la somme des montants
     }
 
+    //Permet de récupérer le taux (son pourcentage)pour chaque Commande "LIVREE"
     @Override
     @Transactional(readOnly = true)
     public BigDecimal getDriverRatePerDelivery() {
-        return feeRepository.findByNameAndIsActiveTrue("Tarif livreur")
-                .map(Fee::getAmount)
-                .filter(a -> a != null)
-                .orElse(BigDecimal.ZERO);
+        return feeRepository.findByNameAndIsActiveTrue("Tarif livreur")//on récupère le frais "Tarif livreur"
+                .map(Fee::getAmount)//on récupère le montant de chaque frais
+                .filter(a -> a != null)//on filtre les montants non nuls
+                .orElse(BigDecimal.ZERO);//on retourne 0 si le montant est nul
     }
 }
