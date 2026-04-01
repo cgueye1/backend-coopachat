@@ -53,6 +53,8 @@ export class LivraisonsComponent implements OnInit {
   // MODIF: liste chargée depuis l'API (plus de données statiques)
   deliveryTours: DeliveryTourListItem[] = [];
   loadingTours = false;
+  /** Export Excel des tournées en cours. */
+  loadingExport = false;
 
   /** Cartes statistiques (remplies par l'API GET /logistics/delivery-tours/stats) */
   metricsData: Metric[] = [
@@ -75,12 +77,13 @@ export class LivraisonsComponent implements OnInit {
     { label: 'Annulée', value: 'ANNULEE' }
   ];
 
-  /** Charge les statistiques des tournées (4 cartes en haut de page). */
+  /** Charge les statistiques des tournées (total + 4 statuts en haut de page). */
   loadDeliveryTourStats() {
     this.loadingStats = true;
     this.logistics.getDeliveryTourStats().subscribe({
       next: (stats) => {
         this.metricsData = [
+          { title: 'Total', value: String(stats.totalTours ?? 0), icon: 'check-blue' },
           { title: 'Assignées', value: String(stats.assignedTours ?? 0), icon: 'box-blue' },
           { title: 'En cours', value: String(stats.inProgressTours ?? 0), icon: 'warning-yellow' },
           { title: 'Terminées', value: String(stats.completedTours ?? 0), icon: 'check-green' },
@@ -162,6 +165,28 @@ export class LivraisonsComponent implements OnInit {
   onSearch() {
     this.currentPage = 0;
     this.loadDeliveryTours();
+  }
+
+  exportDeliveryToursList(): void {
+    if (this.loadingExport) return;
+    this.loadingExport = true;
+    const tourNumber = this.searchText?.trim() || undefined;
+    const status =
+      this.selectedStatus === 'Tous les statuts' ? undefined : this.getStatusApiValue(this.selectedStatus);
+    this.logistics
+      .exportDeliveryTours(tourNumber, status)
+      .pipe(finalize(() => { this.loadingExport = false; }))
+      .subscribe({
+        next: (blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `tournees_livraison_${new Date().toISOString().slice(0, 10)}.xlsx`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        },
+        error: () => { /* blob ou erreur réseau */ }
+      });
   }
 
   /** Classes CSS pour le badge statut (ASSIGNEE, EN_COURS, TERMINEE, ANNULEE) */

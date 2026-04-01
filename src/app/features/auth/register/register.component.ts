@@ -5,6 +5,7 @@ import { FormsModule, ReactiveFormsModule,
          FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthLayoutComponent } from '../auth-layout/auth-layout.component';
 import { AuthService } from '../../../shared/services/auth.service';
+import { getUserFacingHttpErrorMessage } from '../../../shared/utils/http-error-message';
 import Swal from 'sweetalert2';
 import { UserDto } from '../../../shared/models/user.model';
 
@@ -218,8 +219,10 @@ export class RegisterComponent {
       },
       error: (error) => {
         this.isLoading = false;
-        const message = error?.error?.message
-          || 'Impossible d\'envoyer le code de vérification.';
+        const message = getUserFacingHttpErrorMessage(
+          error,
+          'Impossible d\'envoyer le code de vérification.'
+        );
         Swal.fire({ icon: 'error', title: 'Erreur', text: message });
       }
     });
@@ -237,16 +240,17 @@ export class RegisterComponent {
   private handleRegistrationError(error: any): void {
     this.isLoading = false;
 
-    let message = 'Une erreur est survenue lors de l\'inscription';
+    const fromApi = getUserFacingHttpErrorMessage(error, '');
+    if (fromApi) {
+      Swal.fire({ icon: 'error', title: 'Erreur', text: fromApi });
+      return;
+    }
 
+    let message = 'Une erreur est survenue lors de l\'inscription';
     if (error.status === 409) {
       message = 'Cet email ou ce téléphone est déjà utilisé';
     } else if (error.status === 400) {
       message = error.error?.message || 'Données invalides';
-    } else if (error.status === 0) {
-      message = 'Impossible de se connecter au serveur';
-    } else if (error.error?.message) {
-      message = error.error.message;
     }
 
     Swal.fire({ icon: 'error', title: 'Erreur', text: message });

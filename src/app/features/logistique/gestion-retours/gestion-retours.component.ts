@@ -7,7 +7,7 @@ import {
   ClaimStats,
   ClaimListItem,
   ClaimDetail,
-  ClaimListResponse
+  ClaimListResponse,
 } from '../../../shared/services/logistics.service';
 import { environment } from '../../../../environments/environment';
 import Swal from 'sweetalert2';
@@ -45,12 +45,13 @@ export class GestionRetoursComponent {
   selectedClaim: ClaimListItem | null = null;
   validationOption: 'reintegrer' | 'rembourser' = 'reintegrer';
   validationOptions = [
-    { value: 'reintegrer', label: 'Réintégrer au stock' },
-    { value: 'rembourser', label: 'Remboursement (montant)' }
+    { value: 'reintegrer', label: 'Réintégrer au stock et rembourser' },
+    { value: 'rembourser', label: 'Remboursement uniquement' },
   ];
-  showRefundModal = false;
-  refundAmount: number | null = null;
-  isRefundSubmitting = false;
+  /** Détail chargé pour afficher le montant ligne (sous-total) et appeler l’API. */
+  validationClaimDetail: ClaimDetail | null = null;
+  loadingValidationDetail = false;
+  isValidationSubmitting = false;
   showRejectModal = false;
   rejectReason = '';
   selectedClaimToReject: ClaimListItem | null = null;
@@ -216,14 +217,29 @@ export class GestionRetoursComponent {
   openValidationModal(item: ClaimListItem): void {
     this.selectedClaim = item;
     this.validationOption = 'reintegrer';
+    this.validationClaimDetail = null;
     this.showValidationModal = true;
+    this.loadingValidationDetail = true;
+    this.logisticsService.getClaimById(item.claimId).subscribe({
+      next: (d) => {
+        this.validationClaimDetail = d;
+        this.loadingValidationDetail = false;
+      },
+      error: () => {
+        this.loadingValidationDetail = false;
+        this.showError('Impossible de charger le détail du retour.');
+        this.closeValidationModal();
+      },
+    });
   }
 
   /** Ouvre le modal de validation depuis le détail (on n'a que selectedDetail). */
   openValidationFromDetail(): void {
     if (!this.selectedDetail) return;
+    this.validationClaimDetail = this.selectedDetail;
     this.selectedClaim = { claimId: this.selectedDetail.claimId } as ClaimListItem;
     this.validationOption = 'reintegrer';
+    this.loadingValidationDetail = false;
     this.showValidationModal = true;
   }
 
@@ -238,74 +254,95 @@ export class GestionRetoursComponent {
   closeValidationModal(): void {
     this.showValidationModal = false;
     this.selectedClaim = null;
+    this.validationClaimDetail = null;
+    this.loadingValidationDetail = false;
   }
 
   validateRetour(): void {
-    if (!this.selectedClaim) return;
+    if (!this.selectedClaim || this.loadingValidationDetail || this.isValidationSubmitting) {
+      return;
+    }
+    const detail = this.validationClaimDetail;
+    if (!detail || detail.subtotalProduct == null || Number(detail.subtotalProduct) <= 0) {
+      this.showError('Montant de la ligne indisponible. Réessayez ou rouvrez le détail du retour.');
+      return;
+    }
+    const amountLabel = `${Number(detail.subtotalProduct).toLocaleString('fr-FR')} Fcfa`;
+
     if (this.validationOption === 'reintegrer') {
-      this.logisticsService.validateClaim(this.selectedClaim.claimId, { decisionType: 'REINTEGRATION' }).subscribe({
-        next: () => {
-          this.closeValidationModal();
-          this.showSuccessMessage();
-          this.loadStats();
-          this.loadClaims();
-        },
-        error: (err) => this.showError(err?.error ?? 'Erreur lors de la validation')
-      });
-    } else {
-      // Important: on garde selectedClaim pour l'appel API de remboursement.
-      this.showValidationModal = false;
-      this.showRefundModal = true;
-      this.refundAmount = null;
+      this.showRlFinalConfirmation(
+        'Confirmation responsable logistique',
+        `<p class="text-left text-gray-700 mb-2"><strong>Confirmez-vous</strong> cette validation du retour ?</p>
+         <ul class="text-left text-gray-700 list-disc pl-5 space-y-1">
+           <li>Réintégration du produit au <strong>stock</strong></li>
+           <li>Remboursement enregistré : <strong>${amountLabel}</strong> (montant de la ligne)</li>
+           <li>Le <strong>salarié</strong> recevra un <strong>e-mail</strong> de notification</li>
+         </ul>`,
+        'Oui, valider',
+        'REINTEGRATION'
+      );
+      return;
     }
+
+    this.showRlFinalConfirmation(
+      'Confirmation responsable logistique',
+      `<p class="text-left text-gray-700 mb-2"><strong>Confirmez-vous</strong> le remboursement uniquement (sans réintégration au stock) ?</p>
+       <ul class="text-left text-gray-700 list-disc pl-5 space-y-1">
+         <li>Montant : <strong>${amountLabel}</strong> (calculé automatiquement pour la quantité concernée)</li>
+         <li>Aucune réintégration au stock</li>
+         <li>Le <strong>salarié</strong> recevra un <strong>e-mail</strong> de notification</li>
+       </ul>`,
+      'Oui, rembourser',
+      'REMBOURSEMENT'
+    );
   }
 
-  openRefundModal(): void {
-    this.showRefundModal = true;
-    this.refundAmount = null;
+  /**
+   * Alerte finale réservée au RL : les deux flux (réintégration ou remboursement seul) passent par cette confirmation.
+   */
+  private showRlFinalConfirmation(
+    title: string,
+    html: string,
+    confirmButtonText: string,
+    decisionType: 'REINTEGRATION' | 'REMBOURSEMENT'
+  ): void {
+    Swal.fire({
+      title,
+      html,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText,
+      cancelButtonText: 'Annuler',
+      focusCancel: true,
+      customClass: { popup: 'rounded-2xl p-2', confirmButton: 'font-medium', cancelButton: 'font-medium' },
+    }).then((r) => {
+      if (r.isConfirmed) {
+        this.execValidate(decisionType);
+      }
+    });
   }
 
-  closeRefundModal(): void {
-    if (this.isRefundSubmitting) return;
-    this.showRefundModal = false;
-    this.refundAmount = null;
-    this.selectedClaim = null;
-  }
-
-  saveRefund(): void {
-    if (this.isRefundSubmitting) {
-      return;
-    }
-    if (!this.selectedClaim) {
-      this.showError('Réclamation introuvable pour le remboursement');
-      return;
-    }
-    if (this.refundAmount == null || this.refundAmount <= 0) {
-      this.showError('Veuillez saisir un montant de remboursement valide');
-      return;
-    }
-    const maxRefund = this.selectedDetail?.subtotalProduct;
-    //On vérifie que le montant remboursé ne dépasse pas le montant total de la commande
-    if (maxRefund != null && this.refundAmount > Number(maxRefund)) {
-      this.showError(`Le montant remboursé ne peut pas dépasser ${Number(maxRefund).toLocaleString('fr-FR')} Fcfa`);
-      return;
-    }
-    this.isRefundSubmitting = true;
-    this.logisticsService.validateClaim(this.selectedClaim.claimId, {
-      decisionType: 'REMBOURSEMENT',
-      refundAmount: this.refundAmount
-    }).subscribe({
+  private execValidate(decisionType: 'REINTEGRATION' | 'REMBOURSEMENT'): void {
+    if (!this.selectedClaim) return;
+    this.isValidationSubmitting = true;
+    this.logisticsService.validateClaim(this.selectedClaim.claimId, { decisionType }).subscribe({
       next: () => {
-        this.isRefundSubmitting = false;
-        this.closeRefundModal();
-        this.showRefundSuccessMessage();
+        this.isValidationSubmitting = false;
+        this.closeValidationModal();
+        if (decisionType === 'REMBOURSEMENT') {
+          this.showRefundSuccessMessage();
+        } else {
+          this.showSuccessMessage();
+        }
         this.loadStats();
         this.loadClaims();
       },
       error: (err) => {
-        this.isRefundSubmitting = false;
-        this.showError(err?.error ?? 'Erreur lors du remboursement');
-      }
+        this.isValidationSubmitting = false;
+        this.showError(
+          typeof err?.error === 'string' ? err.error : err?.error?.message ?? 'Erreur lors de la validation'
+        );
+      },
     });
   }
 
@@ -362,10 +399,11 @@ export class GestionRetoursComponent {
 
   showSuccessMessage(): void {
     Swal.fire({
-      title: 'Retour enregistré - Produit réintégré au stock',
+      title: 'Retour validé — stock et remboursement',
+      html: '<p class="text-gray-600 text-base px-2">Le salarié a été notifié par e-mail.</p>',
       iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
       showConfirmButton: false,
-      timer: 1500,
+      timer: 2000,
       buttonsStyling: false,
       customClass: { popup: 'rounded-3xl p-6', title: 'text-xl font-medium text-gray-900', icon: 'border-none' },
       backdrop: 'rgba(0,0,0,0.2)',
@@ -375,10 +413,11 @@ export class GestionRetoursComponent {
 
   showRefundSuccessMessage(): void {
     Swal.fire({
-      title: 'Remboursé avec succès',
+      title: 'Remboursement enregistré',
+      html: '<p class="text-gray-600 text-base px-2">Le salarié a été notifié par e-mail.</p>',
       iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
       showConfirmButton: false,
-      timer: 1500,
+      timer: 2000,
       buttonsStyling: false,
       customClass: { popup: 'rounded-3xl p-6', title: 'text-xl font-medium text-gray-900', icon: 'border-none' },
       backdrop: 'rgba(0,0,0,0.2)',

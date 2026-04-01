@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { AuthLayoutComponent } from '../auth-layout/auth-layout.component';
 import { AuthService } from '../../../shared/services/auth.service';
+import { getUserFacingHttpErrorMessage } from '../../../shared/utils/http-error-message';
 
 @Component({
   selector: 'app-reset-password',
@@ -19,7 +20,6 @@ export class ResetPasswordComponent implements OnInit {
 
   constructor(
     private formBuilder: FormBuilder,
-    private router: Router,
     private authService: AuthService
   ) { }
 
@@ -46,23 +46,14 @@ export class ResetPasswordComponent implements OnInit {
           this.isLoading = false;
           this.successMessage =
             message ||
-            'Si cette adresse est enregistrée, un lien de réinitialisation vient de vous être envoyé.';
-          setTimeout(() => this.router.navigate(['/login']), 3500);
+            'Si cette adresse est enregistrée, un lien de réinitialisation vient de vous être envoyé. Consultez votre boîte mail.';
         },
         error: (error) => {
           this.isLoading = false;
-          const backendMessage =
-            (typeof error?.error === 'string' ? error.error : null) ||
-            error?.error?.message ||
-            error?.message;
-          if (backendMessage) {
-            this.errorMessage = backendMessage;
-          } else if (error.status === 0) {
-            this.errorMessage =
-              'Serveur inaccessible. Vérifiez la connexion et l\'URL de l\'API dans environment.';
-          } else {
-            this.errorMessage = 'Impossible d\'envoyer la demande pour le moment. Réessayez plus tard.';
-          }
+          this.errorMessage = getUserFacingHttpErrorMessage(
+            error,
+            'Impossible d\'envoyer la demande pour le moment. Réessayez plus tard.'
+          );
         }
       });
     } else {
@@ -76,4 +67,5 @@ export class ResetPasswordComponent implements OnInit {
       control?.markAsTouched();
     });
   }
+
 }

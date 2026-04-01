@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -89,7 +89,16 @@ export class UsersComponent implements OnInit {
   toggleLoadingId: number | null = null;
   private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(private router: Router, private adminService: AdminService) { }
+  /** Chart.js / canvas non supportés en SSR — n’afficher les graphiques que dans le navigateur. */
+  isBrowser = false;
+
+  constructor(
+    private router: Router,
+    private adminService: AdminService,
+    @Inject(PLATFORM_ID) private platformId: object
+  ) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+  }
 
   onSearchInput() {
     if (this.searchDebounceTimer != null) clearTimeout(this.searchDebounceTimer);

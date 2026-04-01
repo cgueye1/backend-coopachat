@@ -24,13 +24,13 @@
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
       <div class="md:col-span-2 xl:col-span-2 bg-white rounded-lg p-6 hover:shadow-sm transition-shadow">
         <div class="mb-4">
-          <h2 class="text-base font-semibold text-[#2C3E50] sm:text-lg lg:text-xl">Commandes vs Livraisons</h2>
-          <div class="mt-1 text-[11px] text-[#6B7280] leading-4">
-            <div><span class="font-medium">Commandes en attente</span> : créées ce jour et encore en attente</div>
-            <div><span class="font-medium">Livraisons</span> : livrées ce jour</div>
-          </div>
+          <h2 class="text-base font-semibold text-[#2C3E50] sm:text-lg lg:text-xl">Livraisons par jour</h2>
         </div>
         <div class="relative h-64 md:h-72 lg:h-80">
+          <div *ngIf="loadingChartLivraisons"
+            class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/85 text-sm text-[#6B7280]">
+            Chargement…
+          </div>
           <canvas #commandesChart></canvas>
         </div>
       </div>
@@ -42,7 +42,11 @@
           </div>
         </div>
         <div class="flex items-center justify-center h-64 md:h-72 lg:h-80">
-          <div class="relative">
+          <div class="relative w-full max-w-[280px] h-full min-h-[200px] flex items-center justify-center">
+            <div *ngIf="loadingChartPaiements"
+              class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/85 text-sm text-[#6B7280]">
+              Chargement…
+            </div>
             <canvas #paiementsChart></canvas>
           </div>
         </div>
@@ -51,18 +55,14 @@
 
     <!-- Secondary charts -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-      <!-- Livraisons stacked chart -->
-      <div class="bg-white rounded-lg p-6 hover:shadow-sm">
-        <h2 class="text-base font-semibold text-[#2C3E50] mb-4 sm:text-lg">Livraisons</h2>
-        <div class="relative h-64">
-          <canvas #livraisonsChart></canvas>
-        </div>
-      </div>
-
       <!-- Utilisateurs par rôle -->
       <div class="bg-white rounded-lg p-6 hover:shadow-sm">
         <h2 class="text-base font-semibold text-[#2C3E50] mb-4 sm:text-lg">Utilisateurs par rôle</h2>
         <div class="relative h-64">
+          <div *ngIf="loadingChartRoles"
+            class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/85 text-sm text-[#6B7280]">
+            Chargement…
+          </div>
           <canvas #rolesChart></canvas>
         </div>
       </div>
@@ -75,8 +75,28 @@
           </div>
         </div>
         <div class="flex items-center justify-center h-48 sm:h-56 md:h-64">
-          <div class="relative">
+          <div class="relative w-full max-w-[260px] h-full min-h-[180px] flex items-center justify-center">
+            <div *ngIf="loadingChartStocksEtat"
+              class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/85 text-sm text-[#6B7280]">
+              Chargement…
+            </div>
             <canvas #stocksEtatChart></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statut des livraisons (tournées) — même données que le dashboard RL -->
+      <div class="bg-white rounded-lg p-6 hover:shadow-sm">
+        <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <h2 class="text-base font-semibold text-[#2C3E50] sm:text-lg">Statut des livraisons</h2>
+        </div>
+        <div class="flex items-center justify-center h-48 sm:h-56 md:h-64">
+          <div class="relative w-full max-w-[220px] sm:max-w-none min-h-[180px] flex items-center justify-center">
+            <div *ngIf="loadingChartDeliveryStatus"
+              class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/85 text-sm text-[#6B7280]">
+              Chargement…
+            </div>
+            <canvas #deliveryStatusChart></canvas>
           </div>
         </div>
       </div>
@@ -89,6 +109,10 @@
           <h2 class="text-base font-semibold text-[#2C3E50] sm:text-lg lg:text-xl">Tendance des coupons utilisés</h2>
         </div>
         <div class="relative h-40 sm:h-48 md:h-56">
+          <div *ngIf="loadingChartCoupons"
+            class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/85 text-sm text-[#6B7280]">
+            Chargement…
+          </div>
           <canvas #couponsChart></canvas>
         </div>
       </div>

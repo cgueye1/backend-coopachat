@@ -73,14 +73,15 @@
                         </div>
                     </div>
                     <!-- Export Button -->
-                    <button (click)="exportData()"
-                        class="px-3 py-2 border border-[#CBD5E1] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
+                    <button type="button" (click)="exportData()" [disabled]="loadingExport"
+                        class="px-3 py-2 border border-[#CBD5E1] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors disabled:opacity-60 disabled:pointer-events-none">
                         <svg width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd"
                                 d="M3.75 2.375C3.75 2.20924 3.81585 2.05027 3.93306 1.93306C4.05027 1.81585 4.20924 1.75 4.375 1.75H11.25C11.3321 1.74985 11.4135 1.7659 11.4894 1.79721C11.5653 1.82853 11.6344 1.8745 11.6925 1.9325L16.0675 6.3075C16.1255 6.36565 16.1715 6.43466 16.2028 6.51059C16.2341 6.58651 16.2501 6.66787 16.25 6.75V9.875H15V7.375H11.25C11.0842 7.375 10.9253 7.30915 10.8081 7.19194C10.6908 7.07473 10.625 6.91576 10.625 6.75V3H5V18H11.875V19.25H4.375C4.20924 19.25 4.05027 19.1842 3.93306 19.0669C3.81585 18.9497 3.75 18.7908 3.75 18.625V2.375ZM11.875 3.88375L14.1163 6.125H11.875V3.88375ZM15.4425 11.9338L17.9425 14.4338C18.0597 14.551 18.1255 14.7099 18.1255 14.8756C18.1255 15.0414 18.0597 15.2003 17.9425 15.3175L15.4425 17.8175L14.5575 16.9325L15.9913 15.5H10V14.25H15.9913L14.5575 12.8175L15.4425 11.9338Z"
                                 fill="#A3AED0" />
                         </svg>
-                        Exporter
+                        <span *ngIf="!loadingExport">Exporter</span>
+                        <span *ngIf="loadingExport">Export…</span>
                     </button>
                 </div>
             </div>
@@ -129,7 +130,6 @@
                                             {{ commande.statut }}
                                         </span>
                                         <div *ngIf="commande.dateStatut" class="text-xs text-[#6B7280] mt-1">Passé à ce statut le {{ commande.dateStatut }}</div>
-                                        <div *ngIf="commande.statut === 'Échec' && commande.failureReason" class="text-xs text-[#DC2626] mt-1">« {{ commande.failureReason }} »</div>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-2 pt-2 flex-wrap">
@@ -147,14 +147,6 @@
                                                 fill="#4B4848" />
                                         </svg>
                                     </button>
-                                    <ng-container *ngIf="commande.statut === 'Échec'">
-                                        <button type="button"
-                                            class="text-xs px-2 py-1.5 rounded-lg border border-[#2B3674] text-[#2B3674] hover:bg-[#2B3674] hover:text-white transition-colors"
-                                            (click)="replanOrder(commande)">Replanifier</button>
-                                        <button type="button"
-                                            class="text-xs px-2 py-1.5 rounded-lg border border-[#DC2626] text-[#DC2626] hover:bg-[#DC2626] hover:text-white transition-colors"
-                                            (click)="cancelOrderAfterFailure(commande)">Annuler</button>
-                                    </ng-container>
                                 </div>
                             </div>
                         </div>
@@ -197,7 +189,6 @@
                                                     [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(commande.statut)"></span>
                                                 {{ commande.statut }}
                                             </span>
-<div *ngIf="commande.statut === 'Échec' && commande.failureReason" class="text-xs text-[#DC2626] mt-1">« {{ commande.failureReason }} »</div>
                                     </div>
                                 </td>
                                     <td class="py-4 px-6 text-sm text-[#4B4848]">{{ commande.dateStatut ?? '—' }}</td>
@@ -217,14 +208,6 @@
                                                         fill="#4B4848" />
                                                 </svg>
                                             </button>
-                                            <ng-container *ngIf="commande.statut === 'Échec'">
-                                                <button type="button"
-                                                    class="text-xs px-2 py-1.5 rounded-lg border border-[#2B3674] text-[#2B3674] hover:bg-[#2B3674] hover:text-white transition-colors"
-                                                    (click)="replanOrder(commande)">Replanifier</button>
-                                                <button type="button"
-                                                    class="text-xs px-2 py-1.5 rounded-lg border border-[#DC2626] text-[#DC2626] hover:bg-[#DC2626] hover:text-white transition-colors"
-                                                    (click)="cancelOrderAfterFailure(commande)">Annuler</button>
-                                            </ng-container>
                                         </div>
                                     </td>
                                 </tr>
@@ -265,17 +248,24 @@
         <div class="grid grid-cols-1 gap-2 mb-4 lg:grid-cols-2 lg:gap-4">
             <!-- Chart 1: Produits les plus fréquents -->
             <div class="bg-white rounded-2xl shadow-sm p-3 sm:p-4 lg:p-6">
-                <h3 class="text-base font-semibold text-[#2C3E50] mb-2 sm:mb-4">Produits les plus fréquents</h3>
-                <div class="h-56">
-                    <canvas #frequentProductsChart></canvas>
+                <h3 class="text-base font-semibold text-[#2C3E50] mb-2 sm:mb-4">Top 5 des produits les plus commandés</h3>
+                <div class="relative h-56">
+                    <div *ngIf="loadingChartFrequentProducts"
+                        class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/85 text-sm text-[#6B7280]">
+                        Chargement…
+                    </div>
+                    <canvas #frequentProductsChart class="w-full h-full block"></canvas>
                 </div>
             </div>
             <!-- Chart 2: Commandes par jour -->
             <div class="bg-white rounded-2xl shadow-sm p-3 sm:p-4 lg:p-6">
-                <h3 class="text-base font-semibold text-[#2C3E50] mb-2 sm:mb-4">Commandes par jour (7 derniers jours) <span class="text-sm font-normal text-[#6B7280]">(tous statuts)</span>
-                </h3>
-                <div class="h-56">
-                    <canvas #dailyOrdersChart></canvas>
+                <h3 class="text-base font-semibold text-[#2C3E50] mb-2 sm:mb-4">Commandes passées (7 derniers jours) </h3>
+                <div class="relative h-56">
+                    <div *ngIf="loadingChartDailyOrders"
+                        class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/85 text-sm text-[#6B7280]">
+                        Chargement…
+                    </div>
+                    <canvas #dailyOrdersChart class="w-full h-full block"></canvas>
                 </div>
             </div>
         </div>
@@ -298,47 +288,91 @@
                     </button>
                 </div>
                 <!-- Body (scrollable) -->
-                <div class="overflow-y-auto p-4 sm:p-6 space-y-8 flex-1">
-                    <!-- Informations Grid -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <div class="text-sm text-[#6B7280] mb-1">Salarié</div>
-                            <div class="text-base font-medium text-[#4B4848]">{{ cmd.salarie }}</div>
+                <div class="overflow-y-auto p-4 sm:p-6 flex-1 flex flex-col">
+                    <!-- Bloc infos (jusqu’au trait) -->
+                    <div class="space-y-6 flex-shrink-0">
+                    <!-- Badge statut -->
+                    <div>
+                        <div
+                            [class]="'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ' + getDetailModalStatusBadgeClass()">
+                            <span [class]="'w-2 h-2 rounded-full shrink-0 ' + getDetailModalStatusDotClass()"></span>
+                            <span>{{ getDetailModalStatusLabel() }}</span>
                         </div>
-                        <div>
-                            <div class="text-sm text-[#6B7280] mb-1">Date de commande</div>
-                            <div class="text-base font-medium text-[#4B4848]">{{ cmd.dateCommande }}</div>
-                        </div>
-                        <div>
-                            <div class="text-sm text-[#6B7280] mb-1">Statut</div>
-                            <div
-                                [class]="'inline-flex items-center gap-2 px-3 py-1.5 rounded-full ' + getStatusClass(cmd.statut)">
-                                <span
-                                    [class]="'w-2 h-2 rounded-full ' + getStatusDotClass(cmd.statut)"></span>
-                                <span class="text-xs font-medium">{{ cmd.statut }}</span>
+                    </div>
+
+                    <!-- Échec de livraison : motif + « Passé en échec le … par le [rôle] [prénom nom] » (données historique API) -->
+                    <ng-container *ngIf="showDeliveryFailureMotifBlock()">
+                        <div *ngIf="selectedOrderDetails as det"
+                            class="rounded-r-xl border-l-4 border-[#DC2626] bg-[#FCE7E7]/90 pl-4 pr-3 py-3 space-y-2">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-[#B91C1C]">Motif</div>
+                            <div *ngIf="det.failureReason" class="text-base font-medium text-[#991B1B] leading-snug">
+                                {{ det.failureReason }}
                             </div>
-                            <div *ngIf="cmd.dateStatut" class="text-sm text-[#6B7280] mt-1">Passé à ce statut le {{ cmd.dateStatut }}</div>
+                            <div class="text-sm text-[#B91C1C] leading-relaxed">
+                                Passé en échec le
+                                {{ formatStatusChangedAtLongFr(det.currentStatusChangedAt) || cmd.dateStatut || '—' }}
+                                <ng-container *ngIf="det.currentStatusChangedByRole?.trim() && det.currentStatusChangedByName?.trim()">
+                                    par le {{ formatRoleForFailureSentence(det.currentStatusChangedByRole) }}
+                                    <strong class="font-semibold text-[#991B1B]">{{ det.currentStatusChangedByName!.trim() }}</strong>
+                                </ng-container>
+                                <ng-container *ngIf="det.currentStatusChangedByRole?.trim() && !det.currentStatusChangedByName?.trim()">
+                                    par le {{ formatRoleForFailureSentence(det.currentStatusChangedByRole) }}
+                                </ng-container>
+                                <ng-container *ngIf="!det.currentStatusChangedByRole?.trim() && det.currentStatusChangedByName?.trim()">
+                                    par <strong class="font-semibold text-[#991B1B]">{{ det.currentStatusChangedByName!.trim() }}</strong>
+                                </ng-container>
+                            </div>
+                        </div>
+                    </ng-container>
+
+                    <!-- Informations : 2×2 — livreur à droite de la référence (desktop) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        <div>
+                            <div class="text-xs font-medium uppercase tracking-wide text-[#6B7280] mb-1">Salarié</div>
+                            <div class="text-base font-medium text-[#1F2937]">{{ selectedOrderDetails?.employeeName || cmd.salarie }}</div>
                         </div>
                         <div>
-                            <div class="text-sm text-[#6B7280] mb-1">Référence</div>
-                            <div class="text-base font-medium text-[#4B4848]">{{ cmd.reference }}</div>
+                            <div class="text-xs font-medium uppercase tracking-wide text-[#6B7280] mb-1">Date de commande</div>
+                            <div class="text-base font-medium text-[#1F2937]">{{ cmd.dateCommande }}</div>
                         </div>
-                        <!-- Livreur (affiché seulement si l'info est disponible dans les détails) -->
-                        <div *ngIf="selectedOrderDetails?.driverName">
-                            <div class="text-sm text-[#6B7280] mb-1">Livreur</div>
-                            <div class="text-base font-medium text-[#4B4848]">
-                                {{ selectedOrderDetails?.driverName }}
-                            </div>
+                        <div
+                            [class]="(cmd.statut === 'Annulée' || selectedOrderDetails?.driverName || selectedOrderDetails?.driverPhone) ? '' : 'sm:col-span-2'">
+                            <div class="text-xs font-medium uppercase tracking-wide text-[#6B7280] mb-1">Référence</div>
+                            <div class="text-base font-medium text-[#1F2937]">{{ cmd.reference }}</div>
+                        </div>
+                        <div *ngIf="cmd.statut === 'Annulée' || (selectedOrderDetails?.driverName || selectedOrderDetails?.driverPhone)"
+                            class="min-w-0 py-0.5">
+                            <ng-container *ngIf="cmd.statut === 'Annulée'; else modalColLivreur">
+                                <div class="text-xs font-medium uppercase tracking-wide text-[#6B7280] mb-1">Statut précédent</div>
+                                <div class="text-base font-medium text-[#1F2937]">
+                                    <span *ngIf="loadingOrderDetails">…</span>
+                                    <span *ngIf="!loadingOrderDetails">{{ selectedOrderDetails?.previousStatusLabel || '—' }}</span>
+                                </div>
+                            </ng-container>
+                            <ng-template #modalColLivreur>
+                                <div class="text-xs font-medium uppercase tracking-wide text-[#6B7280] mb-1.5">Livreur</div>
+                                <div *ngIf="selectedOrderDetails?.driverName" class="text-base font-bold text-[#111827] leading-tight">
+                                    {{ selectedOrderDetails?.driverName }}
+                                </div>
+                                <div *ngIf="selectedOrderDetails?.driverPhone" class="text-sm font-normal text-[#6B7280] mt-1">
+                                    {{ selectedOrderDetails?.driverPhone }}
+                                </div>
+                            </ng-template>
                         </div>
                     </div>
                     <!-- Note -->
                     <div *ngIf="cmd.note">
-                        <div class="text-sm text-[#6B7280] mb-1">Note</div>
-                        <div class="text-base text-[#4B4848] mb-8">{{ cmd.note }}</div>
+                        <div class="text-xs font-medium uppercase tracking-wide text-[#6B7280] mb-1">Note</div>
+                        <div class="text-base text-[#4B4848]">{{ cmd.note }}</div>
                     </div>
-                    <!-- Produits commandés (chargés via API avec images) -->
-                    <div>
-                        <h3 class="text-base font-bold text-[#374151] mb-3">Produits commandés</h3>
+                    </div>
+
+                    <!-- Trait de séparation infos / produits -->
+                    <div class="border-t border-[#E5E7EB] my-6 flex-shrink-0" role="presentation"></div>
+
+                    <!-- Produits commandés -->
+                    <div class="flex-shrink-0 pb-1">
+                        <h3 class="text-xs font-semibold tracking-[0.08em] text-[#4B5563] mb-4 uppercase">Produits commandés</h3>
                         <!-- Loading -->
                         <div *ngIf="loadingOrderDetails" class="border border-gray-100 rounded-lg px-4 py-6 text-center text-sm text-[#6B7280]">
                             Chargement des produits...
@@ -357,7 +391,7 @@
                                                 onerror="this.style.display='none'">
                                         </div>
                                         <div class="min-w-0">
-                                            <div class="text-sm font-medium text-[#2C3E50] truncate">{{ product.name }}</div>
+                                            <div class="text-sm font-bold text-[#111827] truncate">{{ product.name }}</div>
                                             <div class="text-xs text-[#6B7280]">{{ product.categoryName }}</div>
                                         </div>
                                     </div>
@@ -380,8 +414,10 @@
                 <!-- Footer (fixed) -->
                 <div
                     class="flex flex-col gap-2 sm:flex-row sm:items-center justify-end p-4 sm:p-6 border-t border-gray-100 flex-shrink-0">
-                    <button (click)="closeDetailModal()"
-                        class="w-full sm:w-auto py-3 sm:py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors">Fermer</button>
+                    <button type="button" (click)="closeDetailModal()"
+                        class="w-full sm:w-auto min-w-[7rem] py-2.5 px-6 bg-white border border-gray-300 text-[#111827] hover:bg-gray-50 rounded-lg font-medium text-sm transition-colors">
+                        Fermer
+                    </button>
                 </div>
             </div>
         </div>

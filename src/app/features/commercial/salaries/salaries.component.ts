@@ -66,6 +66,11 @@ export class EmployeeManagementComponent implements OnInit {
 
   uniqueStatuses = ['Tous les statuts', 'Actif', 'Inactif'];
 
+  /** Chargement des cartes KPI (total, actifs, en attente). */
+  loadingStats = false;
+  /** Chargement du tableau paginé (même principe que gestion-stock / gestion-commandes). */
+  loadingEmployeeList = false;
+
   metricsData: MetricCard[] = [];
   employees: Employee[] = [];
   filteredEmployees: Employee[] = [];
@@ -147,6 +152,7 @@ export class EmployeeManagementComponent implements OnInit {
   // LISTE & STATS
   // ==================================================
   loadEmployees(): void {
+    this.loadingEmployeeList = true;
     this.commercialService
       .getEmployees(
         this.currentPage - 1,
@@ -162,14 +168,17 @@ export class EmployeeManagementComponent implements OnInit {
           this.filteredEmployees = [...this.employees];
           this.totalElements = response?.totalElements ?? this.employees.length;
           this.totalPages = Math.max(1, response?.totalPages ?? 1);
+          this.loadingEmployeeList = false;
         },
         error: (error) => {
           console.error('Erreur lors du chargement des salariés:', error);
+          this.loadingEmployeeList = false;
         }
       });
   }
 
   loadEmployeeStats(): void {
+    this.loadingStats = true;
     this.commercialService.getEmployeeStats().subscribe({
       next: (stats) => {
         this.metricsData = [
@@ -189,10 +198,12 @@ export class EmployeeManagementComponent implements OnInit {
             icon: '/icones/exclamUser.svg'
           }
         ];
+        this.loadingStats = false;
       },
       error: (error) => {
         console.error('Erreur lors du chargement des statistiques salariés:', error);
         this.metricsData = [];
+        this.loadingStats = false;
       }
     });
   }

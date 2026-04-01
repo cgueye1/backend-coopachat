@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthLayoutComponent } from '../auth-layout/auth-layout.component';
 import { AuthService } from '../../../shared/services/auth.service';
+import { getUserFacingHttpErrorMessage } from '../../../shared/utils/http-error-message';
 import Swal from 'sweetalert2';
 
 /** Même règle que le backend (SetPassword / ResetPassword). */
@@ -39,7 +40,8 @@ export class CreatePasswordComponent implements OnInit {
     private fb: FormBuilder,
     private router: Router,
     private route: ActivatedRoute,
-    private authService: AuthService
+    private authService: AuthService,
+    @Inject(PLATFORM_ID) private platformId: object
   ) {
     this.passwordForm = this.fb.group({
       newPassword: ['', [Validators.required, Validators.minLength(8), this.passwordValidator]],
@@ -52,14 +54,25 @@ export class CreatePasswordComponent implements OnInit {
     this.resetToken = token?.trim() ? token.trim() : null;
     this.isResetEmailFlow = !!this.resetToken;
 
-    this.registrationEmail =
-      localStorage.getItem('verificationEmail') ||
-      sessionStorage.getItem('email') ||
-      null;
+    if (isPlatformBrowser(this.platformId)) {
+      this.registrationEmail =
+        localStorage.getItem('verificationEmail') ||
+        sessionStorage.getItem('email') ||
+        null;
+    } else {
+      this.registrationEmail = null;
+    }
 
+    this.syncPageErrorState();
+  }
+
+  /** Message d’erreur uniquement si ni token reset ni email d’inscription (navigateur). */
+  private syncPageErrorState(): void {
     if (!this.isResetEmailFlow && !this.registrationEmail) {
       this.pageError =
         'Lien invalide ou session expirée. Utilisez le lien reçu par email ou repassez par la connexion / l\'inscription.';
+    } else {
+      this.pageError = '';
     }
   }
 
@@ -152,7 +165,9 @@ export class CreatePasswordComponent implements OnInit {
       this.authService.setPassword(email, newPassword, confirmPassword).subscribe({
         next: () => {
           this.isSubmitting = false;
-          localStorage.removeItem('verificationEmail');
+          if (isPlatformBrowser(this.platformId)) {
+            localStorage.removeItem('verificationEmail');
+          }
           this.showSuccessMessage();
         },
         error: (error) => this.handleSubmitError(error)
@@ -167,12 +182,10 @@ export class CreatePasswordComponent implements OnInit {
 
   private handleSubmitError(error: unknown): void {
     this.isSubmitting = false;
-    const err = error as { error?: string | { message?: string }; message?: string };
-    const backendMessage =
-      (typeof err?.error === 'string' ? err.error : null) ||
-      (err?.error as { message?: string })?.message ||
-      err?.message ||
-      'Impossible d\'enregistrer le mot de passe. Vérifiez les critères ou réessayez.';
+    const backendMessage = getUserFacingHttpErrorMessage(
+      error,
+      'Impossible d\'enregistrer le mot de passe. Vérifiez les critères ou réessayez.'
+    );
     Swal.fire({
       title: 'Erreur',
       text: backendMessage,

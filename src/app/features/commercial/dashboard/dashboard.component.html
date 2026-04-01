@@ -32,6 +32,10 @@
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E0E7FF] text-[#4338CA]">Coupon</span>
             </div>
             <div class="relative w-full h-[220px] sm:h-[240px] min-h-[200px]">
+                <div *ngIf="loadingChartCoupons"
+                    class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/85 text-sm text-[#6B7280]">
+                    Chargement…
+                </div>
                 <canvas #couponsChart class="w-full h-full block"></canvas>
             </div>
         </div>
@@ -96,6 +100,10 @@
                 class="text-sm sm:text-base font-medium text-[#111827] mb-4 border-b border-gray-200 pb-3 sm:pb-4 px-4 sm:px-6">
                 Évolution des ventes</h3>
             <div class="relative h-64 sm:h-72 lg:h-80 2xl:h-96 px-4 sm:px-8 lg:px-12">
+                <div *ngIf="loadingChartKpis"
+                    class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/85 text-sm text-[#6B7280]">
+                    Chargement…
+                </div>
                 <canvas #salesChart class="w-full h-full block"></canvas>
             </div>
         </div>
@@ -105,6 +113,10 @@
                 class="text-sm sm:text-base font-medium text-[#111827] mb-4 border-b border-gray-200 pb-3 sm:pb-4 px-4 sm:px-6">
                 Nombre de commandes <span class="text-xs font-normal text-[#6B7280]">(tous statuts)</span></h3>
             <div class="relative h-64 sm:h-72 lg:h-80 2xl:h-96 px-4 sm:px-8 lg:px-12">
+                <div *ngIf="loadingChartKpis"
+                    class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/85 text-sm text-[#6B7280]">
+                    Chargement…
+                </div>
                 <canvas #commandesChart class="w-full h-full block"></canvas>
             </div>
         </div>

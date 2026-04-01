@@ -134,6 +134,47 @@ export class PromotionsListComponent {
     return from && to ? `${from} → ${to}` : from || to || '-';
   }
 
+  /**
+   * Convertit une date string (ISO ou dd/MM/yyyy ou dd-MM-yyyy) en Date.
+   * Comparaison en heure locale (UI).
+   */
+  private toDate(value: string | null | undefined): Date | null {
+    if (!value) return null;
+    const isoLike = value.includes('T') || value.endsWith('Z');
+    if (isoLike) {
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    if (/^\d{4}[-/]\d{2}[-/]\d{2}$/.test(value)) {
+      const [y, m, day] = value.split(value.includes('-') ? '-' : '/').map(Number);
+      const d = new Date(y, m - 1, day, 0, 0, 0, 0);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    if (/^\d{2}[-/]\d{2}[-/]\d{4}$/.test(value)) {
+      const [day, m, y] = value.split(value.includes('-') ? '-' : '/').map(Number);
+      const d = new Date(y, m - 1, day, 0, 0, 0, 0);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    const fallback = new Date(value);
+    return Number.isNaN(fallback.getTime()) ? null : fallback;
+  }
+
+  /**
+   * Option A (UX) : si la date de début n'est pas atteinte, on bloque l'action "Activer".
+   * On autorise l'activation uniquement si now >= startDate.
+   */
+  canActivatePromotion(item: Pick<PromotionListItem, 'startDate' | 'status'>): boolean {
+    if (!(item.status === 'PLANNED' || item.status === 'DISABLED')) return false;
+    const start = this.toDate(item.startDate);
+    if (!start) return true;
+    return new Date().getTime() >= start.getTime();
+  }
+
+  //si la condition de canActivatePromotion est false, on affiche le message d'activation impossible
+  activationBlockedReasonPromotion(item: Pick<PromotionListItem, 'startDate'>): string {
+    return item.startDate ? `Disponible à partir du ${this.fmtDate(item.startDate)}` : `Disponible plus tard`;
+  }
+
   getSelectedStatusLabel(): string {
     return this.selectedStatusFilter || 'Tous les statuts';
   }
@@ -214,6 +255,15 @@ export class PromotionsListComponent {
   togglePromotionStatus(promoId: number, isActive: boolean): void {
     const item = this.content.find(p => p.id === promoId);
     if (!item) return;
+    if (isActive && !this.canActivatePromotion(item)) {
+      Swal.fire({
+        title: 'Activation impossible',
+        text: this.activationBlockedReasonPromotion(item),
+        icon: 'info',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
     Swal.fire({
       title: isActive ? 'Activer cette promotion' : 'Désactiver cette promotion',
       icon: 'question',
@@ -247,6 +297,15 @@ export class PromotionsListComponent {
   togglePromotionStatusInDetail(isActive: boolean): void {
     const d = this.selectedPromotionDetail;
     if (!d?.id) return;
+    if (isActive && !this.canActivatePromotion(d)) {
+      Swal.fire({
+        title: 'Activation impossible',
+        text: this.activationBlockedReasonPromotion(d),
+        icon: 'info',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
     Swal.fire({
       title: isActive ? 'Activer cette promotion' : 'Désactiver cette promotion',
       icon: 'question',

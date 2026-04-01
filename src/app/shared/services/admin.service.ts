@@ -43,34 +43,14 @@ export interface AdminAlertsDTO {
 }
 
 /**
- * Un jour du graphique "Commandes vs Livraisons" (7 derniers jours).
- * - date : libellé court (ex. "05/02")
- * - commandesEnAttente : nombre de commandes EN_ATTENTE créées ce jour
- * - livraisons : nombre de commandes LIVREE finalisées ce jour
- */
-export interface CommandesVsLivraisonsDayDTO {
-  date: string;
-  commandesEnAttente: number;
-  livraisons: number;
-}
-
-/**
- * Forme alternative si on veut wrapper la liste (ex. pour le template).
- * L’API retourne directement un tableau ; on peut faire { derniersJours: list } côté composant.
- */
-export interface CommandesVsLivraisonsDTO {
-  derniersJours: CommandesVsLivraisonsDayDTO[];
-}
-
-/**
- * Un jour du graphique "Livraisons" (7 derniers jours) : nbLivrees, nbAssignes, nbEnAttente.
- * GET /admin/dashboard/livraisons-par-jour
+ * Un jour du graphique « Livraisons » (7 derniers jours) : prévu à la date, livré à la date prévue, retard.
+ * GET /admin/dashboard/livraisons-par-jour — et GET .../commandes-vs-livraisons (même JSON, alias).
  */
 export interface LivraisonParJourDTO {
   date: string;
-  nbLivrees: number;
-  nbAssignes: number;
-  nbEnAttente: number;
+  nbPrevues: number;
+  nbLivreesALaDate: number;
+  nbRetard: number;
 }
 
 /** Un rôle du graphique "Utilisateurs par rôle" (API GET /admin/users/stats/by-role). */
@@ -154,6 +134,11 @@ export interface StockEtatGlobalDTO {
   critique: number;
 }
 
+/** Réponse GET /admin/dashboard/statut-tournees — effectifs par statut de tournée (clés ASSIGNEE, EN_COURS, …). */
+export interface StatutTourneesDTO {
+  parStatut: Record<string, number>;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -171,17 +156,15 @@ export class AdminService {
   }
 
   /**
-   * Récupère les 7 derniers jours pour le graphique "Commandes vs Livraisons".
-   * Exemple de réponse API : [{ date: "05/02", commandesEnAttente: 3, livraisons: 12 }, ...]
-   * 
+   * Alias historique : même réponse que getLivraisonsParJour() (nbPrevues, nbLivreesALaDate, nbRetard).
    */
-  getCommandesVsLivraisons(): Observable<CommandesVsLivraisonsDayDTO[]> {
-    return this.http.get<CommandesVsLivraisonsDayDTO[]>(`${this.apiUrl}/admin/dashboard/commandes-vs-livraisons`);
+  getCommandesVsLivraisons(): Observable<LivraisonParJourDTO[]> {
+    return this.http.get<LivraisonParJourDTO[]>(`${this.apiUrl}/admin/dashboard/commandes-vs-livraisons`);
   }
 
   /**
-   * 7 derniers jours : date (dd/MM), nbLivrees, nbAssignes, nbEnAttente.
-   * Graphique « Livraisons » (barres empilées : Livrés, Planifiés, Retard).
+   * 7 derniers jours : date (dd/MM), nbPrevues, nbLivreesALaDate, nbRetard.
+   * Graphique « Livraisons » (empilé : livrées à la date, prévu non livré, retard).
    */
   getLivraisonsParJour(): Observable<LivraisonParJourDTO[]> {
     return this.http.get<LivraisonParJourDTO[]>(`${this.apiUrl}/admin/dashboard/livraisons-par-jour`);
@@ -304,6 +287,11 @@ export class AdminService {
    */
   getStockEtatGlobal(): Observable<StockEtatGlobalDTO> {
     return this.http.get<StockEtatGlobalDTO>(`${this.apiUrl}/admin/dashboard/stocks-etat-global`);
+  }
+
+  /** Effectifs des tournées par statut — donut « Statut des livraisons ». GET /admin/dashboard/statut-tournees */
+  getStatutTournees(): Observable<StatutTourneesDTO> {
+    return this.http.get<StatutTourneesDTO>(`${this.apiUrl}/admin/dashboard/statut-tournees`);
   }
 
   /**

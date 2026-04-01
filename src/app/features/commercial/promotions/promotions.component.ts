@@ -164,6 +164,49 @@ export class PromotionsManagementComponent {
     return `${Number(v).toLocaleString('fr-FR')} F`;
   }
 
+  /**
+   * Convertit une date string (ISO ou dd/MM/yyyy ou dd-MM-yyyy) en Date.
+   * Important : on compare en heure locale du navigateur (UI).
+   */
+  private toDate(value: string | null | undefined): Date | null {
+    if (!value) return null;
+    // ISO (ex. 2026-03-02T00:00:00.000Z) -> Date native OK
+    const isoLike = value.includes('T') || value.endsWith('Z');
+    if (isoLike) {
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    // Date simple (yyyy-mm-dd / yyyy/mm/dd)
+    if (/^\d{4}[-/]\d{2}[-/]\d{2}$/.test(value)) {
+      const [y, m, day] = value.split(value.includes('-') ? '-' : '/').map(Number);
+      const d = new Date(y, m - 1, day, 0, 0, 0, 0);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    // Date simple (dd/mm/yyyy ou dd-mm-yyyy)
+    if (/^\d{2}[-/]\d{2}[-/]\d{4}$/.test(value)) {
+      const [day, m, y] = value.split(value.includes('-') ? '-' : '/').map(Number);
+      const d = new Date(y, m - 1, day, 0, 0, 0, 0);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    const fallback = new Date(value);
+    return Number.isNaN(fallback.getTime()) ? null : fallback;
+  }
+
+  /**
+   * Option A (UX) : si la date de début n'est pas atteinte, on bloque l'action "Activer".
+   * On autorise l'activation uniquement si now >= validFrom.
+   */
+  canActivateCoupon(item: Pick<CouponListItem, 'validFrom' | 'status'>): boolean {
+    if (!(item.status === 'PLANNED' || item.status === 'DISABLED')) return false;
+    const start = this.toDate(item.validFrom);
+    if (!start) return true; // si format inconnu, ne pas bloquer l'utilisateur (fallback)
+    return new Date().getTime() >= start.getTime();
+  }
+
+  activationBlockedReason(item: Pick<CouponListItem, 'validFrom'>): string {
+    return item.validFrom ? `Disponible à partir du ${this.fmtDate(item.validFrom)}` : `Disponible plus tard`;
+  }
+
   toggleStatusDropdown(): void {
     this.showStatusDropdown = !this.showStatusDropdown;
   }

@@ -2,7 +2,6 @@
     <!-- Header Section -->
     <app-header [title]="'Tableau de bord'" [breadcrumb]="'Pages / Tableau de bord'" [type]="'filter'"></app-header>
 
-    <p *ngIf="dashboardLoading" class="mb-4 text-gray-500 text-sm">Chargement du tableau de bord…</p>
     <div *ngIf="dashboardError" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
         {{ dashboardError }}
     </div>
@@ -28,11 +27,11 @@
 
     <!-- Charts Row -->
     <div class="flex flex-col gap-3 sm:gap-4 xl:grid xl:grid-cols-3 xl:gap-6 mb-3 sm:mb-4 2xl:mb-8">
-        <!-- Commandes vs Livraisons Chart -->
+        <!-- Livraisons par jour (date prévue) — 7 derniers jours -->
         <div
             class="order-1 xl:col-span-2 bg-white rounded-lg p-3 sm:p-6 hover:shadow-sm transition-shadow">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 sm:mb-4">
-                <h3 class="text-base sm:text-lg font-semibold text-gray-900">Commandes vs Livraisons</h3>
+                <h3 class="text-base sm:text-lg font-semibold text-gray-900">Livraisons par jour</h3>
                 <a routerLink="/log/commandes"
                     class="self-start text-xs sm:text-sm text-gray-600 px-3 py-1.5 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
                     Voir détails
@@ -54,7 +53,11 @@
             </div>
 
             <div class="flex items-center justify-center h-72">
-                <div class="relative">
+                <div class="relative w-full max-w-[280px] h-64 flex items-center justify-center">
+                    <div *ngIf="dashboardLoading"
+                        class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/85 text-sm text-[#6B7280]">
+                        Chargement…
+                    </div>
                     <canvas #stocksChart></canvas>
                 </div>
             </div>
@@ -89,6 +92,10 @@
                 </a>
             </div>
             <div class="relative flex-1 min-h-[280px] h-72 2xl:h-96">
+                <div *ngIf="dashboardLoading"
+                    class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/85 text-sm text-[#6B7280]">
+                    Chargement…
+                </div>
                 <canvas #returnRateChart class="w-full h-full block"></canvas>
             </div>
         </div>

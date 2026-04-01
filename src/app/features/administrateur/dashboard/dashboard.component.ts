@@ -1,9 +1,16 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, PLATFORM_ID, Inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
-import { AdminService, AlertItemDTO, CommandesVsLivraisonsDayDTO, LivraisonParJourDTO, StockEtatGlobalDTO, UserStatsByRoleItemDTO } from '../../../shared/services/admin.service';
+import {
+  AdminService,
+  AlertItemDTO,
+  LivraisonParJourDTO,
+  StatutTourneesDTO,
+  StockEtatGlobalDTO,
+  UserStatsByRoleItemDTO
+} from '../../../shared/services/admin.service';
 
 
  
@@ -20,13 +27,6 @@ interface PaymentStatusSlice {
   color: string;
 }
 
-
-/**Interface pour les données du tableau commande/Livraison  */
-interface CommandRevenuePoint {
-  date: string;
-  commandes: number;
-  livraisons: number;
-}
 
 interface LivraisonStackPoint {
   date: string;
@@ -48,15 +48,15 @@ interface CouponTrendPoint {
 @Component({
   selector: 'app-admin-page',
   standalone: true,
-  imports: [CommonModule, MainLayoutComponent, HeaderComponent],
+  imports: [CommonModule, MainLayoutComponent, HeaderComponent, RouterModule],
   templateUrl: './dashboard.component.html'
 })
 export class AdminPageComponent implements OnInit, AfterViewInit {
   @ViewChild('commandesChart') commandesChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('paiementsChart') paiementsChartRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('livraisonsChart') livraisonsChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('rolesChart') rolesChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('stocksEtatChart') stocksEtatChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('deliveryStatusChart') deliveryStatusChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('couponsChart') couponsChartRef!: ElementRef<HTMLCanvasElement>;
 
   role: 'admin' = 'admin';
@@ -95,11 +95,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
   ];
 
 
-  /** Données du graphique "Commandes vs Livraisons" (données statiques pour l’instant). */
-  // [API] Commandes vs Livraisons : rempli par loadCommandesVsLivraisons()
-  commandesChiffreData: CommandRevenuePoint[] = [];
-
-  /** Données du graphique empilé "Livraisons" (remplies par loadLivraisonsParJour — GET /admin/dashboard/livraisons-par-jour). */
+  /** Données du graphique « Livraisons par jour » (GET /admin/dashboard/livraisons-par-jour), affiché en grand en haut. */
   livraisonsData: LivraisonStackPoint[] = [];
 
   // [API] Utilisateurs par rôle : rempli par loadUsersStatsByRole() (GET /admin/users/stats/by-role)
@@ -113,18 +109,29 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
    */
   stockCategoryData: { category: string; value: number }[] = [];
 
+  /** Donut « Statut des livraisons » (tournées) — GET /admin/dashboard/statut-tournees. */
+  deliveryStatusData: { status: string; value: number; color: string }[] = [];
+
   /** Données du graphique "Tendance des coupons utilisés" (remplies par l’API GET /admin/dashboard/coupons-utilises-par-jour). */
   couponsTrendData: CouponTrendPoint[] = [];
 
   /** Alertes du tableau de bord (livraisons en retard, stocks critiques). Rempli par loadAlerts() — GET /admin/alerts. */
   alertsData: AlertItemDTO[] = [];
 
+  /** Loaders par graphique (API + Chart.js). */
+  loadingChartLivraisons = true;
+  loadingChartPaiements = true;
+  loadingChartRoles = true;
+  loadingChartStocksEtat = true;
+  loadingChartDeliveryStatus = true;
+  loadingChartCoupons = true;
+
   /** Références aux instances Chart.js (pour mise à jour du graphique paiements après l’API). */
   private commandesChart?: any;
   private paiementsChart?: any;
-  private livraisonsChart?: any;
   private rolesChart?: any;
   private stocksEtatChart?: any;
+  private deliveryStatusChart?: any;
   private couponsChart?: any;
 
   constructor(
@@ -135,10 +142,10 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.loadDashboardStats();
-    this.loadCommandesVsLivraisons();
     this.loadLivraisonsParJour();
     this.loadUsersStatsByRole();
     this.loadStockEtatGlobal();
+    this.loadStatutTournees();
     this.loadCouponsUtilisesParJour();
     this.loadAlerts();
   }
@@ -163,53 +170,29 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
   }
 
   /**
-   * Appelle l’API GET /admin/dashboard/commandes-vs-livraisons et met à jour le graphique "Commandes vs Livraisons".
-   * Les 7 derniers jours : commandes en attente (EN_ATTENTE) et livraisons (LIVREE) par jour.
-   */
-  loadCommandesVsLivraisons(): void {
-    // Appel API → mapping date, commandesEnAttente, livraisons → commandesChiffreData
-    this.adminService.getCommandesVsLivraisons().subscribe({
-      //si succès on mappe les données de la réponse dans le graphique
-      // Quand l’API répond avec succès, "list" = tableau des 7 derniers jours
-  next: (list: CommandesVsLivraisonsDayDTO[]) => {
-        // On transforme chaque jour "d" du format API vers le format attendu par le graphique
-        this.commandesChiffreData = list.map(d => ({
-          date: d.date,                           // ex. "05/02"
-          commandes: d.commandesEnAttente,        // nombre de commandes en attente ce jour
-          livraisons: d.livraisons,               // nombre de livraisons ce jour
-          montantEncaisse: 0                      // pas fourni par l’API, on met 0
-        }));
-        // Si le graphique existe déjà (Chart.js chargé),on le remplit avec les nouvelles données
-        if (this.commandesChart) {
-         
-          this.commandesChart.data.labels = this.commandesChiffreData.map(p => p.date);           // labels axe X : "05/02", "06/02", ...
-          this.commandesChart.data.datasets[0].data = this.commandesChiffreData.map(p => p.commandes);   // 1re série = commandes en attente
-          this.commandesChart.data.datasets[1].data = this.commandesChiffreData.map(p => p.livraisons);   // 2e série = livraisons
-          this.commandesChart.update();
-        }
-      },
-      error: (err) => console.error('Erreur chargement commandes vs livraisons:', err)
-    });
-  }
-
-  /**
-   * Appelle GET /admin/dashboard/livraisons-par-jour et remplit le graphique « Livraisons » (Livrés, Planifiés, Retard).
+   * GET /admin/dashboard/livraisons-par-jour → graphique principal « Livraisons par jour » (barres empilées).
    */
   loadLivraisonsParJour(): void {
     this.adminService.getLivraisonsParJour().subscribe({
       next: (list: LivraisonParJourDTO[]) => {
         this.livraisonsData = list.map(d => ({
           date: d.date,
-          livres: d.nbLivrees,
-          planifies: d.nbAssignes,
-          retard: d.nbEnAttente
+          livres: d.nbLivreesALaDate,
+          planifies: Math.max(0, d.nbPrevues - d.nbLivreesALaDate),
+          retard: d.nbRetard
         }));
-        if (this.livraisonsChart) {
-          this.livraisonsChart.data.labels = this.livraisonsData.map(p => p.date);
-          this.livraisonsChart.data.datasets[0].data = this.livraisonsData.map(p => p.livres);
-          this.livraisonsChart.data.datasets[1].data = this.livraisonsData.map(p => p.planifies);
-          this.livraisonsChart.data.datasets[2].data = this.livraisonsData.map(p => p.retard);
-          this.livraisonsChart.update();
+        if (this.commandesChart) {
+          const d = this.livraisonsData;
+          const barTotals = d.map((p) => p.livres + p.planifies + p.retard);
+          const yMax = Math.max(1, ...barTotals, 0) + 2;
+          this.commandesChart.data.labels = d.map((p) => p.date);
+          this.commandesChart.data.datasets[0].data = d.map((p) => p.livres);
+          this.commandesChart.data.datasets[1].data = d.map((p) => p.planifies);
+          this.commandesChart.data.datasets[2].data = d.map((p) => p.retard);
+          if (this.commandesChart.options?.scales?.y) {
+            this.commandesChart.options.scales.y.max = yMax;
+          }
+          this.commandesChart.update();
         }
       },
       error: (err) => console.error('Erreur chargement livraisons par jour:', err)
@@ -232,8 +215,12 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
           this.rolesChart.data.datasets[0].data = this.rolesData.map(p => p.total);//on met à jour les données du graphique pour chaque rôle on prend le nombre d’utilisateurs pour ce rôle
           this.rolesChart.update();
         }
+        this.loadingChartRoles = false;
       },
-      error: (err) => console.error('Erreur chargement utilisateurs par rôle:', err)
+      error: (err) => {
+        console.error('Erreur chargement utilisateurs par rôle:', err);
+        this.loadingChartRoles = false;
+      }
     });
   }
 
@@ -246,7 +233,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
         this.stockCategoryData = [
           { category: 'Normal', value: data.normal },
           { category: 'Sous seuil', value: data.sousSeuil },
-          { category: 'Critique', value: data.critique }
+          { category: 'Rupture', value: data.critique }
         ];
         // Si le graphique est déjà créé, on met à jour les labels (catégories) et les données (effectifs)
         if (this.stocksEtatChart) {
@@ -254,8 +241,39 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
           this.stocksEtatChart.data.datasets[0].data = this.stockCategoryData.map(d => d.value);//on met à jour les données du graphique pour chaque catégorie on prend le nombre de stocks pour cette catégorie
           this.stocksEtatChart.update();
         }
+        this.loadingChartStocksEtat = false;
       },
-      error: (err) => console.error('Erreur chargement stocks état global:', err)
+      error: (err) => {
+        console.error('Erreur chargement stocks état global:', err);
+        this.loadingChartStocksEtat = false;
+      }
+    });
+  }
+
+  /** GET /admin/dashboard/statut-tournees — même logique que le dashboard RL (Assignée, En cours, Terminée, Annulée). */
+  loadStatutTournees(): void {
+    this.adminService.getStatutTournees().subscribe({
+      next: (data: StatutTourneesDTO) => {
+        const parStatut = data.parStatut || {};
+        const statusConfig: Record<string, { label: string; color: string }> = {
+          ASSIGNEE: { label: 'Assignée', color: '#22C55E' },
+          EN_COURS: { label: 'En cours', color: '#FFE7C2' },
+          TERMINEE: { label: 'Terminée', color: '#4F46E5' },
+          ANNULEE: { label: 'Annulée', color: '#FFD3D3' }
+        };
+        this.deliveryStatusData = Object.entries(statusConfig).map(([key, { label, color }]) => ({
+          status: label,
+          value: Number(parStatut[key] ?? 0),
+          color
+        }));
+        if (this.deliveryStatusChart) {
+          this.deliveryStatusChart.data.labels = this.deliveryStatusData.map((d) => d.status);
+          this.deliveryStatusChart.data.datasets[0].data = this.deliveryStatusData.map((d) => d.value);
+          this.deliveryStatusChart.data.datasets[0].backgroundColor = this.deliveryStatusData.map((d) => d.color);
+          this.deliveryStatusChart.update();
+        }
+      },
+      error: (err) => console.error('Erreur chargement statut des livraisons:', err)
     });
   }
 
@@ -271,8 +289,12 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
           this.couponsChart.data.datasets[0].data = this.couponsTrendData.map(p => p.value);
           this.couponsChart.update();
         }
+        this.loadingChartCoupons = false;
       },
-      error: (err) => console.error('Erreur chargement coupons par jour:', err)
+      error: (err) => {
+        console.error('Erreur chargement coupons par jour:', err);
+        this.loadingChartCoupons = false;
+      }
     });
   }
 
@@ -307,10 +329,12 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
           this.paiementsChart.data.datasets[0].backgroundColor = this.paymentStatusData.map(s => s.color);//on met à jour les couleurs du graphique pour chaque paiement on prend la couleur pour ce statut
           this.paiementsChart.update();//on met à jour le graphique
         }
+        this.loadingChartPaiements = false;
       },
       //si erreur on affiche l'erreur dans la console
       error: (err) => {
         console.error('Erreur chargement stats dashboard:', err);
+        this.loadingChartPaiements = false;
       }
     });
   }
@@ -329,43 +353,57 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
       const Chart = (await import('chart.js/auto')).default;
       this.initCommandesChart(Chart);
       this.initPaiementsChart(Chart);
-      this.initLivraisonsChart(Chart);
       this.initRolesChart(Chart);
       this.initStocksEtatChart(Chart);
+      this.initDeliveryStatusChart(Chart);
       this.initCouponsChart(Chart);
     } catch (error) {
       console.error('Erreur lors du chargement de Chart.js:', error);
     }
   }
 
-  // --- Graphique Commandes vs Livraisons (données = commandesChiffreData, rempli par l’API) ---
+  // --- Livraisons par jour (barres groupées) : livraisonsData, GET /admin/dashboard/livraisons-par-jour ---
   initCommandesChart(Chart: any): void {
     const ctx = this.commandesChartRef?.nativeElement?.getContext('2d');
     if (!ctx) {
       return;
     }
 
+    const d = this.livraisonsData;
+    const barTotals = d.map((p) => p.livres + p.planifies + p.retard);
+    const yMax = Math.max(1, ...barTotals, 0) + 2;
+
     this.commandesChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: this.commandesChiffreData.map(point => point.date),
+        labels: d.map((p) => p.date),
         datasets: [
           {
-            label: 'Commandes en attente',  // correspond à commandesEnAttente (API)
-            data: this.commandesChiffreData.map(point => point.commandes),
-            backgroundColor: '#E0E7FF',
-            hoverBackgroundColor: '#C7D2FE',
+            label: 'Prévues ce jour',
+            data: d.map((p) => p.planifies),
+            backgroundColor: '#E5E7EB',
+            borderColor: '#fff',
+            borderWidth: 1,
             categoryPercentage: 0.7,
-            order: 2,
-            yAxisID: 'y'
+            barPercentage: 0.9
           },
           {
-            label: 'Livraisons',
-            data: this.commandesChiffreData.map(point => point.livraisons),
-            backgroundColor: '#C1F3DC',
-            hoverBackgroundColor: '#A5E9CD',
+            label: 'Livrées ce jour',
+            data: d.map((p) => p.livres),
+            backgroundColor: '#22C55E',
+            borderColor: '#fff',
+            borderWidth: 1,
             categoryPercentage: 0.7,
-            order: 3
+            barPercentage: 0.9
+          },
+          {
+            label: 'En retard',
+            data: d.map((p) => p.retard),
+            backgroundColor: '#F97316',
+            borderColor: '#fff',
+            borderWidth: 1,
+            categoryPercentage: 0.7,
+            barPercentage: 0.9
           }
         ]
       },
@@ -401,16 +439,24 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
           }
         },
         scales: {
-          y: {
-            beginAtZero: true,
-            max: 8,
-            grid: { color: '#F3F4F6' },
-            ticks: { color: '#6B7280', font: { size: 12 }, padding: 10 }
-          },
           x: {
+            stacked: false,
             grid: { color: '#F3F4F6' },
             ticks: { color: '#6B7280', font: { size: 12 } },
             border: { display: false }
+          },
+          y: {
+            stacked: false,
+            beginAtZero: true,
+            max: yMax,
+            grid: { color: '#F3F4F6' },
+            ticks: {
+              color: '#6B7280',
+              font: { size: 12 },
+              padding: 10,
+              stepSize: 1,
+              callback: (value: string | number) => (Number.isInteger(Number(value)) ? value : '')
+            }
           }
         }
       }
@@ -464,100 +510,6 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
             bodyColor: '#fff',
             padding: 12,
             cornerRadius: 8
-          }
-        }
-      }
-    });
-  }
-
-  // --- Histogramme empilé des livraisons ---
-  initLivraisonsChart(Chart: any): void {
-    const ctx = this.livraisonsChartRef?.nativeElement?.getContext('2d');
-    if (!ctx) {
-      return;
-    }
-
-    this.livraisonsChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: this.livraisonsData.map(point => point.date),
-        datasets: [
-          {
-            label: 'Livrés',
-            data: this.livraisonsData.map(point => point.livres),
-            backgroundColor: '#22C55E',
-            barThickness: 24,
-            borderColor: 'white',
-            borderWidth: 1, 
-
-          },
-          {
-            label: 'Planifiés',
-            data: this.livraisonsData.map(point => point.planifies),
-            backgroundColor: '#E5E7EB',
-            barThickness: 24,
-            borderColor: 'white',
-            borderWidth: 1,  
-
-          },
-          {
-            label: 'Retard',
-            data: this.livraisonsData.map(point => point.retard),
-            backgroundColor: '#F97316',
-            barThickness: 24,
-            borderColor: 'white',
-            borderWidth: 1, 
-
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false
-        },
-        plugins: {
-          legend: {
-            display: true,
-            position: 'bottom',
-            labels: {
-              usePointStyle: true,
-              pointStyle: 'circle',
-              padding: 20,
-              boxWidth: 6,
-              boxHeight: 6,
-              color: '#2B3674',
-              font: { size: 12 }
-            }
-          },
-          tooltip: {
-            backgroundColor: '#03031999',
-            titleColor: '#fff',
-            bodyColor: '#fff',
-            padding: 12,
-            cornerRadius: 8
-          }
-        },
-        scales: {
-          x: {
-            stacked: true,
-            grid: { display: false },
-            ticks: { color: '#6B7280', font: { size: 12 } }
-          },
-          y: {
-            stacked: true,
-            beginAtZero: true,
-            max: 100,
-            grid: { color: '#F3F4F6' },
-            ticks: {
-              callback: (value: number) => `${value}%`,
-              stepSize: 20,
-              color: '#6B7280',
-              font: { size: 12 }
-
-            }
           }
         }
       }
@@ -627,6 +579,53 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
         datasets: [{
           data: this.stockCategoryData.map(d => d.value),
           backgroundColor: ['#22C55F', '#FFE7C2', '#FFD3D3'],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+              usePointStyle: true,
+              pointStyle: 'circle',
+              padding: 20,
+              boxWidth: 6,
+              boxHeight: 6,
+              color: '#2B3674',
+              font: { size: 12 }
+            }
+          },
+          tooltip: {
+            backgroundColor: '#03031999',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            padding: 12,
+            cornerRadius: 8
+          }
+        }
+      }
+    });
+  }
+
+  // --- Donut Statut des livraisons (tournées) — même schéma que le dashboard RL ---
+  initDeliveryStatusChart(Chart: any): void {
+    const ctx = this.deliveryStatusChartRef?.nativeElement?.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+
+    this.deliveryStatusChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: this.deliveryStatusData.map((d) => d.status),
+        datasets: [{
+          data: this.deliveryStatusData.map((d) => d.value),
+          backgroundColor: this.deliveryStatusData.map((d) => d.color),
           borderWidth: 1
         }]
       },

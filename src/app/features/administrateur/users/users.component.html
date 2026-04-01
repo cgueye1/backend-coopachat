@@ -207,8 +207,8 @@
             </div>
         </div>
 
-        <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
+        <!-- Charts Section (canvas / Chart.js : pas de SSR) -->
+        <div *ngIf="isBrowser" class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
             <!-- Bar Chart - Utilisateurs par rôle -->
             <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
                 <h3 class="text-base font-semibold text-[#2C3E50] mb-3 sm:text-lg sm:mb-4">Utilisateurs par rôle</h3>
@@ -230,9 +230,9 @@
 
         <!-- User Detail Modal -->
         <div *ngIf="showUserModal && selectedUser"
-            class="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50"
+            class="fixed inset-0 bg-black bg-opacity-20 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
             (click)="closeUserModal()">
-            <div class="bg-white rounded-2xl w-full max-w-lg sm:max-w-xl mx-2 sm:mx-4 shadow-lg"
+            <div class="bg-white rounded-2xl w-full max-w-lg sm:max-w-xl mx-auto shadow-lg my-auto max-h-[calc(100vh-2rem)] overflow-y-auto"
                 (click)="$event.stopPropagation()">
                 <!-- Modal Header -->
                 <div class="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-6 border-b border-gray-100">

@@ -79,6 +79,10 @@ export class ProspectionComponent implements OnInit {
   private submitSequence = 0;
 
   // --- Données et listes ---
+  /** KPI en-tête (prospects ou partenaires selon routeMode). */
+  loadingStats: boolean = false;
+  /** Tableau paginé (liste entreprises / prospects). */
+  loadingCompanyList: boolean = false;
   metricsData: MetricCard[] = []; // Cartes stats en haut
   prospects: Prospect[] = [];
   filteredProspects: Prospect[] = []; // Liste affichée (avec pagination)
@@ -175,6 +179,7 @@ export class ProspectionComponent implements OnInit {
     const size   = this.itemsPerPage;
     const search = this.searchTerm;
 
+    this.loadingCompanyList = true;
     const request = this.routeMode === 'prospects'
       ? this.commercialService.getProspects(page, size, search, this.selectedSectorId ?? undefined, this.selectedProspectionStatus || undefined)
       : this.commercialService.getCompanies(page, size, search, this.selectedSectorId ?? undefined, this.getIsActiveFilter());
@@ -185,12 +190,17 @@ export class ProspectionComponent implements OnInit {
         this.prospects         = companies.map((c: any) => this.mapCompanyToProspect(c));
           this.filteredProspects = [...this.prospects];
         this.totalElements     = response?.totalElements ?? this.prospects.length;
+        this.loadingCompanyList = false;
       },
-      error: (error) => console.error('Erreur chargement:', error)
+      error: (error) => {
+        console.error('Erreur chargement:', error);
+        this.loadingCompanyList = false;
+      }
     });
   }
 
   loadCompanyStats(): void {
+    this.loadingStats = true;
     if (this.routeMode === 'prospects') {
       this.commercialService.getProspectStats().subscribe({
         next: (stats: any) => {
@@ -201,8 +211,12 @@ export class ProspectionComponent implements OnInit {
             { title: 'Intéressés',      value: String(stats?.interesses ?? 0), icon: '/icones/actif.svg' },
             { title: 'Signés',          value: String(stats?.signes     ?? 0), icon: '/icones/inactif.svg' }
           ];
+          this.loadingStats = false;
         },
-        error: () => this.metricsData = []
+        error: () => {
+          this.metricsData = [];
+          this.loadingStats = false;
+        }
       });
     } else {
       this.commercialService.getPartnerStats().subscribe({
@@ -212,8 +226,12 @@ export class ProspectionComponent implements OnInit {
             { title: 'Actives',           value: String(stats?.activeCompanies   ?? 0), icon: '/icones/actif.svg' },
             { title: 'Inactives',         value: String(stats?.inactiveCompanies ?? 0), icon: '/icones/inactif.svg' }
           ];
+          this.loadingStats = false;
         },
-        error: () => this.metricsData = []
+        error: () => {
+          this.metricsData = [];
+          this.loadingStats = false;
+        }
       });
     }
   }

@@ -4,12 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
-import { ProductService, Product } from '../../../shared/services/product.service';
 import { LogisticsService, EmployeeOrderDetails } from '../../../shared/services/logistics.service';
 import { PAGE_SIZE_OPTIONS } from '../../../shared/constants/pagination';
 import { environment } from '../../../../environments/environment';
 import { isPlatformBrowser } from '@angular/common';
-import Swal from 'sweetalert2';
+import { finalize } from 'rxjs';
 
 Chart.register(...registerables);
 
@@ -32,12 +31,10 @@ interface Commande {
   /** Liste des noms de produits (chaque produit dans son propre bloc) */
   produitsList: string[];
   frequence: string;
-  statut: 'En cours' | 'Livrée' | 'En attente' | 'Validée' | 'Annulée' | 'Échec';
+  statut: 'En cours' | 'Livrée' | 'En attente' | 'Validée' | 'En préparation' | 'Annulée' | 'Échec';
   reference: string;
   note?: string;
   produitsDetails?: { productId: string; quantity: number }[];
-  /** Raison de l'échec de livraison (affichée dans la liste pour le RL). */
-  failureReason?: string | null;
 }
 
 @Component({
@@ -61,7 +58,6 @@ export class GestionCommandesComponent implements AfterViewInit {
   selectedOrderDetails: EmployeeOrderDetails | null = null;
   loadingOrderDetails = false;
   loadOrderDetailsError = false;
-  allProducts: Product[] = [];
   loadingStats = false;
   statsError = false;
 
@@ -77,6 +73,13 @@ export class GestionCommandesComponent implements AfterViewInit {
   totalPages = 1;
   totalElements = 0;
   loadingList = false;
+  /** Export Excel en cours. */
+  loadingExport = false;
+
+  /** Loaders graphiques (Produits fréquents, Commandes par jour). */
+  // Initialisé à false pour éviter NG0100 côté SSR (AfterViewInit ne doit pas basculer true -> false).
+  loadingChartFrequentProducts = false;
+  loadingChartDailyOrders = false;
   /** True si le chargement de la liste a échoué (erreur API). */
   listError = false;
 
@@ -84,12 +87,14 @@ export class GestionCommandesComponent implements AfterViewInit {
 
   constructor(
     private router: Router,
-    private productService: ProductService,
     private logisticsService: LogisticsService,
     @Inject(PLATFORM_ID) platformId: Object
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
-    this.loadAllProducts();
+    // Évite les appels API pendant le SSR (Node ne peut souvent pas joindre l’URL du backend → status 0 / ENETUNREACH).
+    if (!this.isBrowser) {
+      return;
+    }
     this.loadCommandes();
     this.loadStats();
   }
@@ -100,6 +105,7 @@ export class GestionCommandesComponent implements AfterViewInit {
     this.logisticsService.getEmployeeOrderStats().subscribe({
       next: (stats) => {
         this.metricsData = [
+          { title: 'TOTAL', value: String(stats.totalCommandes ?? 0), icon: '/icones/commandefour.svg', subtitle: 'tous statuts sauf annulées' },
           { title: 'EN ATTENTE', value: String(stats.enAttente), icon: '/icones/attente.svg', subtitle: 'À planifier' },
           { title: 'EN RETARD', value: String(stats.enRetard), icon: '/icones/alerte.svg', subtitle: 'date dépassée' },
           { title: 'EN COURS', value: String(stats.enCours), icon: '/icones/temps.svg', subtitle: 'tournées actives' },
@@ -117,13 +123,16 @@ export class GestionCommandesComponent implements AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    if (!this.isBrowser) return;
+    if (!this.isBrowser) {
+      return;
+    }
     this.loadFrequentProductsChart();
     this.loadDailyOrdersChart();
   }
 
   private loadFrequentProductsChart(): void {
-    this.logisticsService.getTop5ProductsUsage().subscribe({
+    this.loadingChartFrequentProducts = true;
+    this.logisticsService.getTop5ProductsUsage().pipe(finalize(() => (this.loadingChartFrequentProducts = false))).subscribe({
       next: (list) => {
         const labels = (list ?? []).map((x) => x.productName);
         const data = (list ?? []).map((x) => x.usagePercent);
@@ -215,7 +224,8 @@ export class GestionCommandesComponent implements AfterViewInit {
     this.dailyOrdersChartInstance?.destroy();
     this.dailyOrdersChartInstance = undefined;
 
-    this.logisticsService.getCommandesParJour().subscribe({
+    this.loadingChartDailyOrders = true;
+    this.logisticsService.getCommandesParJour().pipe(finalize(() => (this.loadingChartDailyOrders = false))).subscribe({
       next: (list) => {
         const labels = (list ?? []).map((x) => x.date);
         const data = (list ?? []).map((x) => x.nbCommandes);
@@ -291,7 +301,7 @@ export class GestionCommandesComponent implements AfterViewInit {
   }
 
   get uniqueStatuts(): string[] {
-    return ['Tous les statuts', 'En attente', 'Validée', 'En cours', 'Livrée', 'Échec', 'Annulée'];
+    return ['Tous les statuts', 'En attente', 'Validée', 'En préparation', 'En cours', 'Livrée', 'Échec', 'Annulée'];
   }
 
   get filteredCommandes(): Commande[] {
@@ -368,6 +378,7 @@ export class GestionCommandesComponent implements AfterViewInit {
     const map: Record<string, string> = {
       'En attente': 'EN_ATTENTE',
       'Validée': 'VALIDEE',
+      'En préparation': 'EN_PREPARATION',
       'En cours': 'EN_COURS_DE_LIVRAISON',
       'Livrée': 'LIVREE',
       'Échec': 'ECHEC_LIVRAISON',
@@ -385,13 +396,13 @@ export class GestionCommandesComponent implements AfterViewInit {
     products: string[];
     deliveryFrequency: string | null;
     status: string;
-    failureReason?: string | null;
   }): Commande {
     let statut: Commande['statut'] = 'En attente';
     if (item.status === 'Livrée') statut = 'Livrée';
     else if (item.status === 'Annulée') statut = 'Annulée';
     else if (item.status === 'Échec de livraison' || item.status === 'ECHEC_LIVRAISON') statut = 'Échec';
     else if (item.status === 'En cours de livraison' || item.status === 'En cours') statut = 'En cours';
+    else if (item.status === 'En préparation' || item.status === 'EN_PREPARATION') statut = 'En préparation';
     else if (item.status === 'Validée' || item.status === 'VALIDEE') statut = 'Validée';
     else if (item.status === 'En attente' || item.status === 'EN_ATTENTE') statut = 'En attente';
     return {
@@ -403,8 +414,7 @@ export class GestionCommandesComponent implements AfterViewInit {
       produitsList: item.products ?? [],
       frequence: item.deliveryFrequency ?? '—',
       statut,
-      reference: item.orderNumber,
-      failureReason: item.failureReason ?? null
+      reference: item.orderNumber
     };
   }
 
@@ -435,48 +445,11 @@ export class GestionCommandesComponent implements AfterViewInit {
     this.selectedCommande = null;
     this.selectedOrderDetails = null;
     this.loadOrderDetailsError = false;
-  }
-
-  /** Replanifier une commande en échec : EN_ATTENTE, notifie le salarié. */
-  replanOrder(commande: Commande): void {
-    this.logisticsService.replanOrder(commande.id).subscribe({
-      next: () => {
-        Swal.fire({ title: 'Succès', text: 'Commande replanifiée. Elle réapparaît dans En attente.', icon: 'success', timer: 2500, showConfirmButton: false });
-        this.loadCommandes();
-        this.loadStats();
-      },
-      error: (err) => {
-        const msg = err?.error ?? err?.message ?? 'Impossible de replanifier la commande';
-        Swal.fire({ title: 'Erreur', text: String(msg), icon: 'error', confirmButtonText: 'OK' });
-      }
-    });
-  }
-
-  /** Annuler définitivement une commande après échec (avec confirmation). */
-  cancelOrderAfterFailure(commande: Commande): void {
-    Swal.fire({
-      title: 'Annuler ' + commande.numero + ' ?',
-      html: 'Cette action est irréversible. La commande de <strong>' + commande.salarie + '</strong> sera définitivement annulée.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#DC2626',
-      cancelButtonText: 'Retour',
-      confirmButtonText: 'Confirmer l\'annulation'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        this.logisticsService.cancelOrderAfterFailure(commande.id).subscribe({
-          next: () => {
-            Swal.fire({ title: 'Succès', text: 'Commande annulée. Stock réintégré.', icon: 'success', timer: 2500, showConfirmButton: false });
-            this.loadCommandes();
-            this.loadStats();
-          },
-          error: (err) => {
-            const msg = err?.error ?? err?.message ?? 'Impossible d\'annuler la commande';
-            Swal.fire({ title: 'Erreur', text: String(msg), icon: 'error', confirmButtonText: 'OK' });
-          }
-        });
-      }
-    });
+    // La liste garde l’ancien statut tant qu’on ne recharge pas ; les détails viennent d’une autre requête (ex. annulation côté salarié).
+    if (this.isBrowser) {
+      this.loadCommandes();
+      this.loadStats();
+    }
   }
 
   /** URL complète pour l'image produit (backend renvoie souvent un chemin relatif). */
@@ -487,8 +460,95 @@ export class GestionCommandesComponent implements AfterViewInit {
     return `${base}/files/${image}`;
   }
 
+  /** Libellé de statut affiché dans le modal (API si chargé, sinon liste). */
+  getDetailModalStatusLabel(): string {
+    const d = this.selectedOrderDetails;
+    if (d?.status) return d.status;
+    return this.selectedCommande?.statut ?? '—';
+  }
+
+  getDetailModalStatusBadgeClass(): string {
+    return this.statusBadgeClassFromLabel(this.getDetailModalStatusLabel());
+  }
+
+  getDetailModalStatusDotClass(): string {
+    return this.statusDotClassFromLabel(this.getDetailModalStatusLabel());
+  }
+
+  /** Encadré « MOTIF » (échec de livraison) : affiché quand le statut API indique un échec. */
+  showDeliveryFailureMotifBlock(): boolean {
+    if (!this.selectedOrderDetails || this.loadingOrderDetails) {
+      return false;
+    }
+    return this.isDeliveryFailureStatusLabel(this.selectedOrderDetails.status);
+  }
+
+  formatStatusChangedAtLongFr(iso: string | null | undefined): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  /**
+   * Rôle pour la phrase « par le livreur … » : première lettre en minuscule (libellé API ex. « Livreur »).
+   */
+  formatRoleForFailureSentence(role: string | null | undefined): string {
+    const t = role?.trim();
+    if (!t) return '';
+    return t.charAt(0).toLocaleLowerCase('fr-FR') + t.slice(1);
+  }
+
+  private isDeliveryFailureStatusLabel(status: string | undefined | null): boolean {
+    if (!status) return false;
+    const s = status.toLowerCase();
+    return (s.includes('échec') || s.includes('echec')) && s.includes('livraison');
+  }
+
+  private statusBadgeClassFromLabel(label: string): string {
+    const L = (label || '').toLowerCase();
+    if (L.includes('échec') || L.includes('echec')) return 'bg-[#DC26260F] text-[#DC2626]';
+    if (L.includes('livrée') || L.includes('livree')) return 'bg-[#0A97480F] text-[#0A9748]';
+    if (L.includes('préparation') || L.includes('preparation')) return 'bg-[#0369A10F] text-[#0369A1]';
+    if (L.includes('valid')) return 'bg-[#2B36740F] text-[#2B3674]';
+    if (L.includes('cours') || L.includes('livraison')) return 'bg-[#EAB3080F] text-[#EAB308]';
+    if (L.includes('attente')) return 'bg-[#F2F2F2] text-[#2C3E50]';
+    if (L.includes('annul')) return 'bg-[#FF09090F] text-[#FF0909]';
+    return 'bg-gray-100 text-gray-600';
+  }
+
+  private statusDotClassFromLabel(label: string): string {
+    const L = (label || '').toLowerCase();
+    if (L.includes('échec') || L.includes('echec')) return 'bg-[#DC2626]';
+    if (L.includes('livrée') || L.includes('livree')) return 'bg-[#0A9748]';
+    if (L.includes('préparation') || L.includes('preparation')) return 'bg-[#0369A1]';
+    if (L.includes('valid')) return 'bg-[#2B3674]';
+    if (L.includes('cours') || (L.includes('livraison') && !L.includes('échec') && !L.includes('echec'))) return 'bg-[#EAB308]';
+    if (L.includes('attente')) return 'bg-[#2C3E50]';
+    if (L.includes('annul')) return 'bg-[#FF0909]';
+    return 'bg-gray-400';
+  }
+
   exportData(): void {
-    console.log('Export des données');
+    if (!this.isBrowser || this.loadingExport) return;
+    this.loadingExport = true;
+    const statusParam = this.mapStatutToApi(this.selectedStatutFilter);
+    this.logisticsService
+      .exportEmployeeOrders(this.searchTerm?.trim() || undefined, statusParam)
+      .pipe(finalize(() => { this.loadingExport = false; }))
+      .subscribe({
+        next: (blob) => this.downloadExportBlob(blob, 'commandes_salaries'),
+        error: () => { /* blob ou erreur réseau */ }
+      });
+  }
+
+  private downloadExportBlob(blob: Blob, baseName: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${baseName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   }
 
   getStatusClass(statut: string): string {
@@ -499,6 +559,8 @@ export class GestionCommandesComponent implements AfterViewInit {
         return 'bg-[#0A97480F] text-[#0A9748]';
       case 'Validée':
         return 'bg-[#2B36740F] text-[#2B3674]';
+      case 'En préparation':
+        return 'bg-[#0369A10F] text-[#0369A1]';
       case 'En attente':
         return 'bg-[#F2F2F2] text-[#2C3E50]';
       case 'Échec':
@@ -518,6 +580,8 @@ export class GestionCommandesComponent implements AfterViewInit {
         return 'bg-[#0A9748]';
       case 'Validée':
         return 'bg-[#2B3674]';
+      case 'En préparation':
+        return 'bg-[#0369A1]';
       case 'En attente':
         return 'bg-[#2C3E50]';
       case 'Échec':
@@ -547,57 +611,4 @@ export class GestionCommandesComponent implements AfterViewInit {
     }
   }
 
-  private loadAllProducts(): void {
-    this.productService.getProducts(0, 1000).subscribe({
-      next: (response) => {
-        const products = response?.content ?? [];
-        this.allProducts = products.map((item: any) => this.mapApiProductToFrontend(item));
-      },
-      error: (error) => {
-        console.error('Erreur lors du chargement des produits:', error);
-      }
-    });
-  }
-
-  private mapApiProductToFrontend(item: any): Product {
-    return {
-      id: item.id?.toString() ?? '',
-      name: item.name ?? '',
-      reference: item.productCode ?? '',
-      category: item.categoryName ?? '',
-      price: this.formatPrice(item.price),
-      stock: item.currentStock ?? 0,
-      updatedAt: this.formatDate(item.updatedAt),
-      status: this.normalizeStatus(item.status),
-      icon: this.buildImageUrl(item.image),
-      description: item.description
-    };
-  }
-
-  private normalizeStatus(status: string | boolean | undefined): 'Actif' | 'Inactif' {
-    if (status === true || status === 'ACTIF' || status === 'ACTIVE' || status === 'Actif') return 'Actif';
-    if (status === false || status === 'INACTIF' || status === 'INACTIVE' || status === 'Inactif') return 'Inactif';
-    return 'Inactif';
-  }
-
-  private formatPrice(price: any): string {
-    if (price === null || price === undefined || price === '') return '';
-    const value = typeof price === 'number' ? price : Number(price);
-    if (Number.isNaN(value)) return `${price}`;
-    return `${value.toLocaleString('fr-FR')} F`;
-  }
-
-  private formatDate(updatedAt: string | undefined): string {
-    if (!updatedAt) return '';
-    const datePart = updatedAt.split(' ')[0];
-    return datePart ? datePart.replace(/-/g, '/') : updatedAt;
-  }
-
-  private buildImageUrl(image: string | undefined): string {
-    if (!image) return '/icones/default-product.svg';
-    if (image.startsWith('file://')) return '/icones/default-product.svg';
-    if (image.startsWith('http') || image.startsWith('/')) return image;
-    const base = environment.imageServerUrl;
-    return `${base}/files/${image}`;
-  }
 }

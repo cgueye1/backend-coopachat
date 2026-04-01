@@ -10,6 +10,7 @@ import {
 } from '@angular/forms';
 import { AuthLayoutComponent } from '../auth-layout/auth-layout.component';
 import { AuthService } from '../../../shared/services/auth.service';
+import { getUserFacingHttpErrorMessage } from '../../../shared/utils/http-error-message';
 import { Router } from '@angular/router';
 
 @Component({
@@ -102,16 +103,13 @@ export class LoginComponent implements OnInit {
         error: (error) => {
           this.isLoading = false;
           console.error('Erreur login:', error);
-          const backendMessage =
-            (typeof error?.error === 'string' ? error.error : null) ||
-            error?.error?.message ||
-            error?.message;
-          if (backendMessage) {
-            this.errorMessage = backendMessage;
-          } else if (error.status === 401) {
+          const fromApi = getUserFacingHttpErrorMessage(error, '');
+          if (fromApi) {
+            this.errorMessage = fromApi;
+            return;
+          }
+          if (error.status === 401) {
             this.errorMessage = 'Email ou mot de passe incorrect';
-          } else if (error.status === 0) {
-            this.errorMessage = 'Serveur inaccessible (timeout ou backend non démarré). Vérifiez l\'URL dans environment et que le backend tourne sur le port indiqué.';
           } else if (error.status === 500) {
             this.errorMessage = 'Erreur interne du serveur (500). Consultez les logs du backend sur le VPS pour en identifier la cause.';
           } else {

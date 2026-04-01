@@ -1,10 +1,11 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ViewChild, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthLayoutComponent } from '../auth-layout/auth-layout.component';
 import { NgOtpInputModule, NgOtpInputConfig } from 'ng-otp-input';
 import Swal from 'sweetalert2';
 import { AuthService } from '../../../shared/services/auth.service';
+import { getUserFacingHttpErrorMessage } from '../../../shared/utils/http-error-message';
 
 // ============================================================
 // CE QUE FAIT CE FICHIER
@@ -104,7 +105,8 @@ export class OtpVerificationComponent implements OnInit {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private authService: AuthService
+    private authService: AuthService,
+    @Inject(PLATFORM_ID) private platformId: object
   ) { }
 
   // ============================================================
@@ -116,11 +118,13 @@ export class OtpVerificationComponent implements OnInit {
     // car il peut venir de 2 flux différents (inscription ou admin)
     // Priorité : query param (inscription) > otpEmail (admin) > verificationEmail
     const emailFromUrl = this.route.snapshot.queryParams['email'];
-    const email = emailFromUrl ||
-      sessionStorage.getItem('otpEmail') ||        // CAS ADMIN : stocké à la connexion
-      localStorage.getItem('verificationEmail') ||  // CAS INSCRIPTION : stocké après register
-      sessionStorage.getItem('email') ||            // fallback au cas où
-      '';
+    const fromStorage = isPlatformBrowser(this.platformId)
+      ? sessionStorage.getItem('otpEmail') ||
+        localStorage.getItem('verificationEmail') ||
+        sessionStorage.getItem('email') ||
+        ''
+      : '';
+    const email = emailFromUrl || fromStorage || '';
 
     this.userEmail = email; // email réel pour l'API
 
@@ -169,8 +173,8 @@ export class OtpVerificationComponent implements OnInit {
     }
 
     // On détecte dans quel cas on est :
-    // Si 'otpEmail' existe dans sessionStorage → cas Admin
-    const isAdminOtpFlow = !!sessionStorage.getItem('otpEmail');
+    const isAdminOtpFlow =
+      isPlatformBrowser(this.platformId) && !!sessionStorage.getItem('otpEmail');
     // !! = convertit en booléen (null → false, "email@..." → true)
 
     // On choisit le bon appel API selon le cas
@@ -192,6 +196,9 @@ export class OtpVerificationComponent implements OnInit {
 
           // On stocke toutes les infos de l'utilisateur (session + local pour persistance au rechargement)
           const store = (key: string, value: string) => {
+            if (!isPlatformBrowser(this.platformId)) {
+              return;
+            }
             sessionStorage.setItem(key, value);
             localStorage.setItem(key, value);
           };
@@ -202,8 +209,9 @@ export class OtpVerificationComponent implements OnInit {
           if (response.lastName) store('lastName', response.lastName);
           if (response.profilePhotoUrl) store('profilePhotoUrl', response.profilePhotoUrl);
 
-          // On nettoie l'email OTP (plus besoin)
-          sessionStorage.removeItem('otpEmail');
+          if (isPlatformBrowser(this.platformId)) {
+            sessionStorage.removeItem('otpEmail');
+          }
 
           // On redirige selon le rôle de l'utilisateur
           const role = response.role;
@@ -228,9 +236,10 @@ export class OtpVerificationComponent implements OnInit {
       error: (error) => {
         this.isLoading = false;
 
-        // Message d'erreur du backend ou message générique
-        this.errorMessage = error.error?.message
-          || 'Code de vérification incorrect. Veuillez réessayer.';
+        this.errorMessage = getUserFacingHttpErrorMessage(
+          error,
+          'Code de vérification incorrect. Veuillez réessayer.'
+        );
 
         // On marque les cases en rouge (le code reste affiché pour que l'utilisateur puisse le corriger)
         this.isInvalid = true;
@@ -263,8 +272,10 @@ export class OtpVerificationComponent implements OnInit {
       error: (error) => {
         this.isResendDisabled = false; // on réactive le bouton
 
-        const errorMessage = error.error?.message
-          || 'Erreur lors du renvoi du code';
+        const errorMessage = getUserFacingHttpErrorMessage(
+          error,
+          'Erreur lors du renvoi du code'
+        );
         this.errorMessage = errorMessage;
 
         // Le backend peut envoyer un message comme : "Veuillez attendre 15 secondes avant de réessayer"

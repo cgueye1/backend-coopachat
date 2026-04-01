@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 import { LogisticsService } from '../../../shared/services/logistics.service';
 import { ProductService } from '../../../shared/services/product.service';
 import { environment } from '../../../../environments/environment';
+import { PAGE_SIZE_OPTIONS } from '../../../shared/constants/pagination';
 
 interface MetricCard {
   title: string;
@@ -162,6 +163,65 @@ export class GestionStockComponent implements OnInit {
     });
   }
 
+  /** Pagination (même UX que fournisseur / gestion-commandes), appliquée aux lignes filtrées côté client. */
+  currentPage = 1;
+  itemsPerPage = 10;
+  pageSizeOptions = PAGE_SIZE_OPTIONS;
+
+  get totalPagesForView(): number {
+    const n =
+      this.activeTab === 'suivi'
+        ? this.filteredStockItems.length
+        : this.filteredAlertItems.length;
+    return Math.max(1, Math.ceil(n / this.itemsPerPage));
+  }
+
+  get pagedSuiviItems(): StockItem[] {
+    if (this.loadingStockList) return [];
+    const list = this.filteredStockItems;
+    const tp = Math.max(1, Math.ceil(list.length / this.itemsPerPage));
+    const page = Math.min(Math.max(1, this.currentPage), tp);
+    const start = (page - 1) * this.itemsPerPage;
+    return list.slice(start, start + this.itemsPerPage);
+  }
+
+  get pagedAlertItems(): StockItem[] {
+    if (this.loadingAlertList) return [];
+    const list = this.filteredAlertItems;
+    const tp = Math.max(1, Math.ceil(list.length / this.itemsPerPage));
+    const page = Math.min(Math.max(1, this.currentPage), tp);
+    const start = (page - 1) * this.itemsPerPage;
+    return list.slice(start, start + this.itemsPerPage);
+  }
+
+  get displayCurrentPage(): number {
+    return Math.min(Math.max(1, this.currentPage), this.totalPagesForView);
+  }
+
+  private syncPagingAfterFilter(): void {
+    if (this.currentPage > this.totalPagesForView) {
+      this.currentPage = this.totalPagesForView;
+    }
+  }
+
+  onPageSizeChange(size: number): void {
+    this.itemsPerPage = size;
+    this.currentPage = 1;
+    this.syncPagingAfterFilter();
+  }
+
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPagesForView) {
+      this.currentPage++;
+    }
+  }
+
   toggleCategoryDropdown() {
     this.showCategoryDropdown = !this.showCategoryDropdown;
     this.showStatusDropdown = false;
@@ -175,6 +235,7 @@ export class GestionStockComponent implements OnInit {
   selectCategory(category: string) {
     this.selectedCategory = category;
     this.showCategoryDropdown = false;
+    this.currentPage = 1;
     this.loadStockList();
     this.loadStockAlerts();
   }
@@ -182,6 +243,8 @@ export class GestionStockComponent implements OnInit {
   selectStatus(status: string) {
     this.selectedStatus = status;
     this.showStatusDropdown = false;
+    this.currentPage = 1;
+    this.syncPagingAfterFilter();
   }
 
   // Modal state
@@ -678,6 +741,7 @@ export class GestionStockComponent implements OnInit {
   }
 
   onSearch(): void {
+    this.currentPage = 1;
     this.loadStockList();
     this.loadStockAlerts();
   }
@@ -732,6 +796,7 @@ export class GestionStockComponent implements OnInit {
         const items = response?.content ?? [];
         this.stockItems = items.map((item: any) => this.mapApiStockItem(item));
         this.loadingStockList = false;
+        this.syncPagingAfterFilter();
       },
       error: (error) => {
         console.error('Erreur lors du chargement des stocks:', error);
@@ -748,6 +813,7 @@ export class GestionStockComponent implements OnInit {
         const items = response?.content ?? [];
         this.alertItems = items.map((item: any) => this.mapApiStockItem(item));
         this.loadingAlertList = false;
+        this.syncPagingAfterFilter();
       },
       error: (error) => {
         console.error('Erreur lors du chargement des alertes:', error);
@@ -840,6 +906,15 @@ export class GestionStockComponent implements OnInit {
   }
 
   metricsData: MetricCard[] = [];
+
+  /** Carte « Total » en première colonne, même ligne que les autres KPI. */
+  get totalKpi(): MetricCard | undefined {
+    return this.metricsData.find((m) => m.title === 'Total');
+  }
+
+  get detailKpis(): MetricCard[] {
+    return this.metricsData.filter((m) => m.title !== 'Total');
+  }
 
   stockItems: StockItem[] = [];
   alertItems: StockItem[] = [];

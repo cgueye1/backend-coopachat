@@ -124,8 +124,10 @@
                   </button>
                   <button *ngIf="coupon.status === 'PLANNED' || coupon.status === 'DISABLED'"
                     (click)="toggleCouponStatusFromList(coupon.id, 'activer')"
-                    class="p-2.5 hover:bg-gray-100 bg-white rounded-lg border border-[#E5E7EB] transition-colors"
-                    [title]="coupon.status === 'DISABLED' ? 'Réactiver' : 'Activer'">
+                    [disabled]="!canActivateCoupon(coupon)"
+                    class="p-2.5 bg-white rounded-lg border border-[#E5E7EB] transition-colors"
+                    [ngClass]="canActivateCoupon(coupon) ? 'hover:bg-gray-100' : 'opacity-50 cursor-not-allowed'"
+                    [title]="canActivateCoupon(coupon) ? (coupon.status === 'DISABLED' ? 'Réactiver' : 'Activer') : activationBlockedReason(coupon)">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path fill-rule="evenodd" clip-rule="evenodd"
                         d="M12 0C13.0609 0 14.0783 0.421427 14.8284 1.17157C15.5786 1.92172 16 2.93913 16 4V6.5H15V4C15 3.20435 14.6839 2.44129 14.1213 1.87868C13.5587 1.31607 12.7956 1 12 1C11.2044 1 10.4413 1.31607 9.87868 1.87868C9.31607 2.44129 9 3.20435 9 4V6H9.5C9.8283 6 10.1534 6.06466 10.4567 6.1903C10.76 6.31594 11.0356 6.50009 11.2678 6.73223C11.4999 6.96438 11.6841 7.23998 11.8097 7.54329C11.9353 7.84661 12 8.1717 12 8.5V13.5C12 13.8283 11.9353 14.1534 11.8097 14.4567C11.6841 14.76 11.4999 15.0356 11.2678 15.2678C11.0356 15.4999 10.76 15.6841 10.4567 15.8097C10.1534 15.9353 9.8283 16 9.5 16H2.5C1.83696 16 1.20107 15.7366 0.732233 15.2678C0.263392 14.7989 0 14.163 0 13.5L0 8.5C0 7.83696 0.263392 7.20107 0.732233 6.73223C1.20107 6.26339 1.83696 6 2.5 6H8V4C8 2.93913 8.42143 1.92172 9.17157 1.17157C9.92172 0.421427 10.9391 0 12 0ZM2.5 7C2.10218 7 1.72064 7.15804 1.43934 7.43934C1.15804 7.72064 1 8.10218 1 8.5V13.5C1 13.8978 1.15804 14.2794 1.43934 14.5607C1.72064 14.842 2.10218 15 2.5 15H9.5C9.89782 15 10.2794 14.842 10.5607 14.5607C10.842 14.2794 11 13.8978 11 13.5V8.5C11 8.10218 10.842 7.72064 10.5607 7.43934C10.2794 7.15804 9.89782 7 9.5 7H2.5Z"
@@ -192,7 +194,10 @@
         </div>
         <div class="flex flex-wrap gap-2 p-4 border-t border-gray-100">
           <button *ngIf="d.status === 'PLANNED' || d.status === 'DISABLED'" (click)="toggleCouponStatus('activer')"
-            class="px-4 py-2 rounded-lg font-medium text-sm bg-green-50 text-green-700 hover:bg-green-100">{{ d.status === 'DISABLED' ? 'Réactiver' : 'Activer' }}</button>
+            [disabled]="!canActivateCoupon(d)"
+            class="px-4 py-2 rounded-lg font-medium text-sm bg-green-50 text-green-700"
+            [ngClass]="canActivateCoupon(d) ? 'hover:bg-green-100' : 'opacity-50 cursor-not-allowed'"
+            [title]="canActivateCoupon(d) ? '' : activationBlockedReason(d)">{{ d.status === 'DISABLED' ? 'Réactiver' : 'Activer' }}</button>
           <button *ngIf="d.isActive" (click)="toggleCouponStatus('desactiver')"
             class="px-4 py-2 rounded-lg font-medium text-sm bg-red-50 text-red-700 hover:bg-red-100">Désactiver</button>
           <button (click)="deleteCoupon()" class="px-4 py-2 rounded-lg font-medium text-sm border border-red-200 text-red-600 hover:bg-red-50">Supprimer</button>

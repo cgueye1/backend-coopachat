@@ -5,27 +5,34 @@
             <div class="text-sm text-[#707EAE] mb-1">Pages / Gestion des stocks</div>
             <h1 class="text-2xl sm:text-3xl font-bold text-[#2B3674]">Gestion des stocks</h1>
         </div>
-        <!-- Metrics Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
-            <div *ngFor="let metric of metricsData" class="bg-white rounded-2xl p-4 sm:p-5">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <div class="text-xs text-[#6B7280] mb-1">{{ metric.title }}</div>
-                        <div class="text-2xl font-semibold text-[#2B3674] mb-4">{{ metric.value }}</div>
-                        <div class="text-xs text-[#6B7280] font-light">{{ metric.subtitle }}</div>
+        <!-- KPI : Total sur la même ligne que les autres (grille comme Planification livraisons) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
+            <!-- Total -->
+            <div *ngIf="totalKpi as total" class="bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-gray-100 min-w-0">
+                <div class="flex justify-between items-start gap-2">
+                    <div class="min-w-0">
+                        <div class="text-xs text-gray-500 mb-1">{{ total.title }}</div>
+                        <div class="text-2xl font-semibold text-[#2B3674]">{{ total.value }}</div>
+                        <div *ngIf="total.subtitle" class="text-xs text-gray-400 mt-1">{{ total.subtitle }}</div>
                     </div>
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center">
-                        <!-- Placeholder for SVGs based on metric.icon -->
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-[#F4F7FE]">
+                        <svg width="27" height="27" viewBox="0 0 27 27" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M20.7707 3.24267L18.104 1.84267C15.7627 0.614667 14.592 0 13.3333 0C12.0747 0 10.904 0.613333 8.56267 1.84267L8.13467 2.068L20.032 8.86667L25.3867 6.18667C24.5253 5.21067 23.136 4.48133 20.7707 3.24M26.3307 7.952L21 10.6187V14.6667C21 14.9319 20.8946 15.1862 20.7071 15.3738C20.5196 15.5613 20.2652 15.6667 20 15.6667C19.7348 15.6667 19.4804 15.5613 19.2929 15.3738C19.1054 15.1862 19 14.9319 19 14.6667V11.6187L14.3333 13.952V26.5387C15.2907 26.3 16.38 25.7293 18.104 24.824L20.7707 23.424C23.6387 21.9187 25.0733 21.1667 25.8707 19.8133C26.6667 18.4613 26.6667 16.7773 26.6667 13.4133V13.2573C26.6667 10.7333 26.6667 9.15467 26.3307 7.952ZM12.3333 26.5387V13.952L0.336 7.952C1.19209e-07 9.15467 0 10.7333 0 13.2547V13.4107C0 16.7773 -1.58946e-07 18.4613 0.796 19.8133C1.59333 21.1667 3.028 21.92 5.896 23.4253L8.56267 24.824C10.2867 25.7293 11.376 26.3 12.3333 26.5387ZM1.28 6.188L13.3333 12.2147L17.8813 9.94133L6.03333 3.17067L5.896 3.24267C3.532 4.48267 2.14133 5.212 1.28 6.18933"
+                                fill="#2C2D5B" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div *ngFor="let metric of detailKpis" class="bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-gray-100 min-w-0">
+                <div class="flex justify-between items-start gap-2">
+                    <div class="min-w-0">
+                        <div class="text-xs text-gray-500 mb-1">{{ metric.title }}</div>
+                        <div class="text-2xl font-semibold text-[#2B3674]">{{ metric.value }}</div>
+                        <div *ngIf="metric.subtitle" class="text-xs text-gray-400 mt-1">{{ metric.subtitle }}</div>
+                    </div>
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
                         <ng-container [ngSwitch]="metric.icon">
-                            <svg *ngSwitchCase="'box-blue'" width="32" height="32" viewBox="0 0 32 32" fill="none"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <path
-                                    d="M27.9399 11.7387V14.6853C27.9399 14.9505 27.8345 15.2049 27.647 15.3924C27.4594 15.58 27.2051 15.6853 26.9399 15.6853C26.6747 15.6853 26.4203 15.58 26.2328 15.3924C26.0452 15.2049 25.9399 14.9505 25.9399 14.6853V11.7387C25.9484 11.3928 25.8895 11.0487 25.7665 10.7253L16.0332 16.5653V27.4853C16.187 27.44 16.3336 27.3778 16.4732 27.2987L19.8465 25.432C20.0756 25.3113 20.3426 25.2841 20.5912 25.3563C20.8399 25.4284 21.0509 25.5941 21.1799 25.8187C21.2995 26.0493 21.3246 26.3175 21.25 26.5663C21.1753 26.8152 21.0067 27.0253 20.7799 27.152L17.4199 29.0187C16.6819 29.4296 15.8512 29.6454 15.0065 29.6454C14.1618 29.6454 13.3312 29.4296 12.5932 29.0187L4.5932 24.6187C3.82118 24.1807 3.17812 23.5472 2.72872 22.7818C2.27932 22.0165 2.03943 21.1462 2.0332 20.2587V11.7387C2.0332 10.8467 2.2732 9.97199 2.72654 9.20532C2.80387 9.06754 2.89276 8.93865 2.9932 8.81865C3.03999 8.74701 3.09358 8.68003 3.1532 8.61865C3.54166 8.1096 4.03213 7.68725 4.5932 7.37865L12.5932 2.96532C13.3346 2.56504 14.164 2.35547 15.0065 2.35547C15.8491 2.35547 16.6784 2.56504 17.4199 2.96532L25.4199 7.37865C25.9812 7.68665 26.4719 8.10932 26.8599 8.61865L27.0199 8.81865C27.1212 8.93865 27.2101 9.06754 27.2865 9.20532C27.7321 9.97404 27.9581 10.8503 27.9399 11.7387Z"
-                                    fill="#4F46E5" />
-                                <path
-                                    d="M24.6982 24.352C24.4747 24.3545 24.2529 24.3138 24.0449 24.232C23.8361 24.1386 23.6463 24.0075 23.4849 23.8454L21.6182 21.9787C21.5234 21.8871 21.4479 21.7773 21.3964 21.6559C21.3449 21.5345 21.3184 21.4039 21.3184 21.272C21.3184 21.1402 21.3449 21.0096 21.3964 20.8882C21.4479 20.7668 21.5234 20.657 21.6182 20.5654C21.8057 20.3781 22.0599 20.2729 22.3249 20.2729C22.5899 20.2729 22.844 20.3781 23.0315 20.5654L24.6982 22.232L28.2849 18.6587C28.4744 18.4821 28.7252 18.3859 28.9842 18.3905C29.2433 18.395 29.4905 18.5 29.6737 18.6832C29.8569 18.8664 29.9619 19.1136 29.9664 19.3727C29.971 19.6317 29.8748 19.8825 29.6982 20.072L25.9115 23.8587C25.7561 24.0151 25.5699 24.1377 25.3649 24.2187C25.1548 24.3104 24.9274 24.3559 24.6982 24.352Z"
-                                    fill="#4F46E5" />
-                            </svg>
                             <svg *ngSwitchCase="'warning-yellow'" width="29" height="25" viewBox="0 0 29 25" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path
@@ -58,14 +65,14 @@
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 p-4 sm:p-6">
                 <button class="self-start px-6 py-4 text-sm font-medium rounded-full transition-all duration-200"
                     [ngClass]="activeTab === 'suivi' ? 'text-[#FF6B00] border border-[#FF6B00] bg-gradient-to-r from-[#FF6B00]/10 to-[#FF914D]/10' : 'text-gray-500 hover:text-gray-700 border border-transparent'"
-                    (click)="activeTab = 'suivi'">
+                    (click)="activeTab = 'suivi'; currentPage = 1">
                     Suivi des stocks
                 </button>
                 <!-- Tab 'achats' supprimé -->
                 <button
                     class="self-start px-6 py-4 text-sm font-medium rounded-full transition-all duration-200 flex items-center gap-2"
                     [ngClass]="activeTab === 'alertes' ? 'text-[#FF6B00] border border-[#FF6B00] bg-gradient-to-r from-[#FF6B00]/10 to-[#FF914D]/10' : 'text-gray-500 hover:text-gray-700 border border-transparent'"
-                    (click)="activeTab = 'alertes'">
+                    (click)="activeTab = 'alertes'; currentPage = 1">
                     Alertes de réapprovisionnement
                     <span class="text-xs px-2 py-0.5 rounded-full font-bold"
                         [ngClass]="activeTab === 'alertes' ? 'bg-white text-[#FF6B00]' : 'bg-gradient-to-r from-[#FF6B00]/20 to-[#FF914D]/20 text-orange-600'">{{ alertItems.length }}</span>
@@ -198,7 +205,7 @@
                             <tr *ngIf="!loadingStockList && filteredStockItems.length === 0" class="hover:bg-gray-50">
                                 <td colspan="7" class="py-8 text-center text-sm text-[#6B7280]">Aucun stock trouvé.</td>
                             </tr>
-                            <tr *ngFor="let item of (loadingStockList ? [] : filteredStockItems)" class="hover:bg-gray-50 transition-colors">
+                            <tr *ngFor="let item of (loadingStockList ? [] : pagedSuiviItems)" class="hover:bg-gray-50 transition-colors">
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-3 sm:gap-4">
                                         <div
@@ -287,7 +294,7 @@
                             <tr *ngIf="!loadingAlertList && filteredAlertItems.length === 0" class="hover:bg-gray-50">
                                 <td colspan="6" class="py-8 text-center text-sm text-[#6B7280]">Aucune alerte trouvée.</td>
                             </tr>
-                            <tr *ngFor="let item of (loadingAlertList ? [] : filteredAlertItems)" class="hover:bg-gray-50 transition-colors">
+                            <tr *ngFor="let item of (loadingAlertList ? [] : pagedAlertItems)" class="hover:bg-gray-50 transition-colors">
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-3 sm:gap-4">
                                         <div
@@ -330,16 +337,26 @@
                         </tbody>
                     </table>
                 </div>
-                <!-- Pagination (Optional, visual only) -->
+                <!-- Pagination (alignée fournisseur / gestion-commandes) -->
                 <div
-                    class="px-2 py-3 sm:px-6 sm:py-4 border-t border-gray-100 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div class="text-sm text-gray-500">Page 1 sur 6</div>
-                    <div class="flex gap-2 mt-2 sm:mt-0">
+                    class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-center p-4 gap-4 mx-2 mb-2 sm:mx-6 sm:mb-4">
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-gray-500 text-sm mb-2 sm:mb-0">
+                        <span>Afficher</span>
+                        <select [ngModel]="itemsPerPage" (ngModelChange)="onPageSizeChange($event)"
+                            class="pl-2 pr-8 py-1.5 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:border-[#2d3561] appearance-none bg-[length:12px_12px] bg-[right_0.4rem_center] bg-no-repeat"
+                            style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%236B7280%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22 d=%22M19 9l-7 7-7-7%22/%3E%3C/svg%3E');">
+                            <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt">{{ opt }}</option>
+                        </select>
+                        <span>par page</span>
+                        <span>· Page {{ displayCurrentPage }} sur {{ totalPagesForView }}</span>
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto">
                         <button
-                            class="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm text-gray-600"
-                            disabled>Précédent</button>
+                            class="w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#2d3561] hover:text-[#2d3561]"
+                            [disabled]="displayCurrentPage === 1" (click)="previousPage()">Précédent</button>
                         <button
-                            class="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm text-gray-600">Suivant</button>
+                            class="w-full sm:w-auto px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#2d3561] hover:text-[#2d3561]"
+                            [disabled]="displayCurrentPage === totalPagesForView" (click)="nextPage()">Suivant</button>
                     </div>
                 </div>
             </div>

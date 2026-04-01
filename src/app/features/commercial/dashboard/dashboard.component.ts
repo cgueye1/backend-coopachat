@@ -47,6 +47,11 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   evolutionCommandes: { mois: string; nbCommandes: number }[] = [];
   couponsTrendData: { date: string; value: number }[] = [];
 
+  /** Graphiques ventes + commandes (API KPIs). */
+  loadingChartKpis = true;
+  /** Graphique tendance coupons. */
+  loadingChartCoupons = true;
+
   metricsData: MetricCard[] = [
     { title: 'Salariés', value: '—', changePrimary: '—', changeSecondary: 'Actifs', changeType: 'positive', icon: 'icones/salaries2.svg' },
     { title: 'Nouveaux salariés', value: '—', changePrimary: '—', changeSecondary: 'Ce mois', changeType: 'positive', icon: 'icones/salaries2.svg' },
@@ -135,13 +140,18 @@ export class DashboardComponent implements OnInit, AfterViewInit {
           }
           this.couponsChart.update('active');
         }
+        this.loadingChartCoupons = false;
       },
-      error: (err) => console.error('Erreur chargement coupons par jour:', err)
+      error: (err) => {
+        console.error('Erreur chargement coupons par jour:', err);
+        this.loadingChartCoupons = false;
+      }
     });
   }
 
   /** Charge les KPIs du tableau de bord (GET /api/commercial/dashboard/kpis) et met à jour les cartes + graphiques. */
   loadDashboardKpis(): void {
+    this.loadingChartKpis = true;
     this.commercialService.getDashboardKpis().subscribe({
       next: (kpis) => {
         const fmtPct = (v: number | null) => v == null ? '—' : (v >= 0 ? '+' : '') + Math.round(v) + '%';
@@ -162,8 +172,12 @@ export class DashboardComponent implements OnInit, AfterViewInit {
           nbCommandes: typeof c.nbCommandes === 'number' ? c.nbCommandes : Number(c.nbCommandes) || 0
         }));
         this.createOrUpdateSalesAndCommandesCharts();
+        this.loadingChartKpis = false;
       },
-      error: (err) => console.error('Erreur chargement KPIs dashboard commercial:', err)
+      error: (err) => {
+        console.error('Erreur chargement KPIs dashboard commercial:', err);
+        this.loadingChartKpis = false;
+      }
     });
   }
 

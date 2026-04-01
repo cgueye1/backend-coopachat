@@ -43,6 +43,9 @@
        Cette section gère les statistiques en haut de la page.:
   -->
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 2xl:gap-6 mb-4 sm:mb-5 2xl:mb-6">
+    <div *ngIf="loadingStats" class="col-span-full text-sm text-[#6B7280] py-2 sm:py-3">
+      Chargement des statistiques...
+    </div>
 
     <!-- *ngFor :
          - Angular va répéter ce <div>
@@ -182,8 +185,12 @@
         <!-- Corps du tableau -->
         <tbody class="divide-y divide-gray-100 select-none cursor-default">
 
+          <tr *ngIf="loadingCompanyList" class="hover:bg-gray-50">
+            <td colspan="7" class="py-8 text-center text-sm text-[#6B7280]">Chargement des entreprises...</td>
+          </tr>
+
           <!-- Message si aucun résultat (filtre, recherche) -->
-          <tr *ngIf="getCurrentPageProspects().length === 0">
+          <tr *ngIf="!loadingCompanyList && getCurrentPageProspects().length === 0">
             <td colspan="7" class="py-12 px-4 text-center">
               <p class="text-[#6B7280] text-sm font-medium">Élément introuvable</p>
               <p class="text-[#9CA3AF] text-xs mt-1">Modifiez vos filtres ou votre recherche pour afficher des résultats</p>
@@ -191,7 +198,7 @@
           </tr>
 
           <!-- Lignes prospects -->
-          <tr *ngFor="let prospect of getCurrentPageProspects()" class="hover:bg-gray-50 transition-colors">
+          <tr *ngFor="let prospect of (loadingCompanyList ? [] : getCurrentPageProspects())" class="hover:bg-gray-50 transition-colors">
             <!-- Nom + secteur -->
             <td class="py-3 px-4 2xl:px-6">
               <div class="flex items-center gap-3">
@@ -291,11 +298,11 @@
         Page {{ currentPage }} sur {{ totalPages }}
       </div>
       <div class="flex gap-2 sm:gap-3">
-        <button (click)="previousPage()" [disabled]="currentPage === 1"
+        <button (click)="previousPage()" [disabled]="loadingCompanyList || currentPage === 1"
                 class="px-3 sm:px-4 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm font-medium text-[#4B4848] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
           Précédent
         </button>
-        <button (click)="nextPage()" [disabled]="currentPage === totalPages"
+        <button (click)="nextPage()" [disabled]="loadingCompanyList || currentPage === totalPages"
                 class="px-3 sm:px-4 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm font-medium text-[#4B4848] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
           Suivant
         </button>

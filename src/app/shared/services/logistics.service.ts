@@ -77,6 +77,21 @@ export class LogisticsService {
         }>(`${this.apiUrl}/logistics/employee-orders`, { params });
     }
 
+    /** Export Excel des commandes salariés (mêmes filtres que la liste : search, status). */
+    exportEmployeeOrders(search?: string, status?: string): Observable<Blob> {
+        let params = new HttpParams();
+        if (search?.trim()) {
+            params = params.set('search', search.trim());
+        }
+        if (status) {
+            params = params.set('status', status);
+        }
+        return this.http.get(`${this.apiUrl}/logistics/employee-orders/export`, {
+            params,
+            responseType: 'blob'
+        });
+    }
+
     /** Replanifier une commande en échec (RL). Passe en EN_ATTENTE, notifie le salarié. */
     replanOrder(orderId: number): Observable<string> {
         return this.http.patch(`${this.apiUrl}/logistics/employee-orders/${orderId}/replan`, {}, { responseType: 'text' });
@@ -88,12 +103,10 @@ export class LogisticsService {
     }
 
     /**
-     * Statistiques pour la page Gestion des commandes : EN ATTENTE, EN RETARD, EN COURS, VALIDÉES, LIVRÉES ce mois.
+     * Statistiques pour la page Gestion des commandes : total (hors annulées), EN ATTENTE, EN RETARD, EN COURS, VALIDÉES, LIVRÉES ce mois.
      */
-    getEmployeeOrderStats(): Observable<{ enAttente: number; enRetard: number; enCours: number; validees: number; livreesCeMois: number }> {
-        return this.http.get<{ enAttente: number; enRetard: number; enCours: number; validees: number; livreesCeMois: number }>(
-            `${this.apiUrl}/logistics/employee-orders/stats`
-        );
+    getEmployeeOrderStats(): Observable<EmployeeOrderStatsKpis> {
+        return this.http.get<EmployeeOrderStatsKpis>(`${this.apiUrl}/logistics/employee-orders/stats`);
     }
 
     /**
@@ -410,6 +423,21 @@ export class LogisticsService {
         return this.http.get<DeliveryTourListResponse>(`${this.apiUrl}/logistics/delivery-tours`, { params });
     }
 
+    /** Export Excel des tournées (tourNumber, status — alignés sur la liste). */
+    exportDeliveryTours(tourNumber?: string, status?: string): Observable<Blob> {
+        let params = new HttpParams();
+        if (tourNumber?.trim()) {
+            params = params.set('tourNumber', tourNumber.trim());
+        }
+        if (status) {
+            params = params.set('status', status);
+        }
+        return this.http.get(`${this.apiUrl}/logistics/delivery-tours/export`, {
+            params,
+            responseType: 'blob'
+        });
+    }
+
     /** Statistiques des tournées par statut (Assignées, En cours, Terminées, Annulées). */
     getDeliveryTourStats(): Observable<DeliveryTourStats> {
         return this.http.get<DeliveryTourStats>(`${this.apiUrl}/logistics/delivery-tours/stats`);
@@ -528,20 +556,33 @@ export class LogisticsService {
         return this.http.get<{ productName: string; usagePercent: number }[]>(`${this.apiUrl}/logistics/dashboard/top5-products-usage`);
     }
 
-    /** Graphique Livraisons par jour (7 derniers jours) : date, nbLivrees, nbAssignes, nbEnAttente. */
+    /** Graphique Livraisons par jour (7 derniers jours) : date, nbPrevues, nbLivreesALaDate, nbRetard. */
     getLivraisonsParJour(): Observable<LivraisonParJourItem[]> {
         return this.http.get<LivraisonParJourItem[]>(`${this.apiUrl}/logistics/dashboard/livraisons-par-jour`);
     }
 
-    /** Graphique Commandes vs Livraisons (7 derniers jours) : date (dd/MM), commandesEnAttente, livraisons — sans montant. */
-    getCommandesVsLivraisons(): Observable<CommandesVsLivraisonsDayDTO[]> {
-        return this.http.get<CommandesVsLivraisonsDayDTO[]>(`${this.apiUrl}/logistics/dashboard/commandes-vs-livraisons`);
+    /**
+     * Tableau de bord RL — 7 derniers jours, même sémantique que getLivraisonsParJour()
+     * (date prévue, livrées à la date, retard).
+     */
+    getCommandesVsLivraisons(): Observable<LivraisonParJourItem[]> {
+        return this.http.get<LivraisonParJourItem[]>(`${this.apiUrl}/logistics/dashboard/commandes-vs-livraisons`);
     }
 
     /** Donut Stocks - État global : effectifs normal, sousSeuil, critique (GET /logistics/dashboard/stock-etat-global). */
     getStockEtatGlobal(): Observable<StockEtatGlobalDTO> {
         return this.http.get<StockEtatGlobalDTO>(`${this.apiUrl}/logistics/dashboard/stock-etat-global`);
     }
+}
+
+/** KPIs page Gestion des commandes (GET /logistics/employee-orders/stats). totalCommandes = tous statuts sauf annulé. */
+export interface EmployeeOrderStatsKpis {
+    totalCommandes: number;
+    enAttente: number;
+    enRetard: number;
+    enCours: number;
+    validees: number;
+    livreesCeMois: number;
 }
 
 export interface RLDashboardKpis {
@@ -567,21 +608,15 @@ export interface TauxRetoursParJourItem {
 
 export interface LivraisonParJourItem {
     date: string;
-    nbLivrees: number;
-    nbAssignes: number;
-    nbEnAttente: number;
+    nbPrevues: number;
+    nbLivreesALaDate: number;
+    nbRetard: number;
 }
 
 export interface StockEtatGlobalDTO {
     normal: number;
     sousSeuil: number;
     critique: number;
-}
-
-export interface CommandesVsLivraisonsDayDTO {
-    date: string;
-    commandesEnAttente: number;
-    livraisons: number;
 }
 
 // --- Types pour les retours (claims) ---
@@ -760,10 +795,20 @@ export interface EmployeeOrderDetails {
     validationDate: string;
     employeeName: string;
     status: string;
+    /** Acteur ayant posé le statut courant (historique). */
+    currentStatusChangedByName?: string | null;
+    /** Date/heure du passage au statut courant (ISO). */
+    currentStatusChangedAt?: string | null;
+    /** Libellé du rôle de l'acteur. */
+    currentStatusChangedByRole?: string | null;
     /** Nom complet du livreur ayant livré la commande (si disponible). */
     driverName?: string;
+    /** Téléphone du livreur (Users.phone). */
+    driverPhone?: string | null;
     /** Motif d'échec de livraison (si statut échec). */
     failureReason?: string | null;
+    /** Statut avant annulation (historique * → ANNULEE), si disponible. */
+    previousStatusLabel?: string | null;
     listProducts: Array<{
         image: string;
         name: string;
@@ -776,6 +821,7 @@ export interface EmployeeOrderDetails {
 
 /** Réponse GET /api/logistics/delivery-tours/stats */
 export interface DeliveryTourStats {
+    totalTours: number;
     assignedTours: number;
     inProgressTours: number;
     completedTours: number;
