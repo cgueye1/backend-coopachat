@@ -40,7 +40,7 @@ app.frontend.base-url=http://localhost:4200
 # Frontend URLs complètes (sans le token, qui sera ajouté dynamiquement)
 # Autre port : http://localhost:4300/create-password?token=
 app.frontend.reset-password-url=http://localhost:4200/create-password?token=
-app.frontend.reset-password-url-mobile=coopachat://reset-password/
+app.frontend.reset-password-url-mobile=https://coopachat.innovimpactdev.cloud/reset-password?token=
 
 
 

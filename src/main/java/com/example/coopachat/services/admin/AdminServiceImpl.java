@@ -72,6 +72,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import java.util.ArrayList;
@@ -1449,20 +1450,19 @@ public class AdminServiceImpl implements AdminService {
     }
 
     /**
-     * Génère un code produit unique au format "CP-YYYY-XXX"
+     * Code produit (catalogue) unique :
+     * format {@code CP-XXXXXXXX}.
      */
     private String generateUniqueProductCode() {
-        String year = String.valueOf(LocalDateTime.now().getYear());
-        String baseCode = "CP-" + year + "-";
-        String productCode;
-        int counter = 1;
-
-        do {
-            productCode = baseCode + String.format("%03d", counter);
-            counter++;
-        } while (productRepository.existsByProductCode(productCode));
-
-        return productCode;
+        final int maxAttempts = 10;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+            String candidate = "CP-" + suffix;
+            if (!productRepository.existsByProductCode(candidate)) {
+                return candidate;
+            }
+        }
+        throw new RuntimeException("Impossible de générer un code produit unique");
     }
 
     /**

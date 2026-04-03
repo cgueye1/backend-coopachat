@@ -14,6 +14,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -117,6 +120,7 @@ public class GlobalExceptionHandler {
 
         // Pour les autres RuntimeException, retourner 500 (éviter d'afficher "null" si pas de message)
         String msg = ex.getMessage() != null ? ex.getMessage() : "Erreur inconnue";
+        log.error("Erreur HTTP 500 (RuntimeException): {}", msg, ex);
         ErrorResponseDTO error = new ErrorResponseDTO(
                 "Une erreur inattendue s'est produite: " + msg,
                 null,
@@ -130,6 +134,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDTO> handleGenericException(Exception ex) {
         String msg = ex.getMessage() != null ? ex.getMessage() : "Erreur inconnue";
+        log.error("Erreur HTTP 500 (Exception): {}", msg, ex);
         ErrorResponseDTO error = new ErrorResponseDTO(
                 "Une erreur inattendue s'est produite: " + msg,
                 null,

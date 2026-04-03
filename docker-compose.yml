@@ -91,7 +91,7 @@ services:
       # URLs frontend (emails : reset MDP, activation). Adapter le port ou le domaine via .env
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:4200}
       FRONTEND_RESET_PASSWORD_URL: ${FRONTEND_RESET_PASSWORD_URL:-http://localhost:4200/create-password?token=}
-      FRONTEND_RESET_PASSWORD_URL_MOBILE: ${FRONTEND_RESET_PASSWORD_URL_MOBILE:-coopachat://reset-password/}
+      FRONTEND_RESET_PASSWORD_URL_MOBILE: ${FRONTEND_RESET_PASSWORD_URL_MOBILE:-https://coopachat.innovimpactdev.cloud/reset-password?token=}
 
       # Configuration MinIO
       MINIO_URL: ${MINIO_URL:-}
