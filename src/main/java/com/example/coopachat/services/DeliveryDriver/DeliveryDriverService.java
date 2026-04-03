@@ -96,7 +96,7 @@ public interface DeliveryDriverService {
 
     /**
      * Tableau de bord du livreur : livraisons aujourd'hui, total livraisons, gains, satisfaction.
-     * @param period Filtre performances : SEMAINE (4 semaines), MOIS (S1-S4 du mois), ANNEE (12 mois). Défaut : MOIS.
+     * Performances : découpage du mois en cours uniquement (S1, S2, … par blocs de 7 jours).
      */
-    DriverDashboardDTO getDashboard(String period);
+    DriverDashboardDTO getDashboard();
 }

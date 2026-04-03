@@ -40,8 +40,7 @@ public class DriverDashboardDTO {
     private Double satisfactionMoyenne;
 
     /**
-     * Données pour le graphique Performances (label → nombre de livraisons).
-     * Ex. S1: 10, S2: 12, S3: 8, S4: 6 (filtre Mois).
+     * Performances du mois en cours : tranches de 7 jours (S1, S2, …) → nombre de livraisons.
      */
     private java.util.List<DriverPerformanceItemDTO> performances;
 }

@@ -1364,25 +1364,19 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     /**
-     * Génère un code unique pour l'employé
-     * Format: SAL-YYYY-XX (ex: SAL-2025-05)
-     *
-     * @return Le code unique généré
+     * Code salarié unique (commandes {@code CMD-XXXXXXXX}) :
+     * format {@code SAL-XXXXXXXX}.
      */
     private String generateUniqueEmployeeCode() {
-        String year = String.valueOf(LocalDateTime.now().getYear());
-        String baseCode = "SAL-" + year + "-";
-        String employeeCode;
-        int counter = 1;
-
-        // Tant que le code existe déjà, incrémenter le compteur et générer un nouveau code
-        do {
-            // Formater le numéro séquentiel sur 2 chiffres (01, 02, 03...)
-            employeeCode = baseCode + String.format("%02d", counter);
-            counter++;
-        } while (employeeRepository.existsByEmployeeCode(employeeCode));
-
-        return employeeCode;
+        final int maxAttempts = 10;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+            String candidate = "SAL-" + suffix;
+            if (!employeeRepository.existsByEmployeeCode(candidate)) {
+                return candidate;
+            }
+        }
+        throw new RuntimeException("Impossible de générer un code salarié unique");
     }
 
     /**

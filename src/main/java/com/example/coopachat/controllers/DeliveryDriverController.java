@@ -173,11 +173,10 @@ public class DeliveryDriverController {
     }
     @Operation(
             summary = "Tableau de bord",
-            description = "Photo, nom, en ligne, véhicule | Livraisons aujourd'hui, total, gains, tarif/livraison, note | Graphique performances. Filtre period : SEMAINE | MOIS | ANNEE (défaut : MOIS)."
+            description = "Photo, nom, en ligne, véhicule | Livraisons aujourd'hui, total, gains, tarif/livraison, note | Graphique performances : mois en cours découpé en tranches de 7 jours (S1, S2, …)."
     )
     @GetMapping("/dashboard")
-    public ResponseEntity<DriverDashboardDTO> getDashboard(
-            @RequestParam(required = false, defaultValue = "MOIS") String period) {
-        return ResponseEntity.ok(deliveryDriverService.getDashboard(period));
+    public ResponseEntity<DriverDashboardDTO> getDashboard() {
+        return ResponseEntity.ok(deliveryDriverService.getDashboard());
     }
 }

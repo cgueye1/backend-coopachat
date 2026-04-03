@@ -38,7 +38,7 @@ public class EmailServiceImpl implements EmailService {
     @Value("${app.frontend.reset-password-url:http://localhost:4200/create-password?token=}")
     private String resetPasswordUrl;
 
-    @Value("${app.frontend.reset-password-url-mobile:coopachat://reset-password/}")
+    @Value("${app.frontend.reset-password-url-mobile:https://coopachat.innovimpactdev.cloud/reset-password?token=}")
     private String resetPasswordUrlMobile;
 
     // ============================================================================
