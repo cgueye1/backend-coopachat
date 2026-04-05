@@ -134,6 +134,13 @@
 			<version>8.5.7</version>
 		</dependency>
 
+		<!-- Version explicite : évite qu'une autre lib (ex. transitive) impose un commons-compress trop vieux → NoSuchMethodError avec POI .xlsx -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-compress</artifactId>
+			<version>1.26.2</version>
+		</dependency>
+
 		<!-- Apache POI pour générer des fichiers Excel (.xlsx) -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
@@ -146,12 +153,7 @@
 			<version>5.2.5</version>
 		</dependency>
 
-		<!-- Service Google -->
-		<dependency>
-			<groupId>com.google.api-client</groupId>
-			<artifactId>google-api-client</artifactId>
-			<version>2.2.0</version>
-		</dependency>
+
 
 	</dependencies>
 
