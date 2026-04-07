@@ -651,6 +651,26 @@ public class LogisticsManagerController {
         return ResponseEntity.ok(logisticsManagerService.getClaims(page, size, search, status));
     }
 
+    @Operation(
+            summary = "Exporter les réclamations (retours)",
+            description = "Exporte la liste des réclamations en fichier Excel (mêmes filtres search et status que la liste paginée)."
+    )
+    @GetMapping("/claims/export")
+    public ResponseEntity<Resource> exportClaims(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) ClaimStatus status) {
+
+        ByteArrayResource resource = logisticsManagerService.exportClaims(search, status);
+        String fileName = "retours_"
+                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HHmm"))
+                + ".xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(resource);
+    }
+
     /**
      * Détails complets d'une réclamation : commande, produit concerné, type de problème, commentaire,
      * statut, décision (réintégration/remboursement), motif de rejet éventuel.

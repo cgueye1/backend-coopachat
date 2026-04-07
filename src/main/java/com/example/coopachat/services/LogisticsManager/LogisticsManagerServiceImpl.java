@@ -2451,6 +2451,84 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public ByteArrayResource exportClaims(String search, ClaimStatus status) {
+        Users currentUser = getCurrentUser();
+        if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut exporter les réclamations");
+        }
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+        List<Claim> claims = claimRepository.findAllWithFilters(searchTerm, status, Pageable.unpaged()).getContent();
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Réclamations");
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            String[] headers = {
+                    "N° Réclamation",
+                    "N° Commande",
+                    "Salarié",
+                    "Produit",
+                    "Quantité",
+                    "Type problème",
+                    "Statut",
+                    "Date création",
+                    "Décision",
+                    "Montant remboursé"
+            };
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            DateTimeFormatter dtFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            int rowNum = 1;
+            for (Claim claim : claims) {
+                ClaimListItemDTO dto = mapToClaimListItemDTO(claim);
+                Row row = sheet.createRow(rowNum++);
+
+                if (dto.getClaimId() != null) {
+                    row.createCell(0).setCellValue(dto.getClaimId());
+                } else {
+                    row.createCell(0).setCellValue("");
+                }
+                row.createCell(1).setCellValue(dto.getOrderNumber() != null ? dto.getOrderNumber() : "");
+                row.createCell(2).setCellValue(dto.getEmployeeName() != null ? dto.getEmployeeName() : "");
+                row.createCell(3).setCellValue(dto.getProductName() != null ? dto.getProductName() : "");
+                if (dto.getQuantity() != null) {
+                    row.createCell(4).setCellValue(dto.getQuantity());
+                } else {
+                    row.createCell(4).setCellValue("");
+                }
+                row.createCell(5).setCellValue(dto.getProblemTypeLabel() != null ? dto.getProblemTypeLabel() : "");
+                row.createCell(6).setCellValue(dto.getStatus() != null ? dto.getStatus() : "");
+                row.createCell(7).setCellValue(
+                        dto.getCreatedAt() != null ? dto.getCreatedAt().format(dtFormatter) : "");
+                row.createCell(8).setCellValue(dto.getDecisionLabel() != null ? dto.getDecisionLabel() : "");
+                if (dto.getRefundAmount() != null) {
+                    row.createCell(9).setCellValue(dto.getRefundAmount().doubleValue());
+                } else {
+                    row.createCell(9).setCellValue("");
+                }
+            }
+
+            autoSizeColumnsSafe(sheet, headers.length);
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            return new ByteArrayResource(outputStream.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
+        }
+    }
+
+    @Override
     public ClaimDetailDTO getClaimById(Long id) {
         Users currentUser = getCurrentUser();
         if (currentUser.getRole() != UserRole.LOGISTICS_MANAGER) {

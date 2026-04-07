@@ -198,6 +198,11 @@ public interface AdminService {
     UserListResponseDTO getUsers(int page, int size, String search, UserRole role, Boolean status);
 
     /**
+     * Export Excel de la liste des utilisateurs (mêmes filtres que {@link #getUsers} sans pagination).
+     */
+    ByteArrayResource exportUsers(String search, UserRole role, Boolean status);
+
+    /**
      * Statistiques utilisateurs pour la page Gestion des utilisateurs (total, actifs, inactifs).
      */
     UserStatsDTO getUsersStats();
