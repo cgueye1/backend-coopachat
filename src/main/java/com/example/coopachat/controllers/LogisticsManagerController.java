@@ -129,6 +129,39 @@ public class LogisticsManagerController {
     }
 
     @Operation(
+            summary = "Statistiques des commandes fournisseurs",
+            description = "Retourne le total des commandes, le nombre en attente, livrées et annulées."
+    )
+    @GetMapping("/supplier-orders/stats")
+    public ResponseEntity<SupplierOrderStatsDTO> getSupplierOrderStats() {
+        SupplierOrderStatsDTO stats = logisticsManagerService.getSupplierOrderStats();
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/supplier-orders/export")
+    public ResponseEntity<Resource> exportSupplierOrders(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long supplierId,
+            @RequestParam(required = false) SupplierOrderStatus status
+    ) {
+        ByteArrayResource resource = logisticsManagerService.exportSupplierOrders(search, supplierId, status);
+
+        // Générer le nom du fichier avec la date et l'heure actuelles
+        String fileName = "Commandes Fournisseurs_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HHmm")) + ".xlsx";
+
+
+        // Retourner le fichier avec les headers appropriés pour le téléchargement
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"");
+        headers.setContentType(MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(resource);
+
+    }
+
+    @Operation(
             summary = "Récupérer les détails d'une commande fournisseur",
             description = "Récupère toutes les informations détaillées d'une commande fournisseur, " +
                          "incluant le fournisseur, la date prévue, le statut, les notes et la liste complète des produits commandés."
@@ -168,40 +201,6 @@ public class LogisticsManagerController {
         logisticsManagerService.updateSupplierOrderStatus(id, updateSupplierOrderStatusDTO);
         return  ResponseEntity.ok("Statut de la commande mis à jour avec succès");
     }
-
-    @Operation(
-            summary = "Statistiques des commandes fournisseurs",
-            description = "Retourne le total des commandes, le nombre en attente, livrées et annulées."
-    )
-    @GetMapping("/supplier-orders/stats")
-    public ResponseEntity<SupplierOrderStatsDTO> getSupplierOrderStats() {
-        SupplierOrderStatsDTO stats = logisticsManagerService.getSupplierOrderStats();
-        return ResponseEntity.ok(stats);
-    }
-
-    @GetMapping("/supplier-orders/export")
-    public ResponseEntity<Resource> exportSupplierOrders(
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) Long supplierId,
-            @RequestParam(required = false) SupplierOrderStatus status
-    ) {
-        ByteArrayResource resource = logisticsManagerService.exportSupplierOrders(search, supplierId, status);
-
-        // Générer le nom du fichier avec la date et l'heure actuelles
-        String fileName = "Commandes Fournisseurs_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HHmm")) + ".xlsx";
-
-
-        // Retourner le fichier avec les headers appropriés pour le téléchargement
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"");
-        headers.setContentType(MediaType.parseMediaType(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-        return ResponseEntity.ok()
-                .headers(headers)
-                .body(resource);
-
-    }
-
 
     // ============================================================================
     // 📦 SUIVI DES STOCKS
