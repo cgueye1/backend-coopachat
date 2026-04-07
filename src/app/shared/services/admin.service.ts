@@ -195,6 +195,24 @@ export class AdminService {
     return this.http.get<UserListResponseDTO>(`${this.apiUrl}/admin/users`, { params: httpParams });
   }
 
+  /** Export Excel des utilisateurs (mêmes filtres que la liste : search, role, status). */
+  exportUsers(search?: string, role?: string, status?: boolean): Observable<Blob> {
+    let httpParams = new HttpParams();
+    if (search != null && search.trim() !== '') {
+      httpParams = httpParams.set('search', search.trim());
+    }
+    if (role != null && role !== '') {
+      httpParams = httpParams.set('role', role);
+    }
+    if (status !== undefined && status !== null) {
+      httpParams = httpParams.set('status', String(status));
+    }
+    return this.http.get(`${this.apiUrl}/admin/users/export`, {
+      params: httpParams,
+      responseType: 'blob'
+    });
+  }
+
   getUsersStats(): Observable<UserStatsDTO> {
     return this.http.get<UserStatsDTO>(`${this.apiUrl}/admin/users/stats`);
   }

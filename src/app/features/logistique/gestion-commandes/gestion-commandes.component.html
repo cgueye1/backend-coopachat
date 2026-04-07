@@ -112,7 +112,7 @@
                                 <div class="flex items-center justify-between">
                                     <div class="text-xs text-[#6B7280]">Produits</div>
                                     <div class="flex flex-wrap gap-1.5 justify-end">
-                                        <span *ngFor="let p of (commande.produitsList ?? [])"
+                                        <span *ngFor="let p of commande.produitsList"
                                             class="inline-flex rounded-md px-2.5 py-1 text-xs font-medium bg-[#F4F6F9] text-[#4B4848]">{{ p }}</span>
                                     </div>
                                 </div>
@@ -173,7 +173,7 @@
                                     <td class="py-4 px-6 text-sm text-[#4B4848]">{{ commande.dateCommande }}</td>
                                     <td class="py-4 px-6 text-xs text-[#4B4848]">
                                         <div class="flex flex-wrap gap-1.5">
-                                            <span *ngFor="let p of (commande.produitsList ?? [])"
+                                            <span *ngFor="let p of commande.produitsList"
                                                 class="inline-flex rounded-md px-2.5 py-1 items-center bg-[#F4F6F9] text-[#4B4848]">{{ p }}</span>
                                         </div>
                                     </td>

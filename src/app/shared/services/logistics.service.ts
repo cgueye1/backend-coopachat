@@ -506,6 +506,21 @@ export class LogisticsService {
         return this.http.get<ClaimListResponse>(`${this.apiUrl}/logistics/claims`, { params });
     }
 
+    /** Export Excel des réclamations (retours), mêmes filtres que la liste : search, status (EN_ATTENTE | VALIDE | REJETE). */
+    exportClaims(search?: string, status?: string): Observable<Blob> {
+        let params = new HttpParams();
+        if (search?.trim()) {
+            params = params.set('search', search.trim());
+        }
+        if (status) {
+            params = params.set('status', status);
+        }
+        return this.http.get(`${this.apiUrl}/logistics/claims/export`, {
+            params,
+            responseType: 'blob'
+        });
+    }
+
     /** Détails d'une réclamation (retour). */
     getClaimById(id: number): Observable<ClaimDetail> {
         return this.http.get<ClaimDetail>(`${this.apiUrl}/logistics/claims/${id}`);

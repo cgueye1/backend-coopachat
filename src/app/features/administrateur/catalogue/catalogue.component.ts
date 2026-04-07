@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
-import { Subscription } from 'rxjs';
+import { Subscription, finalize } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
@@ -226,21 +226,34 @@ export class CatalogueComponent implements OnInit, OnDestroy {
     this.routerSub?.unsubscribe();
   }
 
+  /** True pendant l’appel API du graphique « Top 5 Produits commandés ». */
+  loadingChartTop5 = false;
+
   /** Charge le top 5 des produits les plus commandés (en % d'utilisation) pour le graphique. */
   loadTop5ProductUsage(): void {
-    this.productService.getTop5ProductsUsage().subscribe({
+    this.loadingChartTop5 = true;
+    this.productService.getTop5ProductsUsage().pipe(
+      finalize(() => { this.loadingChartTop5 = false; })
+    ).subscribe({
       next: (list) => {
-        if (list && list.length) {
-          this.barChartData.labels = list.map((x: { productName: string }) => x.productName);
-          this.barChartData.datasets[0].data = list.map((x: { usagePercent: number }) => x.usagePercent);
-        } else {
-          this.barChartData.labels = [];
-          this.barChartData.datasets[0].data = [];
-        }
+        const labels = list?.length
+          ? list.map((x: { productName: string }) => x.productName)
+          : [];
+        const data = list?.length
+          ? list.map((x: { usagePercent: number }) => x.usagePercent)
+          : [];
+        this.barChartData = {
+          ...this.barChartData,
+          labels,
+          datasets: [{ ...this.barChartData.datasets[0], data }]
+        };
       },
       error: () => {
-        this.barChartData.labels = [];
-        this.barChartData.datasets[0].data = [];
+        this.barChartData = {
+          ...this.barChartData,
+          labels: [],
+          datasets: [{ ...this.barChartData.datasets[0], data: [] }]
+        };
       }
     });
   }
@@ -249,6 +262,7 @@ export class CatalogueComponent implements OnInit, OnDestroy {
 
   products: Product[] = [];
   loadingList = false;
+  loadingExport = false;
 
   updateMetrics(stats?: { totalProducts: number; activeProducts: number; inactiveProducts: number }) {
     const total = stats?.totalProducts ?? this.products.length;
@@ -431,10 +445,13 @@ export class CatalogueComponent implements OnInit, OnDestroy {
     });
   }
 
-  exportData() {
+  exportData(): void {
+    if (!this.isBrowser || this.loadingExport) return;
+    this.loadingExport = true;
     const statusFilter = this.getStatusFilter();
     this.productService
-      .exportProducts(this.searchText, undefined, statusFilter)
+      .exportProducts(this.searchText, this.selectedCategoryId ?? undefined, statusFilter)
+      .pipe(finalize(() => { this.loadingExport = false; }))
       .subscribe({
         next: (blob) => {
           const url = window.URL.createObjectURL(blob);

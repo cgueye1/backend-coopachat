@@ -29,11 +29,11 @@ interface Delivery {
   statutColor: string;
 }
 
-/** Point du graphique « Livraisons 7 jours » (prévu / livré / retard). */
+/** Point du graphique « Livraisons 7 jours » : aligné sur l’API (nbPrevues, nbLivreesALaDate, nbRetard). */
 interface LivraisonsParJourPoint {
   date: string;
   livrees: number;
-  prevuNonLivre: number;
+  prevues: number;
   retard: number;
 }
 
@@ -117,7 +117,7 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
         this.livraisonsParJourData = livraisonsParJour7j.map((d: LivraisonParJourItem) => ({
           date: d.date,
           livrees: d.nbLivreesALaDate,
-          prevuNonLivre: Math.max(0, d.nbPrevues - d.nbLivreesALaDate),
+          prevues: d.nbPrevues,
           retard: d.nbRetard
         }));
         this.stockEtatGlobalData = {
@@ -155,8 +155,8 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
     if (!ctx) return;
 
     const data = this.livraisonsParJourData;
-    const barTotals = data.map((d) => d.livrees + d.prevuNonLivre + d.retard);
-    const yMax = Math.max(1, ...barTotals, 0) + 2;
+    const barTotals = data.map((d) => d.livrees + d.prevues + d.retard);
+    const yMax = (barTotals.length ? Math.max(...barTotals, 0) : 0) + 2;
 
     this.commandesChart = new Chart(ctx, {
       type: 'bar',
@@ -165,7 +165,7 @@ export class DashboardLogComponent implements OnInit, AfterViewInit {
         datasets: [
           {
             label: 'Prévues ce jour',
-            data: data.map((d) => d.prevuNonLivre),
+            data: data.map((d) => d.prevues),
             backgroundColor: '#E5E7EB',
             borderColor: '#fff',
             borderWidth: 1,

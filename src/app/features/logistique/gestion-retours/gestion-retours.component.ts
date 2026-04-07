@@ -10,6 +10,7 @@ import {
   ClaimListResponse,
 } from '../../../shared/services/logistics.service';
 import { environment } from '../../../../environments/environment';
+import { finalize } from 'rxjs';
 import Swal from 'sweetalert2';
 
 interface Metric {
@@ -38,6 +39,7 @@ export class GestionRetoursComponent {
   loading = false;
   loadingStats = false;
   loadingDetail = false;
+  loadingExport = false;
 
   showDetailModal = false;
   selectedDetail: ClaimDetail | null = null;
@@ -372,12 +374,29 @@ export class GestionRetoursComponent {
   }
 
   exportRetours(): void {
-    // L'API n'expose pas encore d'export claims ; on peut ouvrir la même liste en CSV côté client ou afficher un message.
-    Swal.fire({
-      title: 'Export',
-      text: 'L\'export des retours sera disponible prochainement.',
-      icon: 'info'
-    });
+    if (this.loadingExport) return;
+    this.loadingExport = true;
+    const statusParam = this.statusOptions.find(s => s.label === this.selectedStatus)?.value ?? '';
+    this.logisticsService
+      .exportClaims(this.searchText.trim() || undefined, statusParam || undefined)
+      .pipe(finalize(() => { this.loadingExport = false; }))
+      .subscribe({
+        next: (blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `retours_${new Date().toISOString().slice(0, 10)}.xlsx`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        },
+        error: () => {
+          Swal.fire({
+            title: 'Export impossible',
+            text: 'Une erreur est survenue lors du téléchargement.',
+            icon: 'error'
+          });
+        }
+      });
   }
 
   private showError(message: string): void {

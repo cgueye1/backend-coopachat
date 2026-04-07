@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, PLATFORM_ID, Inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
+import { finalize } from 'rxjs/operators';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
 import {
@@ -28,6 +29,7 @@ interface PaymentStatusSlice {
 }
 
 
+/** Aligné sur LivraisonParJourDTO : planifies = nbPrevues (total prévu ce jour, hors annulées). */
 interface LivraisonStackPoint {
   date: string;
   livres: number;
@@ -67,32 +69,13 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
    * Le HTML fait *ngFor="let metric of metricsData" et affiche title, value, icon.
    */
   metricsData: MetricCard[] = [
-    {
-      title: 'Commandes en attente',
-      value: '—',//valeur par défaut
-      icon: '/icones/commandefour.svg'
-    },
-    {
-      title: 'Paiements échoués',
-      value: '—',//valeur par défaut
-      icon: '/icones/temps.svg'
-    },
-    {
-      title: 'Réclamations à traiter',
-      value: '—',//valeur par défaut
-      icon: '/icones/users.svg'
-    }
+    { title: 'Commandes en attente', value: '', icon: '/icones/commandefour.svg' },
+    { title: 'Paiements échoués', value: '', icon: '/icones/temps.svg' },
+    { title: 'Réclamations à traiter', value: '', icon: '/icones/users.svg' }
   ];
 
-   /**
-   * Données du donut "Paiements par statut". Rempli par l’API (loadDashboardStats).
-   * initPaiementsChart() et loadDashboardStats() mettent à jour le graphique à partir de ce tableau.
-   */
-  paymentStatusData: PaymentStatusSlice[] = [
-    { status: 'Payé', value: 0, color: '#22C55F' },
-    { status: 'Impayé', value: 0, color: '#EAB308' },
-    { status: 'Échoué', value: 0, color: '#FFD3D3' }
-  ];
+  /** Donut « Paiements par statut » : rempli par loadDashboardStats (vide tant que l’API n’a pas répondu). */
+  paymentStatusData: PaymentStatusSlice[] = [];
 
 
   /** Données du graphique « Livraisons par jour » (GET /admin/dashboard/livraisons-par-jour), affiché en grand en haut. */
@@ -170,24 +153,26 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
   }
 
   /**
-   * GET /admin/dashboard/livraisons-par-jour → graphique principal « Livraisons par jour » (barres empilées).
+   * GET /admin/dashboard/livraisons-par-jour → graphique « Livraisons par jour » (même sémantique que le back).
    */
   loadLivraisonsParJour(): void {
-    this.adminService.getLivraisonsParJour().subscribe({
+    this.adminService.getLivraisonsParJour().pipe(
+      finalize(() => { this.loadingChartLivraisons = false; })
+    ).subscribe({
       next: (list: LivraisonParJourDTO[]) => {
         this.livraisonsData = list.map(d => ({
           date: d.date,
           livres: d.nbLivreesALaDate,
-          planifies: Math.max(0, d.nbPrevues - d.nbLivreesALaDate),
+          planifies: d.nbPrevues,
           retard: d.nbRetard
         }));
         if (this.commandesChart) {
           const d = this.livraisonsData;
           const barTotals = d.map((p) => p.livres + p.planifies + p.retard);
-          const yMax = Math.max(1, ...barTotals, 0) + 2;
+          const yMax = (barTotals.length ? Math.max(...barTotals, 0) : 0) + 2;
           this.commandesChart.data.labels = d.map((p) => p.date);
-          this.commandesChart.data.datasets[0].data = d.map((p) => p.livres);
-          this.commandesChart.data.datasets[1].data = d.map((p) => p.planifies);
+          this.commandesChart.data.datasets[0].data = d.map((p) => p.planifies);
+          this.commandesChart.data.datasets[1].data = d.map((p) => p.livres);
           this.commandesChart.data.datasets[2].data = d.map((p) => p.retard);
           if (this.commandesChart.options?.scales?.y) {
             this.commandesChart.options.scales.y.max = yMax;
@@ -252,7 +237,9 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
 
   /** GET /admin/dashboard/statut-tournees — même logique que le dashboard RL (Assignée, En cours, Terminée, Annulée). */
   loadStatutTournees(): void {
-    this.adminService.getStatutTournees().subscribe({
+    this.adminService.getStatutTournees().pipe(
+      finalize(() => { this.loadingChartDeliveryStatus = false; })
+    ).subscribe({
       next: (data: StatutTourneesDTO) => {
         const parStatut = data.parStatut || {};
         const statusConfig: Record<string, { label: string; color: string }> = {
@@ -287,6 +274,10 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
         if (this.couponsChart) {
           this.couponsChart.data.labels = this.couponsTrendData.map(p => p.date);
           this.couponsChart.data.datasets[0].data = this.couponsTrendData.map(p => p.value);
+          const yMax = this.couponsChartYMax();
+          if (this.couponsChart.options?.scales?.y) {
+            this.couponsChart.options.scales.y.max = yMax;
+          }
           this.couponsChart.update();
         }
         this.loadingChartCoupons = false;
@@ -371,7 +362,7 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
 
     const d = this.livraisonsData;
     const barTotals = d.map((p) => p.livres + p.planifies + p.retard);
-    const yMax = Math.max(1, ...barTotals, 0) + 2;
+    const yMax = (barTotals.length ? Math.max(...barTotals, 0) : 0) + 2;
 
     this.commandesChart = new Chart(ctx, {
       type: 'bar',
@@ -659,12 +650,20 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
     });
   }
 
+  /** Même principe que « Livraisons par jour » : max des valeurs réelles + marge 2. */
+  private couponsChartYMax(): number {
+    const vals = this.couponsTrendData.map((p) => p.value);
+    return (vals.length ? Math.max(...vals, 0) : 0) + 2;
+  }
+
   // --- Tendance des coupons utilisés ---
   initCouponsChart(Chart: any): void {
     const ctx = this.couponsChartRef?.nativeElement?.getContext('2d');
     if (!ctx) {
       return;
     }
+
+    const yMax = this.couponsChartYMax();
 
     this.couponsChart = new Chart(ctx, {
       type: 'line',
@@ -700,9 +699,16 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
             ticks: { color: '#6B7280', font: { size: 12 } }
           },
           y: {
-            beginAtZero: false,
+            beginAtZero: true,
+            max: yMax,
             grid: { color: '#F3F4F6' },
-            ticks: { color: '#6B7280', font: { size: 12 }, stepSize: 2 }
+            ticks: {
+              color: '#6B7280',
+              font: { size: 12 },
+              stepSize: 1,
+              precision: 0,
+              callback: (raw: number | string) => String(Math.round(Number(raw)))
+            }
           }
         }
       }

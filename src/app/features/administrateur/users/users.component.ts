@@ -2,7 +2,7 @@ import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, finalize } from 'rxjs';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
 import { NgChartsModule } from 'ng2-charts';
@@ -86,6 +86,7 @@ export class UsersComponent implements OnInit {
   metricsData: MetricCard[] = [];
   loading = false;
   loadingCharts = false;
+  loadingExport = false;
   toggleLoadingId: number | null = null;
   private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -430,6 +431,33 @@ export class UsersComponent implements OnInit {
     this.selectedStatut = statut;
     this.showStatutDropdown = false;
     this.applyFilters();
+  }
+
+  exportUsers(): void {
+    if (!this.isBrowser || this.loadingExport) return;
+    this.loadingExport = true;
+    const roleParam = this.selectedRole === 'Toutes les rôles' ? undefined : ROLE_LABEL_TO_ENUM[this.selectedRole];
+    const statusParam = this.selectedStatut === 'Tous les statuts' ? undefined : this.selectedStatut === 'Actif';
+    this.adminService
+      .exportUsers(this.searchText.trim() || undefined, roleParam, statusParam)
+      .pipe(finalize(() => { this.loadingExport = false; }))
+      .subscribe({
+        next: (blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `utilisateurs_${new Date().toISOString().slice(0, 10)}.xlsx`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        },
+        error: () => {
+          Swal.fire({
+            title: 'Export impossible',
+            text: 'Une erreur est survenue lors du téléchargement.',
+            icon: 'error'
+          });
+        }
+      });
   }
 
   getStatusClass(status: string): string {

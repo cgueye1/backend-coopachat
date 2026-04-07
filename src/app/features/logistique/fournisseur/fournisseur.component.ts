@@ -1,10 +1,12 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
 import { Product } from '../../../shared/services/product.service';
 import { environment } from '../../../../environments/environment';
+import { finalize } from 'rxjs';
 import { LogisticsService } from '../../../shared/services/logistics.service';
 import { PAGE_SIZE_OPTIONS } from '../../../shared/constants/pagination';
 import Swal from 'sweetalert2';
@@ -129,6 +131,7 @@ export class FournisseurComponent {
 
   commandes: Commande[] = [];
   loadingList = false;
+  loadingExport = false;
 
   currentPage = 1;
   totalPages = 1;
@@ -443,11 +446,30 @@ export class FournisseurComponent {
   }
 
   exportData(): void {
+    if (this.loadingExport) return;
+    this.loadingExport = true;
     const statusFilter = this.getStatusFilter();
     this.logisticsService
       .exportSupplierOrders(this.searchText, this.selectedSupplierId ?? undefined, statusFilter)
+      .pipe(finalize(() => { this.loadingExport = false; }))
       .subscribe({
-        next: (blob) => {
+        next: async (blob) => {
+          const t = blob.type || '';
+          if (t.includes('json') || t.includes('text/plain') || t.includes('text/html')) {
+            try {
+              const text = await blob.text();
+              const j = JSON.parse(text) as { message?: string; error?: string };
+              const msg = j.message ?? j.error ?? text.slice(0, 400);
+              Swal.fire({ title: 'Export impossible', text: msg || 'Réponse serveur invalide.', icon: 'error' });
+            } catch {
+              Swal.fire({
+                title: 'Export impossible',
+                text: 'Le serveur n’a pas renvoyé un fichier Excel valide.',
+                icon: 'error'
+              });
+            }
+            return;
+          }
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
@@ -455,8 +477,24 @@ export class FournisseurComponent {
           a.click();
           window.URL.revokeObjectURL(url);
         },
-        error: (error) => {
-          console.error('Erreur export:', error);
+        error: async (err: HttpErrorResponse) => {
+          let msg = 'Une erreur est survenue lors du téléchargement.';
+          if (err.error instanceof Blob) {
+            try {
+              const text = await err.error.text();
+              try {
+                const j = JSON.parse(text) as { message?: string; error?: string };
+                if (typeof j.message === 'string') msg = j.message;
+                else if (typeof j.error === 'string') msg = j.error;
+                else if (text.trim()) msg = text.trim().slice(0, 500);
+              } catch {
+                if (text.trim()) msg = text.trim().slice(0, 500);
+              }
+            } catch {
+              /* ignore */
+            }
+          }
+          Swal.fire({ title: 'Export impossible', text: msg, icon: 'error' });
         }
       });
   }
