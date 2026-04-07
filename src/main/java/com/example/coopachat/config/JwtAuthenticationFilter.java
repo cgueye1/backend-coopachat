@@ -155,8 +155,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * @return true si c'est une route publique (il peut accèder à cette fonctionnalité sans token ), false sinon
      */
     private boolean isPublicPath(String path) {
-        // Routes d'authentification publiques sauf (/api/auth/logout  continet un token à blacklister si nécessaire)
-        if (path.startsWith("/api/auth/") && !path.equals("/api/auth/logout")) {
+        // Routes d'authentification publiques (login, inscription, OTP, etc.)
+        // — /api/auth/logout : nécessite le token (blacklist)
+        // — /api/auth/me : nécessite le token (profil connecté, tous rôles) — ne PAS traiter comme public
+        if (path.startsWith("/api/auth/")
+                && !path.equals("/api/auth/logout")
+                && !path.equals("/api/auth/me")) {
             return true;
         }
 
