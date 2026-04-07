@@ -61,14 +61,16 @@ public class SecurityConfig {
                 // CONFIGURATION DES AUTORISATIONS
                 .authorizeHttpRequests(auth -> auth
                         // ==================================
-                        // 🔒 PROFIL UTILISATEUR CONNECTÉ
+                        // 🔒 PROFIL UTILISATEUR CONNECTÉ (avant permitAll /api/auth/**)
                         // ==================================
-                        .requestMatchers("/api/auth/me").authenticated()               // Profil courant (tous rôles)
+                        // GET /api/auth/me : « Mon compte » — JWT obligatoire, tous les rôles (géré par AuthController + AuthService)
+                        .requestMatchers("/api/auth/me").authenticated()
 
                         // ==================================
                         // 🟢 ZONES PUBLIQUES (sans connexion)
                         // ==================================
-                        .requestMatchers("/api/auth/**").permitAll()                   // Inscription + Connexion
+                        // Ne couvre pas /api/auth/me (règle plus spécifique ci-dessus)
+                        .requestMatchers("/api/auth/**").permitAll()                   // Inscription + Connexion + OTP…
                         .requestMatchers("/api/files/**").permitAll()                  // Images / fichiers (img src ne peut pas envoyer le token)
                         .requestMatchers("/swagger-ui/**").permitAll()                  // Documentation API
                         .requestMatchers("/v3/api-docs/**").permitAll()                 // Documentation API
