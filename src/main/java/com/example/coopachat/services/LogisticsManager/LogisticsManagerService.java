@@ -393,6 +393,11 @@ public interface LogisticsManagerService {
     ClaimListResponseDTO getClaims(int page, int size, String search, ClaimStatus status);
 
     /**
+     * Export Excel de toutes les réclamations correspondant aux mêmes filtres que la liste (recherche, statut).
+     */
+    ByteArrayResource exportClaims(String search, ClaimStatus status);
+
+    /**
      * Détails d'une réclamation par son id.
      *
      * @param id id de la réclamation

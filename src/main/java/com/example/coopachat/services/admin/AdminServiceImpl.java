@@ -900,6 +900,69 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public ByteArrayResource exportUsers(String search, UserRole role, Boolean status) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut exporter les utilisateurs");
+        }
+
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+        Pageable pageable = Pageable.unpaged();
+        Page<Users> userPage = (role == UserRole.EMPLOYEE)
+                ? userRepository.findAllSalariesWithFilters(UserRole.EMPLOYEE, searchTerm, status, pageable)
+                : userRepository.findAllWithFilters(searchTerm, role, status, pageable);
+        List<Users> users = userPage.getContent();
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Utilisateurs");
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            String[] headers = {
+                    "Référence", "Prénom", "Nom", "Email", "Téléphone", "Rôle", "Statut", "Date création"
+            };
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            DateTimeFormatter dtFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            int rowNum = 1;
+            for (Users u : users) {
+                Row row = sheet.createRow(rowNum++);
+                String ref = u.getRefUser();
+                if (ref == null || ref.isEmpty()) {
+                    ref = "US-LEGACY-" + u.getId();
+                }
+                row.createCell(0).setCellValue(ref);
+                row.createCell(1).setCellValue(u.getFirstName() != null ? u.getFirstName() : "");
+                row.createCell(2).setCellValue(u.getLastName() != null ? u.getLastName() : "");
+                row.createCell(3).setCellValue(u.getEmail() != null ? u.getEmail() : "");
+                row.createCell(4).setCellValue(u.getPhone() != null ? u.getPhone() : "");
+                row.createCell(5).setCellValue(u.getRole() != null ? u.getRole().getLabel() : "");
+                row.createCell(6).setCellValue(Boolean.TRUE.equals(u.getIsActive()) ? "Actif" : "Inactif");
+                row.createCell(7).setCellValue(u.getCreatedAt() != null ? u.getCreatedAt().format(dtFormatter) : "");
+            }
+
+            autoSizeColumnsSafe(sheet, headers.length);
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            return new ByteArrayResource(outputStream.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
+        }
+    }
+
+    @Override
     public UserStatsDTO getUsersStats() {
         Users admin = getCurrentUser();
         if (admin.getRole() != UserRole.ADMINISTRATOR) {

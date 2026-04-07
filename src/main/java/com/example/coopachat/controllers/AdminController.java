@@ -576,6 +576,30 @@ public class  AdminController {
         return ResponseEntity.ok(adminService.getUsers(page, size, search, role, status));
     }
 
+    @Operation(
+            summary = "Exporter la liste des utilisateurs en Excel",
+            description = "Exporte les utilisateurs en fichier .xlsx selon les mêmes filtres que la liste : " +
+                    "search (référence, prénom, nom, email), role (enum UserRole), status (true/false)."
+    )
+    @GetMapping("/users/export")
+    public ResponseEntity<Resource> exportUsers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) UserRole role,
+            @RequestParam(required = false) Boolean status) {
+        try {
+            ByteArrayResource resource = adminService.exportUsers(search, role, status);
+            String fileName = "utilisateurs_"
+                    + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HHmm"))
+                    + ".xlsx";
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(resource);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+    }
+
     // ----- Statistiques (cartes : Utilisateurs, Actifs, Inactifs) -----
     @Operation(
             summary = "Statistiques utilisateurs",
