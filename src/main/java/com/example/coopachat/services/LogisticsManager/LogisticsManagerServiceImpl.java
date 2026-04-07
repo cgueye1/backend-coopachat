@@ -489,6 +489,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ByteArrayResource exportSupplierOrders(String search, Long supplierId, SupplierOrderStatus status) {
 
         // Récupérer l'utilisateur connecté
@@ -573,12 +574,14 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             for (SupplierOrder order : orders) {
                 Row row = sheet.createRow(rowNum++);
 
-                row.createCell(0).setCellValue(order.getOrderNumber());
-                row.createCell(1).setCellValue(order.getSupplier().getName());
+                row.createCell(0).setCellValue(order.getOrderNumber() != null ? order.getOrderNumber() : "");
+                row.createCell(1).setCellValue(
+                        order.getSupplier() != null ? order.getSupplier().getName() : "");
                 row.createCell(2).setCellValue(order.getExpectedDate() != null
                         ? order.getExpectedDate().format(dateFormatter) : "");
                 row.createCell(3).setCellValue(buildProductsSummary(order.getItems()));
-                row.createCell(4).setCellValue(order.getStatus().getLabel());
+                row.createCell(4).setCellValue(
+                        order.getStatus() != null ? order.getStatus().getLabel() : "");
 
             }
             autoSizeColumnsSafe(sheet, headers.length);
@@ -3160,9 +3163,19 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         if (items == null || items.isEmpty()) {
             return "";
         }
-        //on va parcourir la liste des items et on va construire une chaîne de caractères avec le nom du produit et sa quantité et on va joindre les chaînes de caractères avec une virgule
         return items.stream()
-                .map(item -> item.getProduct().getName() + " (" + item.getQuantity() + ")")
+                .map(item -> {
+                    if (item == null) {
+                        return "";
+                    }
+                    int qty = item.getQuantity() != null ? item.getQuantity() : 0;
+                    if (item.getProduct() == null) {
+                        return "(" + qty + ")";
+                    }
+                    String name = item.getProduct().getName() != null ? item.getProduct().getName() : "?";
+                    return name + " (" + qty + ")";
+                })
+                .filter(s -> s != null && !s.isEmpty())
                 .collect(java.util.stream.Collectors.joining(", "));
     }
 
