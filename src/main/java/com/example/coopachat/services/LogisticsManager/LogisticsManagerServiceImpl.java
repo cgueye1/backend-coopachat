@@ -435,6 +435,12 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // Mettre à jour le statut
         SupplierOrderStatus oldStatus = supplierOrder.getStatus();
         SupplierOrderStatus newStatus = updateSupplierOrderStatusDTO.getStatus();
+
+        // Règle métier : une commande fournisseur LIVRÉE est finale → interdiction de revenir en arrière.
+        if (oldStatus == SupplierOrderStatus.LIVREE && newStatus != SupplierOrderStatus.LIVREE) {
+            throw new RuntimeException("Impossible de modifier le statut : cette commande fournisseur est déjà livrée.");
+        }
+
         supplierOrder.setStatus(newStatus);
 
         // Quand le statut passe à LIVRÉE : enregistrer la date de réception et mettre à jour le stock des produits
@@ -1163,6 +1169,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // 📦 GESTION DES COMMANDES SALARIÉS
     // ============================================================================
     @Override
+    @Transactional(readOnly = true)
     public OrderEmployeeListResponseDTO getAllEmployeeOrders(int page, int size, String search, OrderStatus status) {
 
         // Récupérer l'utilisateur connecté

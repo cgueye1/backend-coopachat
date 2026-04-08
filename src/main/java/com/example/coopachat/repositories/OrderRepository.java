@@ -51,9 +51,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
        - Si status est null : ignore le filtre statut
        - Si status a une valeur : filtre par ce statut exact
        Résultats triés du plus récent au plus ancien.
-       EntityGraph charge items et items.product dans la même session pour éviter LazyInitializationException.
+       EntityGraph charge items, product, employee, user et deliveryOption pour éviter LazyInitializationException.
      */
-    @EntityGraph(attributePaths = {"items", "items.product", "employee", "employee.user"})
+    @EntityGraph(attributePaths = {"items", "items.product", "employee", "employee.user", "deliveryOption"})
     @Query("SELECT DISTINCT o FROM Order o " +
             "WHERE (:search IS NULL OR LOWER(o.orderNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             " CONCAT(LOWER(o.employee.user.firstName), ' ', LOWER(o.employee.user.lastName)) LIKE LOWER(CONCAT('%', :search, '%'))) " +
