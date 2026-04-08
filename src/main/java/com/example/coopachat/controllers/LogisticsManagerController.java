@@ -67,14 +67,13 @@ public class LogisticsManagerController {
 
     @Operation(
             summary = "Créer un nouveau livreur",
-            description = "Permet à un Responsable Logistique de créer un nouveau livreur. " +
-                         "Un email d'invitation avec un code d'activation sera envoyé au livreur."
+            description = "Permet à un Responsable Logistique de créer un nouveau livreur (compte inactif jusqu'à activation par le livreur)."
     )
     @PostMapping("/drivers")
     public ResponseEntity<String> createDriver(@RequestBody @Valid RegisterDriverRequestDTO driverDTO) {
         logisticsManagerService.createDriver(driverDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Livreur créé avec succès. Un email d'invitation a été envoyé.");
+                .body("Livreur créé avec succès.");
     }
 
     // ============================================================================
