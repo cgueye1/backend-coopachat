@@ -2641,15 +2641,18 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
     /**
      * KPIs du tableau de bord RL : commandes en attente, en retard, tournées actives, livrées ce mois.
+     * Les deux premiers compteurs utilisent le même périmètre que la planification des tournées
+     * ({@link OrderRepository#findEligibleOrdersForDate}) : EN_ATTENTE, sans tournée, salarié actif.
+     * Les « en retard » sont le sous-ensemble avec {@code deliveryDate} strictement avant aujourd'hui
+     * (identique à {@link OrderRepository#countOverduePendingUnassigned} et au badge du calendrier).
      */
     @Override
     public RLDashboardKpisDTO getDashboardKpis() {
         LocalDate today = LocalDate.now();
-        // Toutes les commandes dont le statut est EN_ATTENTE
-        long commandesEnAttente = orderRepository.countByStatus(OrderStatus.EN_ATTENTE);
-        // EN_ATTENTE avec date de livraison déjà passée et non encore assignées à une tournée
-        long commandesEnRetard = orderRepository.countByStatusAndDeliveryDateBeforeAndDeliveryTourIsNull(
-                OrderStatus.EN_ATTENTE, today);
+        // EN_ATTENTE, pas encore en tournée, employé actif (planifiable par le RL)
+        long commandesEnAttente = orderRepository.countPendingUnassignedActiveEmployee(OrderStatus.EN_ATTENTE);
+        // Sous-ensemble : date de livraison dépassée (aligné calendrier « X en retard »)
+        long commandesEnRetard = orderRepository.countOverduePendingUnassigned(OrderStatus.EN_ATTENTE, today);
         // Tournées dont le statut est EN_COURS
         long tourneesActives = deliveryTourRepository.countByStatus(DeliveryTourStatus.EN_COURS);
         LocalDateTime debutMois = today.withDayOfMonth(1).atStartOfDay();

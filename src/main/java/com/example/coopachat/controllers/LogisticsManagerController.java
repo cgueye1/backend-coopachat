@@ -361,7 +361,7 @@ public class LogisticsManagerController {
     // ============================================================================
     @Operation(
             summary = "Lister les commandes salariés",
-            description = "Récupère la liste paginée des commandes passées par les salariés avec recherche et filtres optionnels."
+            description = "Liste paginée des commandes salariés. Paramètre search optionnel : numéro de commande, nom du salarié ou nom d'un produit de la commande."
     )
     @GetMapping(value = "/employee-orders", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OrderEmployeeListResponseDTO> getAllEmployeeOrders(
@@ -648,7 +648,7 @@ public class LogisticsManagerController {
      */
     @Operation(
             summary = "Liste paginée des réclamations utilisateurs",
-            description = "Toutes les réclamations (retours) avec recherche par référence commande ou nom client, et filtre par statut : EN_ATTENTE, VALIDE, REJETE."
+            description = "Toutes les réclamations (retours) avec recherche par référence commande, nom client ou nom du produit, et filtre par statut : EN_ATTENTE, VALIDE, REJETE."
     )
     @GetMapping("/claims")
     public ResponseEntity<ClaimListResponseDTO> getClaims(
@@ -728,7 +728,10 @@ public class LogisticsManagerController {
 
     //-----------  Tableau de Bord ------------
 
-    @Operation(summary = "KPIs tableau de bord RL", description = "Commandes en attente, en retard, tournées actives, livrées ce mois.")
+    @Operation(
+            summary = "KPIs tableau de bord RL",
+            description = "En attente / en retard : même périmètre que la planification (EN_ATTENTE, sans tournée, salarié actif) ; « en retard » = date de livraison avant aujourd'hui. Tournées actives, livrées ce mois."
+    )
     @GetMapping("/dashboard/kpis")
     public ResponseEntity<RLDashboardKpisDTO> getDashboardKpis() {
         return ResponseEntity.ok(logisticsManagerService.getDashboardKpis());

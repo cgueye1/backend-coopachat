@@ -12,10 +12,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RLDashboardKpisDTO {
 
-    /** Nombre de commandes en attente (status = EN_ATTENTE). */
+    /** Commandes EN_ATTENTE, sans tournée, salarié actif (planifiable — aligné planification). */
     private long commandesEnAttente;
 
-    /** Nombre de commandes en retard (EN_ATTENTE et deliveryDate < aujourd'hui). */
+    /** Sous-ensemble « en retard » : même périmètre + deliveryDate &lt; aujourd'hui (aligné badge calendrier). */
     private long commandesEnRetard;
 
     /** Nombre de tournées actives (status = EN_COURS). */
