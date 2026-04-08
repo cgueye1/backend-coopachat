@@ -46,6 +46,13 @@ import java.util.regex.Pattern;
 @Slf4j
 public class AuthServiceImpl implements AuthService {
 
+    /** Aligné sur l’entité {@link com.example.coopachat.entities.Users} (@Email). */
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+            "^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+
+    /** Aligné sur {@code Users.phone} : {@code ^[+]?[0-9\s\-\(\)]{8,25}$} */
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^[+]?[0-9\\s\\-\\(\\)]{8,25}$");
+
     @Value("${activation.code.expiration.minutes:15}")
     private int expirationMinutes;  // 15 minutes
 
@@ -63,6 +70,7 @@ public class AuthServiceImpl implements AuthService {
     private final TokenBlacklistService tokenBlacklistService;
     private final EmployeeRepository employeeRepository;
     private final UserReferenceGenerator userReferenceGenerator;
+    private final AdminService adminService;
 
     // ============================================================================
     // 👤 GESTION DES UTILISATEURS
