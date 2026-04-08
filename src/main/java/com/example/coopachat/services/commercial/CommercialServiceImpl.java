@@ -28,6 +28,7 @@ import com.example.coopachat.entities.Users;
 import com.example.coopachat.enums.CouponStatus;
 import com.example.coopachat.enums.DeliveryMode;
 import com.example.coopachat.enums.*;
+import com.example.coopachat.exceptions.BadRequestBusinessException;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
 import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
 import com.example.coopachat.repositories.*;
@@ -841,8 +842,10 @@ public class CommercialServiceImpl implements CommercialService {
         Users user = employee.getUser();
         if (Boolean.TRUE.equals(updateEmployeeStatusDTO.getIsActive())
                 && (user.getPassword() == null || user.getPassword().isBlank())) {
-            throw new RuntimeException("Impossible d'activer ce salarié : il n'a pas encore défini son mot de passe. "
-                    + "Le salarié doit d'abord compléter l'activation de son compte (code d'activation puis création du mot de passe).");
+            throw new BadRequestBusinessException(
+                    "Impossible d'activer ce salarié : il n'a pas encore défini son mot de passe. "
+                            + "Le salarié doit d'abord terminer son inscription (code d'activation reçu par e-mail, puis création du mot de passe). "
+                            + "Ensuite vous pourrez activer son compte depuis cet écran.");
         }
 
         // Mettre à jour le statut
