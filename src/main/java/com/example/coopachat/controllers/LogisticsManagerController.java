@@ -496,6 +496,16 @@ public class LogisticsManagerController {
     }
 
     @Operation(
+            summary = "Nombre de commandes éligibles (planification)",
+            description = "Même périmètre que les commandes retournées par eligible-orders / grouped (deliveryDate <= paramètre, EN_ATTENTE, sans tournée, employé actif)."
+    )
+    @GetMapping("/delivery-tours/eligible-orders/count")
+    public ResponseEntity<Long> countEligibleOrdersForPlanning(
+            @RequestParam @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate deliveryDate) {
+        return ResponseEntity.ok(logisticsManagerService.countEligibleOrdersForPlanning(deliveryDate));
+    }
+
+    @Operation(
             summary = "Récupérer les chauffeurs disponibles",
             description = "Chauffeurs actifs. Avec deliveryDate (dd-MM-yyyy), exclut ceux déjà engagés "
                     + "(tournée ASSIGNEE ou EN_COURS ce jour). excludeTourId : ignorer cette tournée (modification)."

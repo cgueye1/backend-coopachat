@@ -1670,7 +1670,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         // ETAPE 1 : Récupérer les commandes éligibles depuis la base
         // ------------------------------------------------------------
         // Cette méthode appelle le repository et retourne les commandes qui respectent :
-        // - deliveryDate = date demandée
+        // - deliveryDate <= date demandée
         // - status = EN_ATTENTE
         // - employé actif
         // - pas encore affectées à une tournée
@@ -1777,6 +1777,15 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         return result;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public long countEligibleOrdersForPlanning(LocalDate deliveryDate) {
+        Users user = getCurrentUser();
+        if (user.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seul un responsable logistique peut consulter ce décompte");
+        }
+        return orderRepository.countEligibleOrdersForPlanningDate(deliveryDate, OrderStatus.EN_ATTENTE);
+    }
 
     @Override
     public List<AvailableDriverDTO> getAvailableDrivers(LocalDate deliveryDate, Long excludeTourId) {

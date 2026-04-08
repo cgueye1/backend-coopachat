@@ -300,6 +300,10 @@ public interface LogisticsManagerService {
      */
     List <EligibleOrderLotDTO> getGroupedEligibleOrders (LocalDate deliveryDate, int lotSize);
 
+    /**
+     * Nombre de commandes éligibles pour la planification à la date donnée (même règles que {@link #getGroupedEligibleOrders}).
+     */
+    long countEligibleOrdersForPlanning(LocalDate deliveryDate);
 
     /**
      * Chauffeurs actifs. Si {@code deliveryDate} est renseigné, exclut ceux qui ont déjà une tournée
