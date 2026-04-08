@@ -28,6 +28,33 @@ public class DriverNotificationService {
     private final EmailService emailService;
 
     /**
+     * Notifie un livreur que son compte a été ajouté sur CoopAchat.
+     * Email simple (sans code) : le livreur pourra demander son code d'activation depuis l'application.
+     */
+    public void notifyDriverAccountCreated(Users user) {
+        if (user == null) {
+            return;
+        }
+        String email = user.getEmail();
+        if (email == null || email.isBlank()) {
+            return;
+        }
+        String firstName = Optional.ofNullable(user.getFirstName()).orElse("Livreur");
+        String subject = "Votre compte livreur a été créé - CoopAchat";
+        String body = String.format(
+                "Bonjour %s,%n%nVous avez été ajouté sur CoopAchat en tant que livreur.%n%n"
+                        + "Vous pouvez ouvrir l'application et demander un code d'activation pour activer votre compte.%n%n"
+                        + "L'équipe CoopAchat",
+                firstName
+        );
+        try {
+            emailService.sendEmail(email, subject, body);
+        } catch (Exception e) {
+            log.error("Erreur envoi notification 'compte livreur créé' à {}: {}", email, e.getMessage());
+        }
+    }
+
+    /**
      * Notifie le livreur par email qu'une tournée lui a été assignée.
      * Contenu : numéro de tournée, date de livraison, nombre de commandes.
      *

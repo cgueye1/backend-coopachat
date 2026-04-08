@@ -5,6 +5,7 @@ import com.example.coopachat.entities.Claim;
 import com.example.coopachat.entities.DeliveryTour;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Order;
+import com.example.coopachat.entities.Users;
 import com.example.coopachat.enums.ClaimDecisionType;
 import com.example.coopachat.services.auth.EmailService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,42 @@ public class EmployeeNotificationService {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final EmailService emailService;
+
+    /**
+     * Notifie un salarié que son compte a été ajouté sur CoopAchat.
+     * Email simple (sans code) : le salarié pourra activer son compte depuis l'application.
+     */
+    public void notifyEmployeeAccountCreated(Users employeeUser, String companyName, Users commercial) {
+        if (employeeUser == null) {
+            return;
+        }
+        String email = employeeUser.getEmail();
+        if (email == null || email.isBlank()) {
+            return;
+        }
+        String firstName = Optional.ofNullable(employeeUser.getFirstName()).orElse("Salarié");
+        String company = (companyName != null && !companyName.isBlank()) ? companyName : "votre entreprise";
+        String commercialName = (commercial != null)
+                ? (Optional.ofNullable(commercial.getFirstName()).orElse("") + " " + Optional.ofNullable(commercial.getLastName()).orElse("")).trim()
+                : "";
+        if (commercialName.isBlank()) {
+            commercialName = "notre équipe";
+        }
+
+        String subject = "Votre compte salarié a été créé - " + company;
+        String body = String.format(
+                "Bonjour %s,%n%nVous avez été ajouté sur CoopAchat en tant que salarié pour %s.%n%n"
+                        + "Votre compte a été créé par %s. Vous pourrez l'activer quand vous le souhaitez "
+                        + "en vous connectant à l'application et en demandant un code d'activation.%n%n"
+                        + "L'équipe CoopAchat",
+                firstName, company, commercialName
+        );
+        try {
+            emailService.sendEmail(email, subject, body);
+        } catch (Exception e) {
+            log.error("Erreur envoi notification 'compte salarié créé' à {}: {}", email, e.getMessage());
+        }
+    }
 
     /**
      * Notifie le salarié par email que sa commande a été enregistrée.
