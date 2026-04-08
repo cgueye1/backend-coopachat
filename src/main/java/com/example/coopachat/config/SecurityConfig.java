@@ -8,6 +8,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -63,6 +64,10 @@ public class SecurityConfig {
                         // ==================================
                         // 🔒 PROFIL UTILISATEUR CONNECTÉ (avant permitAll /api/auth/**)
                         // ==================================
+                        // PUT /api/auth/me* : profil commercial / RL (JWT + rôle)
+                        .requestMatchers(HttpMethod.PUT, "/api/auth/me").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER")
+                        .requestMatchers(HttpMethod.PUT, "/api/auth/me/profile-photo").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER")
+
                         // GET /api/auth/me : « Mon compte » — JWT obligatoire, tous les rôles (géré par AuthController + AuthService)
                         .requestMatchers("/api/auth/me").authenticated()
 

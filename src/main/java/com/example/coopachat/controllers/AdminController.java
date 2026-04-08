@@ -551,7 +551,7 @@ public class  AdminController {
             adminService.createUser(dto);
 
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body("Utilisateur créé avec succès. Un code d'activation a été envoyé par email.");
+                    .body("Utilisateur créé avec succès.");
 
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -716,6 +716,36 @@ public class  AdminController {
             @RequestParam("file") MultipartFile file) {
         adminService.updateUserProfilePhoto(id, file);
         return ResponseEntity.ok("Photo de profil mise à jour");
+    }
+
+    @Operation(
+            summary = "Supprimer la photo de profil d'un utilisateur",
+            description = "Supprime le fichier stocké (MinIO) et remet le champ profilePhotoUrl à null. Réservé à l'administrateur."
+    )
+    @DeleteMapping("/users/{id}/profile-photo")
+    public ResponseEntity<String> removeUserProfilePhoto(@PathVariable Long id) {
+        return removeUserProfilePhotoInternal(id);
+    }
+
+    /**
+     * Alias POST : certains proxies / hébergeurs ne relaient pas DELETE ; le front utilise cette route par défaut.
+     */
+    @Operation(
+            summary = "Supprimer la photo de profil (POST)",
+            description = "Même effet que DELETE /users/{id}/profile-photo. Préféré côté client si DELETE n'est pas supporté en amont."
+    )
+    @PostMapping("/users/{id}/profile-photo/remove")
+    public ResponseEntity<String> removeUserProfilePhotoPost(@PathVariable Long id) {
+        return removeUserProfilePhotoInternal(id);
+    }
+
+    private ResponseEntity<String> removeUserProfilePhotoInternal(Long id) {
+        try {
+            adminService.removeUserProfilePhoto(id);
+            return ResponseEntity.ok("Photo de profil supprimée");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
     @Operation(

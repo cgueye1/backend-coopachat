@@ -67,14 +67,13 @@ public class LogisticsManagerController {
 
     @Operation(
             summary = "Créer un nouveau livreur",
-            description = "Permet à un Responsable Logistique de créer un nouveau livreur. " +
-                         "Un email d'invitation avec un code d'activation sera envoyé au livreur."
+            description = "Permet à un Responsable Logistique de créer un nouveau livreur (compte inactif jusqu'à activation par le livreur)."
     )
     @PostMapping("/drivers")
     public ResponseEntity<String> createDriver(@RequestBody @Valid RegisterDriverRequestDTO driverDTO) {
         logisticsManagerService.createDriver(driverDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Livreur créé avec succès. Un email d'invitation a été envoyé.");
+                .body("Livreur créé avec succès.");
     }
 
     // ============================================================================
@@ -464,10 +463,10 @@ public class LogisticsManagerController {
 
     @Operation(
             summary = "Calendrier planification (mois)",
-            description = "Vue globale : pour chaque jour du mois, nb commandes en attente (non planifiées) et nb commandes déjà planifiées."
+            description = "Vue globale : jours du mois (en attente / planifiées) + totalOverdueGlobal = toutes les commandes en retard non planifiées (toutes dates), aligné sur les commandes éligibles."
     )
     @GetMapping("/delivery-tours/planning-calendar")
-    public ResponseEntity<List<DeliveryPlanningCalendarDayDTO>> getPlanningCalendar(
+    public ResponseEntity<DeliveryPlanningCalendarResponseDTO> getPlanningCalendar(
             @RequestParam int year,
             @RequestParam int month) {
         return ResponseEntity.ok(logisticsManagerService.getDeliveryPlanningCalendar(year, month));

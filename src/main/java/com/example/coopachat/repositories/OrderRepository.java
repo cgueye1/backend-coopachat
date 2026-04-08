@@ -295,6 +295,23 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("end") LocalDate end);
 
     /**
+     * Toutes commandes en retard planifiables : EN_ATTENTE, sans tournée, date prévue strictement avant aujourd'hui,
+     * salarié lié à un utilisateur actif (aligné sur {@link #findEligibleOrdersForDate} pour cohérence avec l'écran lots).
+     */
+    @Query("""
+           SELECT COUNT(o) FROM Order o
+           JOIN o.employee e
+           JOIN e.user u
+           WHERE o.status = :status
+             AND o.deliveryTour IS NULL
+             AND o.deliveryDate < :today
+             AND u.isActive = true
+           """)
+    long countOverduePendingUnassigned(
+            @Param("status") OrderStatus status,
+            @Param("today") LocalDate today);
+
+    /**
      * Calendrier RL (mois) — commandes "planifiées" = assignées à un livreur (dans une tournée),
      * au sens "dans une tournée active" (statuts inclus dans :tourStatuses).
      * Groupées par date de livraison de la commande (Order.deliveryDate).

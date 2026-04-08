@@ -1567,7 +1567,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<DeliveryPlanningCalendarDayDTO> getDeliveryPlanningCalendar(int year, int month) {
+    public DeliveryPlanningCalendarResponseDTO getDeliveryPlanningCalendar(int year, int month) {
         /*
          * Objectif (vue globale RL)
          * - Construire un calendrier pour un mois donné.
@@ -1634,7 +1634,8 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
             long visiblePending = d.isBefore(today) ? 0L : rawPending;
             result.add(new DeliveryPlanningCalendarDayDTO(d.format(fmt), visiblePending, planned, overdue));
         }
-        return result;
+        long totalOverdueGlobal = orderRepository.countOverduePendingUnassigned(OrderStatus.EN_ATTENTE, today);
+        return new DeliveryPlanningCalendarResponseDTO(result, totalOverdueGlobal);
     }
 
     /** Filtre : date + EN_ATTENTE + employé actif + pas en tournée. Retourne les Order pour liste ou regroupement. */

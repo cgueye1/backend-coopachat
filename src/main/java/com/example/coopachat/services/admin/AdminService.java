@@ -239,6 +239,12 @@ public interface AdminService {
     void updateUserProfilePhoto(Long userId, MultipartFile file);
 
     /**
+     * Supprime la photo de profil d'un utilisateur (fichier MinIO + champ en base).
+     * Réservé à l'administrateur.
+     */
+    void removeUserProfilePhoto(Long userId);
+
+    /**
      * Met à jour la photo de profil de l'utilisateur connecté (salarié, livreur, admin).
      * Utilisé par PUT /api/users/me/profile-photo.
      */

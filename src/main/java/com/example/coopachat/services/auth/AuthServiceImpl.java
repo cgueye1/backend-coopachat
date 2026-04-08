@@ -2,7 +2,9 @@ package com.example.coopachat.services.auth;
 
 import com.example.coopachat.dtos.user.UserDetailsDTO;
 import com.example.coopachat.dtos.user.UserDto;
+import com.example.coopachat.dtos.user.UpdateMyProfileRequestDTO;
 import com.example.coopachat.dtos.auth.LoginResponseDTO;
+import com.example.coopachat.dtos.auth.ProfileUpdateResponseDTO;
 import com.example.coopachat.dtos.auth.RegisterMobileDTO;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Users;
@@ -16,6 +18,7 @@ import com.example.coopachat.exceptions.ResourceNotFoundException;
 import com.example.coopachat.repositories.ActivationCodeRepository;
 import com.example.coopachat.repositories.EmployeeRepository;
 import com.example.coopachat.repositories.UserRepository;
+import com.example.coopachat.services.admin.AdminService;
 import com.example.coopachat.services.user.UserReferenceGenerator;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
@@ -27,10 +30,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * Implémentation du service d'authentification
@@ -497,7 +503,67 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public UserDetailsDTO getCurrentUserProfile() {
+        return toUserDetailsDto(getCurrentUser());
+    }
+
+    @Override
+    @Transactional
+    public ProfileUpdateResponseDTO updateMyProfile(UpdateMyProfileRequestDTO dto) {
         Users u = getCurrentUser();
+        assertCommercialOrLogisticsManager(u);
+        Long id = u.getId();
+
+        if (dto.getFirstName() != null && !dto.getFirstName().isBlank()) {
+            u.setFirstName(dto.getFirstName().trim());
+        }
+        if (dto.getLastName() != null && !dto.getLastName().isBlank()) {
+            u.setLastName(dto.getLastName().trim());
+        }
+        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+            String email = dto.getEmail().trim().toLowerCase();
+            if (!EMAIL_PATTERN.matcher(email).matches()) {
+                throw new ValidationException("L'email n'est pas valide");
+            }
+            if (Boolean.TRUE.equals(userRepository.existsByEmailAndIdNot(email, id))) {
+                throw new RuntimeException("Cet email est déjà utilisé par un autre utilisateur");
+            }
+            u.setEmail(email);
+        }
+        if (dto.getPhoneNumber() != null) {
+            String phone = dto.getPhoneNumber().trim();
+            if (!phone.isEmpty()) {
+                if (!PHONE_PATTERN.matcher(phone).matches()) {
+                    throw new ValidationException("Le numéro de téléphone doit contenir entre 8 et 15 caractères");
+                }
+                if (Boolean.TRUE.equals(userRepository.existsByPhoneAndIdNot(phone, id))) {
+                    throw new RuntimeException("Ce numéro de téléphone est déjà utilisé par un autre utilisateur");
+                }
+                u.setPhone(phone);
+            }
+        }
+
+        userRepository.save(u);
+        UserDetailsDTO profile = toUserDetailsDto(u);
+        String accessToken = jwtService.generateToken(u.getEmail(), u.getRole().name(), u.getId());
+        log.info("Profil mis à jour (commercial / RL) pour l'utilisateur id={}", u.getId());
+        return new ProfileUpdateResponseDTO(profile, accessToken);
+    }
+
+    @Override
+    @Transactional
+    public void updateMyProfilePhoto(MultipartFile file) {
+        Users u = getCurrentUser();
+        assertCommercialOrLogisticsManager(u);
+        adminService.updateProfilePhotoForCurrentUser(file);
+    }
+
+    private static void assertCommercialOrLogisticsManager(Users u) {
+        if (u.getRole() != UserRole.COMMERCIAL && u.getRole() != UserRole.LOGISTICS_MANAGER) {
+            throw new RuntimeException("Seuls le commercial et le responsable logistique peuvent modifier leur profil via cette API");
+        }
+    }
+
+    private static UserDetailsDTO toUserDetailsDto(Users u) {
         UserDetailsDTO dto = new UserDetailsDTO();
         dto.setId(u.getId());
         dto.setRefUser(u.getRefUser());
