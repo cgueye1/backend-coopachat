@@ -105,6 +105,16 @@ public class AuthController {
         return ResponseEntity.ok("Photo de profil mise à jour");
     }
 
+    @Operation(
+            summary = "Supprimer ma photo de profil (commercial / responsable logistique)",
+            description = "Supprime le fichier stocké et remet profilePhotoUrl à null."
+    )
+    @DeleteMapping("/me/profile-photo")
+    public ResponseEntity<String> removeMyProfilePhoto() {
+        authService.removeMyProfilePhoto();
+        return ResponseEntity.ok("Photo de profil supprimée");
+    }
+
     // ============================================================================
     // 🔐 ACTIVATION DE COMPTE
     // ============================================================================

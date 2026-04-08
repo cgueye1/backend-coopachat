@@ -250,6 +250,11 @@ public interface AdminService {
      */
     void updateProfilePhotoForCurrentUser(MultipartFile file);
 
+    /**
+     * Supprime la photo de profil de l'utilisateur authentifié (même effet que {@link #removeUserProfilePhoto(Long)} sans être admin).
+     */
+    void removeProfilePhotoForCurrentUser();
+
     // ============================================================================
     // 📊 DASHBOARD ADMIN
     // ============================================================================
