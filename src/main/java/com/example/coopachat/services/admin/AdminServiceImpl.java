@@ -42,6 +42,7 @@ import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.PaymentStatus;
 import com.example.coopachat.enums.DeliveryTourStatus;
 import com.example.coopachat.enums.UserRole;
+import com.example.coopachat.exceptions.BadRequestBusinessException;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.DeliveryDriver.DriverNotificationService;
 import com.example.coopachat.services.auth.ActivationCodeService;
@@ -1068,8 +1069,10 @@ public class AdminServiceImpl implements AdminService {
         // Impossible d'activer un utilisateur qui n'a pas encore défini son mot de passe
         if (Boolean.TRUE.equals(dto.getIsActive())
                 && (u.getPassword() == null || u.getPassword().isBlank())) {
-            throw new RuntimeException("Impossible d'activer cet utilisateur : il n'a pas encore défini son mot de passe. "
-                    + "L'utilisateur doit d'abord compléter l'activation de son compte (code d'activation puis création du mot de passe).");
+            throw new BadRequestBusinessException(
+                    "Impossible d'activer ce compte : l'utilisateur n'a pas encore défini son mot de passe. "
+                            + "Il doit d'abord terminer son inscription (code d'activation reçu par e-mail, puis création du mot de passe). "
+                            + "Ensuite vous pourrez activer le compte depuis cet écran.");
         }
 
         u.setIsActive(dto.getIsActive());

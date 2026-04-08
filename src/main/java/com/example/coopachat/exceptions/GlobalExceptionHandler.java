@@ -80,6 +80,19 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.NOT_ACCEPTABLE);
     }
 
+    /** Règle métier : message affiché tel quel au client (400). */
+    @ExceptionHandler(BadRequestBusinessException.class)
+    public ResponseEntity<ErrorResponseDTO> handleBadRequestBusiness(BadRequestBusinessException ex) {
+        String message = ex.getMessage() != null ? ex.getMessage() : "Requête invalide";
+        ErrorResponseDTO error = new ErrorResponseDTO(
+                message,
+                null,
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value()
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
     // Gérer les erreurs de validation (@Valid)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponseDTO> handleValidationErrors(MethodArgumentNotValidException ex) {
@@ -122,7 +135,7 @@ public class GlobalExceptionHandler {
         String msg = ex.getMessage() != null ? ex.getMessage() : "Erreur inconnue";
         log.error("Erreur HTTP 500 (RuntimeException): {}", msg, ex);
         ErrorResponseDTO error = new ErrorResponseDTO(
-                "Une erreur inattendue s'est produite: " + msg,
+                msg,
                 null,
                 LocalDateTime.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
@@ -136,7 +149,7 @@ public class GlobalExceptionHandler {
         String msg = ex.getMessage() != null ? ex.getMessage() : "Erreur inconnue";
         log.error("Erreur HTTP 500 (Exception): {}", msg, ex);
         ErrorResponseDTO error = new ErrorResponseDTO(
-                "Une erreur inattendue s'est produite: " + msg,
+                msg,
                 null,
                 LocalDateTime.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
