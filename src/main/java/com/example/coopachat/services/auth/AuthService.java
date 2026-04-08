@@ -2,7 +2,10 @@ package com.example.coopachat.services.auth;
 
 import com.example.coopachat.dtos.user.UserDetailsDTO;
 import com.example.coopachat.dtos.user.UserDto;
+import com.example.coopachat.dtos.user.UpdateMyProfileRequestDTO;
 import com.example.coopachat.dtos.auth.LoginResponseDTO;
+import com.example.coopachat.dtos.auth.ProfileUpdateResponseDTO;
+import org.springframework.web.multipart.MultipartFile;
 import com.example.coopachat.dtos.auth.RegisterMobileDTO;
 import com.example.coopachat.enums.PasswordResetChannel;
 import com.example.coopachat.exceptions.EmailAlreadyExistsException;
@@ -122,5 +125,17 @@ public interface AuthService {
      * @throws RuntimeException si non authentifié
      */
     UserDetailsDTO getCurrentUserProfile();
+
+    /**
+     * Met à jour le profil de l'utilisateur connecté (prénom, nom, email, téléphone).
+     * Réservé au commercial et au responsable logistique. Retourne un nouveau JWT.
+     */
+    ProfileUpdateResponseDTO updateMyProfile(UpdateMyProfileRequestDTO dto);
+
+    /**
+     * Met à jour la photo de profil de l'utilisateur connecté.
+     * Réservé au commercial et au responsable logistique (mêmes règles que pour les autres rôles via AdminService).
+     */
+    void updateMyProfilePhoto(MultipartFile file);
 
 }

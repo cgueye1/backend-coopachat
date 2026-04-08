@@ -308,11 +308,12 @@ public interface LogisticsManagerService {
     List<AvailableDriverDTO> getAvailableDrivers(LocalDate deliveryDate, Long excludeTourId);
 
     /**
-     * Vue calendrier (mois) pour la planification : compte par jour des commandes en attente vs déjà planifiées.
+     * Vue calendrier (mois) pour la planification : compte par jour des commandes en attente vs déjà planifiées,
+     * plus {@code totalOverdueGlobal} (retards sur toutes les dates, pas limité au mois affiché).
      * @param year année (ex: 2026)
      * @param month mois (1-12)
      */
-    List<com.example.coopachat.dtos.delivery.DeliveryPlanningCalendarDayDTO> getDeliveryPlanningCalendar(int year, int month);
+    com.example.coopachat.dtos.delivery.DeliveryPlanningCalendarResponseDTO getDeliveryPlanningCalendar(int year, int month);
 
     /**
      * Crée une nouvelle tournée de livraison

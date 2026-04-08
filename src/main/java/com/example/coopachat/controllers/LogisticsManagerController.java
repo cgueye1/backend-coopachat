@@ -464,10 +464,10 @@ public class LogisticsManagerController {
 
     @Operation(
             summary = "Calendrier planification (mois)",
-            description = "Vue globale : pour chaque jour du mois, nb commandes en attente (non planifiées) et nb commandes déjà planifiées."
+            description = "Vue globale : jours du mois (en attente / planifiées) + totalOverdueGlobal = toutes les commandes en retard non planifiées (toutes dates), aligné sur les commandes éligibles."
     )
     @GetMapping("/delivery-tours/planning-calendar")
-    public ResponseEntity<List<DeliveryPlanningCalendarDayDTO>> getPlanningCalendar(
+    public ResponseEntity<DeliveryPlanningCalendarResponseDTO> getPlanningCalendar(
             @RequestParam int year,
             @RequestParam int month) {
         return ResponseEntity.ok(logisticsManagerService.getDeliveryPlanningCalendar(year, month));

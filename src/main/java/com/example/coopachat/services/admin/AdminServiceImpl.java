@@ -1141,6 +1141,28 @@ public class AdminServiceImpl implements AdminService {
         doUpdateUserProfilePhoto(currentUser.getId(), file);
     }
 
+    @Override
+    @Transactional
+    public void removeUserProfilePhoto(Long userId) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut retirer la photo de profil d'un utilisateur.");
+        }
+        Users u = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+        String oldPhoto = u.getProfilePhotoUrl();
+        if (oldPhoto != null && !oldPhoto.isBlank()) {
+            try {
+                minioService.deleteFile(oldPhoto);
+            } catch (Exception e) {
+                log.warn("Impossible de supprimer le fichier photo MinIO {}: {}", oldPhoto, e.getMessage());
+            }
+        }
+        u.setProfilePhotoUrl(null);
+        userRepository.save(u);
+        log.info("Photo de profil retirée pour l'utilisateur {}", u.getEmail());
+    }
+
     /**
      * Logique commune : validation image, suppression ancienne photo, upload, mise à jour en BDD.
      */

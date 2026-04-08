@@ -719,6 +719,20 @@ public class  AdminController {
     }
 
     @Operation(
+            summary = "Supprimer la photo de profil d'un utilisateur",
+            description = "Supprime le fichier stocké (MinIO) et remet le champ profilePhotoUrl à null. Réservé à l'administrateur."
+    )
+    @DeleteMapping("/users/{id}/profile-photo")
+    public ResponseEntity<String> removeUserProfilePhoto(@PathVariable Long id) {
+        try {
+            adminService.removeUserProfilePhoto(id);
+            return ResponseEntity.ok("Photo de profil supprimée");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @Operation(
             summary = "Modifier ma photo de profil (admin)",
             description = "Met à jour la photo de profil de l'administrateur connecté. Accepte multipart/form-data, partie 'file' (JPEG, PNG, GIF, WebP, max 5 Mo)."
     )

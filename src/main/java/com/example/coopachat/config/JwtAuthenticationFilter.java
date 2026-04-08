@@ -160,7 +160,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // — /api/auth/me : nécessite le token (profil connecté, tous rôles) — ne PAS traiter comme public
         if (path.startsWith("/api/auth/")
                 && !path.equals("/api/auth/logout")
-                && !path.equals("/api/auth/me")) {
+                && !path.equals("/api/auth/me")
+                && !path.startsWith("/api/auth/me/")) {
             return true;
         }
 

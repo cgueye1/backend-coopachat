@@ -2,6 +2,7 @@ package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.user.UserDetailsDTO;
 import com.example.coopachat.dtos.user.UserDto;
+import com.example.coopachat.dtos.user.UpdateMyProfileRequestDTO;
 import com.example.coopachat.dtos.auth.*;
 import com.example.coopachat.enums.PasswordResetChannel;
 import com.example.coopachat.services.auth.AuthService;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Contrôleur pour la gestion de l'authentification
@@ -80,6 +82,27 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<UserDetailsDTO> getCurrentUserProfile() {
         return ResponseEntity.ok(authService.getCurrentUserProfile());
+    }
+
+    @Operation(
+            summary = "Modifier mon profil (commercial / responsable logistique)",
+            description = "Met à jour prénom, nom, email et/ou téléphone pour l'utilisateur connecté. " +
+                    "Champs absents ou vides : inchangés. Un nouveau JWT est renvoyé (à utiliser si l'email a changé). " +
+                    "Email et téléphone doivent rester uniques."
+    )
+    @PutMapping("/me")
+    public ResponseEntity<ProfileUpdateResponseDTO> updateMyProfile(@RequestBody UpdateMyProfileRequestDTO body) {
+        return ResponseEntity.ok(authService.updateMyProfile(body));
+    }
+
+    @Operation(
+            summary = "Modifier ma photo de profil (commercial / responsable logistique)",
+            description = "Upload multipart, partie 'file' (JPEG, PNG, GIF, WebP, max 5 Mo)."
+    )
+    @PutMapping(value = "/me/profile-photo", consumes = "multipart/form-data")
+    public ResponseEntity<String> updateMyProfilePhoto(@RequestParam("file") MultipartFile file) {
+        authService.updateMyProfilePhoto(file);
+        return ResponseEntity.ok("Photo de profil mise à jour");
     }
 
     // ============================================================================
