@@ -1,4 +1,10 @@
 <div class="flex flex-col min-h-screen bg-[#F9FAFB]">
+  <!-- Modal « Mon compte » : rendu ici (hors du aside avec transform) pour un overlay plein écran -->
+  <ng-container *ngIf="myAccountState$ | async as acc">
+    <app-user-profile-detail-modal [visible]="acc.visible" [user]="acc.user" variant="self"
+      [allowSelfEdit]="acc.allowSelfEdit" (closed)="onMyAccountModalClosed()" (modify)="onMyAccountModalModify()" />
+  </ng-container>
+
   <!-- Sidebar : on passe le role à la sidebar -->
   <app-sidebar class="lg:fixed lg:top-0 lg:left-0 lg:h-full" [role]="normalizedRole" [isOpen]="isSidebarOpen"
     (closeSidebar)="closeSidebar()"></app-sidebar>

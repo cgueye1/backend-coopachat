@@ -312,7 +312,7 @@
                         </div>
                         <button type="button"
                             class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                            (click)="showCalendarQuickPlan = false; selectedCalendarDay = null">
+                            (click)="dismissCalendarQuickPlan()">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
@@ -326,12 +326,18 @@
                                 <div class="text-xl font-semibold text-[#2B3674]">{{ selectedCalendarDay.pendingOrders }}</div>
                             </div>
                             <div class="rounded-xl bg-[#F4F7FE] border border-[#E6ECFF] p-4">
-                                <div class="text-xs text-[#2B3674]">Total commandes</div>
-                                <div class="text-xl font-semibold text-[#2B3674]">{{ selectedTotalOrdersForPlanning }}</div>
+                                <div class="text-xs text-[#2B3674]">Total commandes (éligibles)</div>
+                                <div class="text-xl font-semibold text-[#2B3674] min-h-[1.75rem] flex items-center">
+                                    <span *ngIf="loadingEligibleOrdersCount" class="inline-block w-6 h-6 border-2 border-[#2B3674]/30 border-t-[#2B3674] rounded-full animate-spin shrink-0" aria-hidden="true"></span>
+                                    <span *ngIf="!loadingEligibleOrdersCount">{{ displayTotalOrdersForPlanning }}</span>
+                                </div>
                             </div>
                             <div class="rounded-xl bg-white border border-gray-100 p-4">
                                 <div class="text-xs text-gray-500">Tournées à créer</div>
-                                <div class="text-xl font-semibold text-[#2B3674]">{{ toursToCreate }}</div>
+                                <div class="text-xl font-semibold text-[#2B3674] min-h-[1.75rem] flex items-center">
+                                    <span *ngIf="loadingEligibleOrdersCount" class="inline-block w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin shrink-0" aria-hidden="true"></span>
+                                    <span *ngIf="!loadingEligibleOrdersCount">{{ toursToCreate }}</span>
+                                </div>
                             </div>
                         </div>
 

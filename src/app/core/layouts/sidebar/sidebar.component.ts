@@ -3,7 +3,12 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Router, NavigationEnd, RouterModule } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../shared/services/auth.service';
+import { AdminService } from '../../../shared/services/admin.service';
 import { environment } from '../../../../environments/environment';
+import { MyAccountModalService } from '../../../shared/services/my-account-modal.service';
+import { mapUserDetailsToDisplay } from '../../../shared/models/user-display.mapper';
+import Swal from 'sweetalert2';
+import { HttpErrorResponse } from '@angular/common/http';
 
 type Role = 'log' | 'com' | 'admin' | 'commercial';
 
@@ -23,6 +28,8 @@ export class SidebarComponent implements OnChanges, OnInit {
   /** Sous-menu Offres (Codes promo / Promotions) ouvert ou non. */
   offresExpanded = true;
 
+  myAccountLoading = false;
+
   // Informations utilisateur affichées dans le profil
   displayName = 'Utilisateur';
   displayRoleLabel = 'Commercial';
@@ -32,8 +39,15 @@ export class SidebarComponent implements OnChanges, OnInit {
   constructor(
     private router: Router,
     private authService: AuthService,
+    private adminService: AdminService,
+    private myAccountModalService: MyAccountModalService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
+
+  /** True si la sidebar est en contexte admin (bouton Modifier → édition utilisateur). */
+  get allowSelfAccountEdit(): boolean {
+    return this.normalizeRole(this.role) === 'admin';
+  }
 
   /** Item sans enfants : lien direct. Item avec enfants : sous-menu (Offres). */
   private readonly menuItems: Array<{
@@ -143,8 +157,42 @@ export class SidebarComponent implements OnChanges, OnInit {
   }
 
   // Toggle user menu
-  toggleUserMenu() {
+  toggleUserMenu(event?: Event) {
+    event?.stopPropagation();
     this.userMenuOpen = !this.userMenuOpen;
+  }
+
+  openMyAccountModal(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    this.userMenuOpen = false;
+    const token = sessionStorage.getItem('token') || localStorage.getItem('token') || '';
+    if (!token) return;
+
+    this.myAccountLoading = true;
+    this.authService.getCurrentUserProfile().subscribe({
+      next: (profile) => {
+        const user = mapUserDetailsToDisplay(profile, (p) => this.adminService.getProfilePhotoUrl(p));
+        this.myAccountModalService.open(user, this.allowSelfAccountEdit);
+        this.myAccountLoading = false;
+      },
+      error: (err: unknown) => {
+        this.myAccountLoading = false;
+        const status = err instanceof HttpErrorResponse ? err.status : 0;
+        const title =
+          status === 403
+            ? 'Accès refusé'
+            : status === 401
+              ? 'Session expirée'
+              : 'Impossible de charger le profil';
+        const text =
+          status === 403
+            ? 'Le serveur a refusé l’accès à votre profil (403). Vérifiez que vous utilisez la bonne API (HTTPS) et que le compte a les droits attendus.'
+            : status === 401
+              ? 'Reconnectez-vous pour afficher votre compte.'
+              : 'Une erreur réseau ou serveur est survenue. Réessayez plus tard.';
+        Swal.fire({ title, text, icon: 'warning' });
+      },
+    });
   }
 
   toggleOffres() {

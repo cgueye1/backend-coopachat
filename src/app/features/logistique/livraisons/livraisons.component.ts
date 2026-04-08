@@ -2,7 +2,7 @@ import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
-import { LogisticsService, EligibleOrder, EligibleOrderLot, AvailableDriver, DeliveryTourListItem, DeliveryTourDetails, DeliveryPlanningCalendarDay, OrderInTour } from '../../../shared/services/logistics.service';
+import { LogisticsService, EligibleOrder, EligibleOrderLot, AvailableDriver, DeliveryTourListItem, DeliveryTourDetails, DeliveryPlanningCalendarDay, DeliveryPlanningCalendarResponse, OrderInTour } from '../../../shared/services/logistics.service';
 import { PAGE_SIZE_OPTIONS } from '../../../shared/constants/pagination';
 import { finalize } from 'rxjs';
 import Swal from 'sweetalert2';
@@ -333,10 +333,18 @@ export class LivraisonsComponent implements OnInit {
   calendarYear: number = new Date().getFullYear();
   calendarMonth: number = new Date().getMonth() + 1; // 1-12
   calendarDays: DeliveryPlanningCalendarDay[] = [];
+  /** Retards planifiables (toutes dates), renvoyé par l'API — pas limité au mois affiché. */
+  calendarTotalOverdueGlobal = 0;
   calendarLoading = false;
   selectedCalendarDay: DeliveryPlanningCalendarDay | null = null;
   /** Commandes par tournée (taille lot) saisie par le RL depuis le calendrier. */
   calendarLotSize: number = 2;
+  /**
+   * Total commandes éligibles pour la date sélectionnée (GET eligible-orders/count), même périmètre que « Voir les lots ».
+   * null pendant le chargement ou si l'appel échoue (le getter retombe alors sur le total calendrier).
+   */
+  selectedEligibleOrdersCount: number | null = null;
+  loadingEligibleOrdersCount = false;
   /** Étape du modal Planifier : 2 = lots, 3 = attribution. (Étape 1 = calendrier) */
   planifierStep: 2 | 3 = 2;
   showDetailModal = false;
@@ -488,6 +496,8 @@ export class LivraisonsComponent implements OnInit {
     if (clearSelection) {
       this.selectedCalendarDay = null;
       this.showCalendarQuickPlan = false;
+      this.selectedEligibleOrdersCount = null;
+      this.loadingEligibleOrdersCount = false;
     }
   }
 
@@ -518,13 +528,48 @@ export class LivraisonsComponent implements OnInit {
   loadPlanningCalendar() {
     this.calendarLoading = true;
     this.logistics.getPlanningCalendar(this.calendarYear, this.calendarMonth).subscribe({
-      next: (days) => {
-        this.calendarDays = days || [];
+      next: (res: DeliveryPlanningCalendarResponse | DeliveryPlanningCalendarDay[]) => {
+        if (Array.isArray(res)) {
+          this.calendarDays = res;
+          this.calendarTotalOverdueGlobal = (res || []).reduce(
+            (sum, d) => sum + (Number((d as DeliveryPlanningCalendarDay)?.overdueOrders) || 0),
+            0
+          );
+        } else {
+          this.calendarDays = res?.days || [];
+          this.calendarTotalOverdueGlobal = Number(res?.totalOverdueGlobal) || 0;
+        }
+        // Alignement strict avec la logique "éligible" (deliveryDate <= aujourd'hui) :
+        // on recalcule le "retard global" à partir du compteur éligible du jour - commandes du jour.
+        // (Ainsi, le badge "en retard" correspond au même périmètre que les lots.)
+        this.refreshOverdueFromEligibleCount();
         this.calendarLoading = false;
       },
       error: () => {
         this.calendarDays = [];
+        this.calendarTotalOverdueGlobal = 0;
         this.calendarLoading = false;
+      }
+    });
+  }
+
+  /** Recalcule les retards à partir du compteur éligible (today). */
+  private refreshOverdueFromEligibleCount(): void {
+    const todayIso = new Date().toISOString().slice(0, 10); // yyyy-MM-dd
+    const apiDate = this.toApiDate(todayIso); // dd-MM-yyyy
+    if (!apiDate) {
+      return;
+    }
+    const todayDay = this.calendarDays.find((d) => this.isCalendarDayToday(d));
+    const pendingToday = Number(todayDay?.pendingOrders) || 0;
+    this.logistics.getEligibleOrdersCount(apiDate).subscribe({
+      next: (n) => {
+        const eligibleToday = Number(n) || 0;
+        // eligibleToday inclut (retards + commandes du jour) → retards = eligibleToday - pendingToday
+        this.calendarTotalOverdueGlobal = Math.max(0, Math.floor(eligibleToday - pendingToday));
+      },
+      error: () => {
+        // En cas d'échec on garde la valeur renvoyée par l'API calendrier.
       }
     });
   }
@@ -570,26 +615,68 @@ export class LivraisonsComponent implements OnInit {
     }
     this.selectedCalendarDay = day;
     this.showCalendarQuickPlan = true;
+    this.refreshEligibleOrdersCountForSelectedDay();
+  }
+
+  /** Ferme le tiroir calendrier sans fermer la modale mois. */
+  dismissCalendarQuickPlan(): void {
+    this.showCalendarQuickPlan = false;
+    this.selectedCalendarDay = null;
+    this.selectedEligibleOrdersCount = null;
+    this.loadingEligibleOrdersCount = false;
+  }
+
+  /** Charge le décompte éligible (API) pour le jour sélectionné. */
+  private refreshEligibleOrdersCountForSelectedDay(): void {
+    const day = this.selectedCalendarDay;
+    this.selectedEligibleOrdersCount = null;
+    if (!day) {
+      this.loadingEligibleOrdersCount = false;
+      return;
+    }
+    const iso = this.calendarDayToIso(day);
+    const apiDate = iso ? this.toApiDate(iso) : '';
+    if (!apiDate) {
+      this.loadingEligibleOrdersCount = false;
+      return;
+    }
+    this.loadingEligibleOrdersCount = true;
+    this.logistics.getEligibleOrdersCount(apiDate).subscribe({
+      next: (n) => {
+        this.selectedEligibleOrdersCount = Number(n);
+        this.loadingEligibleOrdersCount = false;
+      },
+      error: () => {
+        this.selectedEligibleOrdersCount = null;
+        this.loadingEligibleOrdersCount = false;
+      }
+    });
+  }
+
+  /**
+   * Total affiché dans le panneau planification : priorité au décompte API (éligibles),
+   * sinon estimation à partir du calendrier (pending + retards pour aujourd'hui).
+   */
+  get displayTotalOrdersForPlanning(): number {
+    if (this.selectedEligibleOrdersCount != null && !Number.isNaN(this.selectedEligibleOrdersCount)) {
+      return Math.max(0, Math.floor(this.selectedEligibleOrdersCount));
+    }
+    return this.selectedTotalOrdersForPlanning;
   }
 
   /** Nb tournées à créer = ceil(total / commandesParTournee). */
   get toursToCreate(): number {
-    const total = this.selectedTotalOrdersForPlanning;
+    const total = this.displayTotalOrdersForPlanning;
     const size = Math.max(1, Math.floor(Number(this.calendarLotSize || 1)));
     return total > 0 ? Math.ceil(total / size) : 0;
   }
 
   /**
-   * Total des commandes en retard (mois affiché).
-   * - Si le backend envoie overdueOrders, on les somme.
-   * - Sinon (backend pas à jour), on déduit le retard en sommant les pendingOrders des jours passés.
+   * Total des commandes en retard planifiables (toutes dates), fourni par l'API (totalOverdueGlobal).
+   * Rétrocompat : si l'API renvoie encore un tableau seul, loadPlanningCalendar remplit calendarTotalOverdueGlobal via la somme des overdueOrders du mois.
    */
   get totalOverdueOrdersInView(): number {
-    return (this.calendarDays || []).reduce((sum, d) => {
-      const overdueFromApi = Number((d as any)?.overdueOrders) || 0;
-      if (overdueFromApi > 0) return sum + overdueFromApi;
-      return this.isCalendarDayPast(d) ? (sum + (Number(d?.pendingOrders) || 0)) : sum;
-    }, 0);
+    return Math.max(0, Math.floor(Number(this.calendarTotalOverdueGlobal) || 0));
   }
 
   /**

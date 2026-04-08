@@ -18,26 +18,14 @@ import {
   UserStatsByStatusItemDTO,
   UserDetailsDTO
 } from '../../../shared/services/admin.service';
+import { UserDisplay } from '../../../shared/models/user-display.model';
+import { mapUserDetailsToDisplay } from '../../../shared/models/user-display.mapper';
+import { UserProfileDetailModalComponent } from '../../../shared/components/user-profile-detail-modal/user-profile-detail-modal.component';
 
 interface MetricCard {
   title: string;
   value: string;
   icon: string;
-}
-
-/** Modèle d'affichage pour une ligne utilisateur / modal. */
-export interface UserDisplay {
-  id: number;
-  ref: string;
-  name: string;
-  initials: string;
-  email: string;
-  role: string;
-  createdAt: string;
-  status: 'Actif' | 'Inactif';
-  phone?: string;
-  /** URL complète de la photo de profil (affichage liste / modal). */
-  profilePhotoUrl?: string | null;
 }
 
 /** Map libellé rôle → enum backend pour le filtre. */
@@ -65,7 +53,7 @@ function formatDate(v: string | { day?: number; month?: number; year?: number } 
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [MainLayoutComponent, HeaderComponent, CommonModule, FormsModule, NgChartsModule],
+  imports: [MainLayoutComponent, HeaderComponent, CommonModule, FormsModule, NgChartsModule, UserProfileDetailModalComponent],
   templateUrl: './users.component.html',
   styles: ``
 })
@@ -302,23 +290,6 @@ export class UsersComponent implements OnInit {
     };
   }
 
-  private mapDetailsToDisplay(d: UserDetailsDTO): UserDisplay {
-    const name = `${d.firstName || ''} ${d.lastName || ''}`.trim() || d.email;
-    const initials = name.split(/\s+/).map(s => s[0]).join('').toUpperCase().slice(0, 2) || '?';
-    return {
-      id: d.id,
-      ref: d.refUser,
-      name,
-      initials,
-      email: d.email,
-      role: d.roleLabel,
-      createdAt: typeof d.createdAt === 'string' ? d.createdAt : formatDate(d.createdAt),
-      status: d.isActive ? 'Actif' : 'Inactif',
-      phone: d.phoneNumber ?? undefined,
-      profilePhotoUrl: this.adminService.getProfilePhotoUrl(d.profilePhotoUrl) ?? undefined
-    };
-  }
-
   loadStats() {
     this.adminService.getUsersStats().subscribe({
       next: (s: UserStatsDTO) => {
@@ -477,8 +448,8 @@ export class UsersComponent implements OnInit {
   viewUser(user: UserDisplay) {
     this.adminService.getUserById(user.id).subscribe({
       next: (d: UserDetailsDTO) => {
-        this.selectedUser = this.mapDetailsToDisplay(d);
-    this.showUserModal = true;
+        this.selectedUser = mapUserDetailsToDisplay(d, (p) => this.adminService.getProfilePhotoUrl(p));
+        this.showUserModal = true;
       },
       error: () => {}
     });
@@ -498,6 +469,12 @@ export class UsersComponent implements OnInit {
 
   annulerUser() {
       this.closeUserModal();
+  }
+
+  onUserModalToggleStatus(): void {
+    if (this.selectedUser) {
+      this.toggleUserStatus(this.selectedUser);
+    }
   }
 
   editUser(user: UserDisplay) {

@@ -116,8 +116,9 @@
                                     <input #photoInput type="file" accept="image/jpeg,image/png,image/jpg" (change)="onProfilePhotoChange($event)"
                                         class="block w-full text-xs text-[#6B7280] file:mr-2 file:py-1.5 file:px-2.5 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#2C2D5B] file:text-white file:cursor-pointer cursor-pointer" />
                                     <button *ngIf="profilePhotoPreview || currentProfilePhotoUrl" type="button" (click)="clearProfilePhoto(photoInput)"
-                                        class="text-xs text-[#6B7280] hover:text-[#2C2D5B] underline text-left">
-                                        Retirer la photo
+                                        [disabled]="removingPhoto"
+                                        class="text-xs text-[#6B7280] hover:text-[#2C2D5B] underline text-left disabled:opacity-50 disabled:pointer-events-none">
+                                        {{ removingPhoto ? 'Suppression…' : 'Retirer la photo' }}
                                     </button>
                                 </div>
                             </div>

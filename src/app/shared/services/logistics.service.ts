@@ -360,6 +360,12 @@ export class LogisticsService {
         return this.http.get<EligibleOrderLot[]>(`${this.apiUrl}/logistics/delivery-tours/eligible-orders/grouped`, { params });
     }
 
+    /** Nombre de commandes éligibles pour la date (même règles que grouped). Date au format dd-MM-yyyy */
+    getEligibleOrdersCount(deliveryDate: string): Observable<number> {
+        const params = new HttpParams().set('deliveryDate', deliveryDate);
+        return this.http.get<number>(`${this.apiUrl}/logistics/delivery-tours/eligible-orders/count`, { params });
+    }
+
     /**
      * Chauffeurs actifs. Avec deliveryDate (dd-MM-yyyy), exclut ceux ayant déjà une tournée assignée ou en cours ce jour.
      * excludeTourId : à la modification, ignorer cette tournée pour que le livreur actuel reste listé.
@@ -377,12 +383,14 @@ export class LogisticsService {
         });
     }
 
-    /** Calendrier de planification (mois) : nb commandes en attente / déjà planifiées par jour. */
-    getPlanningCalendar(year: number, month: number): Observable<DeliveryPlanningCalendarDay[]> {
+    /**
+     * Calendrier de planification (mois) : jours du mois + totalOverdueGlobal (retards sur toutes les dates, pas seulement le mois affiché).
+     */
+    getPlanningCalendar(year: number, month: number): Observable<DeliveryPlanningCalendarResponse> {
         let params = new HttpParams()
             .set('year', year.toString())
             .set('month', month.toString());
-        return this.http.get<DeliveryPlanningCalendarDay[]>(
+        return this.http.get<DeliveryPlanningCalendarResponse>(
             `${this.apiUrl}/logistics/delivery-tours/planning-calendar`,
             { params }
         );
@@ -755,6 +763,12 @@ export interface DeliveryPlanningCalendarDay {
     plannedOrders: number;
     /** Parmi les pendingOrders, celles dont la date est passée (date < aujourd'hui). */
     overdueOrders: number;
+}
+
+/** Réponse API planning-calendar : grille du mois + total retards global. */
+export interface DeliveryPlanningCalendarResponse {
+    days: DeliveryPlanningCalendarDay[];
+    totalOverdueGlobal: number;
 }
 
 /** Une commande dans la liste des commandes d'une tournée. */

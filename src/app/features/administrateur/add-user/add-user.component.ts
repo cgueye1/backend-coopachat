@@ -51,6 +51,8 @@ export class AddUserComponent implements OnInit {
     showRoleDropdown = false;
     editId: number | null = null;
     saving = false;
+    /** Appel DELETE photo en cours (édition utilisateur). */
+    removingPhoto = false;
 
     constructor(
         private router: Router,
@@ -111,11 +113,37 @@ export class AddUserComponent implements OnInit {
     }
 
     clearProfilePhoto(input?: HTMLInputElement): void {
-        if (this.profilePhotoPreview) {
-            URL.revokeObjectURL(this.profilePhotoPreview);
+        if (this.profilePhotoPreview || this.profilePhotoFile) {
+            if (this.profilePhotoPreview) {
+                URL.revokeObjectURL(this.profilePhotoPreview);
+            }
+            this.profilePhotoFile = null;
+            this.profilePhotoPreview = null;
+            if (input) input.value = '';
+            return;
         }
-        this.profilePhotoFile = null;
-        this.profilePhotoPreview = null;
+        if (this.editId != null && this.currentProfilePhotoUrl) {
+            this.removingPhoto = true;
+            this.adminService.deleteUserProfilePhoto(this.editId).subscribe({
+                next: () => {
+                    this.removingPhoto = false;
+                    this.currentProfilePhotoUrl = null;
+                    if (input) input.value = '';
+                    Swal.fire({
+                        title: 'Photo retirée',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                },
+                error: (err: { error?: string }) => {
+                    this.removingPhoto = false;
+                    const msg = typeof err.error === 'string' ? err.error : 'Impossible de retirer la photo';
+                    Swal.fire({ title: 'Erreur', text: msg, icon: 'error', confirmButtonText: 'OK' });
+                }
+            });
+            return;
+        }
         if (input) input.value = '';
     }
 
@@ -200,7 +228,7 @@ export class AddUserComponent implements OnInit {
             }).subscribe({
                 next: () => {
                     this.saving = false;
-                    this.showSuccessMessage('Utilisateur créé avec succès. Un code d\'activation a été envoyé par email.');
+                    this.showSuccessMessage('Utilisateur créé avec succès.');
                 },
                 error: (err) => {
                     this.saving = false;

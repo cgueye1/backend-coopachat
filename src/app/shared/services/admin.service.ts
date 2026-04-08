@@ -292,6 +292,18 @@ export class AdminService {
     return this.http.put(`${this.apiUrl}/admin/users/${userId}/profile-photo`, form, { responseType: 'text' });
   }
 
+  /**
+   * Supprime la photo de profil (POST /admin/users/{id}/profile-photo/remove).
+   * POST évite les proxys qui ne relaient pas DELETE (erreur « Request method 'DELETE' is not supported »).
+   */
+  deleteUserProfilePhoto(userId: number): Observable<string> {
+    return this.http.post(
+      `${this.apiUrl}/admin/users/${userId}/profile-photo/remove`,
+      {},
+      { responseType: 'text' }
+    );
+  }
+
   /** Retourne l'URL complète pour afficher une photo de profil (ex. /api/files/profiles/xxx.jpg). */
   getProfilePhotoUrl(profilePhotoUrl: string | null | undefined): string | null {
     if (!profilePhotoUrl?.trim()) return null;
