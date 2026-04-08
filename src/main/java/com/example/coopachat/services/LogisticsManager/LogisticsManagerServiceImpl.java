@@ -2928,16 +2928,10 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     }
 
     /**
-     *
      * On commence avec une commande comme “graine” du lot → calcule le centre du lot → ajoute la commande restante la plus proche → recalcul du centre → répète jusqu’à remplir le lot.
-     * Les commandes sans lat/lng sont ignorées (adresse obligatoire à la commande prévue plus tard).
      *
-     * Exemple :
-     *   Orders = [O1, O2, O3, O4, O5]
-     *   LotSize = 3
-     *   Après regroupement :
-     *      Lot 1 = [O1, O2, O3]
-     *      Lot 2 = [O4, O5]
+     * Important : les commandes sans lat/lng ne doivent pas disparaître. Elles sont mises dans des lots fallback (taille max = lotSize)
+     * pour que le total des commandes éligibles corresponde au total affiché sur l'écran lots.
      */
     /** Jour de la semaine en anglais (MONDAY) → français (LUNDI) pour comparaison avec préférences stockées en français. */
     private static String dayOfWeekEnToFrench(String dayEn) {
@@ -2965,27 +2959,31 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 .sorted(Comparator.comparing(Order::getId))
                 .toList();
 
-        // Filtrer uniquement les commandes avec adresse principale et lat/lng
-        List<Order> remaining = new ArrayList<>(); // variable qui va garder ces commandes valides
+        // Séparer :
+        // - geoRemaining : commandes avec lat/lng (regroupement proximité)
+        // - noGeo : commandes sans lat/lng (lots fallback)
+        List<Order> geoRemaining = new ArrayList<>();
+        List<Order> noGeo = new ArrayList<>();
         for (Order o : sorted) {
             Address addr = getPrimaryAddress(o.getEmployee());
             if (addr != null && addr.getLatitude() != null && addr.getLongitude() != null) {
-                remaining.add(o);
+                geoRemaining.add(o);
+            } else {
+                noGeo.add(o);
             }
         }
-        // Exemple : remaining = [O1, O2, O3, O4, O5] si toutes ont lat/lng
 
         List<List<Order>> lots = new ArrayList<>(); // variable qui va stocker les lots
-        while (!remaining.isEmpty()) { // Tant qu'il reste des commandes à traiter
+        while (!geoRemaining.isEmpty()) { // Tant qu'il reste des commandes à traiter
 
             // --- Création d'un nouveau lot ---
             List<Order> lot = new ArrayList<>(); // nouveau lot vide
-            lot.add(remaining.remove(0)); // on prend la première commande comme "graine"
-            // Exemple : lot = [O1], remaining = [O2, O3, O4, O5]
+            lot.add(geoRemaining.remove(0)); // on prend la première commande comme "graine"
+            // Exemple : lot = [O1], geoRemaining = [O2, O3, O4, O5]
 
             // --- Remplissage du lot ---
             // Tant que le lot n'est pas plein et qu'il reste des commandes
-            while (lot.size() < lotSize && !remaining.isEmpty()) {
+            while (lot.size() < lotSize && !geoRemaining.isEmpty()) {
 
                 // --- Calcul du centre du lot ---
                 // Centre = moyenne des latitudes et longitudes des commandes dans le lot
@@ -3002,10 +3000,10 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                 // --- Chercher la commande la plus proche du centre ---
                 Order nearest = null;               // commande la plus proche
                 double minDist = Double.MAX_VALUE;  // distance minimale initiale
-                int nearestIndex = -1;              // index de la commande la plus proche dans 'remaining'
+                int nearestIndex = -1;              // index de la commande la plus proche dans 'geoRemaining'
 
-                for (int i = 0; i < remaining.size(); i++) {
-                    Order c = remaining.get(i); // commande courante
+                for (int i = 0; i < geoRemaining.size(); i++) {
+                    Order c = geoRemaining.get(i); // commande courante
                     Address a = getPrimaryAddress(c.getEmployee());
                     double d = GeoUtil.calculateDistanceKm(
                             centerLat, centerLng,
@@ -3017,21 +3015,25 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
                     }
                 }
 
-                lot.add(nearest);                 // Ajouter la commande la plus proche au lot
-                remaining.remove(nearestIndex);   // Retirer la commande de remaining
-                // Exemple : lot = [O1, O2], remaining = [O3, O4, O5] → après ajout O3 :
-                // lot = [O1, O2, O3], remaining = [O4, O5]
+                if (nearest == null || nearestIndex < 0) {
+                    break;
+                }
+
+                lot.add(nearest);                   // Ajouter la commande la plus proche au lot
+                geoRemaining.remove(nearestIndex);  // Retirer la commande de geoRemaining
             }
 
             lots.add(lot); // Ajouter le lot complet à la liste des lots
-            // Exemple après 1er lot : lots = [[O1, O2, O3]], remaining = [O4, O5]
         }
 
-        // Exemple final pour lotSize = 3 :
-        // lots = [
-        //   [O1, O2, O3],
-        //   [O4, O5]
-        // ]
+        // Fallback : les commandes sans géolocalisation en lots simples (pour ne pas les perdre)
+        if (!noGeo.isEmpty()) {
+            for (int i = 0; i < noGeo.size(); i += lotSize) {
+                int end = Math.min(i + lotSize, noGeo.size());
+                lots.add(new ArrayList<>(noGeo.subList(i, end)));
+            }
+        }
+
         return lots;
     }
 

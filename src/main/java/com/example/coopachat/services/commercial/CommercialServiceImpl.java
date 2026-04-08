@@ -32,6 +32,7 @@ import com.example.coopachat.exceptions.EmailAlreadyExistsException;
 import com.example.coopachat.exceptions.PhoneAlreadyExistsException;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.auth.EmailService;
+import com.example.coopachat.services.Employee.EmployeeNotificationService;
 import com.example.coopachat.services.user.UserReferenceGenerator;
 import com.example.coopachat.services.minio.MinioService;
 import lombok.RequiredArgsConstructor;
@@ -76,6 +77,7 @@ public class CommercialServiceImpl implements CommercialService {
     private final OrderRepository orderRepository;
     private final MinioService minioService;
     private final EmailService emailService;
+    private final EmployeeNotificationService employeeNotificationService;
     private final UserReferenceGenerator userReferenceGenerator;
 
     // ============================================================================
@@ -573,18 +575,8 @@ public class CommercialServiceImpl implements CommercialService {
 
         employeeRepository.save(employeeEntity);
 
-        // Envoyer un email au salarié pour l'informer de son ajout (pas de code, il activera quand il voudra)
-        String prenom = employee.getFirstName() != null ? employee.getFirstName() : "";
-        String subject = "Votre compte salarié a été créé - " + company.getName();
-        String body = String.format(
-                "Bonjour %s,%n%nVous avez été ajouté à l'entreprise %s sur la plateforme Coop Achat.%n%n" +
-                "Votre compte a été créé par notre équipe commerciale. Vous pourrez l'activer quand vous le souhaitez " +
-                "en vous connectant à l'application et en demandant un code d'activation.%n%n" +
-                "Si vous avez des questions, n'hésitez pas à contacter votre entreprise.%n%n" +
-                "L'équipe Support Coop Achat",
-                prenom, company.getName()
-        );
-        emailService.sendEmail(employee.getEmail(), subject, body);
+        // Notifier le salarié par email (simple, sans code).
+        employeeNotificationService.notifyEmployeeAccountCreated(userSaved, company.getName(), commercial);
 
         log.info("Employé créé avec succès: {} (email: {}, code: {}) par le commercial {}. Email de notification envoyé.",
                 employee.getFirstName() + " " + employee.getLastName(), employee.getEmail(), employeeCode, commercial.getEmail());

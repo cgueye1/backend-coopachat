@@ -43,6 +43,7 @@ import com.example.coopachat.enums.PaymentStatus;
 import com.example.coopachat.enums.DeliveryTourStatus;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.repositories.*;
+import com.example.coopachat.services.DeliveryDriver.DriverNotificationService;
 import com.example.coopachat.services.auth.ActivationCodeService;
 import com.example.coopachat.services.auth.EmailService;
 import com.example.coopachat.services.user.UserReferenceGenerator;
@@ -97,6 +98,7 @@ public class AdminServiceImpl implements AdminService {
     private final FeeRepository feeRepository;
     private final ActivationCodeService activationCodeService;
     private final EmailService emailService;
+    private final DriverNotificationService driverNotificationService;
     private final MinioService minioService;
     private final DeliveryDriverRepository deliveryDriverRepository;
     private final OrderRepository orderRepository;
@@ -838,7 +840,8 @@ public class AdminServiceImpl implements AdminService {
                 driver.setUser(savedUser);
                 driver.setCreatedBy(admin);
                 deliveryDriverRepository.save(driver);
-                //les liveurs on les envoie de code d'activation que lorsqu'ils souhaitent activer leurs comptes
+                // Email simple : informer le livreur qu'il a été ajouté (sans code).
+                driverNotificationService.notifyDriverAccountCreated(savedUser);
             }
             case COMMERCIAL, LOGISTICS_MANAGER, ADMINISTRATOR -> {
                 String code = activationCodeService.generateAndStoreCode(dto.getEmail());
