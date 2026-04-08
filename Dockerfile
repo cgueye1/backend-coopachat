@@ -28,7 +28,8 @@ COPY src ./src
 # - clean      → supprime anciens fichiers compilés
 # - package    → génère le .jar
 # -DskipTests  → ne lance pas les tests (plus rapide)
-RUN mvn -q -DskipTests clean package
+# -B           → mode non interactif (CI) ; sans -q pour que les erreurs Maven s’affichent dans docker build
+RUN mvn -B -DskipTests clean package
 
 # Résultat : fichier .jar généré dans /app/target/
 # ═══════════════════════════════════
