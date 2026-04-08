@@ -47,7 +47,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     /**
      * Recherche paginée des commandes salariés avec filtres optionnels
        - Si search est null : ignore la recherche
-       - Si search a une valeur : recherche dans le numéro de commande OU le nom complet
+       - Si search a une valeur : numéro de commande, nom du salarié (prénom + nom) ou nom d'un produit (lignes commande)
        - Si status est null : ignore le filtre statut
        - Si status a une valeur : filtre par ce statut exact
        Résultats triés du plus récent au plus ancien.
@@ -56,7 +56,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @EntityGraph(attributePaths = {"items", "items.product", "employee", "employee.user", "deliveryOption"})
     @Query("SELECT DISTINCT o FROM Order o " +
             "WHERE (:search IS NULL OR LOWER(o.orderNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-            " CONCAT(LOWER(o.employee.user.firstName), ' ', LOWER(o.employee.user.lastName)) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            " CONCAT(LOWER(o.employee.user.firstName), ' ', LOWER(o.employee.user.lastName)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            " EXISTS (SELECT 1 FROM OrderItem oi WHERE oi.order = o AND oi.product IS NOT NULL AND " +
+            "   LOWER(oi.product.name) LIKE LOWER(CONCAT('%', :search, '%')))) " +
             "AND (:status IS NULL OR o.status = :status) " +
             "ORDER BY o.createdAt DESC")
     Page<Order> findEmployeeOrders(
@@ -330,6 +332,21 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     long countOverduePendingUnassigned(
             @Param("status") OrderStatus status,
             @Param("today") LocalDate today);
+
+    /**
+     * Commandes EN_ATTENTE non planifiées (sans tournée) dont le salarié est actif — même périmètre que
+     * {@link #findEligibleOrdersForDate} / {@link #countEligibleOrdersForPlanningDate} (hors filtre sur la date).
+     * Utilisé pour le KPI « commandes en attente » RL, aligné sur la planification.
+     */
+    @Query("""
+           SELECT COUNT(o) FROM Order o
+           JOIN o.employee e
+           JOIN e.user u
+           WHERE o.status = :status
+             AND o.deliveryTour IS NULL
+             AND u.isActive = true
+           """)
+    long countPendingUnassignedActiveEmployee(@Param("status") OrderStatus status);
 
     /**
      * Calendrier RL (mois) — commandes "planifiées" = assignées à un livreur (dans une tournée),
