@@ -118,6 +118,23 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("status") OrderStatus status);
 
     /**
+     * Nombre de commandes éligibles pour la planification à la date donnée :
+     * {@code deliveryDate <= :deliveryDate}, EN_ATTENTE, sans tournée, employé actif (identique à {@link #findEligibleOrdersForDate}).
+     */
+    @Query("""
+           SELECT COUNT(o) FROM Order o
+           JOIN o.employee e
+           JOIN e.user u
+           WHERE o.deliveryDate <= :deliveryDate
+             AND o.status = :status
+             AND o.deliveryTour IS NULL
+             AND u.isActive = true
+           """)
+    long countEligibleOrdersForPlanningDate(
+            @Param("deliveryDate") LocalDate deliveryDate,
+            @Param("status") OrderStatus status);
+
+    /**
      * Détail complet pour le livreur : commande LIVREE appartenant au livreur (via tournée),
      * avec chargement eager de employee+user, items+product et payment pour éviter LazyInitialization.
      */
@@ -278,15 +295,18 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     long countByStatusAndDeliveryDate(OrderStatus status, LocalDate deliveryDate);
 
     /**
-     * Calendrier RL (mois) — commandes EN_ATTENTE non planifiées, groupées par deliveryDate.
-     * Retour : lignes (LocalDate deliveryDate, long count).
+     * Calendrier RL (mois) — commandes éligibles (même périmètre que {@link #findEligibleOrdersForDate}),
+     * groupées par {@code deliveryDate}. Retour : lignes (LocalDate deliveryDate, long count).
      */
     @Query("""
            SELECT o.deliveryDate, COUNT(o)
            FROM Order o
+           JOIN o.employee e
+           JOIN e.user u
            WHERE o.status = :status
              AND o.deliveryTour IS NULL
              AND o.deliveryDate BETWEEN :start AND :end
+             AND u.isActive = true
            GROUP BY o.deliveryDate
            """)
     List<Object[]> countPendingOrdersByDeliveryDateBetween(
