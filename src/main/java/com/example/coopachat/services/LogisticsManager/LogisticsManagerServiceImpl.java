@@ -1169,6 +1169,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // 📦 GESTION DES COMMANDES SALARIÉS
     // ============================================================================
     @Override
+    @Transactional(readOnly = true)
     public OrderEmployeeListResponseDTO getAllEmployeeOrders(int page, int size, String search, OrderStatus status) {
 
         // Récupérer l'utilisateur connecté

@@ -21,18 +21,21 @@ public interface ClaimRepository extends JpaRepository<Claim, Long> {
 
     /**
      * Liste paginée des réclamations pour le responsable logistique (gestion des retours).
-     * - search : optionnel, recherche par numéro de commande (référence) ou nom du client (prénom + nom)
+     * - search : optionnel, recherche par numéro de commande, nom du client (prénom + nom) ou nom du produit (ligne concernée)
      * - status : optionnel, filtre par statut (En attente, Validé, Rejeté)
      * Tri : du plus récent au plus ancien (createdAt DESC).
      *
      */
-    @Query("SELECT c FROM Claim c " +
+    @Query("SELECT DISTINCT c FROM Claim c " +
             "JOIN c.order o " +
             "JOIN c.employee e " +
             "JOIN e.user u " +
+            "LEFT JOIN c.orderItem oi " +
+            "LEFT JOIN oi.product p " +
             "WHERE (:search IS NULL OR :search = '' OR " +
             "      LOWER(o.orderNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-            "      LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "      LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "      (p IS NOT NULL AND LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')))) " +
             "AND (:status IS NULL OR c.status = :status) " +
             "ORDER BY c.createdAt DESC")
     Page<Claim> findAllWithFilters(@Param("search") String search,
