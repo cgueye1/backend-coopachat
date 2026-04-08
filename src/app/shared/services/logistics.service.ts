@@ -495,7 +495,7 @@ export class LogisticsService {
         return this.http.get<ClaimStats>(`${this.apiUrl}/logistics/claims/stats`);
     }
 
-    /** Liste paginée des réclamations (retours). search = référence ou client, status = EN_ATTENTE | VALIDE | REJETE */
+    /** Liste paginée des réclamations (retours). search = référence, client ou nom de produit, status = EN_ATTENTE | VALIDE | REJETE */
     getClaims(
         page: number,
         size: number,
@@ -554,7 +554,7 @@ export class LogisticsService {
 
     // ----------- Tableau de bord RL -----------
 
-    /** KPIs : commandes en attente, en retard, tournées actives, livrées ce mois. */
+    /** KPIs RL : en attente / en retard alignés sur la planification (salarié actif, sans tournée) ; tournées actives ; livrées ce mois. */
     getDashboardKpis(): Observable<RLDashboardKpis> {
         return this.http.get<RLDashboardKpis>(`${this.apiUrl}/logistics/dashboard/kpis`);
     }

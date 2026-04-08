@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
@@ -10,7 +10,7 @@ import {
   ClaimListResponse,
 } from '../../../shared/services/logistics.service';
 import { environment } from '../../../../environments/environment';
-import { finalize } from 'rxjs';
+import { debounceTime, finalize, Subject, takeUntil } from 'rxjs';
 import Swal from 'sweetalert2';
 
 interface Metric {
@@ -26,8 +26,12 @@ interface Metric {
   templateUrl: './gestion-retours.component.html',
   styles: []
 })
-export class GestionRetoursComponent {
+export class GestionRetoursComponent implements OnInit, OnDestroy {
   searchText = '';
+
+  private readonly destroy$ = new Subject<void>();
+  private readonly searchTrigger$ = new Subject<void>();
+
   selectedStatus = 'Tous les status';
   showStatusDropdown = false;
   currentPage = 1;
@@ -73,9 +77,27 @@ export class GestionRetoursComponent {
     { label: 'Rejeté', value: 'REJETE' }
   ];
 
-  constructor(private logisticsService: LogisticsService) {
+  constructor(private logisticsService: LogisticsService) {}
+
+  ngOnInit(): void {
+    this.searchTrigger$
+      .pipe(debounceTime(400), takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.currentPage = 1;
+        this.loadClaims();
+      });
     this.loadStats();
     this.loadClaims();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /** Relance la liste après saisie (debounce), sans bouton « Rechercher ». */
+  onSearchTextChange(): void {
+    this.searchTrigger$.next();
   }
 
   get content(): ClaimListItem[] {

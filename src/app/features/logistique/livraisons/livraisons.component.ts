@@ -539,6 +539,7 @@ export class LivraisonsComponent implements OnInit {
           this.calendarDays = res?.days || [];
           this.calendarTotalOverdueGlobal = Number(res?.totalOverdueGlobal) || 0;
         }
+        this.resyncCalendarSelectionAfterReload();
         // Alignement strict avec la logique "éligible" (deliveryDate <= aujourd'hui) :
         // on recalcule le "retard global" à partir du compteur éligible du jour - commandes du jour.
         // (Ainsi, le badge "en retard" correspond au même périmètre que les lots.)
@@ -551,6 +552,22 @@ export class LivraisonsComponent implements OnInit {
         this.calendarLoading = false;
       }
     });
+  }
+
+  /**
+   * Après rechargement du calendrier, réattache le jour sélectionné au nouvel objet du mois
+   * (sinon les compteurs affichés restent ceux de l’ancienne référence).
+   */
+  private resyncCalendarSelectionAfterReload(): void {
+    if (!this.selectedCalendarDay?.date) {
+      return;
+    }
+    const key = this.selectedCalendarDay.date;
+    const updated = this.calendarDays.find((d) => d.date === key);
+    if (updated) {
+      this.selectedCalendarDay = updated;
+      this.refreshEligibleOrdersCountForSelectedDay();
+    }
   }
 
   /** Recalcule les retards à partir du compteur éligible (today). */
@@ -1521,6 +1538,7 @@ export class LivraisonsComponent implements OnInit {
           this.closeDetailModal();
           this.loadDeliveryTours();
           this.loadDeliveryTourStats();
+          this.loadPlanningCalendar();
         },
         error: (err: unknown) => {
           const msg = (err as { error?: { message?: string }; message?: string })?.error?.message
@@ -1773,6 +1791,7 @@ export class LivraisonsComponent implements OnInit {
           this.showEditSuccessMessage();
           this.loadDeliveryTours();
           this.loadDeliveryTourStats();
+          this.loadPlanningCalendar();
         },
         error: (err: unknown) => {
           const e = err as { error?: { message?: string } | string; message?: string };

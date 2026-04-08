@@ -410,9 +410,22 @@ export class CatalogueComponent implements OnInit, OnDestroy {
         const nextStatus = product.status === 'Actif' ? false : true;
         this.productService.updateProductStatus(product.id, nextStatus).subscribe({
           next: () => {
-            product.status = nextStatus ? 'Actif' : 'Inactif';
+            const newLabel: 'Actif' | 'Inactif' = nextStatus ? 'Actif' : 'Inactif';
+
+            // Mettre à jour l'objet courant (modale) + la ligne liste si elle existe,
+            // puis recharger la liste (important si un filtre Actif/Inactif est appliqué).
+            product.status = newLabel;
+            if (this.selectedProduct?.id === product.id) {
+              this.selectedProduct.status = newLabel;
+            }
+            const row = this.products.find((p) => p.id === product.id);
+            if (row) {
+              row.status = newLabel;
+            }
+
             this.loadProductStats();
-            this.showToggleSuccessMessage(product.status);
+            this.loadProducts();
+            this.showToggleSuccessMessage(newLabel);
           },
           error: (error) => {
             console.error('Erreur lors de la mise à jour du statut:', error);

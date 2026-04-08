@@ -7,6 +7,7 @@ import { EmployeeModalComponent, EmployeeFormData, Company } from '../../../shar
 import { CommercialService } from '../../../shared/services/commercial.service';
 import { PAGE_SIZE_OPTIONS } from '../../../shared/constants/pagination';
 import { environment } from '../../../../environments/environment';
+import { HttpErrorResponse } from '@angular/common/http';
 import Swal from 'sweetalert2';
 
 // ==================================================
@@ -310,9 +311,16 @@ export class EmployeeManagementComponent implements OnInit {
             this.loadEmployeeStats();
             this.showToggleSuccessMessage(employee.statut);
           },
-          error: (error) => {
-            const msg = error?.error?.message || error?.message || 'Erreur lors de la mise à jour du statut.';
-            Swal.fire({ title: 'Erreur', text: msg, icon: 'error', confirmButtonText: 'OK' });
+          error: (err: unknown) => {
+            const msg =
+              this.extractApiErrorMessage(err)
+              || "Impossible de mettre à jour le statut pour le moment.";
+            Swal.fire({
+              title: 'Activation impossible',
+              text: msg,
+              icon: 'error',
+              confirmButtonText: 'OK'
+            });
           }
         });
       }
@@ -512,6 +520,47 @@ export class EmployeeManagementComponent implements OnInit {
     if (this.selectedStatusFilter === 'Actif') return true;
     if (this.selectedStatusFilter === 'Inactif') return false;
     return undefined;
+  }
+
+  /** Message backend lisible (évite d'afficher l'URL ou le JSON brut en cas d'erreur HTTP). */
+  private extractApiErrorMessage(err: unknown): string | null {
+    const httpErr = err as HttpErrorResponse | undefined;
+    const raw =
+      httpErr && typeof (httpErr as { error?: unknown }).error !== 'undefined'
+        ? (httpErr as { error?: unknown }).error
+        : null;
+
+    if (typeof raw === 'string') {
+      const t = raw.trim();
+      if (!t) return null;
+      if (t.startsWith('{') || t.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(t) as { message?: string; error?: string };
+          const m = (typeof parsed.message === 'string' ? parsed.message : '')
+            || (typeof parsed.error === 'string' ? parsed.error : '')
+            || '';
+          const tm = String(m).trim();
+          if (tm) return tm;
+        } catch {
+          /* ignore */
+        }
+      }
+      return t;
+    }
+
+    if (raw && typeof raw === 'object') {
+      const anyRaw = raw as { message?: string; error?: string };
+      const m =
+        (typeof anyRaw.message === 'string' ? anyRaw.message : '')
+        || (typeof anyRaw.error === 'string' ? anyRaw.error : '')
+        || '';
+      const out = String(m).trim();
+      return out ? out : null;
+    }
+
+    const statusText =
+      httpErr && typeof httpErr.statusText === 'string' ? httpErr.statusText.trim() : '';
+    return statusText ? statusText : null;
   }
 
   private showEmployeeSuccessMessage(isEdit: boolean): void {

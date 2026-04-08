@@ -321,6 +321,18 @@ export class FournisseurComponent {
       const desiredStatus = this.newCommande.statut;
       const apiStatus = this.mapStatusToApi(desiredStatus);
       const isPendingOrder = this.initialEditStatus === 'En attente';
+      const isDeliveredOrder = this.initialEditStatus === 'Livrée';
+
+      // Règle UX : une commande livrée est finale → on bloque tout changement de statut depuis l'UI.
+      if (isDeliveredOrder && desiredStatus !== 'Livrée') {
+        Swal.fire({
+          title: 'Modification impossible',
+          text: 'Cette commande est déjà livrée. Son statut ne peut plus être modifié.',
+          icon: 'warning',
+          confirmButtonText: 'OK'
+        });
+        return;
+      }
 
       // Si la commande n'est pas "En attente", on ne peut pas modifier les données (PUT) ; on peut seulement changer le statut (PATCH).
       if (!isPendingOrder) {

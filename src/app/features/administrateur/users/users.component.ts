@@ -21,6 +21,7 @@ import {
 import { UserDisplay } from '../../../shared/models/user-display.model';
 import { mapUserDetailsToDisplay } from '../../../shared/models/user-display.mapper';
 import { UserProfileDetailModalComponent } from '../../../shared/components/user-profile-detail-modal/user-profile-detail-modal.component';
+import { HttpErrorResponse } from '@angular/common/http';
 
 interface MetricCard {
   title: string;
@@ -507,9 +508,65 @@ export class UsersComponent implements OnInit {
           this.loadUsers();
           this.toggleLoadingId = null;
         },
-        error: () => { this.toggleLoadingId = null; }
+        error: (err: unknown) => {
+          this.toggleLoadingId = null;
+          const msg = this.extractApiErrorMessage(err)
+            || "Impossible d'effectuer cette action pour le moment.";
+          Swal.fire({
+            title: 'Activation impossible',
+            text: msg,
+            icon: 'error'
+          });
+        }
       });
     });
+  }
+
+  /** Extrait un message backend (texte) depuis une erreur HTTP Angular. */
+  private extractApiErrorMessage(err: unknown): string | null {
+    // Angular HttpClient: err est souvent HttpErrorResponse
+    const httpErr = err as HttpErrorResponse | undefined;
+    const raw = (httpErr && typeof (httpErr as any).error !== 'undefined') ? (httpErr as any).error : null;
+
+    // Cas 1: backend renvoie du texte (responseType text) => raw est string
+    if (typeof raw === 'string') {
+      const t = raw.trim();
+      if (!t) return null;
+
+      // Parfois l'API renvoie un JSON stringifié (ex: {"message":"...","status":500,...})
+      // → on tente de parser pour ne garder que "message".
+      if (t.startsWith('{') || t.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(t);
+          if (parsed && typeof parsed === 'object') {
+            const anyParsed = parsed as any;
+            const m = (typeof anyParsed.message === 'string' ? anyParsed.message : '')
+              || (typeof anyParsed.error === 'string' ? anyParsed.error : '')
+              || '';
+            const tm = String(m).trim();
+            if (tm) return tm;
+          }
+        } catch {
+          // ignore JSON parse errors → fallback to raw string below
+        }
+      }
+
+      return t;
+    }
+
+    // Cas 2: backend renvoie JSON {message: "..."} ou {error: "..."}
+    if (raw && typeof raw === 'object') {
+      const anyRaw = raw as any;
+      const m = (typeof anyRaw.message === 'string' ? anyRaw.message : '')
+        || (typeof anyRaw.error === 'string' ? anyRaw.error : '')
+        || '';
+      const t = String(m).trim();
+      return t ? t : null;
+    }
+
+    // Cas 3: fallback sur statusText
+    const statusText = (httpErr && typeof httpErr.statusText === 'string') ? httpErr.statusText.trim() : '';
+    return statusText ? statusText : null;
   }
 
   previousPage() {

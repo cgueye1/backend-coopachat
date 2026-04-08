@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
@@ -230,6 +230,25 @@ export class GestionStockComponent implements OnInit {
   toggleStatusDropdown() {
     this.showStatusDropdown = !this.showStatusDropdown;
     this.showCategoryDropdown = false;
+  }
+
+  /** Ferme les dropdowns quand on clique en dehors. */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    // On ne ferme pas si on clique dans un bloc marqué dropdown (bouton + menu).
+    if (target.closest('[data-category-dropdown]')) {
+      return;
+    }
+    if (target.closest('[data-status-dropdown]')) {
+      return;
+    }
+
+    this.showCategoryDropdown = false;
+    this.showStatusDropdown = false;
+    this.showOrderStatusDropdown = false;
   }
 
   selectCategory(category: string) {

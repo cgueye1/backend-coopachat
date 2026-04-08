@@ -146,7 +146,7 @@
                                                 fill="#4B4848" />
                                         </svg>
                                     </button>
-                                    <button
+                                    <button *ngIf="commande.statut !== 'Livrée'"
                                         class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100 flex-1"
                                         (click)="editCommande(commande.id)">
                                         <svg width="15" height="15" viewBox="0 0 15 15" fill="none"
@@ -204,7 +204,7 @@
                                                         fill="#4B4848" />
                                                 </svg>
                                             </button>
-                                            <button
+                                            <button *ngIf="commande.statut !== 'Livrée'"
                                                 class="text-gray-400 hover:text-[#2B3674] transition-colors p-2 rounded-lg hover:bg-gray-100"
                                                 (click)="editCommande(commande.id)">
                                                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none"
@@ -330,6 +330,7 @@
                     <div class="space-y-2 px-1 sm:px-2" *ngIf="isEditMode">
                         <label class="text-[15px] font-medium text-gray-700">Statut</label>
                         <select [(ngModel)]="newCommande.statut"
+                            [disabled]="initialEditStatus === 'Livrée'"
                             class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-gray-600 appearance-none bg-white">
                             <option value="En attente">En attente</option>
                             <option value="En cours">En cours</option>

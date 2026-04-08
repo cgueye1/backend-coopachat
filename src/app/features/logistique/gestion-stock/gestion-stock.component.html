@@ -94,7 +94,7 @@
                 </div>
                 <div class="flex flex-col gap-2 sm:flex-row sm:gap-3">
                     <!-- Category Filter (Suivi) -->
-                    <div class="relative" *ngIf="activeTab === 'suivi' || activeTab === 'alertes'">
+                    <div class="relative" *ngIf="activeTab === 'suivi' || activeTab === 'alertes'" data-category-dropdown>
                         <button (click)="toggleCategoryDropdown()"
                             class="px-3 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
                             <svg width="20" height="21" viewBox="0 0 20 21" fill="none"
@@ -119,7 +119,7 @@
                     <!-- Tab 'achats' et ses filtres supprimés -->
 
                     <!-- Status Filter (Suivi) -->
-                    <div class="relative" *ngIf="activeTab === 'suivi'">
+                    <div class="relative" *ngIf="activeTab === 'suivi'" data-status-dropdown>
                         <button (click)="toggleStatusDropdown()"
                             class="px-3 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-2 bg-white transition-colors">
                             <svg width="20" height="21" viewBox="0 0 20 21" fill="none"

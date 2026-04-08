@@ -379,7 +379,7 @@ export class GestionCommandesComponent implements AfterViewInit {
       'En attente': 'EN_ATTENTE',
       'Validée': 'VALIDEE',
       'En préparation': 'EN_PREPARATION',
-      'En cours': 'EN_COURS_DE_LIVRAISON',
+      'En cours': 'EN_COURS',
       'Livrée': 'LIVREE',
       'Échec': 'ECHEC_LIVRAISON',
       'Annulée': 'ANNULEE'
