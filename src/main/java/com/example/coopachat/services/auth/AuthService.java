@@ -138,4 +138,9 @@ public interface AuthService {
      */
     void updateMyProfilePhoto(MultipartFile file);
 
+    /**
+     * Supprime la photo de profil de l'utilisateur connecté (commercial / responsable logistique).
+     */
+    void removeMyProfilePhoto();
+
 }

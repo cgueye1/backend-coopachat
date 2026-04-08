@@ -565,6 +565,14 @@ public class AuthServiceImpl implements AuthService {
         adminService.updateProfilePhotoForCurrentUser(file);
     }
 
+    @Override
+    @Transactional
+    public void removeMyProfilePhoto() {
+        Users u = getCurrentUser();
+        assertCommercialOrLogisticsManager(u);
+        adminService.removeProfilePhotoForCurrentUser();
+    }
+
     private static void assertCommercialOrLogisticsManager(Users u) {
         if (u.getRole() != UserRole.COMMERCIAL && u.getRole() != UserRole.LOGISTICS_MANAGER) {
             throw new RuntimeException("Seuls le commercial et le responsable logistique peuvent modifier leur profil via cette API");

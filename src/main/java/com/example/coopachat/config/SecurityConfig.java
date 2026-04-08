@@ -67,6 +67,7 @@ public class SecurityConfig {
                         // PUT /api/auth/me* : profil commercial / RL (JWT + rôle)
                         .requestMatchers(HttpMethod.PUT, "/api/auth/me").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER")
                         .requestMatchers(HttpMethod.PUT, "/api/auth/me/profile-photo").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/auth/me/profile-photo").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER")
 
                         // GET /api/auth/me : « Mon compte » — JWT obligatoire, tous les rôles (géré par AuthController + AuthService)
                         .requestMatchers("/api/auth/me").authenticated()

@@ -1154,6 +1154,17 @@ public class AdminServiceImpl implements AdminService {
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
             throw new RuntimeException("Seul un administrateur peut retirer la photo de profil d'un utilisateur.");
         }
+        doRemoveProfilePhotoForUserId(userId);
+    }
+
+    @Override
+    @Transactional
+    public void removeProfilePhotoForCurrentUser() {
+        Users u = getCurrentUser();
+        doRemoveProfilePhotoForUserId(u.getId());
+    }
+
+    private void doRemoveProfilePhotoForUserId(Long userId) {
         Users u = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
         String oldPhoto = u.getProfilePhotoUrl();
