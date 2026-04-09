@@ -2,11 +2,9 @@ package com.example.coopachat.repositories;
 
 import com.example.coopachat.entities.Company;
 import com.example.coopachat.entities.Employee;
-import com.example.coopachat.entities.OrderItem;
 import com.example.coopachat.entities.Users;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -73,94 +71,30 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     // ============================================================================
     // 🔍 MÉTHODES DE RECHERCHE ET FILTRES
+    // Liste salariés par entreprise (GET commercial /employees), sans filtre createdBy.
     // ============================================================================
 
     /**
-     * Récupère toutes les employés créés par un commercial avec pagination
-     *
-     * @param commercial Le commercial
-     * @param pageable Les paramètres de pagination (page, size)
-     * @return Page des employés du commercial
+     * Salariés d'une entreprise (pagination).
      */
-    Page<Employee> findByCreatedBy(Users commercial, Pageable pageable);
-    /**
-     * Récupère les employés d'un commercial avec recherche par prénom ou nom (pagination)
-     *
-     * @param commercial Le commercial
-     * @param firstName Le terme de recherche pour le prénom (recherche partielle insensible à la casse)
-     * @param lastName Le terme de recherche pour le nom (recherche partielle insensible à la casse)
-     * @param pageable Les paramètres de pagination
-     * @return Page des employés correspondants
-     */
-    Page<Employee> findByCreatedByAndUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCase(Users commercial, String firstName, String lastName, Pageable pageable);
+    Page<Employee> findByCompany(Company company, Pageable pageable);
 
     /**
-     * Récupère les employés d'un commercial avec recherche par prénom ou nom et filtre par entreprise (pagination)
-     *
-     * @param commercial Le commercial
-     * @param firstName Le terme de recherche pour le prénom
-     * @param lastName Le terme de recherche pour le nom
-     * @param company L'entreprise
-     * @param pageable Les paramètres de pagination
-     * @return Page des employés correspondants
+     * Idem, recherche partielle insensible à la casse sur prénom ou nom (utilisateur lié).
      */
-    Page<Employee> findByCreatedByAndUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndCompany(Users commercial, String firstName, String lastName, Company company, Pageable pageable);
+    Page<Employee> findByUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndCompany(
+            String firstName, String lastName, Company company, Pageable pageable);
 
     /**
-     * Récupère les employés d'un commercial avec recherche par prénom ou nom et filtre actif/inactif (pagination)
-     *
-     * @param commercial Le commercial
-     * @param firstName Le terme de recherche pour le prénom
-     * @param lastName Le terme de recherche pour le nom
-     * @param isActive true pour les employés actifs, false pour les inactifs
-     * @param pageable Les paramètres de pagination
-     * @return Page des employés correspondants
+     * Idem avec filtre actif/inactif sur l'utilisateur associé.
      */
-    Page<Employee> findByCreatedByAndUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndUserIsActive(Users commercial, String firstName, String lastName, Boolean isActive, Pageable pageable);
+    Page<Employee> findByCompanyAndUserIsActive(Company company, Boolean isActive, Pageable pageable);
 
     /**
-     * Récupère les employés d'un commercial avec recherche par prénom ou nom, filtre entreprise et filtre actif/inactif (pagination)
-     *
-     * @param commercial Le commercial
-     * @param firstName Le terme de recherche pour le prénom
-     * @param lastName Le terme de recherche pour le nom
-     * @param company L'entreprise
-     * @param isActive true pour les employés actifs, false pour les inactifs
-     * @param pageable Les paramètres de pagination
-     * @return Page des employés correspondants
+     * Recherche prénom/nom + entreprise + actif/inactif.
      */
-    Page<Employee> findByCreatedByAndUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndCompanyAndUserIsActive(Users commercial, String firstName, String lastName, Company company, Boolean isActive, Pageable pageable);
-
-    /**
-     * Récupère les employés d'un commercial avec filtre par entreprise seulement
-     *
-     * @param commercial Le commercial
-     * @param company L'entreprise
-     * @param pageable Les paramètres de pagination
-     * @return Page des employés correspondants
-     */
-    Page<Employee> findByCreatedByAndCompany(Users commercial, Company company, Pageable pageable);
-
-    /**
-     * Récupère les employés d'un commercial avec filtre actif/inactif seulement
-     *
-     * @param commercial Le commercial
-     * @param isActive true pour les employés actifs, false pour les inactifs
-     * @param pageable Les paramètres de pagination
-     * @return Page des employés correspondants
-     */
-    Page<Employee> findByCreatedByAndUserIsActive(Users commercial, Boolean isActive, Pageable pageable);
-
-    /**
-     * Récupère les employés d'un commercial avec filtre entreprise et actif/inactif
-     *
-     * @param commercial Le commercial
-     * @param company L'entreprise
-     * @param isActive true pour les employés actifs, false pour les inactifs
-     * @param pageable Les paramètres de pagination
-     * @return Page des employés correspondants
-     */
-    Page<Employee> findByCreatedByAndCompanyAndUserIsActive(Users commercial, Company company, Boolean isActive, Pageable pageable);
+    Page<Employee> findByUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndCompanyAndUserIsActive(
+            String firstName, String lastName, Company company, Boolean isActive, Pageable pageable);
 
     /**
      * Compte le nombre d'employés d'une entreprise (pour les détails entreprise partenaire).

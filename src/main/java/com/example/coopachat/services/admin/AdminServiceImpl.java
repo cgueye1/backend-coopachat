@@ -864,11 +864,8 @@ public class AdminServiceImpl implements AdminService {
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
         Pageable pageable = PageRequest.of(page, size);
 
-        // Pour Salarié : uniquement les Users ayant une fiche Employee (aligné avec le graphique et la liste commercial)
-        // Pour les autres rôles : tous les Users
-        Page<Users> userPage = (role == UserRole.EMPLOYEE)
-                ? userRepository.findAllSalariesWithFilters(UserRole.EMPLOYEE, searchTerm, status, pageable)
-                : userRepository.findAllWithFilters(searchTerm, role, status, pageable);
+        //Tous les users sauf les employés
+        Page<Users> userPage = userRepository.findAllWithFilters(searchTerm, role, status, pageable);
 
         // Mapper chaque utilisateur vers un DTO de liste
         List<UserListItemDTO> content = userPage.getContent().stream()
@@ -913,9 +910,8 @@ public class AdminServiceImpl implements AdminService {
 
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
         Pageable pageable = Pageable.unpaged();
-        Page<Users> userPage = (role == UserRole.EMPLOYEE)
-                ? userRepository.findAllSalariesWithFilters(UserRole.EMPLOYEE, searchTerm, status, pageable)
-                : userRepository.findAllWithFilters(searchTerm, role, status, pageable);
+        // Les salariés (EMPLOYEE) ne sont pas gérés ici : exclus au niveau repository (findAllWithFilters).
+        Page<Users> userPage = userRepository.findAllWithFilters(searchTerm, role, status, pageable);
         List<Users> users = userPage.getContent();
 
         try (Workbook workbook = new XSSFWorkbook()) {
