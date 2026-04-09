@@ -348,8 +348,7 @@ public class CommercialController {
 
     @Operation(
             summary = "Modifier un salarié",
-            
-            
+            description = "Met à jour les informations d'un salarié existant (vivier partagé entre commerciaux). " +
                          "Les champs id, employeeCode, createdAt et createdBy ne peuvent pas être modifiés. " +
                          "Si l'email ou le téléphone est modifié, il sera vérifié qu'il n'existe pas déjà."
     )
