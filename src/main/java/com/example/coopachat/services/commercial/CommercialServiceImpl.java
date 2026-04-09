@@ -288,11 +288,6 @@ public class CommercialServiceImpl implements CommercialService {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
 
-        // Vérifier que l'entreprise appartient au commercial connecté
-        if (!company.getCommercial().getId().equals(commercial.getId())) {
-            throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
-        }
-
         // Mapper l'entité Company vers CompanyDetailsDTO
         CompanyDetailsDTO companyDetails = mapToCompanyDetailsDTO(company);
 
@@ -316,11 +311,6 @@ public class CommercialServiceImpl implements CommercialService {
         // Récupérer l'entreprise par son ID
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
-
-        // Vérifier que l'entreprise appartient au commercial connecté
-        if (!company.getCommercial().getId().equals(commercial.getId())) {
-            throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
-        }
 
         // Mettre à jour les champs de l'entreprise (seulement si non null)
         if (updateCompanyDTO.getName() != null) {
@@ -383,11 +373,6 @@ public class CommercialServiceImpl implements CommercialService {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
 
-        // Vérifier que l'entreprise appartient au commercial connecté
-        if (!company.getCommercial().getId().equals(commercial.getId())) {
-            throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
-        }
-
         // Règle 4 : impossible d'activer une entreprise si status != PARTNER_SIGNED
         if (Boolean.TRUE.equals(updateCompanyStatusDTO.getIsActive()) && company.getStatus() != CompanyStatus.PARTNER_SIGNED) {
             throw new RuntimeException("Seules les entreprises avec le statut « Partenaire signé » peuvent être activées.");
@@ -418,9 +403,6 @@ public class CommercialServiceImpl implements CommercialService {
         }
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
-        if (!company.getCommercial().getId().equals(commercial.getId())) {
-            throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
-        }
         if (file == null || file.isEmpty()) {
             throw new RuntimeException("Fichier requis");
         }
@@ -452,9 +434,6 @@ public class CommercialServiceImpl implements CommercialService {
         }
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
-        if (!company.getCommercial().getId().equals(commercial.getId())) {
-            throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
-        }
         company.setLogo(null);
         companyRepository.save(company);
     }
@@ -600,56 +579,20 @@ public class CommercialServiceImpl implements CommercialService {
         // Normaliser le terme de recherche (supprimer les espaces)
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
 
-        // Récupérer l'entreprise si companyId est fourni
-        Company company = null;
-        if (companyId != null) {
-            company = companyRepository.findById(companyId)
-                    .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
-            // Vérifier que l'entreprise appartient au commercial
-            if (!company.getCommercial().getId().equals(commercial.getId())) {
-                throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
-            }
-        }
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
 
-        // Récupérer la page d'employés selon les filtres fournis
         Page<Employee> employeePage;
-
-        // Cas 1 : Recherche + Entreprise + isActive
-        if (searchTerm != null && company != null && isActive != null) {
-            employeePage = employeeRepository.findByCreatedByAndUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndCompanyAndUserIsActive(
-                    commercial, searchTerm, searchTerm, company, isActive, pageable);
-        }
-        // Cas 2 : Recherche + Entreprise (pas de isActive)
-        else if (searchTerm != null && company != null) {
-            employeePage = employeeRepository.findByCreatedByAndUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndCompany(
-                    commercial, searchTerm, searchTerm, company, pageable);
-        }
-        // Cas 3 : Recherche + isActive (pas d'entreprise)
-        else if (searchTerm != null && isActive != null) {
-            employeePage = employeeRepository.findByCreatedByAndUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndUserIsActive(
-                    commercial, searchTerm, searchTerm, isActive, pageable);
-        }
-        // Cas 4 : Recherche seulement (pas d'entreprise, pas de isActive)
-        else if (searchTerm != null) {
-            employeePage = employeeRepository.findByCreatedByAndUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCase(
-                    commercial, searchTerm, searchTerm, pageable);
-        }
-        // Cas 5 : Entreprise + isActive (pas de recherche)
-        else if (company != null && isActive != null) {
-            employeePage = employeeRepository.findByCreatedByAndCompanyAndUserIsActive(
-                    commercial, company, isActive, pageable);
-        }
-        // Cas 6 : Entreprise seulement (pas de recherche, pas de isActive)
-        else if (company != null) {
-            employeePage = employeeRepository.findByCreatedByAndCompany(commercial, company, pageable);
-        }
-        // Cas 7 : isActive seulement (pas de recherche, pas d'entreprise)
-        else if (isActive != null) {
-            employeePage = employeeRepository.findByCreatedByAndUserIsActive(commercial, isActive, pageable);
-        }
-        // Cas 8 : Aucun filtre (tous les employés)
-        else {
-            employeePage = employeeRepository.findByCreatedBy(commercial, pageable);
+        if (searchTerm != null && isActive != null) {
+            employeePage = employeeRepository.findByUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndCompanyAndUserIsActive(
+                    searchTerm, searchTerm, company, isActive, pageable);
+        } else if (searchTerm != null) {
+            employeePage = employeeRepository.findByUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndCompany(
+                    searchTerm, searchTerm, company, pageable);
+        } else if (isActive != null) {
+            employeePage = employeeRepository.findByCompanyAndUserIsActive(company, isActive, pageable);
+        } else {
+            employeePage = employeeRepository.findByCompany(company, pageable);
         }
 
         // Mapper les entités Employee vers EmployeeListItemDTO
@@ -669,7 +612,7 @@ public class CommercialServiceImpl implements CommercialService {
 
         log.info("Page {} de {} employés récupérée pour le commercial {} (total: {} employés, recherche: '{}', entreprise: {}, isActive: {})",
                 page + 1, employeePage.getTotalPages(), commercial.getEmail(), employeePage.getTotalElements(),
-                searchTerm != null ? searchTerm : "aucune", companyId != null ? company.getName() : "toutes", isActive != null ? isActive : "tous");
+                searchTerm != null ? searchTerm : "aucune", company.getName(), isActive != null ? isActive : "tous");
 
         return response;
     }
@@ -717,11 +660,6 @@ public class CommercialServiceImpl implements CommercialService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employé introuvable"));
 
-        // Vérifier que l'employé appartient au commercial connecté
-        if (!employee.getCreatedBy().getId().equals(commercial.getId())) {
-            throw new RuntimeException("Vous n'avez pas accès à cet employé");
-        }
-
         // Mapper l'entité Employee vers EmployeeDetailsDTO
         EmployeeDetailsDTO employeeDetails = mapToEmployeeDetailsDTO(employee);
 
@@ -746,10 +684,6 @@ public class CommercialServiceImpl implements CommercialService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employé introuvable"));
 
-        // Vérifier que l'employé appartient au commercial connecté
-        if (!employee.getCreatedBy().getId().equals(commercial.getId())) {
-            throw new RuntimeException("Vous n'avez pas accès à cet employé");
-        }
         //Récupérer le compte lié à cet employé
         Users user = employee.getUser();
 
@@ -784,10 +718,6 @@ public class CommercialServiceImpl implements CommercialService {
         if (updateEmployeeDTO.getCompanyId() != null) {
             Company company = companyRepository.findById(updateEmployeeDTO.getCompanyId())
                     .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
-            // Vérifier que l'entreprise appartient au commercial
-            if (!company.getCommercial().getId().equals(commercial.getId())) {
-                throw new RuntimeException("Vous n'avez pas accès à cette entreprise");
-            }
             employee.setCompany(company);
         }
 
@@ -829,11 +759,6 @@ public class CommercialServiceImpl implements CommercialService {
         // Récupérer l'employé par son ID
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employé introuvable"));
-
-        // Vérifier que l'employé appartient au commercial connecté
-        if (!employee.getCreatedBy().getId().equals(commercial.getId())) {
-            throw new RuntimeException("Vous n'avez pas accès à cet employé");
-        }
 
         // Sauvegarder l'ancien statut pour le log
         Boolean oldStatus = employee.getUser().getIsActive();

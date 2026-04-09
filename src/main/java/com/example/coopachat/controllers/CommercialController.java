@@ -224,7 +224,7 @@ public class CommercialController {
     @Operation(
             summary = "Récupérer les détails d'une entreprise",
             description = "Récupère les détails complets d'une entreprise spécifique par son ID. " +
-                         "L'entreprise doit appartenir au commercial connecté."
+                         "Tout commercial connecté peut consulter l'entreprise."
     )
     @GetMapping("/companies/{id}")
     public ResponseEntity<CompanyDetailsDTO> getCompanyById(@PathVariable Long id) {
@@ -235,7 +235,7 @@ public class CommercialController {
     @Operation(
             summary = "Modifier une entreprise",
             description = "Met à jour les informations d'une entreprise existante. " +
-                         "L'entreprise doit appartenir au commercial connecté. " +
+                         "Vivier partagé : tout commercial connecté peut modifier l'entreprise. " +
                          "Les champs id, companyCode, createdAt et commercial ne peuvent pas être modifiés."
     )
     @PutMapping("/companies/{id}")
@@ -250,7 +250,7 @@ public class CommercialController {
     @Operation(
             summary = "Activer/Désactiver une entreprise",
             description = "Active ou désactive une entreprise. " +
-                         "L'entreprise doit appartenir au commercial connecté. " +
+                         "Vivier partagé : tout commercial connecté peut agir sur l'entreprise. " +
                          "Le body doit contenir 'isActive' (true pour activer, false pour désactiver)."
     )
     @PatchMapping("/companies/{id}/status")
@@ -319,17 +319,17 @@ public class CommercialController {
     }
 
     @Operation(
-            summary = "Lister les salariés (paginé avec recherche et filtres)",
-            description = "Récupère la liste paginée de tous les salariés créés par le commercial connecté. " +
-                         "Les paramètres 'page' (défaut: 0) et 'size' (défaut: 6) permettent de contrôler la pagination. " +
-                         "Les paramètres 'search' (recherche par prénom ou nom), 'companyId' (filtre par entreprise) et 'isActive' (filtre actif/inactif: true/false) sont optionnels."
+            summary = "Lister les salariés d'une entreprise (paginé avec recherche et filtres)",
+            description = "Récupère la liste paginée des salariés de l'entreprise indiquée (vivier partagé entre commerciaux). " +
+                         "Les paramètres 'page' (défaut: 0) et 'size' (défaut: 6) contrôlent la pagination. " +
+                         "'companyId' est obligatoire. 'search' (prénom ou nom) et 'isActive' (true/false) sont optionnels."
     )
     @GetMapping("/employees")
     public ResponseEntity<EmployeeListResponseDTO> getAllEmployees(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "6") int size,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) Long companyId,
+            @RequestParam Long companyId,
             @RequestParam(required = false) Boolean isActive
     ) {
         EmployeeListResponseDTO response = commercialService.getAllEmployees(page, size, search, companyId, isActive);
@@ -338,8 +338,7 @@ public class CommercialController {
 
     @Operation(
             summary = "Récupérer les détails d'un salarié",
-            description = "Récupère les détails complets d'un salarié spécifique par son ID. " +
-                         "Le salarié doit appartenir au commercial connecté."
+            description = "Récupère les détails complets d'un salarié par son ID (vivier partagé entre commerciaux)."
     )
     @GetMapping("/employees/{id}")
     public ResponseEntity<EmployeeDetailsDTO> getEmployeeById(@PathVariable Long id) {
@@ -349,8 +348,8 @@ public class CommercialController {
 
     @Operation(
             summary = "Modifier un salarié",
-            description = "Met à jour les informations d'un salarié existant. " +
-                         "Le salarié doit appartenir au commercial connecté. " +
+            
+            
                          "Les champs id, employeeCode, createdAt et createdBy ne peuvent pas être modifiés. " +
                          "Si l'email ou le téléphone est modifié, il sera vérifié qu'il n'existe pas déjà."
     )
@@ -365,8 +364,7 @@ public class CommercialController {
 
     @Operation(
             summary = "Activer/Désactiver un salarié",
-            description = "Active ou désactive un salarié. " +
-                         "Le salarié doit appartenir au commercial connecté. " +
+            description = "Active ou désactive un salarié (vivier partagé entre commerciaux). " +
                          "Le body doit contenir 'isActive' (true pour activer, false pour désactiver)."
     )
     @PatchMapping("/employees/{id}/status")

@@ -42,7 +42,8 @@ public interface UserRepository extends JpaRepository<Users, Long> {
     /**
      * Liste paginée des utilisateurs avec filtres optionnels (admin).
      * - search : recherche sur prénom, nom, nom complet ou email (insensible à la casse)
-     * - role : filtre par rôle (null = tous)
+     * - role : u.role <> EMPLOYEE = on exclut tous les employés, quoi qu’il arrive.
+     * Puis AND (:role IS NULL OR u.role = :role) = si l’admin choisit un rôle (Commercial, RL, …) on filtre dessus parmi ceux qui restent sinon si role est null on prend tous les autres rôles
      * - isActive : filtre par statut (null = tous, true = actif, false = inactif)
      * Tri : du plus récent au plus ancien (createdAt DESC).
      */
@@ -52,27 +53,13 @@ public interface UserRepository extends JpaRepository<Users, Long> {
             "      LOWER(u.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "      LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "      LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "AND (u.role <> com.example.coopachat.enums.UserRole.EMPLOYEE) " +
             "AND (:role IS NULL OR u.role = :role) " +
             "AND (:isActive IS NULL OR u.isActive = :isActive) " +
             "ORDER BY u.createdAt DESC")
     Page<Users> findAllWithFilters(
             @Param("search") String search,
             @Param("role") UserRole role,
-            @Param("isActive") Boolean isActive,
-            Pageable pageable);
-
-    /** Utilisateurs Salarié ayant une fiche Employee (aligné avec le graphique et la liste commercial). */
-    @Query("SELECT u FROM Users u INNER JOIN Employee e ON e.user = u WHERE u.role = :role " +
-            "AND (:search IS NULL OR :search = '' OR " +
-            "      LOWER(u.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-            "      LOWER(u.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-            "      LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-            "      LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-            "AND (:isActive IS NULL OR u.isActive = :isActive) " +
-            "ORDER BY u.createdAt DESC")
-    Page<Users> findAllSalariesWithFilters(
-            @Param("role") UserRole role,
-            @Param("search") String search,
             @Param("isActive") Boolean isActive,
             Pageable pageable);
 
