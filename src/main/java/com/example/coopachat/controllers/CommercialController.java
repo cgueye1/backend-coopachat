@@ -36,6 +36,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -305,6 +306,32 @@ public class CommercialController {
         commercialService.createEmployee(createEmployeeDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body("Salarié créé avec succès.");
+    }
+
+    @Operation(
+            summary = "Importer des salariés via Excel",
+            description = "Multipart : partie 'file' (.xlsx) et paramètre 'companyId' (entreprise cible). " +
+                         "Colonnes attendues : prénom, nom, email, téléphone, adresse."
+    )
+    @PostMapping(value = "/employees/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> importEmployeesFromExcel(
+            @Parameter(description = "Fichier Excel (.xlsx)")
+            @RequestParam("file") MultipartFile file,
+            @Parameter(description = "Identifiant de l'entreprise")
+            @RequestParam Long companyId
+    ) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Le fichier est obligatoire et ne doit pas être vide.");
+        }
+        try {
+            commercialService.saveEmployeesFromMultipart(file, companyId);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body("Import terminé avec succès.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED)
+                    .body("Erreur lors de l'import du fichier : " + e.getMessage());
+        }
     }
 
     @Operation(

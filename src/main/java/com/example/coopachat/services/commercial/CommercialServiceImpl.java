@@ -48,7 +48,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.coopachat.util.EmployeeExcelUtility;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -530,7 +533,6 @@ public class CommercialServiceImpl implements CommercialService {
             throw new RuntimeException("L'entreprise doit avoir le statut « Partenaire signé » pour pouvoir inscrire des salariés.");
         }
 
-
         // Créer l'utilisateur (employé)
         Users user = new Users();
         user.setEmail(employee.getEmail());
@@ -560,6 +562,91 @@ public class CommercialServiceImpl implements CommercialService {
 
         log.info("Employé créé avec succès: {} (email: {}, code: {}) par le commercial {}. Email de notification envoyé.",
                 employee.getFirstName() + " " + employee.getLastName(), employee.getEmail(), employeeCode, commercial.getEmail());
+    }
+
+    /**
+     * Persistance d'une ligne importée (utilisateur + employé + adresse + notification), sans revérifier le rôle commercial.
+     */
+    private void persistEmployeeFromExcelImport(CreateEmployeeDTO employee, Users commercial) {
+        if (userRepository.existsByEmail(employee.getEmail())) {
+            throw new RuntimeException("Cet email est déjà utilisé");
+        }
+        Company company = companyRepository.findById(employee.getCompanyId())
+                .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
+        if (company.getStatus() != CompanyStatus.PARTNER_SIGNED) {
+            throw new RuntimeException("L'entreprise doit avoir le statut « Partenaire signé » pour pouvoir inscrire des salariés.");
+        }
+        Users user = new Users();
+        user.setEmail(employee.getEmail());
+        user.setFirstName(employee.getFirstName());
+        user.setLastName(employee.getLastName());
+        user.setPhone(employee.getPhone());
+        user.setRole(UserRole.EMPLOYEE);
+        user.setIsActive(false);
+        user.setRefUser(userReferenceGenerator.generateUniqueRefUser());
+        Users userSaved = userRepository.save(user);
+        String employeeCode = generateUniqueEmployeeCode();
+        Employee employeeEntity = new Employee();
+        employeeEntity.setCompany(company);
+        employeeEntity.setUser(userSaved);
+        employeeEntity.setCreatedBy(commercial);
+        employeeEntity.setEmployeeCode(employeeCode);
+        employeeRepository.save(employeeEntity);
+        if (employee.getAddress() != null && !employee.getAddress().isBlank()) {
+            Address newAddress = new Address();
+            newAddress.setEmployee(employeeEntity);
+            newAddress.setFormattedAddress(employee.getAddress().trim());
+            newAddress.setPrimary(true);
+            newAddress.setDeliveryMode(DeliveryMode.HOME);
+            addressRepository.save(newAddress);
+        }
+        employeeNotificationService.notifyEmployeeAccountCreated(userSaved, company.getName(), commercial);
+        log.info("Employé créé avec succès: {} (email: {}, code: {}) par le commercial {}. Email de notification envoyé.",
+                employee.getFirstName() + " " + employee.getLastName(), employee.getEmail(), employeeCode, commercial.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public void saveEmployeesFromMultipart(MultipartFile file, Long companyId) {
+
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent importer des salariés");
+        }
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Fichier requis");
+        }
+        if (companyId == null) {
+            throw new RuntimeException("L'identifiant de l'entreprise est obligatoire");
+        }
+
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
+        if (company.getStatus() != CompanyStatus.PARTNER_SIGNED) {
+            throw new RuntimeException("L'entreprise doit avoir le statut « Partenaire signé » pour pouvoir inscrire des salariés.");
+        }
+
+        String original = file.getOriginalFilename();
+        if (original == null
+                || !(original.toLowerCase(Locale.ROOT).endsWith(".xlsx") || original.toLowerCase(Locale.ROOT).endsWith(".xls"))) {
+            throw new RuntimeException("Format non supporté : envoyez un fichier .xlsx ou .xls.");
+        }
+
+        // Comme excelToStuList : lecture Excel → liste de DTO, puis enregistrement
+        List<CreateEmployeeDTO> employeesFromExcel;
+        try (InputStream inputStream = file.getInputStream()) {
+            employeesFromExcel = EmployeeExcelUtility.excelToEmployeeDtoList(inputStream, companyId);
+        } catch (IOException e) {
+            throw new RuntimeException("Lecture du fichier impossible : " + e.getMessage(), e);
+        }
+
+        if (employeesFromExcel.isEmpty()) {
+            throw new RuntimeException("Aucune ligne valide dans le fichier (colonnes : Prénom, Nom, Email, Téléphone, Adresse).");
+        }
+
+        for (CreateEmployeeDTO dto : employeesFromExcel) {
+            persistEmployeeFromExcelImport(dto, commercial);
+        }
     }
 
     @Override

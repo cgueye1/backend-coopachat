@@ -1,4 +1,4 @@
-package com.example.coopachat.services.Employee;
+@package com.example.coopachat.services.Employee;
 
 import com.example.coopachat.dtos.employees.DeliveryPreferenceDTO;
 import com.example.coopachat.dtos.cart.CartResponseDTO;

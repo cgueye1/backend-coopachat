@@ -19,6 +19,7 @@ import com.example.coopachat.dtos.promotions.PromotionListResponseDTO;
 import com.example.coopachat.dtos.promotions.PromotionStatsDTO;
 import com.example.coopachat.enums.CompanyStatus;
 import com.example.coopachat.enums.CouponStatus;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Interface pour le service de gestion des actions du commercial
@@ -139,6 +140,17 @@ public interface CommercialService {
      * @throws RuntimeException si l'entreprise n'existe pas ou si une erreur survient
      */
     void createEmployee(CreateEmployeeDTO createEmployeeDTO);
+
+    /**
+     * Importe des salariés depuis un fichier Excel (.xlsx) envoyé en multipart ).
+     * Colonnes attendues sur la première ligne : prénom, nom, email, téléphone, adresse.
+     *
+     * @param file        fichier
+     * @param companyId   entreprise à laquelle rattacher les salariés créés
+     * @throws RuntimeException si l'utilisateur n'est pas commercial, entreprise introuvable, fichier vide,
+     *                          format invalide, colonnes manquantes ou erreur métier
+     */
+    void saveEmployeesFromMultipart(MultipartFile file, Long companyId);
 
     /**
      * Liste paginée des salariés d'une entreprise ; filtres optionnels : recherche (prénom/nom), actif/inactif.
