@@ -19,6 +19,7 @@ import com.example.coopachat.dtos.promotions.PromotionListResponseDTO;
 import com.example.coopachat.dtos.promotions.PromotionStatsDTO;
 import com.example.coopachat.enums.CompanyStatus;
 import com.example.coopachat.enums.CouponStatus;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -164,6 +165,11 @@ public interface CommercialService {
      * @throws RuntimeException si l'utilisateur n'est pas commercial ou erreur métier
      */
     EmployeeListResponseDTO getAllEmployees(int page, int size, String search, Long companyId, Boolean isActive);
+
+    /**
+     * Export Excel des salariés d'une entreprise (mêmes filtres {@code search} et {@code isActive} que la liste paginée).
+     */
+    ByteArrayResource exportEmployees(String search, Long companyId, Boolean isActive);
 
     /**
      * Récupère les statistiques des employés du commercial connecté

@@ -14,77 +14,94 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Service planifié : bascule automatiquement le statut en {@link CouponStatus#EXPIRED} lorsque la date de fin
- * ({@code endDate}) est dépassée, pour les <strong>coupons panier</strong> et les <strong>promotions produits</strong>.
- * <p>
- * <strong>Pourquoi ce service existe :</strong> côté employé, les offres ne sont montrées que si la période
- * est encore valide (requêtes filtrées sur les dates). Côté commercial, la liste affichait souvent encore
- * « Actif » tant que personne ne changeait le statut en base — d’où une incohérence. Ici on met la base
- * à jour pour que l’interface commercial reflète « Expiré » comme la réalité métier.
- * <p>
- */
+// Tâche automatique pour les coupons (panier) et les promotions (produits) :
+// expiration quand la date de fin est dépassée, activation quand la période a commencé mais le statut est encore planifié.
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CouponCleanupService {
 
-    /**
-     * Seuls ACTIVE et PLANNED peuvent « devenir » expirés automatiquement.
-     * On ne touche pas à DISABLED (désactivation manuelle) ni à EXPIRED (déjà traité).
-     */
-    private static final List<CouponStatus> STATUTS_A_EXPIRER = List.of(CouponStatus.ACTIVE, CouponStatus.PLANNED);
+    // Tout sauf EXPIRED : une fois la date de fin passée, même un coupon désactivé (DISABLED) passe en EXPIRED.
+    private static final List<CouponStatus> STATUTS_A_EXPIRER = List.of(
+            CouponStatus.ACTIVE, CouponStatus.PLANNED, CouponStatus.DISABLED);
 
     private final CouponRepository couponRepository;
     private final PromotionRepository promotionRepository;
 
-    /**
-     * Cron : toutes les heures à la minute 0 (ex. 10:00, 11:00…).
-     * <p>
-     * Fréquence volontairement plus élevée qu’un passage unique à minuit : ainsi le tableau commercial
-     * se met à jour le jour même de l’expiration, sans attendre le lendemain matin.
-     * <p>
-     * {@link Transactional} : une seule transaction pour coupons + promotions ; en cas d’erreur, tout est annulé.
-     */
+    // Cron : chaque heure à la minute 0. Ordre : d’abord expiration, puis activation des offres planifiées dont la date de début est atteinte.
     @Scheduled(cron = "0 0 * * * *")
     @Transactional
     public void expireOutdatedCouponsAndPromotions() {
-        // Heure serveur ( JVM ). À garder aligné avec le stockage des dates en base (même fuseau / convention).
         LocalDateTime now = LocalDateTime.now();
-        int coupons = expireCoupons(now);
-        int promotions = expirePromotions(now);
-        if (coupons > 0 || promotions > 0) {
-            log.info("Expiration automatique : {} coupon(s), {} promotion(s) passés en EXPIRED", coupons, promotions);
+        int couponsExpired = expireCoupons(now); //Expiration des coupons
+        int promotionsExpired = expirePromotions(now); //Expiration des promotions
+
+        //Si des coupons ou des promotions ont expiré, on log l'expiration
+        if (couponsExpired > 0 || promotionsExpired > 0) {
+            log.info("Expiration automatique : {} coupon(s), {} promotion(s) passés en EXPIRED",
+                    couponsExpired, promotionsExpired);
+        }
+        int couponsActivated = activatePlannedCoupons(now); //Activation des coupons planifiés
+        int promotionsActivated = activatePlannedPromotions(now); //Activation des promotions planifiés
+
+        //Si des coupons ou des promotions ont été activés, on log l'activation
+        if (couponsActivated > 0 || promotionsActivated > 0) {
+            log.info("Activation automatique : {} coupon(s), {} promotion(s) passés en ACTIVE",
+                    couponsActivated, promotionsActivated);
         }
     }
 
-    /**
-     * Coupons : {@code endDate &lt; now} et statut encore ACTIVE ou PLANNED → EXPIRED + {@code isActive = false}.
-     * <p>
-     * {@code isActive = false} évite qu’ils réapparaissent dans les écrans qui filtrent sur le flag actif,
-     * en cohérence avec le statut EXPIRED.
-     */
+    // Coupons : date de fin avant maintenant, statut encore ACTIVE, PLANNED ou DISABLED → EXPIRED, isActive à false.
     private int expireCoupons(LocalDateTime now) {
+        // Coupons dont la fin est dépassée 
         List<Coupon> list = couponRepository.findByEndDateBeforeAndStatusIn(now, STATUTS_A_EXPIRER);
+        //On met le statut des coupons en EXPIRED et on désactive leur activation
         for (Coupon c : list) {
             c.setStatus(CouponStatus.EXPIRED);
             c.setIsActive(false);
         }
+        //si la liste n'est pas vide, on sauvegarde les coupons
+        if (!list.isEmpty()) {
+            couponRepository.saveAll(list); //Sauvegarde des coupons
+        }
+        return list.size(); //Retourne le nombre de coupons expirés
+    }
+
+    // Promotions : même règle que pour les coupons.
+    private int expirePromotions(LocalDateTime now) {
+        List<Promotion> list = promotionRepository.findByEndDateBeforeAndStatusIn(now, STATUTS_A_EXPIRER);
+        for (Promotion p : list) {
+            p.setStatus(CouponStatus.EXPIRED);
+            p.setIsActive(false);
+        }
+        if (!list.isEmpty()) {
+            promotionRepository.saveAll(list);
+        }
+        return list.size();
+    }
+
+    // Coupons encore PLANNED alors qu’on est entre la date de début et la date de fin → ACTIVE, isActive à true.
+    private int activatePlannedCoupons(LocalDateTime now) {
+        //On récupère les coupons dont la date de début est atteinte et la date de fin pas encore atteinte
+        List<Coupon> list = couponRepository.findPlannedCouponsToAutoActivate(now);
+        //On met le statut des coupons en ACTIVE et on active leur activation
+        for (Coupon c : list) {
+            c.setIsActive(true);
+            c.setStatus(CouponStatus.ACTIVE);
+        }
+        //si la liste n'est pas vide, on sauvegarde les coupons
         if (!list.isEmpty()) {
             couponRepository.saveAll(list);
         }
         return list.size();
     }
 
-    /**
-     * Promotions (réductions sur produits / catalogue) : même règle que pour les coupons.
-     * Entité distincte {@link Promotion}, même énumération {@link CouponStatus} pour homogénéité.
-     */
-    private int expirePromotions(LocalDateTime now) {
-        List<Promotion> list = promotionRepository.findByEndDateBeforeAndStatusIn(now, STATUTS_A_EXPIRER);
+    // Promotions planifiées : même logique que les coupons.
+    private int activatePlannedPromotions(LocalDateTime now) {
+        List<Promotion> list = promotionRepository.findPlannedPromotionsToAutoActivate(now);
         for (Promotion p : list) {
-            p.setStatus(CouponStatus.EXPIRED);
-            p.setIsActive(false);
+            p.setIsActive(true);
+            p.setStatus(CouponStatus.ACTIVE);
         }
         if (!list.isEmpty()) {
             promotionRepository.saveAll(list);

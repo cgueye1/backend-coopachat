@@ -35,8 +35,15 @@ public interface PromotionRepository extends JpaRepository<Promotion, Long> {
     /** Nombre de promotions par statut. */
     long countByStatus(CouponStatus status);
 
-    /**
-     * Promotions dont la date de fin est passée mais encore ACTIVE ou PLANNED (à passer en EXPIRED par le scheduler).
-     */
+    // Date de fin dépassée : promotions encore ACTIVE, PLANNED ou DISABLED (pas déjà EXPIRED).
     List<Promotion> findByEndDateBeforeAndStatusIn(LocalDateTime now, Collection<CouponStatus> statuses);
+
+    // Promotions encore en PLANNED alors qu’on est déjà dans la période : pour activation auto.
+    @Query("""
+            SELECT p FROM Promotion p
+            WHERE p.status = 'PLANNED'
+              AND p.startDate <= :now
+              AND p.endDate >= :now
+            """)
+    List<Promotion> findPlannedPromotionsToAutoActivate(@Param("now") LocalDateTime now);
 }

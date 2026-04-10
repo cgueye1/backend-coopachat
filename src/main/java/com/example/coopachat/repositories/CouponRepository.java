@@ -51,10 +51,17 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
      */
     List<Coupon> findByEndDateBefore(LocalDateTime now);
 
-    /**
-     * Coupons dont la date de fin est passée mais encore marqués ACTIVE ou PLANNED (à passer en EXPIRED par le scheduler).
-     */
+    // Date de fin dépassée : coupons encore ACTIVE, PLANNED ou DISABLED (pas déjà EXPIRED).
     List<Coupon> findByEndDateBeforeAndStatusIn(LocalDateTime now, Collection<CouponStatus> statuses);
+
+    // Coupons encore en PLANNED alors qu’on est déjà dans la période (début passé, fin pas encore) : pour activation auto.
+    @Query("""
+            SELECT c FROM Coupon c
+            WHERE c.status = 'PLANNED'
+              AND c.startDate <= :now
+              AND c.endDate >= :now
+            """)
+    List<Coupon> findPlannedCouponsToAutoActivate(@Param("now") LocalDateTime now);
 
     /**
      * Vérifie s'il existe un coupon avec le code fourni et Active
