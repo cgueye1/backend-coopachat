@@ -47,6 +47,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Contrôleur pour la gestion des actions du commercial
@@ -335,8 +337,58 @@ public class CommercialController {
                     .body("Import terminé avec succès.");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED)
-                    .body("Erreur lors de l'import du fichier : " + e.getMessage());
+                    .body(toEmployeeImportUserMessage(e));
         }
+    }
+
+    /**
+     * Message lisible pour l’interface (évite les détails JDBC / Hibernate dans le corps de la réponse).
+     */
+    private static String toEmployeeImportUserMessage(Exception e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            String msg = t.getMessage();
+            if (msg == null) {
+                continue;
+            }
+            if (msg.contains("Ce numéro de téléphone est déjà utilisé")) {
+                return msg;
+            }
+            if (msg.contains("Cet email est déjà utilisé")) {
+                return msg;
+            }
+            if (msg.contains("Entreprise introuvable")
+                    || msg.contains("Partenaire signé")
+                    || msg.contains("Format non supporté")
+                    || msg.contains("Aucune ligne valide")
+                    || msg.contains("Lecture du fichier impossible")
+                    || msg.contains("Seuls les commerciaux peuvent importer")
+                    || msg.contains("Fichier requis")
+                    || msg.contains("identifiant de l'entreprise est obligatoire")) {
+                return msg;
+            }
+        }
+        String raw = e.getMessage() != null ? e.getMessage() : "";
+        if (raw.contains("Duplicate entry")) {
+            Matcher m = Pattern.compile("Duplicate entry '([^']+)'").matcher(raw);
+            if (m.find()) {
+                String dup = m.group(1);
+                String digitsOnly = dup.replaceAll("\\D", "");
+                if (dup.contains("@")) {
+                    return "L’adresse e-mail « " + dup + " » est déjà utilisée. Modifiez le fichier ou retirez la ligne en doublon.";
+                }
+                if (digitsOnly.length() >= 8) {
+                    return "Le numéro « " + dup + " » est déjà enregistré. Chaque téléphone doit être unique : vérifiez les doublons dans le fichier ou en base.";
+                }
+            }
+            return "Certaines données du fichier existent déjà (e-mail ou téléphone en double). Corrigez le fichier et réessayez.";
+        }
+        if (raw.contains("could not execute statement") || raw.contains("constraint")) {
+            return "Import impossible : une ligne contient un e-mail ou un numéro de téléphone déjà utilisé. Vérifiez les doublons dans le fichier.";
+        }
+        if (!raw.isEmpty() && raw.length() < 220 && !raw.contains("SQLException")) {
+            return raw;
+        }
+        return "L’import a échoué. Vérifiez le format du fichier (.xlsx), les colonnes attendues et l’absence de doublons (e-mail / téléphone).";
     }
 
     @Operation(
