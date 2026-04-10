@@ -819,6 +819,12 @@ public class AdminServiceImpl implements AdminService {
             throw new RuntimeException("Ce numéro de téléphone est déjà utilisé");
         }
 
+        if (dto.getRole() == UserRole.COMMERCIAL) {
+            if (dto.getCompanyCommercial() == null || dto.getCompanyCommercial().isBlank()) {
+                throw new RuntimeException("L'entreprise / entité est obligatoire pour un commercial");
+            }
+        }
+
         Users user = new Users();
         user.setFirstName(dto.getFirstName());
         user.setLastName(dto.getLastName());
@@ -968,10 +974,10 @@ public class AdminServiceImpl implements AdminService {
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
             throw new RuntimeException("Seul un administrateur peut consulter les statistiques des utilisateurs");
         }
-        long total = userRepository.count();
-        long active = userRepository.countByIsActiveTrue();
-        long inactive = userRepository.countByIsActiveFalse();
-        log.info("Statistiques utilisateurs : total={}, actifs={}, inactifs={}", total, active, inactive);
+        long total = userRepository.countExcludingEmployee();
+        long active = userRepository.countByIsActiveTrueExcludingEmployee();
+        long inactive = userRepository.countByIsActiveFalseExcludingEmployee();
+        log.info("Statistiques utilisateurs (hors salariés) : total={}, actifs={}, inactifs={}", total, active, inactive);
         return new UserStatsDTO(total, active, inactive);
     }
 
@@ -1010,10 +1016,10 @@ public class AdminServiceImpl implements AdminService {
             throw new RuntimeException("Seul un administrateur peut consulter la répartition des statuts");
         }
 
-        // Total et effectifs actifs / inactifs (isActive = true / false)
-        long total = userRepository.count();
-        long active = userRepository.countByIsActiveTrue();
-        long inactive = userRepository.countByIsActiveFalse();
+        // Total et effectifs actifs / inactifs (hors salariés, aligné avec la liste admin)
+        long total = userRepository.countExcludingEmployee();
+        long active = userRepository.countByIsActiveTrueExcludingEmployee();
+        long inactive = userRepository.countByIsActiveFalseExcludingEmployee();
 
         // Si total est supérieur à 0, on calcule le pourcentage d'actifs et inactifs ; sinon on retourne 0
         double activePct = total > 0 ? active * 100.0 / total : 0;

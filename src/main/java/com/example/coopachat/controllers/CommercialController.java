@@ -35,12 +35,17 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -361,6 +366,29 @@ public class CommercialController {
     ) {
         EmployeeListResponseDTO response = commercialService.getAllEmployees(page, size, search, companyId, isActive);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Exporter les salariés d'une entreprise en Excel",
+            description = "Mêmes filtres que GET /employees : companyId obligatoire, search (prénom/nom) et isActive optionnels."
+    )
+    @GetMapping("/employees/export")
+    public ResponseEntity<Resource> exportEmployees(
+            @RequestParam Long companyId,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean isActive) {
+        try {
+            ByteArrayResource resource = commercialService.exportEmployees(search, companyId, isActive);
+            String fileName = "salaries_"
+                    + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HHmm"))
+                    + ".xlsx";
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(resource);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
     }
 
     @Operation(

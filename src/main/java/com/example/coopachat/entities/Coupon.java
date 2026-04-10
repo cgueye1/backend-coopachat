@@ -1,7 +1,6 @@
 package com.example.coopachat.entities;
 
 import com.example.coopachat.enums.CouponStatus;
-import com.example.coopachat.enums.DiscountType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -38,15 +37,10 @@ public class Coupon {
     @NotBlank(message = "Le nom du coupon est obligatoire")
     private String name; // Nom unique du coupon/Promotion
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private DiscountType discountType; // type de réduction
-
-
     @Column(nullable = false)
     @NotNull(message = "La valeur de réduction est obligatoire")
     @Positive(message = "La valeur de réduction doit être positive")
-    private BigDecimal value; // Pourcentage ou montant
+    private BigDecimal value; // Pourcentage sur le total panier (ex. 10 pour 10 %)
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

@@ -44,12 +44,22 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.coopachat.util.EmployeeExcelUtility;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -565,7 +575,7 @@ public class CommercialServiceImpl implements CommercialService {
     }
 
     /**
-     * Persistance d'une ligne importée (utilisateur + employé + adresse + notification), sans revérifier le rôle commercial.
+     * Persistance d'une ligne importée (utilisateur + employé + notification), sans revérifier le rôle commercial.
      */
     private void persistEmployeeFromExcelImport(CreateEmployeeDTO employee, Users commercial) {
         if (userRepository.existsByEmail(employee.getEmail())) {
@@ -592,15 +602,7 @@ public class CommercialServiceImpl implements CommercialService {
         employeeEntity.setCreatedBy(commercial);
         employeeEntity.setEmployeeCode(employeeCode);
         employeeRepository.save(employeeEntity);
-        if (employee.getAddress() != null && !employee.getAddress().isBlank()) {
-            Address newAddress = new Address();
-            newAddress.setEmployee(employeeEntity);
-            newAddress.setFormattedAddress(employee.getAddress().trim());
-            newAddress.setPrimary(true);
-            newAddress.setDeliveryMode(DeliveryMode.HOME);
-            addressRepository.save(newAddress);
-        }
-        employeeNotificationService.notifyEmployeeAccountCreated(userSaved, company.getName(), commercial);
+        //employeeNotificationService.notifyEmployeeAccountCreated(userSaved, company.getName(), commercial);
         log.info("Employé créé avec succès: {} (email: {}, code: {}) par le commercial {}. Email de notification envoyé.",
                 employee.getFirstName() + " " + employee.getLastName(), employee.getEmail(), employeeCode, commercial.getEmail());
     }
@@ -609,43 +611,45 @@ public class CommercialServiceImpl implements CommercialService {
     @Transactional
     public void saveEmployeesFromMultipart(MultipartFile file, Long companyId) {
 
-        Users commercial = getCurrentUser();
-        if (commercial.getRole() != UserRole.COMMERCIAL) {
+        Users commercial = getCurrentUser();//Vérifier que l'utilisateur est bien un commercial
+        if (commercial.getRole() != UserRole.COMMERCIAL) {//Vérifier que l'utilisateur est bien un commercial
             throw new RuntimeException("Seuls les commerciaux peuvent importer des salariés");
         }
-        if (file == null || file.isEmpty()) {
+        if (file == null || file.isEmpty()) {//Vérifier que le fichier n'est pas vide
             throw new RuntimeException("Fichier requis");
         }
-        if (companyId == null) {
+        if (companyId == null) {//Vérifier que l'identifiant de l'entreprise est fourni
             throw new RuntimeException("L'identifiant de l'entreprise est obligatoire");
         }
 
-        Company company = companyRepository.findById(companyId)
+        Company company = companyRepository.findById(companyId)//Récupérer l'entreprise associée
                 .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
-        if (company.getStatus() != CompanyStatus.PARTNER_SIGNED) {
+        if (company.getStatus() != CompanyStatus.PARTNER_SIGNED) {//Vérifier que l'entreprise a le statut « Partenaire signé »
             throw new RuntimeException("L'entreprise doit avoir le statut « Partenaire signé » pour pouvoir inscrire des salariés.");
         }
 
-        String original = file.getOriginalFilename();
+        //Vérifier que le fichier est un fichier Excel
+        String original = file.getOriginalFilename();//Récupérer le nom du fichier
+        //si le nom du fichier est null ou si il ne se termine pas par .xlsx ou .xls, alors on lance une exception
         if (original == null
                 || !(original.toLowerCase(Locale.ROOT).endsWith(".xlsx") || original.toLowerCase(Locale.ROOT).endsWith(".xls"))) {
             throw new RuntimeException("Format non supporté : envoyez un fichier .xlsx ou .xls.");
         }
 
         // Comme excelToStuList : lecture Excel → liste de DTO, puis enregistrement
-        List<CreateEmployeeDTO> employeesFromExcel;
+        List<CreateEmployeeDTO> employeesFromExcel;//Liste qui va contenir tous les employés lus depuis le fichier excel
         try (InputStream inputStream = file.getInputStream()) {
-            employeesFromExcel = EmployeeExcelUtility.excelToEmployeeDtoList(inputStream, companyId);
+            employeesFromExcel = EmployeeExcelUtility.excelToEmployeeDtoList(inputStream, companyId);//Lecture du fichier Excel et conversion en liste de DTO
         } catch (IOException e) {
             throw new RuntimeException("Lecture du fichier impossible : " + e.getMessage(), e);
         }
 
-        if (employeesFromExcel.isEmpty()) {
-            throw new RuntimeException("Aucune ligne valide dans le fichier (colonnes : Prénom, Nom, Email, Téléphone, Adresse).");
+        if (employeesFromExcel.isEmpty()) {//Vérifier que la liste n'est pas vide
+            throw new RuntimeException("Aucune ligne valide dans le fichier (colonnes : Prénom, Nom, Email, Téléphone).");
         }
 
-        for (CreateEmployeeDTO dto : employeesFromExcel) {
-            persistEmployeeFromExcelImport(dto, commercial);
+        for (CreateEmployeeDTO dto : employeesFromExcel) {//Parcours de la liste des employés
+            persistEmployeeFromExcelImport(dto, commercial);//Enregistrement de l'employé dans la base de données
         }
     }
 
@@ -669,18 +673,7 @@ public class CommercialServiceImpl implements CommercialService {
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
 
-        Page<Employee> employeePage;
-        if (searchTerm != null && isActive != null) {
-            employeePage = employeeRepository.findByUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndCompanyAndUserIsActive(
-                    searchTerm, searchTerm, company, isActive, pageable);
-        } else if (searchTerm != null) {
-            employeePage = employeeRepository.findByUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndCompany(
-                    searchTerm, searchTerm, company, pageable);
-        } else if (isActive != null) {
-            employeePage = employeeRepository.findByCompanyAndUserIsActive(company, isActive, pageable);
-        } else {
-            employeePage = employeeRepository.findByCompany(company, pageable);
-        }
+        Page<Employee> employeePage = findEmployeesForCompany(company, searchTerm, isActive, pageable);
 
         // Mapper les entités Employee vers EmployeeListItemDTO
         List<EmployeeListItemDTO> employeeList = employeePage.getContent().stream()
@@ -702,6 +695,92 @@ public class CommercialServiceImpl implements CommercialService {
                 searchTerm != null ? searchTerm : "aucune", company.getName(), isActive != null ? isActive : "tous");
 
         return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ByteArrayResource exportEmployees(String search, Long companyId, Boolean isActive) {
+        Users commercial = getCurrentUser();
+        if (commercial.getRole() != UserRole.COMMERCIAL) {
+            throw new RuntimeException("Seuls les commerciaux peuvent exporter les salariés");
+        }
+        if (companyId == null) {
+            throw new RuntimeException("L'identifiant de l'entreprise est obligatoire");
+        }
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
+        Pageable pageable = PageRequest.of(0, Integer.MAX_VALUE, Sort.by(Sort.Direction.DESC, "id"));
+        Page<Employee> employeePage = findEmployeesForCompany(company, searchTerm, isActive, pageable);
+        List<Employee> employees = employeePage.getContent();
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Salariés");
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            String[] headers = {
+                    "Code", "Prénom", "Nom", "Email", "Téléphone", "Entreprise", "Date inscription", "Statut"
+            };
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            DateTimeFormatter dtFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            int rowNum = 1;
+            for (Employee e : employees) {
+                Row row = sheet.createRow(rowNum++);
+                Users u = e.getUser();
+                row.createCell(0).setCellValue(e.getEmployeeCode() != null ? e.getEmployeeCode() : "");
+                row.createCell(1).setCellValue(u.getFirstName() != null ? u.getFirstName() : "");
+                row.createCell(2).setCellValue(u.getLastName() != null ? u.getLastName() : "");
+                row.createCell(3).setCellValue(u.getEmail() != null ? u.getEmail() : "");
+                row.createCell(4).setCellValue(u.getPhone() != null ? u.getPhone() : "");
+                row.createCell(5).setCellValue(e.getCompany().getName() != null ? e.getCompany().getName() : "");
+                row.createCell(6).setCellValue(e.getCreatedAt() != null ? e.getCreatedAt().format(dtFormatter) : "");
+                row.createCell(7).setCellValue(Boolean.TRUE.equals(u.getIsActive()) ? "Actif" : "Inactif");
+            }
+
+            autoSizeColumnsSafe(sheet, headers.length);
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            return new ByteArrayResource(outputStream.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
+        }
+    }
+
+    private Page<Employee> findEmployeesForCompany(Company company, String searchTerm, Boolean isActive, Pageable pageable) {
+        if (searchTerm != null && isActive != null) {
+            return employeeRepository.findByUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndCompanyAndUserIsActive(
+                    searchTerm, searchTerm, company, isActive, pageable);
+        }
+        if (searchTerm != null) {
+            return employeeRepository.findByUserFirstNameContainingIgnoreCaseOrUserLastNameContainingIgnoreCaseAndCompany(
+                    searchTerm, searchTerm, company, pageable);
+        }
+        if (isActive != null) {
+            return employeeRepository.findByCompanyAndUserIsActive(company, isActive, pageable);
+        }
+        return employeeRepository.findByCompany(company, pageable);
+    }
+
+    private void autoSizeColumnsSafe(Sheet sheet, int columnCount) {
+        for (int i = 0; i < columnCount; i++) {
+            try {
+                sheet.autoSizeColumn(i);
+            } catch (Throwable e) {
+                log.debug("autoSizeColumn({}) ignoré (headless / polices): {}", i, e.getMessage());
+                sheet.setColumnWidth(i, 20 * 256);
+            }
+        }
     }
 
     @Override
@@ -956,12 +1035,19 @@ public class CommercialServiceImpl implements CommercialService {
         Coupon coupon = new Coupon();
         coupon.setCode(createCouponDTO.getCode().trim().toUpperCase());
         coupon.setName(createCouponDTO.getName().trim());
-        coupon.setDiscountType(createCouponDTO.getDiscountType());
         coupon.setValue(createCouponDTO.getValue());
-        coupon.setIsActive(false);
-        coupon.setStatus(CouponStatus.PLANNED);
-        coupon.setStartDate(createCouponDTO.getStartDate());
-        coupon.setEndDate(createCouponDTO.getEndDate());
+        LocalDateTime startDate = createCouponDTO.getStartDate();
+        LocalDateTime endDate = createCouponDTO.getEndDate();
+        coupon.setStartDate(startDate);
+        coupon.setEndDate(endDate);
+        // Si la date de début est aujourd'hui : activation immédiate (sinon planifié, désactivé jusqu'à activation manuelle).
+        if (startDate.toLocalDate().equals(LocalDate.now())) {
+            coupon.setIsActive(true);
+            coupon.setStatus(computeStatus(startDate, endDate, true));
+        } else {
+            coupon.setIsActive(false);
+            coupon.setStatus(CouponStatus.PLANNED);
+        }
 
         couponRepository.save(coupon);
     }
@@ -1505,7 +1591,6 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setId(coupon.getId());
         dto.setCode(coupon.getCode());
         dto.setName(coupon.getName());
-        dto.setDiscountType(coupon.getDiscountType());
         dto.setValue(coupon.getValue());
         dto.setStatus(coupon.getStatus());
         dto.setValidFrom(coupon.getStartDate() != null ? coupon.getStartDate().format(formatter) : null);
@@ -1575,7 +1660,6 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setId(coupon.getId());
         dto.setCode(coupon.getCode());
         dto.setName(coupon.getName());
-        dto.setDiscountType(coupon.getDiscountType());
         dto.setValue(coupon.getValue());
         dto.setStatus(coupon.getStatus());
         dto.setIsActive(coupon.getIsActive());

@@ -35,8 +35,8 @@ public class AuthController {
     // ============================================================================
 
     @Operation(
-            summary = "Inscription d'un utilisateur",
-            description = "Permet d'inscrire un nouvel utilisateur dans le système, notamment les commerciaux et les responsables logistiques. " +
+            summary = "Inscription publique (rôles restreints)",
+            description = "Création de compte via l'API publique : les rôles Commercial et Responsable logistique ne sont pas autorisés (création par administrateur uniquement). " +
                          "L'email et le téléphone doivent être uniques."
     )
     @PostMapping("/users")

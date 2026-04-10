@@ -1,7 +1,6 @@
 package com.example.coopachat.dtos.coupons;
 
 import com.example.coopachat.enums.CouponStatus;
-import com.example.coopachat.enums.DiscountType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -14,7 +13,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * DTO pour la création d'un coupon (code promo panier, réduction sur le total).
+ * DTO pour la création d'un coupon (code promo panier, réduction en pourcentage sur le total).
  */
 @Data
 @NoArgsConstructor
@@ -26,9 +25,6 @@ public class CreateCouponDTO {
 
     @NotBlank(message = "Le nom du coupon est obligatoire")
     private String name;
-
-    @NotNull(message = "Le type de réduction est obligatoire")
-    private DiscountType discountType; // pourcentage ou montant fixe
 
     @NotNull(message = "La valeur de reduction est obligatoire")
     @Positive(message = "La valeur de reduction doit être positive")

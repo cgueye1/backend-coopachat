@@ -82,6 +82,12 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void addUser(UserDto userDto) {
 
+        if (userDto.getRole() == UserRole.COMMERCIAL || userDto.getRole() == UserRole.LOGISTICS_MANAGER) {
+            throw new ValidationException(
+                    "Les comptes Commercial et Responsable logistique sont créés par un administrateur. "
+                            + "Utilisez la page « Activer mon compte » avec l’adresse e-mail qui vous a été communiquée.");
+        }
+
         // Validation : vérifier si l'email existe déjà
         if (userRepository.existsByEmail(userDto.getEmail())) {
             throw new EmailAlreadyExistsException("Cet email est déjà utilisé");
@@ -90,12 +96,6 @@ public class AuthServiceImpl implements AuthService {
         // Validation : vérifier si le téléphone existe déjà
         if (userRepository.existsByPhone(userDto.getPhoneNumber())) {
             throw new PhoneAlreadyExistsException("Ce téléphone est déjà utilisé");
-        }
-
-        if (userDto.getRole() == UserRole.COMMERCIAL) {
-            if (userDto.getCompanyCommercial() == null || userDto.getCompanyCommercial().isEmpty()) {
-                throw new ValidationException("L'entreprise est obligatoire pour un commercial");
-            }
         }
 
         // Mapping : convertir le DTO en entité

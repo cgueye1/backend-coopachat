@@ -757,31 +757,11 @@ public class EmployeeServiceImpl implements EmployeeService {
                 throw new RuntimeException("Ce coupon a expiré");
             }
 
-             // Calculer la réduction selon le type
-            BigDecimal discount;
-
-            // Si la réduction est de type pourcentage, on calcule le montant à déduire
-            // en multipliant le total par le pourcentage
-            if (coupon.getDiscountType() == DiscountType.PERCENTAGE) {
-
-             // Pourcentage : (total × valeur) ÷ 100
-                BigDecimal pourcentage = coupon.getValue()
-                        .divide(BigDecimal.valueOf(100)); // 10% → 0.10
-
-                discount = total.multiply(pourcentage);
-                total = total.subtract(discount);
-
-            } else {
-                // Montant fixe : on vérifie que la valeur du coupon ne dépasse pas le total de la commande
-                if (coupon.getValue().compareTo(total) > 0) {
-                    throw new RuntimeException(
-                            "Ce coupon ne peut pas être utilisé sur une commande inférieure à "
-                                    + coupon.getValue() + " F"
-                    );
-                }
-                // On déduit directement la valeur du coupon du total
-                total = total.subtract(coupon.getValue());
-            }
+            // Réduction en pourcentage sur le total panier (valeur = ex. 10 pour 10 %)
+            BigDecimal pourcentage = coupon.getValue()
+                    .divide(BigDecimal.valueOf(100));
+            BigDecimal discount = total.multiply(pourcentage);
+            total = total.subtract(discount);
         }
 
         // 5. Adresse principale (pour l’affichage du récap)
@@ -890,32 +870,10 @@ public class EmployeeServiceImpl implements EmployeeService {
                 throw new RuntimeException("Ce coupon a expiré");
             }
 
-            // Calculer la réduction selon le type
-            BigDecimal discount ;
-
-            // Si la réduction est de type pourcentage, on calcule le montant à déduire
-            // en multipliant le total par le pourcentage
-            if (coupon.getDiscountType() == DiscountType.PERCENTAGE) {
-
-                // Pourcentage : (total × valeur) ÷ 100
-                BigDecimal pourcentage = coupon.getValue()
-                        .divide(BigDecimal.valueOf(100)); // 10% → 0.10
-
-                discount = total.multiply(pourcentage);
-
-            } else {
-                // Si le coupon est de type montant fixe,
-                // on vérifie que sa valeur n’est pas supérieure au total de la commande
-                if (coupon.getValue().compareTo(total) > 0) {
-                    throw new RuntimeException(
-                            "Ce coupon ne peut pas être utilisé sur une commande inférieure à "
-                                    + coupon.getValue() + " F"
-                    );
-                }
-
-                // Montant fixe : on applique directement la valeur du coupon
-                discount = coupon.getValue();
-            }
+            // Réduction en pourcentage sur le total commande (valeur = ex. 10 pour 10 %)
+            BigDecimal pourcentage = coupon.getValue()
+                    .divide(BigDecimal.valueOf(100));
+            BigDecimal discount = total.multiply(pourcentage);
 
            // Mise à jour du montant total de la commande (total - réduction)
             order.setTotalPrice(total.subtract(discount));

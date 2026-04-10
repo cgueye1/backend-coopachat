@@ -73,6 +73,16 @@ public interface UserRepository extends JpaRepository<Users, Long> {
     /** Nombre d'utilisateurs inactifs (isActive = false). */
     long countByIsActiveFalse();
 
+    /** Comptages admin : même périmètre que findAllWithFilters (hors salariés / EMPLOYEE). */
+    @Query("SELECT COUNT(u) FROM Users u WHERE u.role <> com.example.coopachat.enums.UserRole.EMPLOYEE")
+    long countExcludingEmployee();
+
+    @Query("SELECT COUNT(u) FROM Users u WHERE u.role <> com.example.coopachat.enums.UserRole.EMPLOYEE AND u.isActive = true")
+    long countByIsActiveTrueExcludingEmployee();
+
+    @Query("SELECT COUNT(u) FROM Users u WHERE u.role <> com.example.coopachat.enums.UserRole.EMPLOYEE AND u.isActive = false")
+    long countByIsActiveFalseExcludingEmployee();
+
     /** Nombre d'utilisateurs pour un rôle donné (pour le graphique "Utilisateurs par rôle"). */
     long countByRole(UserRole role);
 
