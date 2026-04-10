@@ -535,6 +535,11 @@ public class CommercialServiceImpl implements CommercialService {
             throw new RuntimeException("Cet email est déjà utilisé");
         }
 
+        String phone = employee.getPhone() != null ? employee.getPhone().trim() : "";
+        if (!phone.isEmpty() && userRepository.existsByPhone(phone)) {
+            throw new RuntimeException("Ce numéro de téléphone est déjà utilisé : " + phone);
+        }
+
         // Récupérer l'entreprise associée
         Company company = companyRepository.findById(employee.getCompanyId())
                 .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
@@ -548,7 +553,7 @@ public class CommercialServiceImpl implements CommercialService {
         user.setEmail(employee.getEmail());
         user.setFirstName(employee.getFirstName());
         user.setLastName(employee.getLastName());
-        user.setPhone(employee.getPhone());
+        user.setPhone(phone.isEmpty() ? null : phone);
         user.setRole(UserRole.EMPLOYEE);
         user.setIsActive(false); // Inactif jusqu'à activation
         user.setRefUser(userReferenceGenerator.generateUniqueRefUser());
@@ -581,6 +586,10 @@ public class CommercialServiceImpl implements CommercialService {
         if (userRepository.existsByEmail(employee.getEmail())) {
             throw new RuntimeException("Cet email est déjà utilisé");
         }
+        String phone = employee.getPhone() != null ? employee.getPhone().trim() : "";
+        if (!phone.isEmpty() && userRepository.existsByPhone(phone)) {
+            throw new RuntimeException("Ce numéro de téléphone est déjà utilisé : " + phone);
+        }
         Company company = companyRepository.findById(employee.getCompanyId())
                 .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
         if (company.getStatus() != CompanyStatus.PARTNER_SIGNED) {
@@ -590,7 +599,7 @@ public class CommercialServiceImpl implements CommercialService {
         user.setEmail(employee.getEmail());
         user.setFirstName(employee.getFirstName());
         user.setLastName(employee.getLastName());
-        user.setPhone(employee.getPhone());
+        user.setPhone(phone.isEmpty() ? null : phone);
         user.setRole(UserRole.EMPLOYEE);
         user.setIsActive(false);
         user.setRefUser(userReferenceGenerator.generateUniqueRefUser());
