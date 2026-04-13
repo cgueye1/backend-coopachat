@@ -4,11 +4,10 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { ModalComponent } from '../../ui/modal/modal.component';
 import { FormFieldComponent } from '../../ui/form-field/form-field.component';
 
-/** Données envoyées au parent pour création (code promo panier uniquement). */
+/** Données envoyées au parent pour création (code promo panier uniquement, réduction en %). */
 export interface CouponFormData {
   name: string;
   code: string;
-  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
   value: number;
   startDate: string;
   endDate: string;
@@ -34,13 +33,10 @@ export class CouponModalComponent implements OnInit {
   couponForm: FormGroup;
   dateRangeError: string | null = null;
 
-  readonly DISCOUNT_TYPE = { PERCENTAGE: 'PERCENTAGE', FIXED_AMOUNT: 'FIXED_AMOUNT' };
-
   constructor(private fb: FormBuilder) {
     this.couponForm = this.fb.group({
       name: ['', Validators.required],
       code: ['', Validators.required],
-      discountType: [this.DISCOUNT_TYPE.PERCENTAGE, Validators.required],
       value: [null as number | null, [Validators.required, Validators.min(0.01)]],
       dateDebut: ['', Validators.required],
       dateFin: ['', Validators.required]
@@ -50,10 +46,6 @@ export class CouponModalComponent implements OnInit {
   ngOnInit(): void {
     this.couponForm.get('dateDebut')?.valueChanges.subscribe(() => this.validateDateRange());
     this.couponForm.get('dateFin')?.valueChanges.subscribe(() => this.validateDateRange());
-  }
-
-  get isFixedAmount(): boolean {
-    return this.couponForm.get('discountType')?.value === this.DISCOUNT_TYPE.FIXED_AMOUNT;
   }
 
   validateDateRange(): void {
@@ -78,7 +70,6 @@ export class CouponModalComponent implements OnInit {
     this.couponForm.reset({
       name: '',
       code: '',
-      discountType: this.DISCOUNT_TYPE.PERCENTAGE,
       value: null,
       dateDebut: '',
       dateFin: ''
@@ -98,7 +89,6 @@ export class CouponModalComponent implements OnInit {
     const payload: CouponFormData = {
       name: this.couponForm.get('name')?.value?.trim() ?? '',
       code: this.couponForm.get('code')?.value?.trim().toUpperCase() ?? '',
-      discountType: this.couponForm.get('discountType')?.value,
       value: Number(this.couponForm.get('value')?.value),
       startDate: start ? new Date(start).toISOString().slice(0, 10) + 'T00:00:00.000Z' : '',
       endDate: end ? new Date(end).toISOString().slice(0, 10) + 'T23:59:59.999Z' : ''

@@ -51,8 +51,11 @@ export class MainLayoutComponent {
   onMyAccountModalModify(): void {
     const user = this.myAccountModalService.getSnapshot().user;
     this.myAccountModalService.close();
-    if (user?.id != null) {
+    if (user?.id == null) return;
+    if (this.normalizedRole === 'admin') {
       this.router.navigate(['/admin/users/edit', user.id]);
+    } else {
+      this.router.navigate(['/profile/edit']);
     }
   }
 

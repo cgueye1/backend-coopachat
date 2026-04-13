@@ -44,9 +44,10 @@ export class SidebarComponent implements OnChanges, OnInit {
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
-  /** True si la sidebar est en contexte admin (bouton Modifier → édition utilisateur). */
+  /** Mon compte : afficher « Modifier » pour admin (admin/users/edit) et pour RL / commercial (/profile/edit). */
   get allowSelfAccountEdit(): boolean {
-    return this.normalizeRole(this.role) === 'admin';
+    const r = this.normalizeRole(this.role);
+    return r === 'admin' || r === 'log' || r === 'com';
   }
 
   /** Item sans enfants : lien direct. Item avec enfants : sous-menu (Offres). */
@@ -60,7 +61,6 @@ export class SidebarComponent implements OnChanges, OnInit {
     { label: 'Tableau de bord', icon: 'dashboard', link: '/com/dashboard', active: false },
     { label: 'Prospections', icon: 'prospection', link: '/com/prospections', active: false },
     { label: 'Entreprises', icon: 'entreprises', link: '/com/entreprises', active: false },
-    { label: 'Gestion salariés', icon: 'salaries', link: '/com/salaries', active: false },
     {
       label: 'Offres',
       icon: 'promotion',

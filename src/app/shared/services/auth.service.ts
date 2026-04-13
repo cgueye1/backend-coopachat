@@ -5,6 +5,12 @@ import { environment } from '../../../environments/environment';
 import { UserDto } from '../models/user.model';
 import { UserDetailsDTO } from './admin.service';
 
+/** Réponse PUT /api/auth/me (profil + nouveau JWT si email modifié). */
+export interface ProfileUpdateResponseDTO {
+    profile: UserDetailsDTO;
+    accessToken: string;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -13,6 +19,22 @@ export class AuthService {
     private apiUrl = environment.apiUrl;
 
     constructor(private http: HttpClient) { }
+
+    private persistAuthAfterProfileUpdate(res: ProfileUpdateResponseDTO): void {
+        if (!res?.accessToken) return;
+        const store = (key: string, value: string) => {
+            sessionStorage.setItem(key, value);
+            localStorage.setItem(key, value);
+        };
+        store('token', res.accessToken);
+        const p = res.profile;
+        if (p?.email) store('email', p.email);
+        if (p.firstName != null) store('firstName', p.firstName);
+        if (p.lastName != null) store('lastName', p.lastName);
+        if (p.profilePhotoUrl != null && p.profilePhotoUrl !== '') {
+            store('profilePhotoUrl', p.profilePhotoUrl);
+        }
+    }
 
     //----------------------------------------
     // INSCRIPTION
@@ -210,5 +232,35 @@ export class AuthService {
      */
     getCurrentUserProfile(): Observable<UserDetailsDTO> {
         return this.http.get<UserDetailsDTO>(`${this.apiUrl}/auth/me`);
+    }
+
+    /**
+     * PUT /api/auth/me — commercial et responsable logistique uniquement.
+     * Met à jour le stockage local si un nouveau JWT est renvoyé.
+     */
+    updateMyProfile(body: {
+        firstName?: string;
+        lastName?: string;
+        email?: string;
+        phoneNumber?: string;
+    }): Observable<ProfileUpdateResponseDTO> {
+        return this.http.put<ProfileUpdateResponseDTO>(`${this.apiUrl}/auth/me`, body);
+    }
+
+    /**
+     * Après {@link #updateMyProfile}, persiste le token et les champs du profil.
+     */
+    applyProfileUpdateResponse(res: ProfileUpdateResponseDTO): void {
+        this.persistAuthAfterProfileUpdate(res);
+    }
+
+    updateMyProfilePhoto(file: File): Observable<string> {
+        const form = new FormData();
+        form.append('file', file);
+        return this.http.put(`${this.apiUrl}/auth/me/profile-photo`, form, { responseType: 'text' });
+    }
+
+    removeMyProfilePhoto(): Observable<string> {
+        return this.http.delete(`${this.apiUrl}/auth/me/profile-photo`, { responseType: 'text' });
     }
 }

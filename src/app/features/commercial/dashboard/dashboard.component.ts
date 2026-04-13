@@ -107,11 +107,9 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
   private getProspectionStatusColor(status: string): string {
     const s = status.toLowerCase();
-    if (s.includes('refusée') || s.includes('refusee')) return 'red';
     if (s.includes('partenaire') || s.includes('signé')) return 'green';
     if (s.includes('intéressée') || s.includes('interessee')) return 'green';
     if (s.includes('relanc')) return 'yellow';
-    if (s.includes('rendez-vous')) return 'blue';
     return 'gray';
   }
 

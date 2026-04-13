@@ -124,6 +124,7 @@ export class CompanyModalComponent implements OnInit, OnChanges, AfterViewChecke
         this.companyForm.patchValue(this.initialData);
       } else {
         this.companyForm.reset();
+        this.companyForm.patchValue({ statut: 'En attente' });
         this.clearLogoSelection();
       }
     }
@@ -148,7 +149,7 @@ export class CompanyModalComponent implements OnInit, OnChanges, AfterViewChecke
       nom: ['', [Validators.required, Validators.minLength(2)]],
       secteur: [''],
       localisation: ['', [Validators.required]],
-      statut: ['', [Validators.required]],
+      statut: ['En attente'],
       contact: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
       telephone: ['', [Validators.required, Validators.pattern(/^[+]?[0-9\s\-\(\)]+$/)]],
@@ -178,6 +179,7 @@ export class CompanyModalComponent implements OnInit, OnChanges, AfterViewChecke
 
   onClose() {
     this.companyForm.reset();
+    this.companyForm.patchValue({ statut: 'En attente' });
     this.clearLogoSelection();
     this.close.emit();
   }

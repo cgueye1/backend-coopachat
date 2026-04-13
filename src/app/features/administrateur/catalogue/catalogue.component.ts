@@ -8,8 +8,6 @@ import { Subscription, finalize } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
-import { NgChartsModule } from 'ng2-charts';
-import { ChartConfiguration } from 'chart.js';
 import Swal from 'sweetalert2';
 import { ProductService } from '../../../shared/services/product.service';
 import { PAGE_SIZE_OPTIONS } from '../../../shared/constants/pagination';
@@ -38,7 +36,7 @@ interface Product {
 @Component({
   selector: 'app-catalogue',
   standalone: true,
-  imports: [MainLayoutComponent, HeaderComponent, CommonModule, FormsModule, NgChartsModule],
+  imports: [MainLayoutComponent, HeaderComponent, CommonModule, FormsModule],
   templateUrl: './catalogue.component.html',
   styles: ``
 })
@@ -70,142 +68,15 @@ export class CatalogueComponent implements OnInit, OnDestroy {
     this.isBrowser = isPlatformBrowser(this.platformId);
   }
 
-  // Bar Chart Configuration - Top 5 Produits commandés (utilisation en %)
-  public barChartData: ChartConfiguration<'bar'>['data'] = {
-    labels: [],
-    datasets: [
-      {
-        data: [],
-        backgroundColor: (ctx) => {
-          const { chart } = ctx;
-          const { ctx: c, chartArea } = chart as any;
-          if (!chartArea) {
-            return '#FF6B00';
-          }
-          const gradient = c.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
-          gradient.addColorStop(0, '#FF6B00');
-          gradient.addColorStop(1, '#FF914D');
-          return gradient;
-        },
-        barThickness: 30,
-        hoverBackgroundColor: '#FF914D'
-      }
-    ]
-  };
-
-  public barChartOptions: ChartConfiguration<'bar'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'y',
-    plugins: {
-      legend: {
-        display: true,
-        position: 'top',
-        align: 'start',
-        labels: {
-          boxWidth: 40,
-          boxHeight: 12,
-          padding: 15,
-          font: { size: 12 },
-          generateLabels: () => [
-            { text: 'Utilisation (%)', fillStyle: '#FF6B00', strokeStyle: '#FF6B00', lineWidth: 0 }
-          ]
-        }
-      },
-      tooltip: {
-        enabled: true,
-        callbacks: {
-          label: (context) => `Utilisation : ${Number(context.parsed.x).toFixed(1)} %`
-        }
-      }
-    },
-    scales: {
-      x: {
-        beginAtZero: true,
-        max: 100,
-        ticks: {
-          stepSize: 10,
-          callback: (value) => value + ' %',
-          font: { size: 12 }
-        },
-        grid: { display: true, color: '#F2F5F9' }
-      },
-      y: {
-        ticks: { font: { size: 12 } },
-        grid: { display: true, color: '#F2F5F9' }
-      }
-    }
-  };
-
-  // Doughnut Chart Configuration - Répartition des statuts
-  public doughnutChartData: ChartConfiguration<'doughnut'>['data'] = {
-    labels: ['Actifs', 'Inactifs'],
-    datasets: [
-      {
-        data: [83, 17],
-        backgroundColor: ['#22C55F', '#FFD3D3'],
-        hoverBackgroundColor: ['#22C55E', '#eeb8b8ff'],
-        borderWidth: 2,
-        hoverBorderColor: '#FFFFFF'
-      }
-    ]
-  };
-
-  public doughnutChartOptions: ChartConfiguration<'doughnut'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: '60%',
-    plugins: {
-      legend: {
-        display: true,
-        position: 'right',
-        labels: {
-          usePointStyle: true,
-          pointStyle: 'circle',
-          boxWidth: 6,
-          boxHeight: 6,
-          padding: 20,
-          font: {
-            size: 12
-          },
-          generateLabels: (chart) => {
-            const data = chart.data;
-            if (data.labels && data.datasets.length) {
-              return data.labels.map((label, i) => ({
-                text: label as string,
-                fillStyle: (data.datasets[0].backgroundColor as string[])[i],
-                strokeStyle: (data.datasets[0].backgroundColor as string[])[i],
-                lineWidth: 0,
-                hidden: false,
-                index: i
-              }));
-            }
-            return [];
-          }
-        }
-      },
-      tooltip: {
-        enabled: true,
-        callbacks: {
-          label: (context) => {
-            return `${context.label}: ${Number(context.parsed).toFixed(1)}%`;
-          }
-        }
-      }
-    }
-  };
-
   ngOnInit() {
     this.loadCategories();
     this.loadProducts();
     this.loadProductStats();
-    this.loadTop5ProductUsage();
 
     // Au premier chargement avec ?refresh=1 (retour après ajout/modif produit), recharger puis retirer le param
     if (this.route.snapshot.queryParamMap.get('refresh') === '1') {
       this.loadProducts();
       this.loadProductStats();
-      this.loadTop5ProductUsage();
       this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
     }
 
@@ -216,7 +87,6 @@ export class CatalogueComponent implements OnInit, OnDestroy {
       if (this.route.snapshot.queryParamMap.get('refresh') === '1') {
         this.loadProducts();
         this.loadProductStats();
-        this.loadTop5ProductUsage();
         this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
       }
     });
@@ -224,38 +94,6 @@ export class CatalogueComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.routerSub?.unsubscribe();
-  }
-
-  /** True pendant l’appel API du graphique « Top 5 Produits commandés ». */
-  loadingChartTop5 = false;
-
-  /** Charge le top 5 des produits les plus commandés (en % d'utilisation) pour le graphique. */
-  loadTop5ProductUsage(): void {
-    this.loadingChartTop5 = true;
-    this.productService.getTop5ProductsUsage().pipe(
-      finalize(() => { this.loadingChartTop5 = false; })
-    ).subscribe({
-      next: (list) => {
-        const labels = list?.length
-          ? list.map((x: { productName: string }) => x.productName)
-          : [];
-        const data = list?.length
-          ? list.map((x: { usagePercent: number }) => x.usagePercent)
-          : [];
-        this.barChartData = {
-          ...this.barChartData,
-          labels,
-          datasets: [{ ...this.barChartData.datasets[0], data }]
-        };
-      },
-      error: () => {
-        this.barChartData = {
-          ...this.barChartData,
-          labels: [],
-          datasets: [{ ...this.barChartData.datasets[0], data: [] }]
-        };
-      }
-    });
   }
 
   metricsData: MetricCard[] = [];
@@ -533,15 +371,6 @@ export class CatalogueComponent implements OnInit, OnDestroy {
         const total = stats?.totalProducts ?? 0;
         const actifs = stats?.activeProducts ?? 0;
         const inactifs = stats?.inactiveProducts ?? 0;
-        const pctActifs = total > 0 ? Math.round((actifs / total) * 1000) / 10 : 0;
-        const pctInactifs = total > 0 ? Math.round((inactifs / total) * 1000) / 10 : 0;
-        this.doughnutChartData = {
-          ...this.doughnutChartData,
-          datasets: [{
-            ...this.doughnutChartData.datasets[0],
-            data: [pctActifs, pctInactifs]
-          }]
-        };
       },
       error: (error) => {
         console.error('Erreur lors du chargement des statistiques:', error);

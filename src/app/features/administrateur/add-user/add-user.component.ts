@@ -2,9 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
+import { map, of, switchMap } from 'rxjs';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
 import { AdminService } from '../../../shared/services/admin.service';
+import { AuthService } from '../../../shared/services/auth.service';
 import Swal from 'sweetalert2';
 
 /** Libellé affiché → enum backend (POST/PUT /users). */
@@ -12,7 +14,6 @@ const ROLE_LABEL_TO_ENUM: Record<string, string> = {
     'Administrateur': 'ADMINISTRATOR',
     'Commercial': 'COMMERCIAL',
     'Livreur': 'DELIVERY_DRIVER',
-    'Salarié': 'EMPLOYEE',
     'Responsable Logistique': 'LOGISTICS_MANAGER'
 };
 
@@ -29,7 +30,9 @@ export class AddUserComponent implements OnInit {
         nom: '',
         email: '',
         telephone: '',
-        role: ''
+        role: '',
+        /** Obligatoire si rôle = Commercial (admin uniquement). */
+        entreprise: ''
     };
 
     errors = {
@@ -37,7 +40,8 @@ export class AddUserComponent implements OnInit {
         nom: '',
         email: '',
         telephone: '',
-        role: ''
+        role: '',
+        entreprise: ''
     };
 
     /** Fichier photo de profil sélectionné (création ou modification). */
@@ -47,20 +51,64 @@ export class AddUserComponent implements OnInit {
     /** URL actuelle de la photo en mode édition (affichée si pas de nouvelle sélection). */
     currentProfilePhotoUrl: string | null = null;
 
-    roles = ['Administrateur', 'Commercial', 'Livreur', 'Salarié', 'Responsable Logistique'];
+    /** Pas de « Salarié » : création via le flux commercial. */
+    roles = ['Administrateur', 'Commercial', 'Livreur', 'Responsable Logistique'];
     showRoleDropdown = false;
     editId: number | null = null;
     saving = false;
     /** Appel DELETE photo en cours (édition utilisateur). */
     removingPhoto = false;
 
+    /** Route /profile/edit : commercial / RL modifient leur compte via PUT /api/auth/me. */
+    selfEditMode = false;
+    /** Rôle pour la sidebar (même layout que les écrans log / com). */
+    mainLayoutRole: 'log' | 'com' | 'admin' = 'admin';
+
     constructor(
         private router: Router,
         private route: ActivatedRoute,
-        private adminService: AdminService
+        private adminService: AdminService,
+        private authService: AuthService
     ) { }
 
+    get headerTitle(): string {
+        if (this.selfEditMode) {
+            return 'Modifier mon profil';
+        }
+        return this.editId ? 'Modifier l\'utilisateur' : 'Nouveau utilisateur';
+    }
+
+    get headerBreadcrumb(): string {
+        if (this.selfEditMode) {
+            return 'Pages / Mon compte / Modifier';
+        }
+        return this.editId ? 'Pages / Gestion des utilisateurs / Modifier' : 'Pages / Gestion des utilisateurs / Nouveau utilisateur';
+    }
+
     ngOnInit() {
+        if (this.router.url.includes('/profile/edit')) {
+            this.selfEditMode = true;
+            this.mainLayoutRole = this.guessLayoutFromSessionRole();
+            this.authService.getCurrentUserProfile().subscribe({
+                next: (u) => {
+                    this.mainLayoutRole = this.mapBackendRoleToLayoutRole(u.role);
+                    this.newUser = {
+                        prenom: u.firstName ?? '',
+                        nom: u.lastName ?? '',
+                        email: u.email ?? '',
+                        telephone: u.phoneNumber ?? '',
+                        role: u.roleLabel ?? '',
+                        entreprise: u.companyCommercial ?? ''
+                    };
+                    if (u.profilePhotoUrl) {
+                        this.currentProfilePhotoUrl = this.adminService.getProfilePhotoUrl(u.profilePhotoUrl);
+                    }
+                },
+                error: () => this.router.navigate([this.dashboardHomePath()])
+            });
+            return;
+        }
+
         const id = this.route.snapshot.paramMap.get('id');
         if (id) {
             this.editId = +id;
@@ -72,7 +120,8 @@ export class AddUserComponent implements OnInit {
                             nom: u.lastName ?? '',
                             email: u.email ?? '',
                             telephone: u.phoneNumber ?? '',
-                            role: u.roleLabel ?? ''
+                            role: u.roleLabel ?? '',
+                            entreprise: u.companyCommercial ?? ''
                         };
                         if (u.profilePhotoUrl) {
                             this.currentProfilePhotoUrl = this.adminService.getProfilePhotoUrl(u.profilePhotoUrl);
@@ -84,8 +133,44 @@ export class AddUserComponent implements OnInit {
         }
     }
 
+    private guessLayoutFromSessionRole(): 'log' | 'com' | 'admin' {
+        const r = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('role') || '' : '';
+        if (r.includes('Commercial')) {
+            return 'com';
+        }
+        if (r.includes('Logistique')) {
+            return 'log';
+        }
+        return 'log';
+    }
+
+    private mapBackendRoleToLayoutRole(role: string): 'log' | 'com' | 'admin' {
+        const r = (role || '').toUpperCase();
+        if (r === 'COMMERCIAL') {
+            return 'com';
+        }
+        if (r === 'LOGISTICS_MANAGER') {
+            return 'log';
+        }
+        return 'admin';
+    }
+
+    private dashboardHomePath(): string {
+        if (this.mainLayoutRole === 'com') {
+            return '/com/dashboard';
+        }
+        if (this.mainLayoutRole === 'log') {
+            return '/log/dashboardlog';
+        }
+        return '/admin/dashboardadmin';
+    }
+
     goBack() {
-        this.router.navigate(['/admin/users']);
+        if (this.selfEditMode) {
+            this.router.navigate([this.dashboardHomePath()]);
+        } else {
+            this.router.navigate(['/admin/users']);
+        }
     }
 
     toggleRoleDropdown() {
@@ -94,8 +179,12 @@ export class AddUserComponent implements OnInit {
 
     selectRole(role: string) {
         this.newUser.role = role;
+        if (role !== 'Commercial') {
+            this.newUser.entreprise = '';
+        }
         this.showRoleDropdown = false;
         this.errors.role = '';
+        this.errors.entreprise = '';
     }
 
     onProfilePhotoChange(event: Event): void {
@@ -154,7 +243,8 @@ export class AddUserComponent implements OnInit {
             nom: '',
             email: '',
             telephone: '',
-            role: ''
+            role: '',
+            entreprise: ''
         };
 
         if (!this.newUser.prenom.trim()) {
@@ -180,8 +270,13 @@ export class AddUserComponent implements OnInit {
             isValid = false;
         }
 
-        if (!this.newUser.role) {
+        if (!this.selfEditMode && !this.newUser.role) {
             this.errors.role = 'Le rôle est requis';
+            isValid = false;
+        }
+
+        if (!this.selfEditMode && this.newUser.role === 'Commercial' && !this.newUser.entreprise.trim()) {
+            this.errors.entreprise = 'L’entreprise / entité est obligatoire pour un commercial';
             isValid = false;
         }
 
@@ -190,6 +285,33 @@ export class AddUserComponent implements OnInit {
 
     enregistrer() {
         if (!this.validateForm() || this.saving) return;
+        if (this.selfEditMode) {
+            this.saving = true;
+            this.authService.updateMyProfile({
+                firstName: this.newUser.prenom.trim(),
+                lastName: this.newUser.nom.trim(),
+                email: this.newUser.email.trim(),
+                phoneNumber: this.newUser.telephone.trim()
+            }).pipe(
+                switchMap((res) => {
+                    this.authService.applyProfileUpdateResponse(res);
+                    if (this.profilePhotoFile) {
+                        return this.authService.updateMyProfilePhoto(this.profilePhotoFile).pipe(map(() => void 0));
+                    }
+                    return of(undefined);
+                })
+            ).subscribe({
+                next: () => {
+                    this.saving = false;
+                    this.showSuccessMessage('Profil mis à jour avec succès');
+                },
+                error: (err) => {
+                    this.saving = false;
+                    this.showApiError(err);
+                }
+            });
+            return;
+        }
         const roleEnum = ROLE_LABEL_TO_ENUM[this.newUser.role];
         if (!roleEnum) {
             this.errors.role = 'Rôle invalide';
@@ -203,6 +325,7 @@ export class AddUserComponent implements OnInit {
                 email: this.newUser.email.trim(),
                 phoneNumber: this.newUser.telephone.trim(),
                 role: this.newUser.role,
+                companyCommercial: this.newUser.role === 'Commercial' ? this.newUser.entreprise.trim() : undefined,
                 profilePhoto: this.profilePhotoFile ?? undefined
             }).subscribe({
                 next: () => {
@@ -224,6 +347,7 @@ export class AddUserComponent implements OnInit {
                 email: this.newUser.email.trim(),
                 phoneNumber: this.newUser.telephone.trim(),
                 role: roleEnum,
+                companyCommercial: this.newUser.role === 'Commercial' ? this.newUser.entreprise.trim() : undefined,
                 profilePhoto: this.profilePhotoFile ?? undefined
             }).subscribe({
                 next: () => {
@@ -269,11 +393,15 @@ export class AddUserComponent implements OnInit {
                 popup: 'animate__animated animate__fadeOut animate__faster'
             }
         }).then(() => {
-            this.router.navigate(['/admin/users']);
+            this.router.navigate([this.selfEditMode ? this.dashboardHomePath() : '/admin/users']);
         });
     }
 
     annuler() {
-        this.router.navigate(['/admin/users']);
+        if (this.selfEditMode) {
+            this.router.navigate([this.dashboardHomePath()]);
+        } else {
+            this.router.navigate(['/admin/users']);
+        }
     }
 }

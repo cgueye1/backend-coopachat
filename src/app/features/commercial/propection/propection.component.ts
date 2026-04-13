@@ -1,7 +1,7 @@
 import { Component, OnInit, NgZone, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { CompanyModalComponent, CompanyFormData, CompanySubmitPayload } from '../../../shared/components/company-modal/company-modal.component';
@@ -41,7 +41,7 @@ interface MetricCard {
 @Component({
   selector: 'app-prospection',
   standalone: true,
-  imports: [CommonModule, FormsModule, MainLayoutComponent, CompanyModalComponent, HeaderComponent],
+  imports: [CommonModule, FormsModule, RouterLink, MainLayoutComponent, CompanyModalComponent, HeaderComponent],
   templateUrl: `./propection.component.html`,
   styles: []
 })
@@ -66,9 +66,7 @@ export class ProspectionComponent implements OnInit {
   showProspectionStatusDropdown = false;
   showSectorDropdown            = false;
 
-  // --- Modales (détails / création / modification) ---
-  showProspectModal = false;
-  selectedProspect: Prospect | null = null; // Prospect affiché dans la modale détails
+  // --- Modales (création / modification) ---
   isCreateModalOpen    = false;
   isEditModalOpen      = false;
   isCompanySubmitting  = false; // Loader pendant l'enregistrement
@@ -92,9 +90,19 @@ export class ProspectionComponent implements OnInit {
     { value: '',           label: 'Tous les statuts prospection' },
     { value: 'PENDING',    label: 'En attente' },
     { value: 'RELAUNCHED', label: 'Relancée' },
-    { value: 'INTERESTED', label: 'Intéressée' },
-    { value: 'REFUSED',    label: 'Refusée' }
+    { value: 'INTERESTED', label: 'Intéressée' }
   ];
+
+  /** Libellés API / affichage (alignés sur CompanyStatus côté backend). */
+  readonly prospectionTableStatusLabels: string[] = [
+    'En attente',
+    'Relancée',
+    'Intéressée',
+    'Partenaire signé'
+  ];
+
+  /** Ligne en cours de mise à jour (désactive le select). */
+  updatingProspectionStatusId: string | null = null;
 
 
   // Ferme tous les dropdowns au clic en dehors
@@ -127,8 +135,6 @@ export class ProspectionComponent implements OnInit {
     if (s.includes('attente')    || s === 'pending')    return 'bg-gray-50 text-gray-600';
     if (s.includes('relanc')     || s === 'relaunched') return 'bg-blue-50 text-blue-600';
     if (s.includes('intéress')   || s === 'interested') return 'bg-emerald-50 text-emerald-600';
-    if (s.includes('rendez-vous')|| s.includes('meeting')) return 'bg-violet-50 text-violet-600';
-    if (s.includes('refus')      || s === 'refused')    return 'bg-red-50 text-red-600';
     if (s.includes('signé')      || s.includes('signed')) return 'bg-green-50 text-green-600';
     return 'bg-gray-50 text-gray-600';
   }
@@ -139,10 +145,77 @@ export class ProspectionComponent implements OnInit {
     if (s.includes('attente')    || s === 'pending')    return 'bg-gray-400';
     if (s.includes('relanc')     || s === 'relaunched') return 'bg-blue-500';
     if (s.includes('intéress')   || s === 'interested') return 'bg-emerald-500';
-    if (s.includes('rendez-vous')|| s.includes('meeting')) return 'bg-violet-500';
-    if (s.includes('refus')      || s === 'refused')    return 'bg-red-500';
     if (s.includes('signé')      || s.includes('signed')) return 'bg-green-500';
     return 'bg-gray-400';
+  }
+
+  /** Valeur du select : toujours un libellé autorisé (Refusée / Rendez-vous / etc. → normalisé). */
+  prospectionRowSelectModel(prospect: Prospect): string {
+    return this.canonicalProspectionStatus(prospect.prospectionStatus);
+  }
+
+  async onProspectionStatusChange(prospect: Prospect, event: Event): Promise<void> {
+    const el = event.target as HTMLSelectElement;
+    const newStatus = el.value;
+    const previousDisplay = this.prospectionRowSelectModel(prospect);
+    if (newStatus === previousDisplay) {
+      return;
+    }
+
+    el.value = previousDisplay;
+
+    const result = await Swal.fire({
+      title: 'Modifier l\'état prospection ?',
+      text:
+        `« ${prospect.entreprise} » passera de « ${previousDisplay} » à « ${newStatus} ».`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Confirmer',
+      cancelButtonText: 'Annuler',
+      focusCancel: true,
+      confirmButtonColor: '#2C2D5B',
+      cancelButtonColor: '#6B7280'
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    el.value = newStatus;
+    this.updatingProspectionStatusId = prospect.id;
+
+    this.ngZone.run(() => {
+      this.commercialService.updateCompanyProspectionStatus(prospect.id, newStatus).subscribe({
+        next: () => {
+          this.updatingProspectionStatusId = null;
+          const redirectPartners = this.routeMode === 'prospects' && newStatus === 'Partenaire signé';
+          const successDialog = Swal.fire({
+            icon: 'success',
+            title: 'État prospection enregistré',
+            text: `Statut choisi : ${newStatus}`,
+            timer: redirectPartners ? 2000 : 2600,
+            showConfirmButton: false
+          });
+          if (redirectPartners) {
+            void successDialog.then(() => this.router.navigate(['/com/entreprises']));
+          } else {
+            prospect.prospectionStatus = newStatus;
+            this.loadCompanies();
+            this.loadCompanyStats();
+          }
+        },
+        error: (err) => {
+          this.updatingProspectionStatusId = null;
+          el.value = this.prospectionRowSelectModel(prospect);
+          const msg = err?.error?.message ?? err?.error ?? 'Impossible de modifier l\'état prospection.';
+          Swal.fire({
+            icon: 'error',
+            title: 'Erreur',
+            text: typeof msg === 'string' ? msg : 'Impossible de modifier l\'état prospection.'
+          });
+        }
+      });
+    });
   }
 
   // ---------- INIT ----------
@@ -166,7 +239,20 @@ export class ProspectionComponent implements OnInit {
     this.loadCompanyStats();
 
     this.route.queryParams.subscribe((params) => {
-      if (params['id']) this.openProspectDetailById(params['id']);
+      if (params['openEdit'] && this.routeMode === 'partenaires') {
+        const editId = String(params['openEdit']);
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { openEdit: undefined },
+          queryParamsHandling: 'merge',
+          replaceUrl: true
+        });
+        queueMicrotask(() => this.editProspect(editId));
+        return;
+      }
+      if (params['id']) {
+        void this.router.navigate(['/com/entreprises', params['id'], 'salaries']);
+      }
     });
   }
 
@@ -278,53 +364,6 @@ export class ProspectionComponent implements OnInit {
   onCompanyEdit(payload: CompanySubmitPayload): void {
     if (!this.editingCompanyId) return;
     this.submitCompany(payload, true);
-  }
-
-  // ---------- MODALE DÉTAILS ----------
-  viewDetails(prospect: Prospect): void {
-    this.commercialService.getCompanyDetails(prospect.id).subscribe({
-      next: (details) => {
-        this.selectedProspect  = this.mapCompanyDetailsToProspect(details);
-        this.showProspectModal = true;
-      },
-      error: () => {
-        this.selectedProspect  = prospect;
-        this.showProspectModal = true;
-      }
-    });
-  }
-
-  closeProspectModal(): void {
-    this.showProspectModal = false;
-    this.selectedProspect  = null;
-  }
-
-  modifierProspect(): void {
-    if (!this.selectedProspect) return;
-    const id = this.selectedProspect.id;
-    this.closeProspectModal();
-    this.editProspect(id);
-  }
-
-  annulerProspect(): void {
-    this.closeProspectModal();
-  }
-
-  private openProspectDetailById(id: string): void {
-    this.commercialService.getCompanyDetails(id).subscribe({
-      next: (details) => {
-        this.selectedProspect  = this.mapCompanyDetailsToProspect(details);
-        this.showProspectModal = true;
-      },
-      error: () => {
-        this.selectedProspect  = {
-          id, companyCode: '', entreprise: '', secteur: '',
-          localisation: '', contact: { nom: '', telephone: '' },
-          statut: 'Inactif', date: '', initials: ''
-        };
-        this.showProspectModal = true;
-      }
-    });
   }
 
   // ---------- ACTIVER / DÉSACTIVER ENTREPRISE ----------
@@ -569,7 +608,7 @@ export class ProspectionComponent implements OnInit {
   }
 
   trackByProspect(index: number, prospect: Prospect): string {
-    return prospect.id;
+    return `${prospect.id}-${prospect.prospectionStatus ?? ''}`;
   }
 
   getDisplayStart(): number {
@@ -619,7 +658,7 @@ export class ProspectionComponent implements OnInit {
         telephone: company?.contactPhone ?? ''
       },
       statut:            this.deriveStatutFromCompany(company),
-      prospectionStatus: company?.status ?? '',
+      prospectionStatus: this.canonicalProspectionStatus(company?.status),
       date:              this.formatCreatedAt(company?.createdAt),
       initials,
       logo:              logoUrl
@@ -651,7 +690,7 @@ export class ProspectionComponent implements OnInit {
         telephone: details?.contactPhone ?? ''
       },
       statut:            this.deriveStatutFromCompany(details),
-      prospectionStatus: details?.status ?? '',
+      prospectionStatus: this.canonicalProspectionStatus(details?.status),
       date:              this.formatCreatedAt(details?.createdAt),
       initials,
       logo:              logoUrl,
@@ -689,15 +728,23 @@ export class ProspectionComponent implements OnInit {
     return undefined;
   }
 
-  private normalizeStatusForForm(rawStatus: string | undefined): string {
-    const allowed = ['En attente', 'Relancée', 'Intéressée', 'Refusée', 'Partenaire signé'];
-    if (rawStatus && allowed.includes(rawStatus)) return rawStatus;
+  /** Libellé prospection affiché / envoyé : jamais Refusée ni Rendez-vous (statuts retirés). */
+  private canonicalProspectionStatus(raw: string | undefined): string {
+    const allowed = ['En attente', 'Relancée', 'Intéressée', 'Partenaire signé'];
+    const s = raw?.trim() ?? '';
+    if (allowed.includes(s)) return s;
     const mapping: Record<string, string> = {
-      PENDING: 'En attente',   RELAUNCHED: 'Relancée',
-      INTERESTED: 'Intéressée', REFUSED: 'Refusée',
-      PARTNER_SIGNED: 'Partenaire signé'
+      PENDING: 'En attente',
+      RELAUNCHED: 'Relancée',
+      INTERESTED: 'Intéressée',
+      PARTNER_SIGNED: 'Partenaire signé',
+      Intéressé: 'Intéressée'
     };
-    return mapping[rawStatus ?? ''] || 'En attente';
+    return mapping[s] ?? mapping[s.toUpperCase()] ?? 'En attente';
+  }
+
+  private normalizeStatusForForm(rawStatus: string | undefined): string {
+    return this.canonicalProspectionStatus(rawStatus);
   }
 
   private formatCreatedAt(createdAt: string | undefined): string {

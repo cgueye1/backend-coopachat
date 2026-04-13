@@ -99,7 +99,6 @@ export class PromotionsManagementComponent {
     const payload = {
       code: couponData.code.trim().toUpperCase(),
       name: couponData.name,
-      discountType: couponData.discountType,
       value: couponData.value,
       status: 'PLANNED' as const,
       startDate: couponData.startDate,
@@ -121,7 +120,6 @@ export class PromotionsManagementComponent {
   }
 
   formatReduction(item: CouponListItem): string {
-    if (item.discountType === 'FIXED_AMOUNT') return `${Number(item.value).toLocaleString('fr-FR')} F CFA`;
     return `${item.value}%`;
   }
 
@@ -339,7 +337,6 @@ export class PromotionsManagementComponent {
   }
 
   getDetailReduction(d: CouponDetails): string {
-    if (d.discountType === 'FIXED_AMOUNT') return `${Number(d.value).toLocaleString('fr-FR')} F CFA`;
     return `${d.value}%`;
   }
 

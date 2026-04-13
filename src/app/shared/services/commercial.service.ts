@@ -217,6 +217,17 @@ export class CommercialService {
         );
     }
 
+    /**
+     * Mise à jour partielle du statut prospection (DTO backend : libellés FR, ex. « Intéressée », « Partenaire signé »).
+     */
+    updateCompanyProspectionStatus(companyId: string, statusLabel: string): Observable<unknown> {
+        return this.http.put(
+            `${this.apiUrl}/commercial/companies/${companyId}`,
+            { status: statusLabel },
+            { responseType: 'text' as 'json' }
+        );
+    }
+
     /** ==================================================
      *  METHODE : LIRE LES DETAILS D'UNE ENTREPRISE
      *  ================================================== */
@@ -271,23 +282,21 @@ export class CommercialService {
      * But : Recuperer la liste paginee avec filtres
      * Resultat attendu : Une reponse API avec contenu + pagination
      */
+    /** companyId est obligatoire côté API. */
     getEmployees(
         page: number,
         size: number,
+        companyId: string,
         search?: string,
-        companyId?: string,
         isActive?: boolean
     ): Observable<any> {
         let params = new HttpParams()
             .set('page', page.toString())
-            .set('size', size.toString());
+            .set('size', size.toString())
+            .set('companyId', companyId);
 
         if (search && search.trim()) {
             params = params.set('search', search.trim());
-        }
-
-        if (companyId) {
-            params = params.set('companyId', companyId);
         }
 
         if (isActive !== undefined && isActive !== null) {
@@ -328,6 +337,34 @@ export class CommercialService {
             payload,
             { responseType: 'text' as 'json' }
         );
+    }
+
+    /**
+     * Import Excel des salariés (multipart : file + companyId).
+     * Aligné sur POST /commercial/employees/import (200 = succès, 417 = erreur métier avec message texte).
+     */
+    importEmployeesFromExcel(file: File, companyId: string): Observable<string> {
+        const formData = new FormData();
+        formData.append('file', file, file.name);
+        formData.append('companyId', companyId);
+        return this.http.post(`${this.apiUrl}/commercial/employees/import`, formData, {
+            responseType: 'text'
+        });
+    }
+
+    /** Export Excel des salariés d'une entreprise (GET /commercial/employees/export, mêmes filtres que la liste). */
+    exportEmployees(companyId: string, search?: string, isActive?: boolean): Observable<Blob> {
+        let params = new HttpParams().set('companyId', companyId);
+        if (search != null && search.trim() !== '') {
+            params = params.set('search', search.trim());
+        }
+        if (isActive !== undefined && isActive !== null) {
+            params = params.set('isActive', String(isActive));
+        }
+        return this.http.get(`${this.apiUrl}/commercial/employees/export`, {
+            params,
+            responseType: 'blob'
+        });
     }
 
     /** ==================================================
@@ -382,7 +419,6 @@ export class CommercialService {
     // COUPONS / PROMOTIONS
     // ==================================================
 
-    static readonly DISCOUNT_TYPE = { PERCENTAGE: 'PERCENTAGE', FIXED_AMOUNT: 'FIXED_AMOUNT' } as const;
     static readonly COUPON_STATUS = { PLANNED: 'PLANNED', ACTIVE: 'ACTIVE', EXPIRED: 'EXPIRED', DISABLED: 'DISABLED' } as const;
 
     getCoupons(
@@ -563,7 +599,6 @@ export interface CouponListItem {
     id: number;
     code: string;
     name: string;
-    discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
     value: number;
     status: string;
     validFrom: string;
@@ -576,7 +611,6 @@ export interface CouponDetails {
     id: number;
     code: string;
     name: string;
-    discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
     value: number;
     status: string;
     isActive: boolean;
@@ -589,7 +623,6 @@ export interface CouponDetails {
 export interface CreateCouponPayload {
     code: string;
     name: string;
-    discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
     value: number;
     status: string;
     startDate: string;

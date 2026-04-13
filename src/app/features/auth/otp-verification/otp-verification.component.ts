@@ -10,10 +10,8 @@ import { getUserFacingHttpErrorMessage } from '../../../shared/utils/http-error-
 // ============================================================
 // CE QUE FAIT CE FICHIER
 // ============================================================
-// Page OTP à deux usages : 
-// inscription (Commercial/Logistique) → création de mot de passe ;
-// connexion Admin (2FA) → accès au dashboard. 
-// Le cas est choisi selon la présence de otpEmail dans sessionStorage.
+// Page OTP : activation compte (flow=activation) → création mot de passe ;
+// connexion Admin (2FA) → JWT. Ne pas confondre : si flow=activation, ignorer otpEmail (session).
 // ============================================================
 
 @Component({
@@ -114,9 +112,12 @@ export class OtpVerificationComponent implements OnInit {
   // ============================================================
   ngOnInit(): void {
 
-    // On cherche l'email dans plusieurs endroits possibles
-    // car il peut venir de 2 flux différents (inscription ou admin)
-    // Priorité : query param (inscription) > otpEmail (admin) > verificationEmail
+    const flow = this.route.snapshot.queryParams['flow'];
+    const activationFlow = flow === 'activation';
+    if (activationFlow && isPlatformBrowser(this.platformId)) {
+      sessionStorage.removeItem('otpEmail');
+    }
+
     const emailFromUrl = this.route.snapshot.queryParams['email'];
     const fromStorage = isPlatformBrowser(this.platformId)
       ? sessionStorage.getItem('otpEmail') ||
@@ -172,12 +173,11 @@ export class OtpVerificationComponent implements OnInit {
       return;
     }
 
-    // On détecte dans quel cas on est :
     const isAdminOtpFlow =
-      isPlatformBrowser(this.platformId) && !!sessionStorage.getItem('otpEmail');
-    // !! = convertit en booléen (null → false, "email@..." → true)
+      isPlatformBrowser(this.platformId) &&
+      !!sessionStorage.getItem('otpEmail') &&
+      this.route.snapshot.queryParams['flow'] !== 'activation';
 
-    // On choisit le bon appel API selon le cas
     const request$ = isAdminOtpFlow
       ? this.authService.verifyAdminOtp(this.userEmail, this.otpValue)
       // CAS ADMIN  → vérifie le code 2FA et retourne un token

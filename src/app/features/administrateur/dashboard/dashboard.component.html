@@ -38,7 +38,7 @@
       <div class="bg-white rounded-lg p-6 hover:shadow-sm">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <h2 class="text-base font-semibold text-[#2C3E50] sm:text-lg lg:text-xl">Paiements par statut</h2>
+            <h2 class="text-base font-semibold text-[#2C3E50] sm:text-lg lg:text-xl">Paiements des commandes par statut</h2>
           </div>
         </div>
         <div class="flex items-center justify-center h-64 md:h-72 lg:h-80">
@@ -54,19 +54,7 @@
     </div>
 
     <!-- Secondary charts -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-      <!-- Utilisateurs par rôle -->
-      <div class="bg-white rounded-lg p-6 hover:shadow-sm">
-        <h2 class="text-base font-semibold text-[#2C3E50] mb-4 sm:text-lg">Utilisateurs par rôle</h2>
-        <div class="relative h-64">
-          <div *ngIf="loadingChartRoles"
-            class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/85 text-sm text-[#6B7280]">
-            Chargement…
-          </div>
-          <canvas #rolesChart></canvas>
-        </div>
-      </div>
-
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
       <!-- Stocks état global -->
       <div class="bg-white rounded-lg p-6 hover:shadow-sm">
         <div class="flex items-center justify-between mb-6">
@@ -152,6 +140,57 @@
               <p class="text-[10px] text-[#64748B] sm:text-xs mt-0.5">{{ alert.date }}</p>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Produits + utilisateurs (en bas de page) -->
+    <div *ngIf="isBrowser" class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+      <div class="bg-white rounded-lg p-4 sm:p-6 hover:shadow-sm transition-shadow">
+        <h2 class="text-base font-semibold text-[#2C3E50] mb-3 sm:text-lg sm:mb-4">Top 5 Produits commandés</h2>
+        <div class="relative h-48 sm:h-64 min-h-[12rem]">
+          <div *ngIf="loadingChartTop5Products"
+            class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-lg bg-white/90">
+            <div class="h-9 w-9 sm:h-10 sm:w-10 rounded-full border-2 border-[#E5E7EB] border-t-[#FF6B00] animate-spin"
+              aria-hidden="true"></div>
+            <span class="text-xs sm:text-sm text-[#6B7280]">Chargement du graphique…</span>
+          </div>
+          <canvas #top5ProductsChart [class.opacity-40]="loadingChartTop5Products"></canvas>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg p-4 sm:p-6 hover:shadow-sm transition-shadow">
+        <h2 class="text-base font-semibold text-[#2C3E50] mb-3 sm:text-lg sm:mb-4">Répartition des Produits</h2>
+        <div class="relative h-48 sm:h-64 px-4 sm:px-8 min-h-[12rem] flex items-center justify-center">
+          <div *ngIf="loadingChartProductsRepartition"
+            class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/90 text-sm text-[#6B7280]">
+            Chargement…
+          </div>
+          <canvas #productsRepartitionChart class="max-w-full"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="isBrowser" class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+      <div class="bg-white rounded-lg p-4 sm:p-6 hover:shadow-sm transition-shadow">
+        <h2 class="text-base font-semibold text-[#2C3E50] mb-3 sm:text-lg sm:mb-4">Utilisateurs par rôle</h2>
+        <div class="relative h-48 sm:h-64 min-h-[12rem]">
+          <div *ngIf="loadingChartUsersRolePct"
+            class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-lg bg-white/90">
+            <div class="h-9 w-9 sm:h-10 sm:w-10 rounded-full border-2 border-[#E5E7EB] border-t-[#FF6B00] animate-spin"
+              aria-hidden="true"></div>
+            <span class="text-xs sm:text-sm text-[#6B7280]">Chargement…</span>
+          </div>
+          <canvas #usersRolePctChart [class.opacity-40]="loadingChartUsersRolePct"></canvas>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg p-4 sm:p-6 hover:shadow-sm transition-shadow">
+        <h2 class="text-base font-semibold text-[#2C3E50] mb-3 sm:text-lg sm:mb-4">Répartition des statuts des utilisateurs</h2>
+        <div class="relative h-48 sm:h-64 px-4 sm:px-8 min-h-[12rem] flex items-center justify-center">
+          <div *ngIf="loadingChartUsersStatus"
+            class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/90 text-sm text-[#6B7280]">
+            Chargement…
+          </div>
+          <canvas #usersStatusDonutChart class="max-w-full"></canvas>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, PLATFORM_ID, Inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
@@ -9,9 +10,9 @@ import {
   AlertItemDTO,
   LivraisonParJourDTO,
   StatutTourneesDTO,
-  StockEtatGlobalDTO,
-  UserStatsByRoleItemDTO
+  StockEtatGlobalDTO
 } from '../../../shared/services/admin.service';
+import { ProductService } from '../../../shared/services/product.service';
 
 
  
@@ -37,11 +38,6 @@ interface LivraisonStackPoint {
   retard: number;
 }
 
-interface RoleStat {
-  role: string;
-  total: number;
-}
-
 interface CouponTrendPoint {
   date: string;
   value: number;
@@ -56,12 +52,18 @@ interface CouponTrendPoint {
 export class AdminPageComponent implements OnInit, AfterViewInit {
   @ViewChild('commandesChart') commandesChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('paiementsChart') paiementsChartRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('rolesChart') rolesChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('usersRolePctChart') usersRolePctChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('usersStatusDonutChart') usersStatusDonutChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('stocksEtatChart') stocksEtatChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('deliveryStatusChart') deliveryStatusChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('couponsChart') couponsChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('top5ProductsChart') top5ProductsChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('productsRepartitionChart') productsRepartitionChartRef!: ElementRef<HTMLCanvasElement>;
 
   role: 'admin' = 'admin';
+
+  /** Afficher les graphiques produits uniquement en navigateur (Chart.js). */
+  isBrowser = false;
 
   /**
    * Données des 3 cartes KPI en haut de page.
@@ -81,9 +83,10 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
   /** Données du graphique « Livraisons par jour » (GET /admin/dashboard/livraisons-par-jour), affiché en grand en haut. */
   livraisonsData: LivraisonStackPoint[] = [];
 
-  // [API] Utilisateurs par rôle : rempli par loadUsersStatsByRole() (GET /admin/users/stats/by-role)
-  /** Données du graphique "Utilisateurs par rôle". role = libellé (ex. Salariés), total = effectif. */
-  rolesData: RoleStat[] = [];
+  /** Graphiques utilisateurs (%, ex-page liste utilisateurs) : GET by-role + by-status. */
+  usersRolePctLabels: string[] = [];
+  usersRolePctData: number[] = [];
+  usersStatusPct: [number, number] = [0, 0];
 
   // [API] Stocks - État global : rempli par loadStockEtatGlobal() (GET /admin/dashboard/stocks-etat-global)
   /**
@@ -101,36 +104,110 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
   /** Alertes du tableau de bord (livraisons en retard, stocks critiques). Rempli par loadAlerts() — GET /admin/alerts. */
   alertsData: AlertItemDTO[] = [];
 
-  /** Loaders par graphique (API + Chart.js). */
-  loadingChartLivraisons = true;
-  loadingChartPaiements = true;
-  loadingChartRoles = true;
-  loadingChartStocksEtat = true;
-  loadingChartDeliveryStatus = true;
-  loadingChartCoupons = true;
+  /**
+   * Loaders par graphique (API + Chart.js).
+   * `public` + type explicite : requis pour strictTemplates / ngtsc (bindings dans le HTML).
+   */
+  public loadingChartLivraisons: boolean = true;
+  public loadingChartPaiements: boolean = true;
+  public loadingChartUsersRolePct: boolean = true;
+  public loadingChartUsersStatus: boolean = true;
+  public loadingChartStocksEtat: boolean = true;
+  public loadingChartDeliveryStatus: boolean = true;
+  public loadingChartCoupons: boolean = true;
+  public loadingChartTop5Products: boolean = true;
+  public loadingChartProductsRepartition: boolean = true;
+
+  /** Données graphiques « Top 5 produits commandés » et « Répartition des produits » (API Product). */
+  top5ProductLabels: string[] = [];
+  top5ProductData: number[] = [];
+  productsRepartitionPct: [number, number] = [0, 0];
 
   /** Références aux instances Chart.js (pour mise à jour du graphique paiements après l’API). */
   private commandesChart?: any;
   private paiementsChart?: any;
-  private rolesChart?: any;
+  private usersRolePctChart?: any;
+  private usersStatusDonutChart?: any;
   private stocksEtatChart?: any;
   private deliveryStatusChart?: any;
   private couponsChart?: any;
+  private top5ProductsChart?: any;
+  private productsRepartitionChart?: any;
 
   constructor(
     private adminService: AdminService,
+    private productService: ProductService,
     private router: Router,
     @Inject(PLATFORM_ID) private platformId: Object
-  ) {}
+  ) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+  }
 
   ngOnInit(): void {
     this.loadDashboardStats();
     this.loadLivraisonsParJour();
-    this.loadUsersStatsByRole();
+    this.loadUsersAdminCharts();
     this.loadStockEtatGlobal();
     this.loadStatutTournees();
     this.loadCouponsUtilisesParJour();
     this.loadAlerts();
+    this.loadTop5ProductsUsage();
+    this.loadProductCatalogStats();
+  }
+
+  /** GET top 5 produits les plus commandés (%), même source que l’ancien écran Catalogues. */
+  loadTop5ProductsUsage(): void {
+    this.loadingChartTop5Products = true;
+    this.productService.getTop5ProductsUsage().pipe(
+      finalize(() => { this.loadingChartTop5Products = false; })
+    ).subscribe({
+      next: (list) => {
+        this.top5ProductLabels = list?.length
+          ? list.map((x: { productName: string }) => x.productName)
+          : [];
+        this.top5ProductData = list?.length
+          ? list.map((x: { usagePercent: number }) => x.usagePercent)
+          : [];
+        if (this.top5ProductsChart) {
+          this.top5ProductsChart.data.labels = this.top5ProductLabels;
+          this.top5ProductsChart.data.datasets[0].data = this.top5ProductData;
+          this.top5ProductsChart.update();
+        }
+      },
+      error: (err) => {
+        console.error('Erreur chargement top 5 produits:', err);
+        this.top5ProductLabels = [];
+        this.top5ProductData = [];
+        if (this.top5ProductsChart) {
+          this.top5ProductsChart.data.labels = [];
+          this.top5ProductsChart.data.datasets[0].data = [];
+          this.top5ProductsChart.update();
+        }
+      }
+    });
+  }
+
+  /** Stats catalogue : répartition Actifs / Inactifs en % (donut). */
+  loadProductCatalogStats(): void {
+    this.productService.getProductStats().subscribe({
+      next: (stats) => {
+        const total = stats?.totalProducts ?? 0;
+        const actifs = stats?.activeProducts ?? 0;
+        const inactifs = stats?.inactiveProducts ?? 0;
+        const pctActifs = total > 0 ? Math.round((actifs / total) * 1000) / 10 : 0;
+        const pctInactifs = total > 0 ? Math.round((inactifs / total) * 1000) / 10 : 0;
+        this.productsRepartitionPct = [pctActifs, pctInactifs];
+        if (this.productsRepartitionChart) {
+          this.productsRepartitionChart.data.datasets[0].data = [pctActifs, pctInactifs];
+          this.productsRepartitionChart.update();
+        }
+        this.loadingChartProductsRepartition = false;
+      },
+      error: (err) => {
+        console.error('Erreur chargement stats produits:', err);
+        this.loadingChartProductsRepartition = false;
+      }
+    });
   }
 
   /** Appelle GET /admin/alerts et affiche les alertes (clic = redirection vers le module STOCKS ou LIVRAISONS). */
@@ -184,28 +261,38 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
     });
   }
 
-  // [API] GET /admin/users/stats/by-role → effectifs par rôle (Salariés, Commerciaux, etc.)
-  /** Remplit rolesData puis met à jour le graphique "Utilisateurs par rôle" s’il est déjà créé. */
-  loadUsersStatsByRole(): void {
-    this.adminService.getUsersStatsByRole().subscribe({
-      next: (list: UserStatsByRoleItemDTO[]) => {
-        // r = un rôle dans la liste API. On passe au format graphique : roleLabel → role, count → total
-        this.rolesData = list.map(r => ({
-          role: r.roleLabel,
-          total: r.count
-        }));
-        // Si le graphique est déjà créé, on met à jour les labels (noms des rôles) et les barres (effectifs)
-        if (this.rolesChart) {
-          this.rolesChart.data.labels = this.rolesData.map(p => p.role);//on met à jour les labels du graphique pour chaque rôle on prend le libellé du rôle
-          this.rolesChart.data.datasets[0].data = this.rolesData.map(p => p.total);//on met à jour les données du graphique pour chaque rôle on prend le nombre d’utilisateurs pour ce rôle
-          this.rolesChart.update();
+  /** GET /admin/users/stats/by-role (%) + /by-status → barres horizontales + donut (ex-liste utilisateurs). */
+  loadUsersAdminCharts(): void {
+    this.loadingChartUsersRolePct = true;
+    this.loadingChartUsersStatus = true;
+    forkJoin({
+      byRole: this.adminService.getUsersStatsByRole(),
+      byStatus: this.adminService.getUsersStatsByStatus()
+    }).pipe(
+      finalize(() => {
+        this.loadingChartUsersRolePct = false;
+        this.loadingChartUsersStatus = false;
+      })
+    ).subscribe({
+      next: ({ byRole, byStatus }) => {
+        this.usersRolePctLabels = (byRole || []).map(r => r.roleLabel ?? '');
+        this.usersRolePctData = (byRole || []).map(r => Number(r.percentage) ?? 0);
+        if (this.usersRolePctChart) {
+          this.usersRolePctChart.data.labels = this.usersRolePctLabels;
+          this.usersRolePctChart.data.datasets[0].data = this.usersRolePctData;
+          this.usersRolePctChart.update();
         }
-        this.loadingChartRoles = false;
+        const actifs = (byStatus || []).find(x => /actif/i.test(x.label ?? ''));
+        const inactifs = (byStatus || []).find(x => /inactif/i.test(x.label ?? ''));
+        const a = actifs != null ? Number(actifs.percentage) : 0;
+        const i = inactifs != null ? Number(inactifs.percentage) : 0;
+        this.usersStatusPct = [a, i];
+        if (this.usersStatusDonutChart) {
+          this.usersStatusDonutChart.data.datasets[0].data = [a, i];
+          this.usersStatusDonutChart.update();
+        }
       },
-      error: (err) => {
-        console.error('Erreur chargement utilisateurs par rôle:', err);
-        this.loadingChartRoles = false;
-      }
+      error: (err) => console.error('Erreur chargement graphiques utilisateurs:', err)
     });
   }
 
@@ -344,10 +431,13 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
       const Chart = (await import('chart.js/auto')).default;
       this.initCommandesChart(Chart);
       this.initPaiementsChart(Chart);
-      this.initRolesChart(Chart);
       this.initStocksEtatChart(Chart);
       this.initDeliveryStatusChart(Chart);
       this.initCouponsChart(Chart);
+      this.initTop5ProductsChart(Chart);
+      this.initProductsRepartitionChart(Chart);
+      this.initUsersRolePctChart(Chart);
+      this.initUsersStatusDonutChart(Chart);
     } catch (error) {
       console.error('Erreur lors du chargement de Chart.js:', error);
     }
@@ -507,49 +597,127 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
     });
   }
 
-  // --- Graphique Utilisateurs par rôle (données = rolesData, rempli par l’API GET users/stats/by-role) ---
-  initRolesChart(Chart: any): void {
-    const ctx = this.rolesChartRef?.nativeElement?.getContext('2d');
+  // --- Utilisateurs par rôle (barres horizontales, % — indigo) ---
+  initUsersRolePctChart(Chart: any): void {
+    const ctx = this.usersRolePctChartRef?.nativeElement?.getContext('2d');
     if (!ctx) {
       return;
     }
 
-    this.rolesChart = new Chart(ctx, {
+    this.usersRolePctChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: this.rolesData.map(role => role.role),
+        labels: this.usersRolePctLabels,
         datasets: [
           {
-            data: this.rolesData.map(role => role.total),
+            data: this.usersRolePctData,
             backgroundColor: '#4F46E5',
-            barThickness: 60
+            hoverBackgroundColor: '#4338CA',
+            barThickness: 30
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        indexAxis: 'y',
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: true,
+            position: 'top',
+            align: 'start',
+            labels: {
+              boxWidth: 40,
+              boxHeight: 12,
+              padding: 15,
+              font: { size: 12 },
+              generateLabels: () => [
+                { text: 'Utilisation(%)', fillStyle: '#4F46E5', strokeStyle: '#4F46E5', lineWidth: 0 }
+              ]
+            }
+          },
           tooltip: {
             backgroundColor: '#03031999',
             titleColor: '#fff',
             bodyColor: '#fff',
             padding: 12,
             cornerRadius: 8,
-            displayColors: false
+            callbacks: {
+              label: (ctx: { parsed: { x: number } }) => `${Number(ctx.parsed.x).toFixed(1)}%`
+            }
           }
         },
         scales: {
           x: {
-            grid: { display: false },
-            ticks: { color: '#6B7280', font: { size: 12 } }
+            beginAtZero: true,
+            max: 100,
+            ticks: {
+              stepSize: 10,
+              font: { size: 10 },
+              color: '#6B7280',
+              callback: (value: string | number) => value + ' %'
+            },
+            grid: { display: true, color: '#F2F5F9' }
           },
           y: {
-            beginAtZero: true,
-            grid: { display: false },
-            // Pas de max fixe : si tu as 25, 50, 100 salariés, l’axe Y s’adapte tout seul en mettant taille à 10
-            ticks: { color: '#6B7280', font: { size: 12 }, stepSize: 10 }
+            ticks: { font: { size: 12 }, color: '#6B7280' },
+            grid: { display: true, color: '#F2F5F9' }
+          }
+        }
+      }
+    });
+  }
+
+  // --- Répartition des statuts utilisateurs Actifs / Inactifs (%) ---
+  initUsersStatusDonutChart(Chart: any): void {
+    const ctx = this.usersStatusDonutChartRef?.nativeElement?.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+
+    const [a, i] = this.usersStatusPct;
+    this.usersStatusDonutChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Actifs', 'Inactifs'],
+        datasets: [
+          {
+            data: [a, i],
+            backgroundColor: ['#22C55F', '#FFD3D3'],
+            hoverBackgroundColor: ['#22C55E', '#eeb8b8'],
+            borderWidth: 2,
+            hoverBorderColor: '#FFFFFF'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+          legend: {
+            display: true,
+            position: 'right',
+            labels: {
+              usePointStyle: true,
+              pointStyle: 'circle',
+              boxWidth: 6,
+              boxHeight: 6,
+              padding: 20,
+              font: { size: 12 },
+              color: '#2B3674'
+            }
+          },
+          tooltip: {
+            backgroundColor: '#03031999',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            padding: 12,
+            cornerRadius: 8,
+            callbacks: {
+              label: (ctx: { label?: string; parsed: number }) =>
+                `${ctx.label}: ${Number(ctx.parsed).toFixed(1)}%`
+            }
           }
         }
       }
@@ -708,6 +876,134 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
               stepSize: 1,
               precision: 0,
               callback: (raw: number | string) => String(Math.round(Number(raw)))
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // --- Top 5 produits commandés (barres horizontales, % utilisation) ---
+  initTop5ProductsChart(Chart: any): void {
+    const ctx = this.top5ProductsChartRef?.nativeElement?.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+
+    this.top5ProductsChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: this.top5ProductLabels,
+        datasets: [
+          {
+            data: this.top5ProductData,
+            backgroundColor: '#FF914D',
+            hoverBackgroundColor: '#FF6B00',
+            barThickness: 30
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            align: 'start',
+            labels: {
+              boxWidth: 40,
+              boxHeight: 12,
+              padding: 15,
+              font: { size: 12 },
+              generateLabels: () => [
+                { text: 'Utilisation (%)', fillStyle: '#FF6B00', strokeStyle: '#FF6B00', lineWidth: 0 }
+              ]
+            }
+          },
+          tooltip: {
+            backgroundColor: '#03031999',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            padding: 12,
+            cornerRadius: 8,
+            callbacks: {
+              label: (context: { parsed: { x: number } }) =>
+                `Utilisation : ${Number(context.parsed.x).toFixed(1)} %`
+            }
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            max: 100,
+            ticks: {
+              stepSize: 10,
+              callback: (value: string | number) => value + ' %',
+              font: { size: 12 },
+              color: '#6B7280'
+            },
+            grid: { display: true, color: '#F2F5F9' }
+          },
+          y: {
+            ticks: { font: { size: 12 }, color: '#6B7280' },
+            grid: { display: true, color: '#F2F5F9' }
+          }
+        }
+      }
+    });
+  }
+
+  // --- Répartition des produits Actifs / Inactifs (%) ---
+  initProductsRepartitionChart(Chart: any): void {
+    const ctx = this.productsRepartitionChartRef?.nativeElement?.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+
+    const [a, i] = this.productsRepartitionPct;
+    this.productsRepartitionChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Actifs', 'Inactifs'],
+        datasets: [
+          {
+            data: [a, i],
+            backgroundColor: ['#22C55F', '#FFD3D3'],
+            hoverBackgroundColor: ['#22C55E', '#eeb8b8'],
+            borderWidth: 2,
+            hoverBorderColor: '#FFFFFF'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+          legend: {
+            display: true,
+            position: 'right',
+            labels: {
+              usePointStyle: true,
+              pointStyle: 'circle',
+              boxWidth: 6,
+              boxHeight: 6,
+              padding: 20,
+              font: { size: 12 },
+              color: '#2B3674'
+            }
+          },
+          tooltip: {
+            backgroundColor: '#03031999',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            padding: 12,
+            cornerRadius: 8,
+            callbacks: {
+              label: (context: { label?: string; parsed: number }) =>
+                `${context.label}: ${Number(context.parsed).toFixed(1)}%`
             }
           }
         }

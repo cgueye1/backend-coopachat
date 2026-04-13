@@ -35,16 +35,7 @@
           [control]="companyForm.get('localisation')!" [error]="getFieldError('localisation')" class="max-md:mb-2">
         </ui-form-field>
 
-        <!-- Statut -->
-        <ui-form-field label="Statut" type="select" placeholder="Sélectionner" [control]="companyForm.get('statut')!"
-          [options]="[
-            {value: 'En attente', label: 'En attente'},
-            {value: 'Relancée', label: 'Relancée'},
-            {value: 'Intéressée', label: 'Intéressée'},
-            {value: 'Refusée', label: 'Refusée'},
-            {value: 'Partenaire signé', label: 'Partenaire signé'}
-          ]" class="max-md:mb-2">
-        </ui-form-field>
+        <!-- Statut prospection : conservé dans le FormGroup (défaut / API) — UI retirée le temps de déplacer le champ -->
 
         <!-- Nom du contact -->
         <ui-form-field label="Nom du contact" type="text" placeholder="Saisir" [required]="true"

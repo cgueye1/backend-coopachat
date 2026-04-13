@@ -211,34 +211,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Charts Section (uniquement côté navigateur - Chart.js ne supporte pas le SSR) -->
-        <div *ngIf="isBrowser" class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
-            <!-- Bar Chart - Top 5 Produits commandés -->
-            <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-                <h3 class="text-base font-semibold text-[#2C3E50] mb-3 sm:text-lg sm:mb-4">Top 5 Produits commandés</h3>
-                <div class="relative h-48 sm:h-64 min-h-[12rem]">
-                    <div *ngIf="loadingChartTop5"
-                        class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-lg bg-white/90">
-                        <div class="h-9 w-9 sm:h-10 sm:w-10 rounded-full border-2 border-[#E5E7EB] border-t-[#FF6B00] animate-spin"
-                            aria-hidden="true"></div>
-                        <span class="text-xs sm:text-sm text-[#6B7280]">Chargement du graphique…</span>
-                    </div>
-                    <canvas baseChart [data]="barChartData" [options]="barChartOptions" type="bar"
-                        [class.opacity-40]="loadingChartTop5">
-                    </canvas>
-                </div>
-            </div>
-
-            <!-- Doughnut Chart - Répartition des Produits -->
-            <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-                <h3 class="text-base font-semibold text-[#2C3E50] mb-3 sm:text-lg sm:mb-4">Répartition des Produits</h3>
-                <div class="h-48 sm:h-64 px-4 sm:px-8">
-                    <canvas baseChart [data]="doughnutChartData" [options]="doughnutChartOptions" type="doughnut">
-                    </canvas>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Product Detail Modal -->

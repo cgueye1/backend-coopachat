@@ -2,15 +2,15 @@
 <div class="min-h-screen bg-white">
   <!-- Header / Navigation -->
   <header class="sticky top-0 z-50 bg-white">
-    <nav class="container mx-auto px-4 sm:px-6 lg:px-12 py-6">
+    <nav class="container mx-auto px-4 xl:px-12 py-6">
       <div class="flex items-center justify-between">
         <!-- Logo -->
         <div class="flex-shrink-0">
-          <img [src]="logo" alt="Coop Achat Salarié" class="h-10 sm:h-12 md:h-14 w-auto">
+          <img [src]="logo" alt="Coop Achat Salarié" class="h-10 xl:h-14 w-auto">
         </div>
 
         <!-- Desktop Navigation -->
-        <div class="hidden lg:flex items-center space-x-8">
+        <div class="hidden lg:flex items-center space-x-6 xl:space-x-8">
           <button *ngFor="let item of navigationItems" (click)="scrollToSection(item.sectionId)"
             class="text-[#646B78] hover:text-gray-600 font-medium text-base transition-colors cursor-pointer">
             {{ item.label }}
@@ -20,11 +20,11 @@
         <!-- CTA Buttons -->
         <div class="flex items-center gap-2 sm:gap-3">
           <button (click)="goToLogin()"
-            class=" px-4 md:px-6 py-2 md:py-2.5 border border-orange-500 text-orange-500 rounded-full font-medium hover:bg-orange-50 transition-colors text-sm 2xl:text-base">
+            class=" px-3 lg:px-6 py-2 md:py-2.5 border border-orange-500 text-orange-500 rounded-full font-medium hover:bg-orange-50 transition-colors text-sm 2xl:text-base">
             Se connecter
           </button>
           <button
-            class="hidden lg:inline-flex px-4 sm:px-6 md:px-8 py-2 md:py-2.5 bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white rounded-full font-medium hover:from-[#FF6B00] hover:to-[#FF914D] transition-all shadow-md text-sm 2xl:text-base">
+            class="hidden lg:inline-flex px-3 lg:px-8 py-2 md:py-2.5 bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white rounded-full font-medium hover:from-[#FF6B00] hover:to-[#FF914D] transition-all shadow-md text-sm 2xl:text-base">
             Essayer gratuitement
           </button>
         </div>
@@ -61,25 +61,25 @@
   </header>
 
   <!-- Hero Section -->
-  <section id="accueil" class="relative max-w-6xl mx-auto rounded-2xl bg-cover bg-end bg-no-repeat overflow-hidden"
+  <section id="accueil" class="relative max-w-5xl xl:max-w-6xl mx-auto rounded-2xl bg-auto lg:bg-cover bg-end bg-no-repeat overflow-hidden"
     style="background-image: url('/images/portail-image.png');">
-    <div class="container mx-auto px-4 sm:px-6 py-12 sm:py-20">
+    <div class="container mx-auto px-2 lg:px-6 py-12 sm:py-20">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-center">
 
         <!-- Left Content -->
-        <div class="text-center lg:text-left">
-          <h1 class="text-xl lg:text-4xl font-bold text-[#111827] leading-tight mb-6">
+        <div class="text-left">
+          <h1 class="text-xl xl:text-4xl font-bold text-[#111827] leading-tight mb-6">
             Vos achats salariés, simplifiés.<br>
             <span class="">Commandez, suivez, recevez.</span>
           </h1>
 
-          <p class="text-sm sm:text-base text-[#4B5563] mb-8 max-w-2xl font-medium mx-auto lg:mx-0">
+          <p class="text-sm sm:text-base text-[#4B5563] mb-8 max-w-lg lg:max-w-2xl font-medium mx-0">
             Un portail unique pour découvrir nos offres négociées, comparer les produits, passer commande en toute
             sécurité et suivre la livraison — pour les clients, livreurs, commerciaux et responsables logistique.
           </p>
 
           <!-- Features Tags -->
-          <div class="flex flex-wrap justify-center lg:justify-start gap-3 sm:gap-4 mb-8">
+          <div class="flex flex-wrap justify-start gap-3 sm:gap-4 mb-8">
             <div *ngFor="let feature of features"
               class="px-4 sm:px-6 py-2 2xl:py-3 bg-white rounded-full shadow-sm text-xs 2xl:text-sm font-medium text-[#2C2D5B]">
               {{ feature.label }}
@@ -87,7 +87,7 @@
           </div>
 
           <!-- Action Buttons -->
-          <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+          <div class="flex flex-col sm:flex-row gap-4 justify-start">
             <button (click)="scrollToSection('fonctionnalites')"
               class="w-full sm:w-auto px-6 2xl:px-8 py-3 sm:py-4 bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white rounded-full font-medium hover:from-orange-500 hover:to-orange-600 transition-all shadow-lg text-sm sm:text-base">
               Voir les fonctionnalités
@@ -221,7 +221,8 @@
 
         <div *ngFor="let profile of profiles" class="group relative overflow-hidden rounded-2xl lg:rounded-3xl
                   h-[300px] sm:h-[350px] lg:h-[400px]
-                  lg:w-[228px] lg:hover:w-[500px] 
+                  lg:w-[228px] lg:hover:w-[500px] 2xl:h-[460px] 2xl:w-[550px] 2xl:hover:w-[650px]
+                   bg-gray-100 cursor-pointer
                   transition-all duration-500 ease-in-out cursor-pointer">
 
           <!-- Background Image -->

@@ -70,7 +70,7 @@ export class CreatePasswordComponent implements OnInit {
   private syncPageErrorState(): void {
     if (!this.isResetEmailFlow && !this.registrationEmail) {
       this.pageError =
-        'Lien invalide ou session expirée. Utilisez le lien reçu par email ou repassez par la connexion / l\'inscription.';
+        'Lien invalide ou session expirée. Repassez par « Activer mon compte » ou utilisez le lien reçu par e-mail.';
     } else {
       this.pageError = '';
     }
@@ -157,7 +157,7 @@ export class CreatePasswordComponent implements OnInit {
       const email = this.registrationEmail;
       if (!email) {
         this.isSubmitting = false;
-        this.pageError = 'Email introuvable. Recommencez l\'inscription ou utilisez le lien reçu par email.';
+        this.pageError = 'Email introuvable. Repassez par « Activer mon compte » ou la vérification du code.';
         return;
       }
 

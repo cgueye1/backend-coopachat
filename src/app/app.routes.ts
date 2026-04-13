@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { administratorRoleGuard } from './core/guards/administrator-role.guard';
 
 export const routes: Routes = [
   {
@@ -10,6 +11,11 @@ export const routes: Routes = [
 
   //path for login module
   {
+    path: 'profile/edit',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/administrateur/add-user/add-user.component').then(c => c.AddUserComponent)
+  },
+  {
     path: 'login',
     loadComponent: () => import('./features/auth/login/login.component').then(c => c.LoginComponent)
   },
@@ -17,6 +23,11 @@ export const routes: Routes = [
   {
     path: 'register',
     loadComponent: () => import('./features/auth/register/register.component').then(c => c.RegisterComponent)
+  },
+  {
+    path: 'activate-account',
+    redirectTo: 'register',
+    pathMatch: 'full'
   },
   {
     path: 'create-password', // ✅ Route corrigée pour CreatePasswordComponent
@@ -64,37 +75,37 @@ export const routes: Routes = [
   },
   {
     path: 'admin/dashboardadmin',
-    canActivate: [authGuard],
+    canActivate: [authGuard, administratorRoleGuard],
     loadComponent: () => import('./features/administrateur/dashboard/dashboard.component').then(c => c.AdminPageComponent)
   },
   {
     path: 'admin/users',
-    canActivate: [authGuard],
+    canActivate: [authGuard, administratorRoleGuard],
     loadComponent: () => import('./features/administrateur/users/users.component').then(c => c.UsersComponent)
   },
   {
     path: 'admin/users/add',
-    canActivate: [authGuard],
+    canActivate: [authGuard, administratorRoleGuard],
     loadComponent: () => import('./features/administrateur/add-user/add-user.component').then(c => c.AddUserComponent)
   },
   {
     path: 'admin/users/edit/:id',
-    canActivate: [authGuard],
+    canActivate: [authGuard, administratorRoleGuard],
     loadComponent: () => import('./features/administrateur/add-user/add-user.component').then(c => c.AddUserComponent)
   },
   {
     path: 'admin/catalogue',
-    canActivate: [authGuard],
+    canActivate: [authGuard, administratorRoleGuard],
     loadComponent: () => import('./features/administrateur/catalogue/catalogue.component').then(c => c.CatalogueComponent)
   },
   {
     path: 'admin/categories',
-    canActivate: [authGuard],
+    canActivate: [authGuard, administratorRoleGuard],
     loadComponent: () => import('./features/administrateur/categories/categories.component').then(c => c.CategoriesComponent)
   },
   {
     path: 'admin/add-produit',
-    canActivate: [authGuard],
+    canActivate: [authGuard, administratorRoleGuard],
     loadComponent: () => import('./features/administrateur/add-produit/add-produit.component').then(c => c.AddProduitComponent)
   },
   //path for commercial dashboard module (JWT requis)
@@ -110,15 +121,16 @@ export const routes: Routes = [
     data: { mode: 'prospects' }
   },
   {
+    path: 'com/entreprises/:companyId/salaries',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/commercial/company-employees/company-employees.component').then(c => c.CompanyEmployeesComponent)
+  },
+  {
     path: 'com/entreprises',
     canActivate: [authGuard],
     loadComponent: () => import('./features/commercial/propection/propection.component').then(c => c.ProspectionComponent),
     data: { mode: 'partenaires' }
-  },
-  {
-    path: 'com/salaries',
-    canActivate: [authGuard],
-    loadComponent: () => import('./features/commercial/salaries/salaries.component').then(c => c.EmployeeManagementComponent)
   },
   {
     path: 'com/statistiques',

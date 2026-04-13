@@ -1,7 +1,7 @@
 <ui-modal [isOpen]="isOpen" title="Créer un nouveau coupon" (close)="onClose()">
   <form [formGroup]="couponForm" (ngSubmit)="onSubmit()">
     <div class="space-y-4 px-1 max-h-[70vh] overflow-y-auto">
-      <p class="text-sm text-gray-600">Code promo à saisir sur le panier (réduction sur le total).</p>
+      <p class="text-sm text-gray-600">Code promo à saisir sur le panier (réduction en pourcentage sur le total).</p>
 
       <!-- Nom / Code -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -13,31 +13,14 @@
         </ui-form-field>
       </div>
 
-      <!-- Type de réduction -->
-      <div class="space-y-2">
-        <label class="text-[15px] font-medium text-gray-700">Type de réduction <span class="text-red-500">*</span></label>
-        <div class="flex flex-wrap gap-6">
-          <label class="inline-flex items-center gap-2 cursor-pointer">
-            <input type="radio" formControlName="discountType" [value]="DISCOUNT_TYPE.PERCENTAGE"
-              class="w-4 h-4 text-[#2B3674] border-gray-300 focus:ring-[#2B3674]">
-            <span>Pourcentage (%)</span>
-          </label>
-          <label class="inline-flex items-center gap-2 cursor-pointer">
-            <input type="radio" formControlName="discountType" [value]="DISCOUNT_TYPE.FIXED_AMOUNT"
-              class="w-4 h-4 text-[#2B3674] border-gray-300 focus:ring-[#2B3674]">
-            <span>Montant fixe (F CFA)</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- Valeur -->
+      <!-- Valeur (toujours %) -->
       <div class="flex items-end gap-2 flex-wrap">
         <div class="min-w-[120px] flex-1">
-          <ui-form-field label="Valeur" type="text" placeholder="10" [required]="true"
+          <ui-form-field label="Réduction (%)" type="text" placeholder="10" [required]="true"
             [control]="couponForm.get('value')!" [error]="getFieldError('value')">
           </ui-form-field>
         </div>
-        <span class="pb-3 text-gray-600">{{ isFixedAmount ? 'F CFA' : '%' }}</span>
+        <span class="pb-3 text-gray-600">%</span>
       </div>
 
       <!-- Dates -->

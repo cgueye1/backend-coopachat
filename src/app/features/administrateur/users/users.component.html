@@ -205,27 +205,6 @@
             </div>
         </div>
 
-        <!-- Charts Section (canvas / Chart.js : pas de SSR) -->
-        <div *ngIf="isBrowser" class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
-            <!-- Bar Chart - Utilisateurs par rôle -->
-            <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-                <h3 class="text-base font-semibold text-[#2C3E50] mb-3 sm:text-lg sm:mb-4">Utilisateurs par rôle</h3>
-                <div class="h-48 sm:h-64">
-                    <canvas baseChart [data]="barChartData" [options]="barChartOptions" type="bar">
-                    </canvas>
-                </div>
-            </div>
-
-            <!-- Doughnut Chart - Répartition des statuts -->
-            <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-                <h3 class="text-base font-semibold text-[#2C3E50] mb-3 sm:text-lg sm:mb-4">Répartition des statuts</h3>
-                <div class="h-48 sm:h-64">
-                    <canvas baseChart [data]="doughnutChartData" [options]="doughnutChartOptions" type="doughnut">
-                    </canvas>
-                </div>
-            </div>
-        </div>
-
         
         <app-user-profile-detail-modal
             [visible]="showUserModal"
