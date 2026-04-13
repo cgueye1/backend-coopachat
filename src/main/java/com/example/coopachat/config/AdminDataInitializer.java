@@ -28,7 +28,7 @@ public class AdminDataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
 
         // Vérifier si un admin existe déjà
-        if ( utilisateurRepository.findByRole (UserRole.ADMINISTRATOR).isEmpty()){
+        //if ( utilisateurRepository.findByRole (UserRole.ADMINISTRATOR).isEmpty()){
 
             Users admin = new Users ();
             admin.setRole (UserRole.ADMINISTRATOR);
@@ -44,13 +44,13 @@ public class AdminDataInitializer implements CommandLineRunner {
             System.out.println("✅ Administrateur par défaut créé avec succès !");
             System.out.println("📧 Email: "+adminEmail);
             System.out.println("🔑 Mot de passe: "+adminPassword);
-        } else {
-            System.out.println("ℹ️ Un administrateur existe déjà");
-        }
+        } //else {
+            //System.out.println("ℹ️ Un administrateur existe déjà");
+       // }
 
 
 
     }
 
-}
+
 
