@@ -18,7 +18,7 @@ public class AdminDataInitializer implements CommandLineRunner {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @Value("${admin.default.email:admin@coopachat.com}")
+    @Value("${admin.default.email:admincoopachat@yopmail.com}")
     private String adminEmail;
 
     @Value("${admin.default.password:Passer@123}")
