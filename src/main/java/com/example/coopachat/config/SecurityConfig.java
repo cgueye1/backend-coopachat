@@ -126,9 +126,9 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Origines autorisées : * + localhost (front en dev ou Docker sur 8080)
+        // Origines autorisées
         configuration.setAllowedOriginPatterns(Arrays.asList(
-                "*",
+                "https://coopachat.innovimpactdev.cloud",
                 "http://localhost:8080",
                 "http://localhost:4200"
         ));
@@ -139,8 +139,8 @@ public class SecurityConfig {
         // Autorise tous les headers (dont Authorization pour le Bearer token)
         configuration.setAllowedHeaders(Arrays.asList("*"));
 
-        // Credentials (cookies) : false
-        configuration.setAllowCredentials(false);
+        // Credentials (cookies) : true (vérifie les badges)
+        configuration.setAllowCredentials(true);
 
         // Cache du preflight (OPTIONS) en secondes
         configuration.setMaxAge(3600L);

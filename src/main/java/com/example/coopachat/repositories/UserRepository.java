@@ -41,6 +41,8 @@ public interface UserRepository extends JpaRepository<Users, Long> {
     /** Vérifie si un autre utilisateur (id différent) a déjà ce téléphone (pour mise à jour). */
     Boolean existsByPhoneAndIdNot(String phone, Long id);
 
+    void deleteAllByRole(UserRole role);
+
     /**
      * Liste paginée des utilisateurs avec filtres optionnels (admin).
      * - search : recherche sur prénom, nom, nom complet ou email (insensible à la casse)
