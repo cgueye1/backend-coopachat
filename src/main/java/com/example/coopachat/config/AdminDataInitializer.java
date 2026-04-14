@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class AdminDataInitializer implements CommandLineRunner {
@@ -25,6 +26,7 @@ public class AdminDataInitializer implements CommandLineRunner {
     private String adminPassword;
 
     @Override
+    @Transactional
     public void run(String... args) throws Exception {
 
         // Vérifier si un admin existe déjà
