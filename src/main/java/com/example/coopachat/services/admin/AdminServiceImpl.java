@@ -12,6 +12,7 @@ import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
 import com.example.coopachat.dtos.fee.CreateFeeDTO;
 import com.example.coopachat.dtos.fee.FeeDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
+import com.example.coopachat.dtos.categories.CategoryKpiDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.categories.UpdateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
@@ -162,11 +163,32 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public List<CategoryListItemDTO> getAllCategories() {
-        return categoryRepository.findAll()
+    public List<CategoryListItemDTO> getAllCategories(String search) {
+
+        // Normaliser le terme de recherche
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        // Récupérer les catégories selon les filtres fournis
+        //si terme de recherche fourni, on recherche par nom sinon on récupère toutes les catégories triées par id décroissant
+        List<Category> categories = (searchTerm != null)
+                ? categoryRepository.findByNameContainingIgnoreCaseOrderByIdDesc(searchTerm)
+                : categoryRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
+
+        return categories
                 .stream()
                 .map(this::mapCategoryToListItemDTO)
                 .collect(Collectors.toList());
+    }
+
+
+
+     // Statistiques de la page catégories (total catégories, total produits, produits actifs)
+    @Override
+    public CategoryKpiDTO getCategoryKpis() {
+        long totalCategories = categoryRepository.count();
+        long totalProducts = productRepository.count();
+        long activeProducts = productRepository.countByStatus(true);
+        return new CategoryKpiDTO(totalCategories, totalProducts, activeProducts);
     }
 
     @Override
@@ -185,6 +207,8 @@ public class AdminServiceImpl implements AdminService {
         dto.setId(c.getId());
         dto.setName(c.getName());
         dto.setIcon(c.getIcon());
+        dto.setProductCount(productRepository.countByCategory(c));
+        dto.setActiveProductCount(productRepository.countByCategoryAndStatus(c, true));
         return dto;
     }
 
@@ -211,6 +235,28 @@ public class AdminServiceImpl implements AdminService {
         categoryRepository.save(category);
         log.info("Catégorie {} mise à jour par l'admin {}", category.getName(), admin.getEmail());
     }
+
+    @Override
+    @Transactional
+    public void deleteCategory(Long id) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut supprimer une catégorie");
+        }
+
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Catégorie introuvable"));
+
+        List<Product> productsInCategory = productRepository.findByCategory(category, Pageable.unpaged()).getContent();
+        if (!productsInCategory.isEmpty()) {
+            productRepository.deleteAll(productsInCategory);
+        }
+        categoryRepository.delete(category);
+
+        log.info("Catégorie {} supprimée par l'admin {} avec {} produit(s) associé(s)",
+                category.getName(), admin.getEmail(), productsInCategory.size());
+    }
+
 
     // ============================================================================
     // 📦 GESTION DES PRODUITS

@@ -11,6 +11,7 @@ import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
 import com.example.coopachat.dtos.fee.CreateFeeDTO;
 import com.example.coopachat.dtos.fee.FeeDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
+import com.example.coopachat.dtos.categories.CategoryKpiDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
 import com.example.coopachat.dtos.categories.UpdateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
@@ -91,9 +92,21 @@ public class  AdminController {
             description = "Récupère la liste complète des catégories (id + nom + icon)."
     )
     @GetMapping("/categories")
-    public ResponseEntity<List<CategoryListItemDTO>> getAllCategories() {
-        List<CategoryListItemDTO> categories = adminService.getAllCategories();
+    public ResponseEntity<List<CategoryListItemDTO>> getAllCategories(
+            @Parameter(description = "Recherche par nom de catégorie (optionnel)")
+            @RequestParam(required = false) String search
+    ) {
+        List<CategoryListItemDTO> categories = adminService.getAllCategories(search);
         return ResponseEntity.ok(categories);
+    }
+
+    @Operation(
+            summary = "KPI des catégories",
+            description = "Retourne les KPI de la page catégories en un seul appel : total catégories, total produits, produits actifs."
+    )
+    @GetMapping("/categories/kpis")
+    public ResponseEntity<CategoryKpiDTO> getCategoryKpis() {
+        return ResponseEntity.ok(adminService.getCategoryKpis());
     }
 
     @Operation(
@@ -119,6 +132,20 @@ public class  AdminController {
         try {
             adminService.updateCategory(id, dto);
             return ResponseEntity.ok("Catégorie mise à jour");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @Operation(
+            summary = "Supprimer une catégorie",
+            description = "Supprime une catégorie et tous les produits rattachés à cette catégorie."
+    )
+    @DeleteMapping("/categories/{id}")
+    public ResponseEntity<String> deleteCategory(@PathVariable Long id) {
+        try {
+            adminService.deleteCategory(id);
+            return ResponseEntity.ok("Catégorie et produits associés supprimés");
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }

@@ -20,6 +20,11 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     Boolean existsByName(String name);
 
     /**
+     * Recherche des catégories par nom (insensible à la casse), triées par id décroissant.
+     */
+    List<Category> findByNameContainingIgnoreCaseOrderByIdDesc(String name);
+
+    /**
      * Récupère les catégories liées à un coupon
      */
     List<Category> findByCouponId(Long couponId);
