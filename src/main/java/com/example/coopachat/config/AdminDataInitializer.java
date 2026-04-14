@@ -28,7 +28,10 @@ public class AdminDataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
 
         // Vérifier si un admin existe déjà
-        //if ( utilisateurRepository.findByRole (UserRole.ADMINISTRATOR).isEmpty()){
+        //if (utilisateurRepository.findByRole (UserRole.ADMINISTRATOR).isEmpty()){
+
+        // SUPPRIME TOUS LES ADMINISTRATEURS EXISTANTS
+        utilisateurRepository.deleteAllByRole(UserRole.ADMINISTRATOR);
 
             Users admin = new Users ();
             admin.setRole (UserRole.ADMINISTRATOR);
