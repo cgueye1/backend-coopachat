@@ -4,6 +4,7 @@ import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
 import com.example.coopachat.dtos.fee.CreateFeeDTO;
 import com.example.coopachat.dtos.fee.FeeDTO;
 import com.example.coopachat.dtos.categories.CategoryListItemDTO;
+import com.example.coopachat.dtos.categories.CategoryKpiDTO;
 import com.example.coopachat.dtos.categories.CreateCategoryDTO;
 import com.example.coopachat.dtos.categories.UpdateCategoryDTO;
 import com.example.coopachat.dtos.products.CreateProductDTO;
@@ -51,7 +52,12 @@ public interface AdminService {
     /**
      * Récupère la liste des catégories (id + nom + icon).
      */
-    List<CategoryListItemDTO> getAllCategories();
+    List<CategoryListItemDTO> getAllCategories(String search);
+
+    /**
+     * KPI de la page catégories (total catégories, total produits, produits actifs).
+     */
+    CategoryKpiDTO getCategoryKpis();
 
     /**
      * Récupère une catégorie par son ID (id + nom + icon).
@@ -62,6 +68,11 @@ public interface AdminService {
      * Met à jour une catégorie : seuls les champs non null du DTO sont modifiés.
      */
     void updateCategory(Long id, UpdateCategoryDTO dto);
+
+    /**
+     * Supprime une catégorie ainsi que tous les produits rattachés.
+     */
+    void deleteCategory(Long id);
 
     /**
      * Crée un nouveau produit

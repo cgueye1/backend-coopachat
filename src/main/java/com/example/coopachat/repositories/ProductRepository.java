@@ -76,6 +76,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      * Filtre par catégorie uniquement
      */
     Page<Product> findByCategory(Category category, Pageable pageable);
+    long countByCategory(Category category);
+    long countByCategoryAndStatus(Category category, Boolean status);
 
     /**
      * Filtre par statut uniquement

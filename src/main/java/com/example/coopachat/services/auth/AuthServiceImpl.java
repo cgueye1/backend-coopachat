@@ -221,6 +221,10 @@ public class AuthServiceImpl implements AuthService {
         Users users = getUserByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
 
+        if (users.getIsActive() == true){
+            throw new RuntimeException("Votre compte est déjà actif , veillez vous connectez");
+        }
+
         // Générer et stocker le code d'activation
         String code = activationCodeService.generateAndStoreCode(email);
 

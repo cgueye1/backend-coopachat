@@ -16,5 +16,9 @@ public class CategoryListItemDTO {
     private String name;
     /** Icône (nom ou URL), peut être null. */
     private String icon;
+    /** Nombre total de produits rattachés à la catégorie. */
+    private long productCount;
+    /** Nombre de produits actifs rattachés à la catégorie. */
+    private long activeProductCount;
 }
 
