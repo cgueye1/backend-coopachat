@@ -5,6 +5,7 @@ import com.example.coopachat.enums.PasswordResetChannel;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -23,7 +24,8 @@ public class EmailServiceImpl implements EmailService {
     // 📦 DEPENDENCIES
     // ============================================================================
 
-    private final JavaMailSender mailSender;
+    @Autowired(required = false)//Ne plante pas si tu ne trouves pas JavaMailSender
+    private  JavaMailSender mailSender;
 
     // ============================================================================
     // ⚙️ CONFIGURATION
