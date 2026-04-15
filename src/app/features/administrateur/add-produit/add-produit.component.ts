@@ -47,6 +47,10 @@ export class AddProduitComponent implements OnInit {
   /** true pendant l'envoi du formulaire (création/modification produit + image). */
   saving = false;
 
+  /** Si on arrive depuis la page Catégories avec ?categoryId=... */
+  categoryLocked = false;
+  private preselectedCategoryId: number | null = null;
+
   constructor(
     private router: Router,
     private route: ActivatedRoute,
@@ -57,10 +61,21 @@ export class AddProduitComponent implements OnInit {
   ngOnInit(): void {
     const productFromState = history.state?.product;
     const id = this.route.snapshot.queryParamMap.get('id');
+    const categoryIdParam = this.route.snapshot.queryParamMap.get('categoryId');
 
     if (id) {
       this.isEditMode = true;
       this.editingProductId = id;
+    }
+
+    // Création depuis Catégories: pré-sélectionner la catégorie et empêcher sa modification.
+    // En édition, on laisse le comportement existant (catégorie modifiable si besoin).
+    if (!this.isEditMode && categoryIdParam) {
+      const parsed = Number(categoryIdParam);
+      if (!Number.isNaN(parsed) && parsed > 0) {
+        this.preselectedCategoryId = parsed;
+        this.categoryLocked = true;
+      }
     }
 
     if (productFromState) {
@@ -105,7 +120,22 @@ export class AddProduitComponent implements OnInit {
   }
 
   goBack() {
+    this.navigateBack();
+  }
+
+  private navigateBack(): void {
+    // Si la catégorie a été pré-sélectionnée via queryParam, on retourne sur la page Catégories.
+    if (this.categoryLocked && this.preselectedCategoryId) {
+      this.router.navigate(['/admin/categories']);
+      return;
+    }
     this.router.navigate(['/admin/catalogue']);
+  }
+
+  get headerBreadcrumb(): string {
+    if (this.isEditMode) return 'Pages / Catalogues / Modifier produit';
+    if (this.categoryLocked) return 'Pages / Catégories / Nouveau produit';
+    return 'Pages / Catalogues / Nouveau produit';
   }
 
   get filteredCategories(): { id: number; name: string }[] {
@@ -115,6 +145,7 @@ export class AddProduitComponent implements OnInit {
   }
 
   openCategoryDropdown() {
+    if (this.categoryLocked) return;
     this.showCategoryDropdown = true;
     if (this.newProduct.categoryName && !this.categorySearchText) {
       this.categorySearchText = this.newProduct.categoryName;
@@ -122,6 +153,7 @@ export class AddProduitComponent implements OnInit {
   }
 
   toggleCategoryDropdown() {
+    if (this.categoryLocked) return;
     this.showCategoryDropdown = !this.showCategoryDropdown;
     if (this.showCategoryDropdown && this.newProduct.categoryName && !this.categorySearchText) {
       this.categorySearchText = this.newProduct.categoryName;
@@ -138,6 +170,10 @@ export class AddProduitComponent implements OnInit {
 
   onCategoryInputBlur() {
     setTimeout(() => {
+      if (this.categoryLocked) {
+        this.showCategoryDropdown = false;
+        return;
+      }
       const q = (this.categorySearchText || '').trim();
       if (!q) {
         this.newProduct.categoryId = null;
@@ -334,12 +370,16 @@ export class AddProduitComponent implements OnInit {
         popup: 'animate__animated animate__fadeOut animate__faster'
       }
     }).then(() => {
-      this.router.navigate(['/admin/catalogue'], { queryParams: { refresh: '1' } });
+      if (this.categoryLocked && this.preselectedCategoryId) {
+        this.router.navigate(['/admin/categories'], { queryParams: { refresh: '1' } });
+      } else {
+        this.router.navigate(['/admin/catalogue'], { queryParams: { refresh: '1' } });
+      }
     });
   }
 
   annuler() {
-    this.router.navigate(['/admin/catalogue']);
+    this.navigateBack();
   }
 
   private findCategoryIdByName(name: string): number | null {
@@ -366,6 +406,18 @@ export class AddProduitComponent implements OnInit {
     this.productService.getCategories().subscribe({
       next: (categories) => {
         this.categories = Array.isArray(categories) ? categories : [];
+
+        // Si on vient de Catégories: appliquer la catégorie pré-sélectionnée dès que la liste est chargée.
+        if (this.categoryLocked && this.preselectedCategoryId) {
+          const match = this.categories.find(c => c.id === this.preselectedCategoryId);
+          if (match) {
+            this.selectCategory(match);
+            // En mode lock, on ne veut pas laisser l'input "vider" la catégorie sur blur.
+            this.showCategoryDropdown = false;
+          }
+          return;
+        }
+
         if (this.newProduct.categoryName && !this.newProduct.categoryId) {
           this.newProduct.categoryId = this.findCategoryIdByName(this.newProduct.categoryName);
         }

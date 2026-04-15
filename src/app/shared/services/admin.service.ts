@@ -355,6 +355,10 @@ export class AdminService {
     return this.http.put(`${this.apiUrl}/admin/categories/${id}`, body, { responseType: 'text' });
   }
 
+  deleteCategory(id: number): Observable<string> {
+    return this.http.delete(`${this.apiUrl}/admin/categories/${id}`, { responseType: 'text' });
+  }
+
   /** Upload une icône (SVG, PNG, etc.) pour une catégorie. Retourne le chemin à mettre dans le champ icon. */
   uploadCategoryIcon(file: File): Observable<{ path: string }> {
     const formData = new FormData();

@@ -211,6 +211,52 @@ export class CategoriesComponent implements OnInit {
     });
   }
 
+  deleteCategory(cat: CategoryListItemDTO): void {
+    if (!cat?.id) return;
+
+    Swal.fire({
+      title: 'Supprimer cette catégorie ?',
+      html: `
+        <div style="text-align:left">
+          <p style="margin:0 0 8px 0">
+            Vous êtes sur le point de supprimer <b>${(cat.name ?? 'cette catégorie')}</b>.
+          </p>
+          <p style="margin:0;color:#6B7280">
+            Attention : les produits associés à cette catégorie seront aussi supprimés.
+          </p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Oui, supprimer',
+      cancelButtonText: 'Annuler',
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-3xl p-6',
+        title: 'text-2xl font-medium text-gray-900',
+        htmlContainer: 'text-base text-gray-600',
+        confirmButton: 'bg-[#EF4444] hover:bg-[#DC2626] text-white px-8 py-3 rounded-lg font-medium text-base shadow-none border-none',
+        cancelButton: 'bg-[#F3F4F6] hover:bg-gray-200 text-gray-700 px-8 py-3 rounded-lg font-medium text-base shadow-none border-none',
+        actions: 'flex justify-center w-full gap-2',
+        icon: 'border-none'
+      },
+      backdrop: 'rgba(0,0,0,0.2)',
+      width: '580px'
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+
+      this.adminService.deleteCategory(cat.id).subscribe({
+        next: () => {
+          this.loadCategories(true, () => this.showSuccessAlert('Catégorie supprimée avec succès'));
+        },
+        error: (err) => {
+          const msg = err?.error?.message || err?.error || 'Erreur lors de la suppression.';
+          Swal.fire({ title: 'Erreur', text: msg, icon: 'error', confirmButtonText: 'OK' });
+        }
+      });
+    });
+  }
+
   /** Aperçu formulaire : URL seulement si chemin fichier (sinon afficher l’emoji en span). */
   formIconPreviewUrl(): string | null {
     const icon = (this.formIcon ?? '').trim();
