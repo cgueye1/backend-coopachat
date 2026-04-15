@@ -1,52 +1,94 @@
 <app-main-layout role="admin">
   <div class="space-y-4 sm:space-y-5 lg:space-y-6">
-    <app-header
-      [title]="'Catégories'"
-      [breadcrumb]="'Pages / Catégories'"
-      [type]="'simple'"
-      [buttonLabel]="'Nouvelle catégorie'"
-      (actionClick)="openCreate()">
-    </app-header>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <p class="text-xs text-[#8A8EA7]">Pages / Catégories</p>
+        <h1 class="text-2xl sm:text-3xl font-semibold text-[#2C2D5B]">Catégories</h1>
+      </div>
+      <button
+        type="button"
+        (click)="openCreate()"
+        class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2C2D5B] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#24254B] transition-colors">
+        <span class="text-base leading-none">+</span>
+        Nouvelle catégorie
+      </button>
+    </div>
 
-    <div class="bg-white rounded-2xl hover:shadow-sm">
-      <div class="overflow-x-auto">
-        <div *ngIf="loadingList" class="p-8 text-center text-gray-500 text-sm flex items-center justify-center gap-2">
-          <svg class="w-4 h-4 animate-spin text-[#2B3674]" viewBox="0 0 24 24" fill="none"
-            xmlns="http://www.w3.org/2000/svg">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
-            <path class="opacity-90" fill="currentColor" d="M22 12a10 10 0 00-10-10v3a7 7 0 017 7h3z"></path>
-          </svg>
-          <span>Chargement des commandes...</span>
+    <div class="rounded-3xl border border-[#ECEEF5] bg-white p-3 sm:p-4">
+      <div class="flex items-center rounded-[30px] border border-[#E6E8F0] px-3 py-2 sm:px-4 sm:py-3">
+        <svg class="h-5 w-5 text-[#8D91A8]" viewBox="0 0 24 24" fill="none">
+          <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="currentColor" stroke-width="2" />
+          <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <input
+          [(ngModel)]="searchText"
+          type="text"
+          placeholder="Rechercher une catégorie..."
+          class="w-full border-0 bg-transparent px-3 text-sm text-[#2C2D5B] outline-none placeholder:text-[#A0A4BB]" />
+        <span class="text-sm font-medium text-[#6F7388]">
+          {{ filteredCategories.length }} catégories
+        </span>
+      </div>
+    </div>
+
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="rounded-2xl border border-[#ECEEF5] bg-white p-4">
+        <p class="text-sm text-[#737791]">Total catégories</p>
+        <p class="mt-1 text-4xl font-semibold text-[#2C2D5B]">{{ totalCategories }}</p>
+      </div>
+      <div class="rounded-2xl border border-[#ECEEF5] bg-white p-4">
+        <p class="text-sm text-[#737791]">Total produits</p>
+        <p class="mt-1 text-4xl font-semibold text-[#2C2D5B]">{{ totalProducts }}</p>
+      </div>
+      <div class="rounded-2xl border border-[#ECEEF5] bg-white p-4">
+        <p class="text-sm text-[#737791]">Produits actifs</p>
+        <p class="mt-1 text-4xl font-semibold text-[#2C2D5B]">{{ activeProducts }}</p>
+      </div>
+    </div>
+
+    <div *ngIf="loadingList" class="rounded-2xl border border-[#ECEEF5] bg-white p-8 text-center text-[#6F7388]">
+      Chargement des catégories...
+    </div>
+
+    <div *ngIf="!loadingList" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <article
+        *ngFor="let cat of filteredCategories"
+        class="rounded-2xl border border-[#ECEEF5] bg-white p-4 transition-all hover:shadow-md">
+        <div class="mb-4 flex items-start justify-between gap-2">
+          <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-[#F6F7FB]">
+            <img *ngIf="getIconUrl(cat)" [src]="getIconUrl(cat)" alt="" class="h-10 w-10 object-contain" (error)="onIconLoadError(cat)">
+            <span *ngIf="!getIconUrl(cat) && cat.icon" class="text-2xl">{{ cat.icon }}</span>
+            <img *ngIf="!getIconUrl(cat) && !cat.icon" [src]="defaultIconUrl" alt="" class="h-10 w-10 object-contain">
+          </div>
+          <button (click)="openEdit(cat)" class="rounded-lg border border-[#F2C6AE] p-2 transition-colors hover:bg-[#FFF5F0]" title="Modifier">
+            <svg class="h-4 w-4" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1.66667 13.3333H2.85417L11 5.1875L9.8125 4L1.66667 12.1458V13.3333ZM0 15V11.4583L11 0.479167C11.1667 0.326389 11.3508 0.208333 11.5525 0.125C11.7542 0.0416667 11.9658 0 12.1875 0C12.4092 0 12.6244 0.0416667 12.8333 0.125C13.0422 0.208333 13.2228 0.333333 13.375 0.5L14.5208 1.66667C14.6875 1.81944 14.8092 2 14.8858 2.20833C14.9625 2.41667 15.0006 2.625 15 2.83333C15 3.05556 14.9619 3.2675 14.8858 3.46917C14.8097 3.67083 14.6881 3.85472 14.5208 4.02083L3.54167 15H0ZM10.3958 4.60417L9.8125 4L11 5.1875L10.3958 4.60417Z" fill="#F68647" />
+            </svg>
+          </button>
         </div>
-        <table *ngIf="!loadingList" class="w-full text-xs sm:text-sm">
-          <thead class="bg-[#F4F7FE]">
-            <tr>
-              <th class="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs text-[#2C3E50]">Icon</th>
-              <th class="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs text-[#2C3E50]">Nom</th>
-              <th class="px-4 py-3 sm:px-6 sm:py-4 text-left text-xs text-[#2C3E50]">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let cat of categories" class="border-b border-[#F4F7FE] hover:bg-gray-50">
-              <td class="px-2 py-2 sm:px-4 sm:py-3">
-                <img *ngIf="getIconUrl(cat)" [src]="getIconUrl(cat)" alt="" class="w-8 h-8 object-contain" (error)="onIconLoadError(cat)">
-                <span *ngIf="!getIconUrl(cat) && cat.icon" class="inline-flex items-center justify-center w-8 h-8 text-xl">{{ cat.icon }}</span>
-                <img *ngIf="!getIconUrl(cat) && !cat.icon" [src]="defaultIconUrl" alt="" class="w-8 h-8 object-contain">
-              </td>
-              <td class="px-2 py-2 sm:px-6 sm:py-3 text-[#4B4848]">{{ cat.name }}</td>
-              <td class="py-2 px-0 sm:py-3">
-                <button (click)="openEdit(cat)" class="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Modifier">
-                  <svg class="w-4 h-4" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M1.66667 13.3333H2.85417L11 5.1875L9.8125 4L1.66667 12.1458V13.3333ZM0 15V11.4583L11 0.479167C11.1667 0.326389 11.3508 0.208333 11.5525 0.125C11.7542 0.0416667 11.9658 0 12.1875 0C12.4092 0 12.6244 0.0416667 12.8333 0.125C13.0422 0.208333 13.2228 0.333333 13.375 0.5L14.5208 1.66667C14.6875 1.81944 14.8092 2 14.8858 2.20833C14.9625 2.41667 15.0006 2.625 15 2.83333C15 3.05556 14.9619 3.2675 14.8858 3.46917C14.8097 3.67083 14.6881 3.85472 14.5208 4.02083L3.54167 15H0ZM10.3958 4.60417L9.8125 4L11 5.1875L10.3958 4.60417Z" fill="#F68647"/>
-                  </svg>
-                </button>
-              </td>
-            </tr>
-            <tr *ngIf="categories.length === 0">
-              <td colspan="3" class="px-4 py-8 text-center text-[#6B7280]">Aucune catégorie.</td>
-            </tr>
-          </tbody>
-        </table>
+
+        <h3 class="text-2xl font-medium text-[#2A2E45]">{{ cat.name }}</h3>
+        <p class="mt-1 text-sm text-[#6F7388]">
+          {{ getCategoryProductCount(cat) }} produits
+        </p>
+
+        <button
+          type="button"
+          (click)="addProduct(cat)"
+          class="mt-5 w-full rounded-xl border border-[#D7DAE5] px-4 py-2.5 text-lg font-medium text-[#2C2D5B] hover:bg-[#F9FAFC] transition-colors">
+          + Ajouter un produit
+        </button>
+      </article>
+
+      <button
+        type="button"
+        (click)="openCreate()"
+        class="flex min-h-[235px] items-center justify-center rounded-2xl border border-dashed border-[#D9DCEC] bg-white text-[#737791] transition-colors hover:bg-[#F9FAFC]">
+        <span class="text-lg font-medium">+ Nouvelle catégorie</span>
+      </button>
+
+      <div *ngIf="filteredCategories.length === 0" class="col-span-full rounded-2xl border border-[#ECEEF5] bg-white p-8 text-center text-[#6F7388]">
+        Aucune catégorie trouvée.
       </div>
     </div>
   </div>
@@ -55,7 +97,7 @@
   <div *ngIf="showModal" class="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50" (click)="closeModal()">
     <div class="bg-white rounded-2xl w-full max-w-md mx-4 shadow-lg" (click)="$event.stopPropagation()">
       <div class="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100">
-        <h2 class="text-lg font-semibold">{{ isEdit ? 'Modifier la catégorie' : 'Nouvelle catégorie' }}</h2>
+        <h2 class="text-lg font-semibold text-[#2C2D5B]">{{ isEdit ? 'Modifier la catégorie' : 'Nouvelle catégorie' }}</h2>
         <button (click)="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
           <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -92,7 +134,7 @@
         <button (click)="closeModal()" class="px-4 py-2.5 rounded-lg font-medium text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
           Annuler
         </button>
-        <button (click)="save()" [disabled]="loading || uploadingIcon" class="px-4 py-2.5 rounded-lg font-medium text-sm text-white bg-[#2C2D5B] hover:bg-[#252654] disabled:opacity-50 transition-colors">
+        <button (click)="save()" [disabled]="loading || uploadingIcon" class="px-4 py-2.5 rounded-lg font-medium text-sm text-white bg-gradient-to-r from-[#FF6B00] to-[#FF914D] hover:opacity-90 disabled:opacity-50 transition-colors">
           {{ loading ? 'Enregistrement…' : uploadingIcon ? 'Envoi de l\'icône…' : (isEdit ? 'Enregistrer' : 'Créer') }}
         </button>
       </div>

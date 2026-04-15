@@ -1,13 +1,13 @@
 <app-main-layout role="admin">
     <div class="space-y-4 sm:space-y-5 lg:space-y-6">
         <!-- Header -->
-        <app-header [title]="'Catalogues'" [breadcrumb]="'Pages / Catalogues'" [type]="'simple'"
+        <app-header [title]="'Catalogue'" [breadcrumb]="'Pages / Catalogue'" [type]="'simple'"
             [buttonLabel]="'Nouveau produit'" (actionClick)="nouveauProduit()"></app-header>
 
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5 mb-3 sm:mb-4">
             <div *ngFor="let metric of metricsData"
-                class="bg-white rounded-lg p-4 sm:p-5 hover:shadow-sm transition-shadow">
+                class="bg-white rounded-2xl border border-[#ECEEF5] p-4 sm:p-5 hover:shadow-sm transition-shadow">
                 <div class="flex items-start justify-between">
                     <div class="flex-1">
                         <div class="text-xs text-[#6B7280] mb-0.5 sm:mb-1">{{ metric.title }}</div>
@@ -22,7 +22,7 @@
         </div>
 
         <!-- Products Table -->
-        <div class="bg-white rounded-2xl hover:shadow-sm">
+        <div class="bg-white rounded-2xl border border-[#ECEEF5] hover:shadow-sm">
             <!-- Filters (comme les autres pages : en haut) -->
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 border-b border-[#F4F7FE]">
                 <div class="relative flex-1 max-w-md">

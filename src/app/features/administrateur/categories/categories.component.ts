@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
 import { AdminService, CategoryListItemDTO } from '../../../shared/services/admin.service';
@@ -16,6 +17,7 @@ import Swal from 'sweetalert2';
 })
 export class CategoriesComponent implements OnInit {
   categories: CategoryListItemDTO[] = [];
+  searchText = '';
   loadingList = false;
   showModal = false;
   isEdit = false;
@@ -28,7 +30,10 @@ export class CategoriesComponent implements OnInit {
   uploadingIcon = false;
   errorMessage = '';
 
-  constructor(private adminService: AdminService) {}
+  constructor(
+    private adminService: AdminService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     this.loadCategories();
@@ -63,6 +68,25 @@ export class CategoriesComponent implements OnInit {
     this.formIconPreviewDataUrl = null;
     this.errorMessage = '';
     this.showModal = true;
+  }
+
+  get filteredCategories(): CategoryListItemDTO[] {
+    const term = (this.searchText ?? '').trim().toLowerCase();
+    if (!term) return this.categories;
+    return this.categories.filter((cat) => (cat.name ?? '').toLowerCase().includes(term));
+  }
+
+  get totalCategories(): number {
+    return this.categories.length;
+  }
+
+  /** Ces infos ne sont pas encore garanties côté API, on garde une valeur sûre. */
+  get totalProducts(): number {
+    return this.categories.reduce((sum, cat) => sum + this.getCategoryProductCount(cat), 0);
+  }
+
+  get activeProducts(): number {
+    return this.categories.reduce((sum, cat) => sum + this.getCategoryActiveProductCount(cat), 0);
   }
 
   openEdit(cat: CategoryListItemDTO): void {
@@ -168,6 +192,23 @@ export class CategoriesComponent implements OnInit {
 
   onIconLoadError(cat: CategoryListItemDTO): void {
     this.iconLoadFailedIds.add(cat.id);
+  }
+
+  getCategoryProductCount(cat: CategoryListItemDTO): number {
+    const raw = (cat as any)?.productCount;
+    return typeof raw === 'number' && raw >= 0 ? raw : 0;
+  }
+
+  getCategoryActiveProductCount(cat: CategoryListItemDTO): number {
+    const raw = (cat as any)?.activeProductCount;
+    if (typeof raw === 'number' && raw >= 0) return raw;
+    return this.getCategoryProductCount(cat);
+  }
+
+  addProduct(cat: CategoryListItemDTO): void {
+    this.router.navigate(['/admin/add-produit'], {
+      queryParams: { categoryId: cat.id }
+    });
   }
 
   /** Aperçu formulaire : URL seulement si chemin fichier (sinon afficher l’emoji en span). */

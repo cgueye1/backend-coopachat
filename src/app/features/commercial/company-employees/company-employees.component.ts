@@ -3,10 +3,10 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin, finalize } from 'rxjs';
-import { HttpErrorResponse } from '@angular/common/http';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { EmployeeModalComponent, EmployeeFormData } from '../../../shared/components/employee-modal/employee-modal.component';
 import { CommercialService } from '../../../shared/services/commercial.service';
+import { getUserFacingHttpErrorMessage } from '../../../shared/utils/http-error-message';
 import { environment } from '../../../../environments/environment';
 import Swal from 'sweetalert2';
 
@@ -648,25 +648,11 @@ export class CompanyEmployeesComponent implements OnInit {
     };
   }
 
-  private extractApiErrorMessage(err: unknown): string | null {
-    const httpErr = err as HttpErrorResponse | undefined;
-    const raw = httpErr?.error;
-    if (typeof raw === 'string') {
-      const t = raw.trim();
-      if (t.startsWith('{')) {
-        try {
-          const p = JSON.parse(t) as { message?: string };
-          return p.message?.trim() || t;
-        } catch {
-          return t;
-        }
-      }
-      return t || null;
-    }
-    if (raw && typeof raw === 'object' && 'message' in raw) {
-      return String((raw as { message?: string }).message ?? '');
-    }
-    return httpErr?.statusText || null;
+  private extractApiErrorMessage(err: unknown): string {
+    return getUserFacingHttpErrorMessage(
+      err,
+      'Une erreur est survenue. Veuillez réessayer dans quelques instants.'
+    );
   }
 
   /** Retire le préfixe technique historique et les bruits JDBC pour un libellé lisible. */

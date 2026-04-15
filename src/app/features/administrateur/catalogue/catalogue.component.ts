@@ -47,7 +47,7 @@ export class CatalogueComponent implements OnInit, OnDestroy {
   searchText = '';
   selectedCategory = 'Toutes les catégories';
   selectedCategoryId: number | null = null;
-  selectedStatus = 'Tous les status';
+  selectedStatus = 'Tous les statuts';
   showCategoryDropdown = false;
   showStatusDropdown = false;
   currentPage = 1;
@@ -109,17 +109,17 @@ export class CatalogueComponent implements OnInit, OnDestroy {
 
     this.metricsData = [
       {
-        title: 'Total',
+        title: 'Total produits',
         value: String(total).padStart(2, '0'),
         icon: '/icones/commandefour.svg'
       },
       {
-        title: 'Actifs',
+        title: 'Produits actifs',
         value: String(actifs).padStart(2, '0'),
         icon: '/icones/livraisonavenir.svg'
       },
       {
-        title: 'Inactifs',
+        title: 'Produits inactifs',
         value: String(inactifs).padStart(2, '0'),
         icon: '/icones/temps.svg'
       }
@@ -131,7 +131,7 @@ export class CatalogueComponent implements OnInit, OnDestroy {
   }
 
   get uniqueStatuses(): string[] {
-    return ['Tous les status', 'Actif', 'Inactif'];
+    return ['Tous les statuts', 'Actif', 'Inactif'];
   }
 
   get filteredProducts(): Product[] {
