@@ -22,7 +22,15 @@ public interface UserRepository extends JpaRepository<Users, Long> {
 
     boolean existsByRefUser(String refUser);
 
-    Optional <Users> findByRole(UserRole role);
+    /**
+     * Attention : un rôle n'est pas unique (il peut y avoir plusieurs admins, commerciaux, etc.).
+     * Utiliser plutôt {@link #existsByRole(UserRole)} ou {@link #findAllByRole(UserRole)}.
+     */
+    Optional<Users> findByRole(UserRole role);
+
+    boolean existsByRole(UserRole role);
+
+    List<Users> findAllByRole(UserRole role);
 
     /** Vérifie si un email existe déjà dans la base de données */
     Boolean existsByEmail(String email);

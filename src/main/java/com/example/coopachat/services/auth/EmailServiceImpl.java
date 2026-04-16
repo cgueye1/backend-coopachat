@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.HtmlUtils;
 
 /**
@@ -19,6 +20,8 @@ import org.springframework.web.util.HtmlUtils;
 @RequiredArgsConstructor
 @Slf4j
 public class EmailServiceImpl implements EmailService {
+    private static final String DEFAULT_WEB_RESET_URL = "https://coopachat.innovimpactdev.cloud/reset-password?token=";
+    private static final String DEFAULT_MOBILE_RESET_URL = "https://coopachat.innovimpactdev.cloud/reset-password?token=";
 
     // ============================================================================
     // 📦 DEPENDENCIES
@@ -134,9 +137,7 @@ public class EmailServiceImpl implements EmailService {
             // - MOBILE → préfixe deep link  + token UUID collé à la fin ;
             // - WEB     → URL https du front (ex. .../create-password?token=) + token.
             //resetUrl = resetPasswordUrlMobile + token si resolved = PasswordResetChannel.MOBILE sinon resetPasswordUrl + token(le web )
-            String resetUrl = resolved == PasswordResetChannel.MOBILE
-                    ? resetPasswordUrlMobile + token
-                    : resetPasswordUrl + token;
+            String resetUrl = buildResetUrl(resolved, token);
 
             // Texte du mail : même information, formulations différentes selon le canal (app vs navigateur).
             String body = resolved == PasswordResetChannel.MOBILE
@@ -266,6 +267,25 @@ public class EmailServiceImpl implements EmailService {
             log.error("Erreur envoi email à {}: {}", to, e.getMessage());
             throw new RuntimeException("Impossible d'envoyer l'email", e);
         }
+    }
+
+    private String buildResetUrl(PasswordResetChannel channel, String token) {
+        String configuredBaseUrl = channel == PasswordResetChannel.MOBILE
+                ? resetPasswordUrlMobile
+                : resetPasswordUrl;
+        String fallbackBaseUrl = channel == PasswordResetChannel.MOBILE
+                ? DEFAULT_MOBILE_RESET_URL
+                : DEFAULT_WEB_RESET_URL;
+
+        String effectiveBaseUrl = StringUtils.hasText(configuredBaseUrl) ? configuredBaseUrl : fallbackBaseUrl;
+        if (!StringUtils.hasText(configuredBaseUrl)) {
+            log.warn("URL de reset {} absente/vide dans la configuration. Fallback utilisé: {}",
+                    channel, fallbackBaseUrl);
+        }
+
+        String finalUrl = effectiveBaseUrl + token;
+        log.info("Lien de reset généré pour {}: {}", channel, finalUrl);
+        return finalUrl;
     }
 }
 
