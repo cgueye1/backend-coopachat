@@ -1,16 +1,13 @@
 
 [
   {
-    "relation": [
-      "delegate_permission/common.handle_all_urls"
-    ],
+    "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.example.coopachat",
+      "package_name": "com.wakana.coopachat",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_YOUR_SHA256_FINGERPRINT"
+        "2B:79:9B:CA:7D:76:BA:30:10:16:C6:31:DC:DA:1D:15:A5:0E:A1:5F:27:10:81:DC:AF:2C:E0:75:AA:0E:38:7D"
       ]
     }
   }
 ]
-
