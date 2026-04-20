@@ -6,9 +6,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
+
+    //permettre au callback de retrouver le paiement
+    Optional<Payment> findByTransactionReference(String transactionReference);
 
     /**
      * Compte le nombre de paiements ayant le statut donné (sans filtre de date).

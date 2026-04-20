@@ -31,6 +31,7 @@ import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -86,6 +87,27 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final DeliveryIssueReportRepository deliveryIssueReportRepository;
     private final com.example.coopachat.services.DeliveryDriver.DriverNotificationService driverNotificationService;
     private final com.example.coopachat.services.minio.MinioService minioService;
+
+    @Value("${touchpay.hosted.script-url:https://touchpay.gutouch.net/touchpayv2/script/touchpaynr/prod_touchpay-0.0.1.js}")
+    private String touchPayHostedScriptUrl;
+
+    @Value("${touchpay.hosted.agency-code:}")
+    private String touchPayAgencyCode;//l’identifiant de Notre compte marchand chez TouchPoint
+
+    @Value("${touchpay.hosted.secure-code:}")
+    private String touchPaySecureCode;//Mot de passe qui prouve qu'on est outorisé , fournit par touchpoint
+
+    @Value("${touchpay.hosted.domain-name:}")
+    private String touchPayDomainName;
+
+    @Value("${touchpay.hosted.success-redirect-url:}")
+    private String touchPaySuccessRedirectUrl;
+
+    @Value("${touchpay.hosted.failed-redirect-url:}")
+    private String touchPayFailedRedirectUrl;
+
+    @Value("${touchpay.hosted.default-city:Dakar}")
+    private String touchPayDefaultCity;
 
     /**
      * Règle 3 : Vérifie que l'entreprise du salarié connecté est active.
@@ -1007,7 +1029,13 @@ public class EmployeeServiceImpl implements EmployeeService {
         );
     }
 
-    //---------------------- Traite un paiement (simulation) pour une commande-----------
+    //---------------------- Initie un paiement  TouchPay (en attente de callback)
+
+    /**
+     * crée un paiement
+     * met status = PENDING
+     * génère transactionReference
+     */
     @Override
     @Transactional
     public PaymentResponseDTO processPayment(Long orderId, ProcessPaymentDTO request) {
@@ -1036,7 +1064,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new RuntimeException("Le paiement en espèces est géré par le livreur à la livraison. Choisissez Mobile Money ou Carte bancaire.");
         }
 
-        // Utiliser le paiement existant (créé à la commande) ou en créer un pour les anciennes commandes
+        // Utiliser le paiement existant (créé à la commande) ou en créer un
         Payment payment = order.getPayment();
         if (payment == null) {
             payment = new Payment();
@@ -1052,51 +1080,38 @@ public class EmployeeServiceImpl implements EmployeeService {
                 throw new RuntimeException("Veuillez choisir un opérateur Mobile Money");
             }
             payment.setMobileOperator(request.getMobileOperator());
-            log.info("💰 SIMULATION paiement {} pour commande {}",
+            log.info("💰 Paiement Mobile Money initié ({}) pour commande {}",
                     request.getMobileOperator().getLabel(), order.getOrderNumber());
         } // si le paiement est par carte bancaire
         else if (request.getPaymentMethod() == PaymentMethodType.CREDIT_CARD) {
-            // on vérifie si le numéro de carte est valide
-            // replaceAll("\\s", "") => remplace tous les espaces par une chaîne vide
-            // matches("\\d{16}") => vérifie si le numéro de carte est composé de 16 chiffres
-            if (request.getCardNumber() == null ||
-                    !request.getCardNumber().replaceAll("\\s", "").matches("\\d{16}")) {
-                throw new RuntimeException("Numéro de carte invalide (16 chiffres requis)");
-            }
-            // on vérifie si la date d'expiration est valide
-            // matches("(0[1-9]|1[0-2])/\\d{2}") => vérifie si la date d'expiration est composée d'un mois (01-12) et d'une année (2 chiffres)
-            if (request.getCardExpiry() == null ||
-                    !request.getCardExpiry().matches("(0[1-9]|1[0-2])/\\d{2}")) {
-                throw new RuntimeException("Date d'expiration invalide (format MM/AA)");
-            }
-            // on vérifie si le CVV est valide
-            // matches("\\d{3}") => vérifie si le CVV est composé de 3 chiffres
-            if (request.getCardCvv() == null || !request.getCardCvv().matches("\\d{3}")) {
-                throw new RuntimeException("CVV invalide (3 chiffres requis)");
-            }
-            log.info("💳 SIMULATION paiement carte pour commande {}", order.getOrderNumber());
+            // En mode Hosted TouchPay, les infos carte ne transitent pas par notre backend.
+            payment.setMobileOperator(null);
+            log.info("💳 Paiement carte initié pour commande {}", order.getOrderNumber());
         }
 
         String transactionRef = generateTransactionReference();
-        payment.setTransactionReference(transactionRef);
-        payment.setStatus(PaymentStatus.PAID);
-        payment.setPaidAt(LocalDateTime.now());
+        payment.setTransactionReference(transactionRef);//Génération de la référence
+        payment.setStatus(PaymentStatus.PENDING);//le paiement est en attente
         Payment savedPayment = paymentRepository.save(payment);
-        order.setPayment(savedPayment);
+        order.setPayment(savedPayment);//Enregistré le payment en attente sur la commande
 
+        //Calcul du montant
         BigDecimal subtotal = order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;
         BigDecimal serviceFee = feeService.calculateTotalFees();
         if (serviceFee == null) serviceFee = BigDecimal.ZERO;
         BigDecimal totalPaid = subtotal.add(serviceFee);
 
-        log.info("✅ Paiement simulé avec succès - Ref: {}", transactionRef);
-        return new PaymentResponseDTO(
-                true,
-                "Paiement simulé avec succès !",
-                transactionRef,
-                savedPayment.getPaidAt(),
-                totalPaid
-        );
+        log.info("⏳ Paiement TouchPoint initié - En attente de callback - Ref: {}", transactionRef);
+
+        //Création de la réponse , ce qu'on renvoie au front
+        PaymentResponseDTO response = new PaymentResponseDTO();
+        response.setSuccess(true);//"Le back a bien fait son travail"
+        response.setMessage("Paiement initié avec succès.");
+        response.setTransactionReference(transactionRef);//l’identifiant UNIQUE du paiement
+        response.setAmountPaid(totalPaid);//montant à payer
+
+        //la partie mobile , reçoit les infos et les utilise pour ouvrir l’interface de paiement -> touchpay-bridge.html .
+        return response;
     }
     // ----------"Historique Paiement" ----------
     @Override

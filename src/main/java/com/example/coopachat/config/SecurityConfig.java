@@ -77,6 +77,7 @@ public class SecurityConfig {
                         // ==================================
                         // Ne couvre pas /api/auth/me (règle plus spécifique ci-dessus)
                         .requestMatchers("/api/auth/**").permitAll()                   // Inscription + Connexion + OTP…
+                        .requestMatchers("/api/payments/intouch/callback").permitAll() // Callback provider de paiement (InTouch)
                         .requestMatchers("/api/files/**").permitAll()                  // Images / fichiers (img src ne peut pas envoyer le token)
                         .requestMatchers("/swagger-ui/**").permitAll()                  // Documentation API
                         .requestMatchers("/v3/api-docs/**").permitAll()                 // Documentation API
