@@ -43,6 +43,16 @@ interface CouponTrendPoint {
   value: number;
 }
 
+/** Ordre fixe des rôles pour le graphique "Utilisateurs par rôle". */
+const USERS_ROLE_ORDER: Array<{ key: string; label: string }> = [
+  { key: 'EMPLOYEE', label: 'Salarié' },
+  { key: 'COMMERCIAL', label: 'Commercial' },
+  { key: 'LOGISTICS_MANAGER', label: 'Responsable Logistique' },
+  { key: 'DELIVERY_DRIVER', label: 'Livreur' },
+  { key: 'SUPPLIER', label: 'Fournisseur' },
+  { key: 'ADMINISTRATOR', label: 'Administrateur' }
+];
+
 @Component({
   selector: 'app-admin-page',
   standalone: true,
@@ -275,8 +285,19 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
       })
     ).subscribe({
       next: ({ byRole, byStatus }) => {
-        this.usersRolePctLabels = (byRole || []).map(r => r.roleLabel ?? '');
-        this.usersRolePctData = (byRole || []).map(r => Number(r.percentage) ?? 0);
+        const byRoleList = Array.isArray(byRole) ? byRole : [];
+        const pctByRole = new Map<string, number>();
+        for (const item of byRoleList) {
+          const roleKey = String((item as { role?: string }).role ?? '').trim().toUpperCase();
+          const roleLabel = String((item as { roleLabel?: string }).roleLabel ?? '').trim().toLowerCase();
+          const pct = Number((item as { percentage?: number }).percentage ?? 0) || 0;
+          if (roleKey) pctByRole.set(roleKey, pct);
+          // Fallback si l'API renvoie uniquement un libellé.
+          if (!roleKey && roleLabel.includes('fournisseur')) pctByRole.set('SUPPLIER', pct);
+        }
+
+        this.usersRolePctLabels = USERS_ROLE_ORDER.map(r => r.label);
+        this.usersRolePctData = USERS_ROLE_ORDER.map(r => pctByRole.get(r.key) ?? 0);
         if (this.usersRolePctChart) {
           this.usersRolePctChart.data.labels = this.usersRolePctLabels;
           this.usersRolePctChart.data.datasets[0].data = this.usersRolePctData;

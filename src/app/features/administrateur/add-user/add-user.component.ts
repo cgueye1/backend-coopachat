@@ -14,7 +14,8 @@ const ROLE_LABEL_TO_ENUM: Record<string, string> = {
     'Administrateur': 'ADMINISTRATOR',
     'Commercial': 'COMMERCIAL',
     'Livreur': 'DELIVERY_DRIVER',
-    'Responsable Logistique': 'LOGISTICS_MANAGER'
+    'Responsable Logistique': 'LOGISTICS_MANAGER',
+    'Fournisseur': 'SUPPLIER'
 };
 
 @Component({
@@ -52,7 +53,7 @@ export class AddUserComponent implements OnInit {
     currentProfilePhotoUrl: string | null = null;
 
     /** Pas de « Salarié » : création via le flux commercial. */
-    roles = ['Administrateur', 'Commercial', 'Livreur', 'Responsable Logistique'];
+    roles = ['Administrateur', 'Commercial', 'Livreur', 'Responsable Logistique', 'Fournisseur'];
     showRoleDropdown = false;
     editId: number | null = null;
     saving = false;

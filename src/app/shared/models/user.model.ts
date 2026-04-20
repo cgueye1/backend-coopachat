@@ -4,7 +4,7 @@ export interface UserDto {
   firstName: string;
   lastName: string;
   phoneNumber: string;
-  role: 'Commercial' | 'Responsable Logistique';
+  role: 'Commercial' | 'Responsable Logistique' | 'Fournisseur';
   companyCommercial?: string;
 }
 
