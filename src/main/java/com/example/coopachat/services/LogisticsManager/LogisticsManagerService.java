@@ -41,16 +41,8 @@ import java.util.List;
 public interface LogisticsManagerService {
 
     // ============================================================================
-    // 🚚 GESTION DES LIVREURS
+    // 🚚 GESTION DES FOURNISSEURS
     // ============================================================================
-
-    /**
-     * Crée un nouveau livreur et envoie une invitation par email
-     *
-     * @param driverDTO Les informations du livreur à créer
-     * @throws RuntimeException si l'email ou le téléphone existe déjà ou si une erreur survient
-     */
-    void createDriver(RegisterDriverRequestDTO driverDTO);
 
     /**
      * Récupère la liste des fournisseurs (id + nom)

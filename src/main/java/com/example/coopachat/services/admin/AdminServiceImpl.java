@@ -94,7 +94,6 @@ public class AdminServiceImpl implements AdminService {
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
-    private final SupplierRepository supplierRepository;
     private final DeliveryOptionRepository deliveryOptionRepository;
     private final FeeRepository feeRepository;
     private final ActivationCodeService activationCodeService;
@@ -709,9 +708,9 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public List<SupplierListItemDTO> getAllSuppliers() {
-        return supplierRepository.findAll()
+        return userRepository.findByRoleAndIsActiveTrue(UserRole.SUPPLIER)
                 .stream()
-                .map(supplier -> new SupplierListItemDTO(supplier.getId(), supplier.getName()))
+                .map(user -> new SupplierListItemDTO(user.getId(), user.getFirstName() + " " + user.getLastName()))
                 .collect(Collectors.toList());
     }
 
@@ -839,14 +838,6 @@ public class AdminServiceImpl implements AdminService {
                 throw new RuntimeException("L'entreprise / entité est obligatoire pour un commercial");
             }
         }
-        if (dto.getRole() == UserRole.SUPPLIER) {
-            if (supplierRepository.existsByEmail(dto.getEmail())) {
-                throw new RuntimeException("Un fournisseur avec cet email existe déjà");
-            }
-            if (supplierRepository.existsByPhone(dto.getPhoneNumber())) {
-                throw new RuntimeException("Un fournisseur avec ce téléphone existe déjà");
-            }
-        }
 
         Users user = new Users();
         user.setFirstName(dto.getFirstName());
@@ -873,20 +864,7 @@ public class AdminServiceImpl implements AdminService {
                 // Email simple : informer le livreur qu'il a été ajouté (sans code).
                 driverNotificationService.notifyDriverAccountCreated(savedUser);
             }
-            case SUPPLIER -> {
-                Supplier supplier = new Supplier();
-                supplier.setName((dto.getFirstName() + " " + dto.getLastName()).trim());
-                supplier.setEmail(dto.getEmail());
-                supplier.setPhone(dto.getPhoneNumber());
-                supplier.setAddress("Adresse à compléter");
-                supplier.setIsActive(true);
-                supplierRepository.save(supplier);
-
-                String code = activationCodeService.generateAndStoreCode(dto.getEmail());
-                emailService.sendActivationCode(dto.getEmail(), code, dto.getFirstName());
-                log.info("Fournisseur créé via createUser (user + supplier) : {}", dto.getEmail());
-            }
-            case COMMERCIAL, LOGISTICS_MANAGER, ADMINISTRATOR -> {
+            case COMMERCIAL, LOGISTICS_MANAGER, ADMINISTRATOR,SUPPLIER -> {
                 String code = activationCodeService.generateAndStoreCode(dto.getEmail());
                 emailService.sendActivationCode(dto.getEmail(), code, dto.getFirstName());
                 log.info("Utilisateur {} créé par l'admin : {}, code d'activation envoyé", dto.getRole(), dto.getEmail());

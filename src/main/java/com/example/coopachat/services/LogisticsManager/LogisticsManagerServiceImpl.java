@@ -73,7 +73,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
 
     private final UserRepository userRepository;
-    private final SupplierRepository supplierRepository;
     private final SupplierOrderRepository supplierOrderRepository;
     private final ProductRepository productRepository;
     private final SupplierOrderItemRepository supplierOrderItemRepository;
@@ -90,67 +89,17 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     private final LogisticsManagerNotificationService logisticsManagerNotificationService;
     private final UserReferenceGenerator userReferenceGenerator;
 
-    // ============================================================================
-    // 🚚CRÉER UN LIVREUR
-    // ============================================================================
 
-    @Override
-    @Transactional
-    public void createDriver(RegisterDriverRequestDTO driverDTO) {
 
-        // Vérifier que l'email n'existe pas déjà
-        if (userRepository.existsByEmail(driverDTO.getEmail())) {
-            throw new RuntimeException("Cet email est déjà utilisé");
-        }
-
-        // Vérifier que le téléphone n'existe pas déjà
-        if (userRepository.existsByPhone(driverDTO.getPhone())) {
-            throw new RuntimeException("Ce numéro de téléphone est déjà utilisé");
-        }
-
-        // Récupérer le Responsable Logistique connecté
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new RuntimeException("Utilisateur non authentifié");
-        }
-
-        String username = authentication.getName();
-        Users logisticsManager = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
-
-        // Vérifier que l'utilisateur connecté est bien un Responsable Logistique
-        if (logisticsManager.getRole() != UserRole.LOGISTICS_MANAGER) {
-            throw new RuntimeException("Seul un Responsable Logistique peut créer un livreur");
-        }
-
-        // Créer l'utilisateur (livreur)
-        Users user = new Users();
-        user.setFirstName(driverDTO.getFirstName());
-        user.setLastName(driverDTO.getLastName());
-        user.setEmail(driverDTO.getEmail());
-        user.setPhone(driverDTO.getPhone());
-        user.setRole(UserRole.DELIVERY_DRIVER);
-        user.setIsActive(false);
-        user.setRefUser(userReferenceGenerator.generateUniqueRefUser());
-
-        Users savedUser = userRepository.save(user);
-
-        // Créer le livreur
-        Driver newDriver = new Driver();
-        newDriver.setUser(savedUser);
-        newDriver.setCreatedBy(logisticsManager);
-
-        deliveryDriverRepository.save(newDriver);
-
-        log.info("Livreur créé avec succès par le Responsable Logistique: {}", logisticsManager.getEmail());
-    }
+    // ----------------------------------------------------------------------------
+    // 🧾 GESTION DES FOURNISSEURS
+    // ----------------------------------------------------------------------------
 
     @Override
     public List<SupplierListItemDTO> getAllSuppliers() {
-        return supplierRepository.findAll()
+        return userRepository.findByRoleAndIsActiveTrue(UserRole.SUPPLIER)
                 .stream()
-                .filter(Supplier::getIsActive)
-                .map(supplier -> new SupplierListItemDTO(supplier.getId(), supplier.getName()))
+                .map(user -> new SupplierListItemDTO(user.getId(), user.getFirstName() + " " + user.getLastName()))
                 .collect(Collectors.toList());
     }
 
@@ -177,7 +126,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         }
 
         // Vérifier que le fournisseur existe
-        Supplier supplier = supplierRepository.findById(createSupplierOrderDTO.getSupplierId())
+        Users supplier = userRepository.findById(createSupplierOrderDTO.getSupplierId())
                 .orElseThrow(() -> new RuntimeException("Fournisseur introuvable"));
 
         // Vérifier que le fournisseur est actif
@@ -582,7 +531,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
                 row.createCell(0).setCellValue(order.getOrderNumber() != null ? order.getOrderNumber() : "");
                 row.createCell(1).setCellValue(
-                        order.getSupplier() != null ? order.getSupplier().getName() : "");
+                        order.getSupplier() != null ? order.getSupplier().getFirstName()+" "+order.getSupplier().getLastName() : "");
                 row.createCell(2).setCellValue(order.getExpectedDate() != null
                         ? order.getExpectedDate().format(dateFormatter) : "");
                 row.createCell(3).setCellValue(buildProductsSummary(order.getItems()));
@@ -3128,7 +3077,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         dto.setId(supplierOrder.getId());
         dto.setOrderNumber(supplierOrder.getOrderNumber());
         dto.setSupplierId(supplierOrder.getSupplier().getId());
-        dto.setSupplierName(supplierOrder.getSupplier().getName());
+        dto.setSupplierName(supplierOrder.getSupplier().getFirstName()+ " "+supplierOrder.getSupplier().getLastName() );
         dto.setExpectedDate(supplierOrder.getExpectedDate());
         dto.setStatus(supplierOrder.getStatus().getLabel()); // Récupérer le label de l'enum
         dto.setNotes(supplierOrder.getNotes());
@@ -3167,7 +3116,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         SupplierOrderListItemDTO dto = new SupplierOrderListItemDTO();
         dto.setId(supplierOrder.getId());
         dto.setOrderNumber(supplierOrder.getOrderNumber());
-        dto.setSupplierName(supplierOrder.getSupplier().getName());
+        dto.setSupplierName(supplierOrder.getSupplier().getFirstName()+" "+supplierOrder.getSupplier().getLastName() );
         dto.setExpectedDate(supplierOrder.getExpectedDate());
         dto.setStatus(supplierOrder.getStatus().getLabel()); // Récupérer le label de l'enum
         dto.setProductsSummary(buildProductsSummary(supplierOrder.getItems())); // Construire le résumé des produits
