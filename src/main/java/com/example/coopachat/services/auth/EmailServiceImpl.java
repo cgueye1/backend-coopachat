@@ -20,8 +20,9 @@ import org.springframework.web.util.HtmlUtils;
 @RequiredArgsConstructor
 @Slf4j
 public class EmailServiceImpl implements EmailService {
-    private static final String DEFAULT_WEB_RESET_URL = "https://coopachat.innovimpactdev.cloud/reset-password?token=";
-    private static final String DEFAULT_MOBILE_RESET_URL = "https://coopachat.innovimpactdev.cloud/reset-password?token=";
+    // Route Angular qui consomme le token pour créer un nouveau mot de passe
+    private static final String DEFAULT_WEB_RESET_URL = "https://coopachat.innovimpactdev.cloud/create-password?token=";
+    private static final String DEFAULT_MOBILE_RESET_URL = "https://coopachat.innovimpactdev.cloud/create-password?token=";
 
     // ============================================================================
     // 📦 DEPENDENCIES

@@ -66,6 +66,7 @@ public class Payment {
     @Column(name = "transaction_reference", length = 50)
     private String transactionReference;
 
+
     /**
      * Date et heure du paiement
      */
@@ -77,5 +78,13 @@ public class Payment {
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    //l’ID InTouch
+    @Column(name = "gu_transaction_id")
+    private String guTransactionId;
+
+    //le message que InTouch envoie pour expliquer le résultat du paiement
+    @Column(name = "provider_message", columnDefinition = "TEXT")
+    private String providerMessage;
 
 }

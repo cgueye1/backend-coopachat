@@ -21,7 +21,6 @@ import com.example.coopachat.dtos.user.UserListResponseDTO;
 import com.example.coopachat.dtos.user.UserStatsByRoleItemDTO;
 import com.example.coopachat.dtos.user.UserStatsByStatusItemDTO;
 import com.example.coopachat.dtos.user.UserStatsDTO;
-import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminAlertsDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
@@ -150,14 +149,6 @@ public interface AdminService {
      * @return liste de TopProductUsageDTO (productName, usagePercent entre 0 et 100)
      */
     List<TopProductUsageDTO> getTop5ProductUsage();
-
-    /**
-     * Crée un nouveau fournisseur
-     *
-     * @param createSupplierDTO Les informations du fournisseur à créer
-     * @throws RuntimeException si l'email ou le téléphone existe déjà ou si une erreur survient
-     */
-    void createSupplier(CreateSupplierDTO createSupplierDTO);
 
     /**
      * Récupère la liste des fournisseurs (id + nom)

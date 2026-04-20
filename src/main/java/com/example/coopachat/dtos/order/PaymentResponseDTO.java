@@ -1,24 +1,28 @@
 package com.example.coopachat.dtos.order;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 /**
- * Réponse après traitement d'un paiement (simulation).
+ *
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class PaymentResponseDTO {
+
+   // Indique si la demande a été traitée correctement côté backend
     private boolean success;
+
+    // Message informatif destiné au frontend (ex: instruction ou confirmation)
     private String message;
+
+    // Référence unique générée côté backend (order_number / partner_transaction_id)
     private String transactionReference;
-    @JsonFormat(pattern = "dd-MM-yyyy HH:mm")
-    private LocalDateTime paidAt;
+
+    // Montant total à payer (sous-total + frais de service) - utile côté UI
     private BigDecimal amountPaid;
 }

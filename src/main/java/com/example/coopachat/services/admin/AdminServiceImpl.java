@@ -23,7 +23,6 @@ import com.example.coopachat.dtos.products.ProductStatsDTO;
 import com.example.coopachat.dtos.products.TopProductUsageDTO;
 import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
-import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminAlertsDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
@@ -709,36 +708,6 @@ public class AdminServiceImpl implements AdminService {
     // ----------------------------------------------------------------------------
 
     @Override
-    @Transactional
-    public void createSupplier(CreateSupplierDTO createSupplierDTO) {
-        Users admin = getCurrentUser();
-
-        // Vérifier que l'utilisateur connecté est bien un Administrateur
-        if (admin.getRole() != UserRole.ADMINISTRATOR) {
-            throw new RuntimeException("Seul un administrateur peut créer un fournisseur");
-        }
-
-        if (supplierRepository.existsByEmail(createSupplierDTO.getEmail())) {
-            throw new RuntimeException("Un fournisseur avec cet email existe déjà");
-        }
-        if (supplierRepository.existsByPhone(createSupplierDTO.getPhone())) {
-            throw new RuntimeException("Un fournisseur avec ce téléphone existe déjà");
-        }
-
-        Supplier supplier = new Supplier();
-        supplier.setName(createSupplierDTO.getName());
-        supplier.setEmail(createSupplierDTO.getEmail());
-        supplier.setPhone(createSupplierDTO.getPhone());
-        supplier.setAddress(createSupplierDTO.getAddress());
-        supplier.setIsActive(createSupplierDTO.getIsActive() != null ? createSupplierDTO.getIsActive() : true);
-
-        supplierRepository.save(supplier);
-
-        log.info("Fournisseur créé avec succès par l'administrateur {}: {}",
-                admin.getEmail(), supplier.getName());
-    }
-
-    @Override
     public List<SupplierListItemDTO> getAllSuppliers() {
         return supplierRepository.findAll()
                 .stream()
@@ -870,6 +839,14 @@ public class AdminServiceImpl implements AdminService {
                 throw new RuntimeException("L'entreprise / entité est obligatoire pour un commercial");
             }
         }
+        if (dto.getRole() == UserRole.SUPPLIER) {
+            if (supplierRepository.existsByEmail(dto.getEmail())) {
+                throw new RuntimeException("Un fournisseur avec cet email existe déjà");
+            }
+            if (supplierRepository.existsByPhone(dto.getPhoneNumber())) {
+                throw new RuntimeException("Un fournisseur avec ce téléphone existe déjà");
+            }
+        }
 
         Users user = new Users();
         user.setFirstName(dto.getFirstName());
@@ -895,6 +872,19 @@ public class AdminServiceImpl implements AdminService {
                 deliveryDriverRepository.save(driver);
                 // Email simple : informer le livreur qu'il a été ajouté (sans code).
                 driverNotificationService.notifyDriverAccountCreated(savedUser);
+            }
+            case SUPPLIER -> {
+                Supplier supplier = new Supplier();
+                supplier.setName((dto.getFirstName() + " " + dto.getLastName()).trim());
+                supplier.setEmail(dto.getEmail());
+                supplier.setPhone(dto.getPhoneNumber());
+                supplier.setAddress("Adresse à compléter");
+                supplier.setIsActive(true);
+                supplierRepository.save(supplier);
+
+                String code = activationCodeService.generateAndStoreCode(dto.getEmail());
+                emailService.sendActivationCode(dto.getEmail(), code, dto.getFirstName());
+                log.info("Fournisseur créé via createUser (user + supplier) : {}", dto.getEmail());
             }
             case COMMERCIAL, LOGISTICS_MANAGER, ADMINISTRATOR -> {
                 String code = activationCodeService.generateAndStoreCode(dto.getEmail());

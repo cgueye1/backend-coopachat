@@ -21,7 +21,6 @@ import com.example.coopachat.dtos.products.ProductStatsDTO;
 import com.example.coopachat.dtos.products.TopProductUsageDTO;
 import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
-import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminAlertsDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
@@ -453,17 +452,6 @@ public class  AdminController {
     // ============================================================================
     // 🧾 GESTION DES FOURNISSEURS
     // ============================================================================
-
-    @Operation(
-            summary = "Créer un nouveau fournisseur",
-            description = "Permet à un administrateur de créer un fournisseur."
-    )
-    @PostMapping("/suppliers")
-    public ResponseEntity<String> createSupplier(@RequestBody @Valid CreateSupplierDTO createSupplierDTO) {
-        adminService.createSupplier(createSupplierDTO);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Fournisseur créé avec succès");
-    }
 
     @Operation(
             summary = "Lister les fournisseurs",

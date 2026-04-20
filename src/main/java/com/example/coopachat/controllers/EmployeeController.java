@@ -297,8 +297,8 @@ public class EmployeeController {
     }
 
     @Operation(
-            summary = "Payer une commande (simulation)",
-            description = "Traite un paiement simulé : Mobile Money (opérateur requis) ou Carte bancaire (numéro 16 chiffres, MM/AA, CVV 3 chiffres). Commande doit être validée, pas encore payée."
+            summary = "Initier le paiement d'une commande",
+            description = "Crée/MAJ le Payment en statut PENDING + génère une transactionReference. Le mobile ouvre ensuite la WebView (touchpay-bridge.html) qui récupère les paramètres TouchPay via GET /api/payments/bridge/{orderId} et déclenche sendPaymentInfos. Le statut final (PAID/FAILED) est appliqué via le callback InTouch."
     )
     @PostMapping("/orders/{orderId}/pay")
     public ResponseEntity<PaymentResponseDTO> processPayment(
