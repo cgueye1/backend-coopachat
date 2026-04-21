@@ -70,8 +70,6 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // ============================================================================
     // 📦 DEPENDENCIES
     // ============================================================================
-
-
     private final UserRepository userRepository;
     private final SupplierOrderRepository supplierOrderRepository;
     private final ProductRepository productRepository;

@@ -2,7 +2,6 @@ package com.example.coopachat.controllers;
 
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.CancelDeliveryTourDTO;
-import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
 import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.CommandesParJourDTO;
@@ -61,20 +60,6 @@ public class LogisticsManagerController {
 
     private final LogisticsManagerService logisticsManagerService;
 
-    // ============================================================================
-    // 🚚 GESTION DES LIVREURS
-    // ============================================================================
-
-    @Operation(
-            summary = "Créer un nouveau livreur",
-            description = "Permet à un Responsable Logistique de créer un nouveau livreur (compte inactif jusqu'à activation par le livreur)."
-    )
-    @PostMapping("/drivers")
-    public ResponseEntity<String> createDriver(@RequestBody @Valid RegisterDriverRequestDTO driverDTO) {
-        logisticsManagerService.createDriver(driverDTO);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Livreur créé avec succès.");
-    }
 
     // ============================================================================
     // 📦 GESTION DES  FOURNISSEURS
