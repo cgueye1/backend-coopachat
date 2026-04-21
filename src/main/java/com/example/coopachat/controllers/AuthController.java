@@ -118,26 +118,7 @@ public class AuthController {
     // ============================================================================
     // 🔐 ACTIVATION DE COMPTE
     // ============================================================================
-    @Operation(
-            summary = "Envoyer un code d'activation",
-            description = "Envoie un code d'activation de 6 chiffres par email à un utilisateur. " +
-                    "Le code expire dans 15 minutes."
-    )
-    @PostMapping("/send-activation-code")
-    public ResponseEntity<String> sendActivationCode(@RequestBody @Valid SendActivationCodeRequestDTO requestDTO) {
-        authService.sendActivationCode(requestDTO.getEmail());
-        return ResponseEntity.ok("Code d'activation envoyé avec succès par email");
-    }
 
-    @Operation(
-            summary = "Envoyer un code d'activation (mobile)",
-            description = "Envoie un code d'activation pour le flux mobile (salarié/livreur)."
-    )
-    @PostMapping("/mobile/send-activation-code")
-    public ResponseEntity<String> sendMobileActivationCode(@RequestBody @Valid RegisterMobileDTO requestDTO) {
-        authService.sendMobileActivationCode(requestDTO);
-        return ResponseEntity.ok("Code d'activation envoyé avec succès par email");
-    }
 
     @Operation(
             summary = "Vérifier un code d'activation",
@@ -161,16 +142,6 @@ public class AuthController {
         return ResponseEntity.ok("Mot de passe créé avec succès. Votre compte est maintenant actif.");
     }
 
-    @Operation(
-            summary = "Renvoyer un code d'activation",
-            description = "Renvoie un code d'activation par email. " +
-                    "Un délai de 30 secondes doit être respecté entre chaque envoi."
-    )
-    @PostMapping("/resend-activation-code")
-    public ResponseEntity<String> resendActivationCode(@RequestBody @Valid SendActivationCodeRequestDTO requestDTO) {
-        authService.resendActivationCode(requestDTO.getEmail());
-        return ResponseEntity.ok("Code d'activation renvoyé avec succès");
-    }
 
     @Operation(
             summary = "Vérifier le code OTP administrateur",

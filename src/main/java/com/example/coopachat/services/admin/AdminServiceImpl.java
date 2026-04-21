@@ -861,13 +861,16 @@ public class AdminServiceImpl implements AdminService {
                 driver.setUser(savedUser);
                 driver.setCreatedBy(admin);
                 deliveryDriverRepository.save(driver);
-                // Email simple : informer le livreur qu'il a été ajouté (sans code).
-                driverNotificationService.notifyDriverAccountCreated(savedUser);
-            }
-            case COMMERCIAL, LOGISTICS_MANAGER, ADMINISTRATOR,SUPPLIER -> {
+                
+                // Génération du code et envoi du lien d'activation direct
                 String code = activationCodeService.generateAndStoreCode(dto.getEmail());
-                emailService.sendActivationCode(dto.getEmail(), code, dto.getFirstName());
-                log.info("Utilisateur {} créé par l'admin : {}, code d'activation envoyé", dto.getRole(), dto.getEmail());
+                emailService.sendDriverActivationLink(dto.getEmail(), code, dto.getFirstName());
+                log.info("Livreur créé par l'admin : {}, lien d'activation envoyé", dto.getEmail());
+            }
+            case COMMERCIAL, LOGISTICS_MANAGER, ADMINISTRATOR, SUPPLIER -> {
+                String code = activationCodeService.generateAndStoreCode(dto.getEmail());
+                emailService.sendActivationLink(dto.getEmail(), code, dto.getFirstName());
+                log.info("Utilisateur {} créé par l'admin : {}, lien d'activation envoyé", dto.getRole(), dto.getEmail());
             }
         }
     }

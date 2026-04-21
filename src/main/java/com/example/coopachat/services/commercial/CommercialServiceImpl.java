@@ -93,6 +93,7 @@ public class CommercialServiceImpl implements CommercialService {
     private final EmailService emailService;
     private final EmployeeNotificationService employeeNotificationService;
     private final UserReferenceGenerator userReferenceGenerator;
+    private final com.example.coopachat.services.auth.ActivationCodeService activationCodeService;
 
     // ============================================================================
     // 🏢 GESTION DES ENTREPRISES
@@ -572,10 +573,12 @@ public class CommercialServiceImpl implements CommercialService {
 
         employeeRepository.save(employeeEntity);
 
-        // Notifier le salarié par email (simple, sans code).
-        employeeNotificationService.notifyEmployeeAccountCreated(userSaved, company.getName(), commercial);
+        // Génération du code et envoi du lien d'activation direct
+        String code = activationCodeService.generateAndStoreCode(userSaved.getEmail());
+        String commercialName = commercial.getFirstName() + " " + commercial.getLastName();
+        emailService.sendEmployeeActivationLink(userSaved.getEmail(), code, userSaved.getFirstName(), commercialName, company.getName());
 
-        log.info("Employé créé avec succès: {} (email: {}, code: {}) par le commercial {}. Email de notification envoyé.",
+        log.info("Employé créé avec succès: {} (email: {}, code: {}) par le commercial {}. Lien d'activation envoyé.",
                 employee.getFirstName() + " " + employee.getLastName(), employee.getEmail(), employeeCode, commercial.getEmail());
     }
 
@@ -611,8 +614,13 @@ public class CommercialServiceImpl implements CommercialService {
         employeeEntity.setCreatedBy(commercial);
         employeeEntity.setEmployeeCode(employeeCode);
         employeeRepository.save(employeeEntity);
-        //employeeNotificationService.notifyEmployeeAccountCreated(userSaved, company.getName(), commercial);
-        log.info("Employé créé avec succès: {} (email: {}, code: {}) par le commercial {}. Email de notification envoyé.",
+
+        // Génération du code et envoi du lien d'activation direct
+        String code = activationCodeService.generateAndStoreCode(userSaved.getEmail());
+        String commercialName = commercial.getFirstName() + " " + commercial.getLastName();
+        emailService.sendEmployeeActivationLink(userSaved.getEmail(), code, userSaved.getFirstName(), commercialName, company.getName());
+
+        log.info("Employé importé avec succès: {} (email: {}, code: {}) par le commercial {}. Lien d'activation envoyé.",
                 employee.getFirstName() + " " + employee.getLastName(), employee.getEmail(), employeeCode, commercial.getEmail());
     }
 
