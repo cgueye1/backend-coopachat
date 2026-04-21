@@ -108,6 +108,37 @@ export const routes: Routes = [
     canActivate: [authGuard, administratorRoleGuard],
     loadComponent: () => import('./features/administrateur/add-produit/add-produit.component').then(c => c.AddProduitComponent)
   },
+  // --- Admin Configuration Routes ---
+  {
+    path: 'admin/config/delivery-options',
+    canActivate: [authGuard, administratorRoleGuard],
+    loadComponent: () => import('./features/administrateur/config/delivery-option-management/delivery-option-management.component').then(c => c.DeliveryOptionManagementComponent)
+  },
+  {
+    path: 'admin/config/fees',
+    canActivate: [authGuard, administratorRoleGuard],
+    loadComponent: () => import('./features/administrateur/config/fee-management/fee-management.component').then(c => c.FeeManagementComponent)
+  },
+  {
+    path: 'admin/config/claim-types',
+    canActivate: [authGuard, administratorRoleGuard],
+    loadComponent: () => import('./features/administrateur/config/reference-management/reference-management.component').then(c => c.ReferenceManagementComponent)
+  },
+  {
+    path: 'admin/config/delivery-reasons',
+    canActivate: [authGuard, administratorRoleGuard],
+    loadComponent: () => import('./features/administrateur/config/reference-management/reference-management.component').then(c => c.ReferenceManagementComponent)
+  },
+  {
+    path: 'admin/config/employee-reasons',
+    canActivate: [authGuard, administratorRoleGuard],
+    loadComponent: () => import('./features/administrateur/config/reference-management/reference-management.component').then(c => c.ReferenceManagementComponent)
+  },
+  {
+    path: 'admin/config/activity-sectors',
+    canActivate: [authGuard, administratorRoleGuard],
+    loadComponent: () => import('./features/administrateur/config/reference-management/reference-management.component').then(c => c.ReferenceManagementComponent)
+  },
   //path for commercial dashboard module (JWT requis)
   {
     path: 'com/dashboard',

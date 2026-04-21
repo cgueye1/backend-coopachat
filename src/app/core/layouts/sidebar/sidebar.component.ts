@@ -26,7 +26,9 @@ export class SidebarComponent implements OnChanges, OnInit {
 
   userMenuOpen = false;
   /** Sous-menu Offres (Codes promo / Promotions) ouvert ou non. */
-  offresExpanded = true;
+  offresExpanded = false;
+  /** Sous-menu Configuration ouvert ou non. */
+  configExpanded = false;
 
   myAccountLoading = false;
 
@@ -83,6 +85,19 @@ export class SidebarComponent implements OnChanges, OnInit {
     { label: 'Utilisateurs', icon: 'users', link: '/admin/users', active: false },
     { label: 'Catalogue', icon: 'catalogue', link: '/admin/catalogue', active: false },
     { label: 'Catégories', icon: 'categories', link: '/admin/categories', active: false },
+    {
+      label: 'Configuration',
+      icon: 'settings',
+      active: false,
+      children: [
+        { label: 'Options livraison', link: '/admin/config/delivery-options', active: false },
+        { label: 'Frais', link: '/admin/config/fees', active: false },
+        { label: 'Types réclamation', link: '/admin/config/claim-types', active: false },
+        { label: 'Motifs incidents (Livreur)', link: '/admin/config/delivery-reasons', active: false },
+        { label: 'Motifs incidents (Salarié)', link: '/admin/config/employee-reasons', active: false },
+        { label: 'Secteurs d\'activité', link: '/admin/config/activity-sectors', active: false },
+      ],
+    },
   ];
 
   filteredMenuItems = this.menuItems.slice();
@@ -121,7 +136,10 @@ export class SidebarComponent implements OnChanges, OnInit {
           child.active = currentUrl === child.link || currentUrl.startsWith(child.link + '/');
         });
         item.active = item.children.some(c => c.active);
-        if (item.active) this.offresExpanded = true;
+        if (item.active) {
+          if (item.icon === 'promotion') this.offresExpanded = true;
+          if (item.icon === 'settings') this.configExpanded = true;
+        }
       } else if (item.link) {
         item.active = currentUrl === item.link || currentUrl.startsWith(item.link + '/');
       }
@@ -197,6 +215,10 @@ export class SidebarComponent implements OnChanges, OnInit {
 
   toggleOffres() {
     this.offresExpanded = !this.offresExpanded;
+  }
+
+  toggleConfig() {
+    this.configExpanded = !this.configExpanded;
   }
 
   // Close all menus

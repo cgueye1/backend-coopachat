@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -55,7 +55,7 @@ function formatDate(v: string | { day?: number; month?: number; year?: number } 
   templateUrl: './users.component.html',
   styles: ``
 })
-export class UsersComponent implements OnInit {
+export class UsersComponent implements OnInit, OnDestroy {
   searchText = '';
   selectedRole = 'Toutes les rôles';
   selectedStatut = 'Tous les statuts';
@@ -74,6 +74,8 @@ export class UsersComponent implements OnInit {
   loadingExport = false;
   toggleLoadingId: number | null = null;
   private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private readonly REFRESH_INTERVAL_MS = 30000; //on raffraichît la page chaque 30s
 
   constructor(
     private router: Router,
@@ -91,6 +93,19 @@ export class UsersComponent implements OnInit {
 
   ngOnInit() {
     this.loadInitialDataInParallel();
+    // Auto-refresh : recharge la liste et les stats toutes les 30 secondes
+    this.refreshInterval = setInterval(() => {
+      this.loadUsers();
+      this.loadStats();
+    }, this.REFRESH_INTERVAL_MS);
+  }
+
+  ngOnDestroy() {
+    // Nettoyage de l'intervalle pour éviter les fuites mémoire, l'intervalle est stoppé dès que l'admin quitte la page pour éviter les appels inutiles 
+    if (this.refreshInterval !== null) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+    }
   }
 
   /** Stats + liste utilisateurs (graphiques sur le tableau de bord admin). */

@@ -139,6 +139,29 @@ export interface StatutTourneesDTO {
   parStatut: Record<string, number>;
 }
 
+// --- Référentiels / Configuration ---
+
+export interface ReferenceItemDTO {
+  id?: number;
+  name: string;
+  description: string;
+}
+
+export interface DeliveryOptionDTO {
+  id?: number;
+  name: string;
+  description: string;
+  isActive: boolean;
+}
+
+export interface FeeDTO {
+  id?: number;
+  name: string;
+  description: string;
+  amount: number;
+  isActive: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -364,6 +387,80 @@ export class AdminService {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<{ path: string }>(`${this.apiUrl}/admin/categories/upload-icon`, formData);
+  }
+
+  // --- Gestion des Référentiels / Configuration ---
+
+  // Options de livraison
+  getAllDeliveryOptions(): Observable<DeliveryOptionDTO[]> {
+    return this.http.get<DeliveryOptionDTO[]>(`${this.apiUrl}/admin/delivery-options`);
+  }
+  createDeliveryOption(dto: DeliveryOptionDTO): Observable<string> {
+    return this.http.post(`${this.apiUrl}/admin/delivery-options`, dto, { responseType: 'text' });
+  }
+
+  // Frais
+  getAllFees(): Observable<FeeDTO[]> {
+    return this.http.get<FeeDTO[]>(`${this.apiUrl}/admin/fees`);
+  }
+  createFee(dto: FeeDTO): Observable<string> {
+    return this.http.post(`${this.apiUrl}/admin/fees`, dto, { responseType: 'text' });
+  }
+
+  // Types de réclamation
+  getAllClaimProblemTypes(): Observable<ReferenceItemDTO[]> {
+    return this.http.get<ReferenceItemDTO[]>(`${this.apiUrl}/admin/claim-problem-types`);
+  }
+  createClaimProblemType(dto: ReferenceItemDTO): Observable<string> {
+    return this.http.post(`${this.apiUrl}/admin/claim-problem-types`, dto, { responseType: 'text' });
+  }
+  updateClaimProblemType(id: number, dto: ReferenceItemDTO): Observable<string> {
+    return this.http.put(`${this.apiUrl}/admin/claim-problem-types/${id}`, dto, { responseType: 'text' });
+  }
+  deleteClaimProblemType(id: number): Observable<string> {
+    return this.http.delete(`${this.apiUrl}/admin/claim-problem-types/${id}`, { responseType: 'text' });
+  }
+
+  // Raisons livreur (Motifs incidents livreur)
+  getAllDeliveryIssueReasons(): Observable<ReferenceItemDTO[]> {
+    return this.http.get<ReferenceItemDTO[]>(`${this.apiUrl}/admin/delivery-issue-reasons`);
+  }
+  createDeliveryIssueReason(dto: ReferenceItemDTO): Observable<string> {
+    return this.http.post(`${this.apiUrl}/admin/delivery-issue-reasons`, dto, { responseType: 'text' });
+  }
+  updateDeliveryIssueReason(id: number, dto: ReferenceItemDTO): Observable<string> {
+    return this.http.put(`${this.apiUrl}/admin/delivery-issue-reasons/${id}`, dto, { responseType: 'text' });
+  }
+  deleteDeliveryIssueReason(id: number): Observable<string> {
+    return this.http.delete(`${this.apiUrl}/admin/delivery-issue-reasons/${id}`, { responseType: 'text' });
+  }
+
+  // Raisons salarié (Motifs incidents salarié)
+  getAllEmployeeDeliveryIssueReasons(): Observable<ReferenceItemDTO[]> {
+    return this.http.get<ReferenceItemDTO[]>(`${this.apiUrl}/admin/employee-delivery-issue-reasons`);
+  }
+  createEmployeeDeliveryIssueReason(dto: ReferenceItemDTO): Observable<string> {
+    return this.http.post(`${this.apiUrl}/admin/employee-delivery-issue-reasons`, dto, { responseType: 'text' });
+  }
+  updateEmployeeDeliveryIssueReason(id: number, dto: ReferenceItemDTO): Observable<string> {
+    return this.http.put(`${this.apiUrl}/admin/employee-delivery-issue-reasons/${id}`, dto, { responseType: 'text' });
+  }
+  deleteEmployeeDeliveryIssueReason(id: number): Observable<string> {
+    return this.http.delete(`${this.apiUrl}/admin/employee-delivery-issue-reasons/${id}`, { responseType: 'text' });
+  }
+
+  // Secteurs d'activité
+  getAllCompanySectors(): Observable<ReferenceItemDTO[]> {
+    return this.http.get<ReferenceItemDTO[]>(`${this.apiUrl}/admin/company-sectors`);
+  }
+  createCompanySector(dto: ReferenceItemDTO): Observable<string> {
+    return this.http.post(`${this.apiUrl}/admin/company-sectors`, dto, { responseType: 'text' });
+  }
+  updateCompanySector(id: number, dto: ReferenceItemDTO): Observable<string> {
+    return this.http.put(`${this.apiUrl}/admin/company-sectors/${id}`, dto, { responseType: 'text' });
+  }
+  deleteCompanySector(id: number): Observable<string> {
+    return this.http.delete(`${this.apiUrl}/admin/company-sectors/${id}`, { responseType: 'text' });
   }
 }
 
