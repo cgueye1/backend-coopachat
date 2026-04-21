@@ -16,6 +16,14 @@ public interface EmailService {
      * @param firstName Le prénom de l'utilisateur (pour personnaliser l'email)
      */
     void sendActivationCode(String email, String code, String firstName);
+    /**
+     * Envoie un lien d'activation direct par email à un utilisateur
+     *
+     * @param email L'email du destinataire
+     * @param code  Le code d'activation (servira de token)
+     * @param firstName Le prénom de l'utilisateur
+     */
+    void sendActivationLink(String email, String code, String firstName);
 
     /**
      * Envoie un code OTP par email à un administrateur pour l'authentification 2FA
@@ -36,24 +44,20 @@ public interface EmailService {
      */
     void sendPasswordResetLink(String email, String token, String firstName, PasswordResetChannel channel);
 
+  
     /**
-     * Envoie un code d'activation par email à un salarié créé par un commercial
-     *
-     * @param email L'email du salarié
-     * @param code Le code d'activation
-     * @param firstName Le prénom du salarié
-     * @param commercialName Le nom du commercial qui a créé l'invitation
-     * @param companyName Le nom de l'entreprise
-     */
-    void sendEmployeeInvitation(String email, String code, String firstName, String commercialName, String companyName);
-    /**
-     * Envoie un code d'activation à 4 chiffres par email à un livreur
+     * Envoie un lien d'activation direct par email à un livreur
      *
      * @param email L'email du livreur
-     * @param code  Le code d'activation à 4 chiffres
+     * @param code  Le code d'activation (token)
      * @param firstName Le prénom du livreur
      */
-    void sendDriverActivationCode(String email, String code, String firstName);
+    void sendDriverActivationLink(String email, String code, String firstName);
+
+    /**
+     * Envoie un lien d'activation direct par email à un salarié créé par un commercial
+     */
+    void sendEmployeeActivationLink(String email, String code, String firstName, String commercialName, String companyName);
 
     /**
      * Envoie un email libre (sujet + corps texte).

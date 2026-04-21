@@ -211,72 +211,7 @@ public class AuthServiceImpl implements AuthService {
     // 🔐 ACTIVATION DE COMPTE
     // ============================================================================
 
-    /**
-     * Envoie un code d'activation par email à un utilisateur
-     */
-    @Override
-    public void sendActivationCode(String email) {
 
-        // Vérifier si l'utilisateur existe
-        Users users = getUserByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
-
-        if (users.getIsActive() == true){
-            throw new RuntimeException("Votre compte est déjà actif , veillez vous connectez");
-        }
-
-        // Générer et stocker le code d'activation
-        String code = activationCodeService.generateAndStoreCode(email);
-
-        // Envoyer l'email avec le code
-        emailService.sendActivationCode(email,code, users.getFirstName());
-
-    }
-
-    /**
-     * Envoie un code d'activation par email pour le flux mobile (salarié/livreur).
-     * Un code n'est envoyé que si le user n'a pas encore de mot de passe (première inscription).
-     * Si un mot de passe existe déjà, on refuse pour éviter les abus du bouton.
-     */
-    @Override
-    public void sendMobileActivationCode(RegisterMobileDTO requestDTO) {
-        String email = requestDTO.getEmail();
-
-        Users user = getUserByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
-
-        if (user.getPassword() != null && !user.getPassword().isBlank()) {
-            throw new RuntimeException("Vous êtes déjà inscrit. Connectez-vous avec votre mot de passe.");
-        }
-
-        if (user.getRole() == UserRole.EMPLOYEE) {
-            Employee employee = employeeRepository.findByUserEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Employé introuvable pour cet email"));
-
-            String code = activationCodeService.generateAndStoreCodeMobile(email);
-            String commercialFullName = employee.getCreatedBy().getFirstName() + " " + employee.getCreatedBy().getLastName();
-
-            emailService.sendEmployeeInvitation(
-                    email,
-                    code,
-                    user.getFirstName(),
-                    commercialFullName,
-                    employee.getCompany().getName()
-            );
-
-            log.info("Code mobile envoyé au salarié {} ({})", user.getFirstName(), email);
-            return;
-        }
-         //Cas livreur
-        if (user.getRole() == UserRole.DELIVERY_DRIVER) {
-            String code = activationCodeService.generateAndStoreCodeMobile(email);
-            emailService.sendDriverActivationCode(email, code, user.getFirstName());
-            log.info("Code mobile envoyé au livreur {} ({})", user.getFirstName(), email);
-            return;
-        }
-
-        throw new RuntimeException("Ce rôle n'est pas éligible à l'activation mobile");
-    }
     /**
      * Vérifie un code d'activation pour un utilisateur
      */
@@ -334,52 +269,6 @@ public class AuthServiceImpl implements AuthService {
 
     }
 
-    /**
-     * Renvoie un code d'activation avec vérification du cooldown
-     */
-    @Override
-    public void resendActivationCode(String email) {
-
-        // Vérifier si l'utilisateur existe
-        Users user = getUserByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
-
-        // Vérifier le cooldown restant
-        long remainingSeconds = activationCodeService.getRemainingCooldownSecond(email, CodeType.ACTIVATION);
-
-        if (remainingSeconds > 0) {
-            throw new RuntimeException("Veuillez attendre " + remainingSeconds + " secondes avant de renvoyer le code");
-        }
-        // Cooldown terminé, générer et envoyer un nouveau code
-        if (user.getRole() == UserRole.EMPLOYEE) {
-            Employee employee = employeeRepository.findByUserEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Employé introuvable pour cet email"));
-
-            String code = activationCodeService.generateAndStoreCodeMobile(email);
-            String commercialFullName = employee.getCreatedBy().getFirstName() + " " + employee.getCreatedBy().getLastName();
-
-            emailService.sendEmployeeInvitation(
-                    email,
-                    code,
-                    user.getFirstName(),
-                    commercialFullName,
-                    employee.getCompany().getName()
-            );
-
-            log.info("Code mobile envoyé au salarié {} ({})", user.getFirstName(), email);
-            return;
-        }
-        //Cas livreur
-        if (user.getRole() == UserRole.DELIVERY_DRIVER) {
-            String code = activationCodeService.generateAndStoreCodeMobile(email);
-            emailService.sendDriverActivationCode(email, code, user.getFirstName());
-            log.info("Code mobile envoyé au livreur {} ({})", user.getFirstName(), email);
-            return;
-        }
-
-        String code = activationCodeService.generateAndStoreCode(email);
-        emailService.sendActivationCode(email, code, user.getFirstName());
-    }
 
     // ============================================================================
     // 🔐 DÉCONNEXION
@@ -419,11 +308,8 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Aucun compte n'est associé à cette adresse e-mail. Vérifiez l'orthographe ou inscrivez-vous si vous n'avez pas encore de compte."));
 
-        // Vérifier si le compte est actif
-        if (!user.getIsActive()) {
-            throw new RuntimeException(
-                    "Votre compte n'est pas actif. La réinitialisation du mot de passe n'est pas disponible pour le moment. Contactez le support si vous avez besoin d'aide.");
-        }
+        // Note : On autorise le forgotPassword même si isActive est false. 
+        // Cela permet aux nouveaux utilisateurs dont le lien d'activation a expiré de redemander un lien via ce flux.
 
         // Supprimer les tokens existants pour cet email
         activationCodeRepository.deleteByEmailAndType(email, CodeType.PASSWORD_RESET);
@@ -476,6 +362,13 @@ public class AuthServiceImpl implements AuthService {
 
         // Encoder et sauvegarder le nouveau mot de passe
         user.setPassword(passwordEncoder.encode(newPassword));
+        
+        // Si le compte n'était pas encore actif (flux d'activation via reset), on l'active
+        if (!user.getIsActive()) {
+            user.setIsActive(true);
+            log.info("Compte activé lors de la réinitialisation du mot de passe pour: {}", user.getEmail());
+        }
+        
         userRepository.save(user);
 
         // Marquer le token comme utilisé pour éviter la réutilisation

@@ -47,20 +47,6 @@ public interface AuthService {
      */
     LoginResponseDTO verifyOtpAndGenerateToken(String email, String otp);
 
-    /**
-     * Envoie un code d'activation par email à un utilisateur
-     *
-     * @param email L'email de l'utilisateur
-     * @throws RuntimeException si l'utilisateur n'existe pas
-     */
-    void sendActivationCode(String email);
-
-    /**
-     * Envoie un code d'activation pour le flux mobile (salarié/livreur)
-     *
-     * @param requestDTO Contient l'email de l'utilisateur
-     */
-    void sendMobileActivationCode(RegisterMobileDTO requestDTO);
 
     /**
      * Vérifie un code d'activation pour un utilisateur
@@ -102,13 +88,6 @@ public interface AuthService {
     void resetPassword(String token, String newPassword, String confirmPassword);
 
 
-    /**
-     * Renvoie un code d'activation avec vérification du cooldown
-     *
-     * @param email L'email de l'utilisateur
-     * @throws RuntimeException si le cooldown est actif (avec le temps restant dans le message) ou si l'utilisateur n'existe pas
-     */
-    void resendActivationCode(String email);
 
     /**
      * Déconnecte un utilisateur en invalidant son token JWT
