@@ -363,14 +363,50 @@ export class AddUserComponent implements OnInit {
         }
     }
 
+     // Message d'erreur en cas d'erreur
     private showApiError(err: { error?: string; message?: string; status?: number }) {
-        const msg = typeof err.error === 'string' ? err.error : (err.message || 'Erreur lors de l\'enregistrement');
+        const raw = typeof err.error === 'string' ? err.error : (err.message || '');
+        const msg = this.getFriendlyErrorMessage(raw, err.status);
         Swal.fire({
             title: 'Erreur',
             text: msg,
             icon: 'error',
             confirmButtonText: 'OK'
         });
+    }
+
+    private getFriendlyErrorMessage(raw: string, status?: number): string {
+        if (!raw) {
+            if (status === 0) return 'Impossible de contacter le serveur. Vérifiez votre connexion.';
+            if (status === 403) return 'Vous n\'avez pas les droits pour effectuer cette action.';
+            if (status === 500) return 'Une erreur interne s\'est produite. Veuillez réessayer.';
+            return 'Une erreur est survenue lors de l\'enregistrement.';
+        }
+        // Messages connus côté backend → on les affiche tels quels
+        const knownMessages = [
+            'Le prénom est obligatoire',
+            'Le nom est obligatoire',
+            'L\'adresse email est obligatoire',
+            'Le téléphone est obligatoire',
+            'Le rôle est obligatoire',
+            'Cet email est déjà utilisé',
+            'Ce numéro de téléphone est déjà utilisé',
+            'L\'entreprise / entité est obligatoire pour un commercial',
+            'Seul un administrateur peut créer un utilisateur',
+        ];
+        for (const known of knownMessages) {
+            if (raw.includes(known)) return known;
+        }
+        // Messages techniques (SQL, Java) → message générique
+        if (raw.includes('Data truncated') || raw.includes('could not execute') ||
+            raw.includes('constraint') || raw.includes('duplicate') ||
+            raw.includes('Exception') || raw.includes('stack') ||
+            raw.includes('Hibernate') || raw.includes('JDBC')) {
+            return 'Une erreur technique est survenue. Veuillez vérifier les informations saisies ou contacter l\'administrateur.';
+        }
+        // Si le message est court et lisible, on l'affiche
+        if (raw.length < 120) return raw;
+        return 'Une erreur est survenue lors de l\'enregistrement.';
     }
 
     showSuccessMessage(title: string) {

@@ -50,14 +50,14 @@ export class CreatePasswordComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const token = this.route.snapshot.queryParamMap.get('token');
+    const token = this.route.snapshot.queryParamMap.get('token');//Token de réinitialisation 
     this.resetToken = token?.trim() ? token.trim() : null;
-    this.isResetEmailFlow = !!this.resetToken;
-
+    this.isResetEmailFlow = !!this.resetToken; //"Avons-nous un token ?" (Oui/Non). Si c'est Oui, on sait qu'on va devoir valider ce token.
     if (isPlatformBrowser(this.platformId)) {
-      this.registrationEmail =
-        localStorage.getItem('verificationEmail') ||
-        sessionStorage.getItem('email') ||
+      // Récupère l'email : soit via l'URL (Activation), soit via le stockage local (Inscription classique)      
+        this.route.snapshot.queryParamMap.get('email') || 
+        localStorage.getItem('verificationEmail') ||//Email stocké après inscription
+        sessionStorage.getItem('email') ||//Email stocké après inscription
         null;
     } else {
       this.registrationEmail = null;
@@ -66,7 +66,7 @@ export class CreatePasswordComponent implements OnInit {
     this.syncPageErrorState();
   }
 
-  /** Message d’erreur uniquement si ni token reset ni email d’inscription (navigateur). */
+  /** Message d’erreur uniquement si ni token reset ni email d’inscription  */
   private syncPageErrorState(): void {
     if (!this.isResetEmailFlow && !this.registrationEmail) {
       this.pageError =
@@ -139,10 +139,31 @@ export class CreatePasswordComponent implements OnInit {
       // Désactive le bouton et évite les doubles envois pendant l’appel HTTP.
       this.isSubmitting = true;
 
-      // --- Flux « mot de passe oublié » : URL du type /create-password?token=... ---
-      // si on a un token et que le formulaire est valide
-      if (this.isResetEmailFlow && this.resetToken) {
-        // on appelle la méthode resetPassword du service authService
+      // --- Flux « mot de passe oublié » ou « Activation directe via lien » ---
+      if (this.resetToken) {
+        // Tente de récupérer l'email spécifiquement dans l'URL pour différencier les deux flux
+        const emailFromUrl = this.route.snapshot.queryParamMap.get('email');
+        
+        if (emailFromUrl) {
+          // --- CAS 1 : ACTIVATION (Token + Email présents) ---
+          // 1. On vérifie d'abord la validité du code d'activation
+          this.authService.verifyActivationCode(emailFromUrl, this.resetToken).subscribe({
+            next: () => {
+              // 2. Si le code est valide, on définit le mot de passe et on active le compte
+              this.authService.setPassword(emailFromUrl, newPassword, confirmPassword).subscribe({
+                next: () => {
+                  this.isSubmitting = false;
+                  this.showSuccessMessage();
+                },
+                error: (error) => this.handleSubmitError(error)
+              });
+            },
+            error: (error) => this.handleSubmitError(error)
+          });
+          return;
+        }
+
+        // --- CAS 2 : RÉINITIALISATION (Token seul présent) ---
         this.authService.resetPassword(this.resetToken, newPassword, confirmPassword).subscribe({
           next: () => {
             this.isSubmitting = false;

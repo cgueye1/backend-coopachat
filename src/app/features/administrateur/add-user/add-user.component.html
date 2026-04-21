@@ -145,7 +145,11 @@
                 <!-- Action Buttons -->
                 <div class="flex flex-col sm:flex-row items-center justify-end gap-2 mt-4 sm:gap-3 sm:mt-5 lg:mt-6">
                     <button (click)="enregistrer()" [disabled]="saving"
-                        class="w-full sm:w-auto px-6 py-2.5 bg-[#2C2D5B] hover:bg-[#232447] text-white rounded-md font-medium transition-colors text-xs sm:px-8 sm:py-3 sm:text-sm lg:px-12 lg:py-4 disabled:opacity-50">
+                        class="w-full sm:w-auto px-6 py-2.5 bg-[#2C2D5B] hover:bg-[#232447] text-white rounded-md font-medium transition-colors text-xs sm:px-8 sm:py-3 sm:text-sm lg:px-12 lg:py-4 disabled:opacity-70 inline-flex items-center justify-center gap-2">
+                        <svg *ngIf="saving" class="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
                         {{ saving ? 'Enregistrement...' : (editId ? 'Mettre à jour' : 'Enregistrer') }}
                     </button>
                     <button (click)="annuler()"
