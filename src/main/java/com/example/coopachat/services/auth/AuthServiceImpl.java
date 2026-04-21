@@ -308,8 +308,15 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Aucun compte n'est associé à cette adresse e-mail. Vérifiez l'orthographe ou inscrivez-vous si vous n'avez pas encore de compte."));
 
-        // Note : On autorise le forgotPassword même si isActive est false. 
-        // Cela permet aux nouveaux utilisateurs dont le lien d'activation a expiré de redemander un lien via ce flux.
+        // Bloquer si le compte a été suspendu manuellement par un administrateur
+        if (Boolean.TRUE.equals(user.getDisabledByAdmin())) {
+            throw new RuntimeException(
+                    "Votre compte a été désactivé par un administrateur. " +
+                    "Veuillez contacter votre administrateur pour le réactiver.");
+        }
+
+        // Note : On autorise le forgotPassword si isActive est false ET disabledByAdmin est false.
+        // Cela permet aux nouveaux utilisateurs dont le lien d'activation a expiré de redemander un lien.
 
         // Supprimer les tokens existants pour cet email
         activationCodeRepository.deleteByEmailAndType(email, CodeType.PASSWORD_RESET);
@@ -363,10 +370,13 @@ public class AuthServiceImpl implements AuthService {
         // Encoder et sauvegarder le nouveau mot de passe
         user.setPassword(passwordEncoder.encode(newPassword));
         
-        // Si le compte n'était pas encore actif (flux d'activation via reset), on l'active
-        if (!user.getIsActive()) {
+        // Si le compte n'était pas encore actif ET non suspendu par l'admin → activation automatique (1er flux)
+        // Si suspendu par l'admin → on ne réactive PAS (sécurité)
+        if (!user.getIsActive() && !Boolean.TRUE.equals(user.getDisabledByAdmin())) {
             user.setIsActive(true);
             log.info("Compte activé lors de la réinitialisation du mot de passe pour: {}", user.getEmail());
+        } else if (Boolean.TRUE.equals(user.getDisabledByAdmin())) {
+            log.warn("Tentative de reset MDP sur compte suspendu par admin ignorée pour: {}", user.getEmail());
         }
         
         userRepository.save(user);

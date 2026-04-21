@@ -113,19 +113,6 @@ public class AdminServiceImpl implements AdminService {
     private final UserReferenceGenerator userReferenceGenerator;
     private final DeliveryTourRepository deliveryTourRepository;
 
-    /**
-     * Ajuste la largeur des colonnes Excel pour éviter les erreurs
-     */
-    private void autoSizeColumnsSafe(Sheet sheet, int columnCount) {
-        for (int i = 0; i < columnCount; i++) {
-            try {
-                sheet.autoSizeColumn(i);
-            } catch (Throwable e) {
-                log.debug("autoSizeColumn({}) ignoré (headless / polices): {}", i, e.getMessage());
-                sheet.setColumnWidth(i, 20 * 256);
-            }
-        }
-    }
 
     // ============================================================================
     // 📁 GESTION DES CATÉGORIES
@@ -200,15 +187,6 @@ public class AdminServiceImpl implements AdminService {
         return mapCategoryToListItemDTO(category);
     }
 
-    private CategoryListItemDTO mapCategoryToListItemDTO(Category c) {
-        CategoryListItemDTO dto = new CategoryListItemDTO();
-        dto.setId(c.getId());
-        dto.setName(c.getName());
-        dto.setIcon(c.getIcon());
-        dto.setProductCount(productRepository.countByCategory(c));
-        dto.setActiveProductCount(productRepository.countByCategoryAndStatus(c, true));
-        return dto;
-    }
 
     @Override
     @Transactional
@@ -638,69 +616,6 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
-    @Override
-    public ProductStatsDTO getProductStats() {
-
-        Users admin = getCurrentUser();
-
-        // Vérifier que l'utilisateur connecté est bien un Administrateur
-        if (admin.getRole() != UserRole.ADMINISTRATOR) {
-            throw new RuntimeException("Seul un administrateur peut consulter les statistiques des produits");
-        }
-
-        long total = productRepository.count();
-        long active = productRepository.countByStatus(true);
-        long inactive = productRepository.countByStatus(false);
-
-        return new ProductStatsDTO(total, active, inactive);
-    }
-
-    /**
-     * Récupère le top 5 des produits les plus commandés avec leur taux d'utilisation en %.
-     *
-     * <p><b>Principe :</b>
-     * <ul>
-     *   <li>On récupère les 5 produits ayant le plus de quantités commandées depuis une date (ex. 30 derniers jours).</li>
-     *   <li>On calcule le total des quantités commandées (tous produits) sur la même période.</li>
-     *   <li>Pour chaque produit du top 5 : usagePercent = (quantité du produit / total) × 100.</li>
-     * </ul>
-     *
-     * <p><b>Méthode associée :</b>
-     * <ul>
-     *   <li>{@code orderItemRepository.findTop5ProductsByQuantitySince(dateDebut, PageRequest.of(0, 5))} : retourne [nom, sommeQuantité] pour les 5 premiers.</li>
-     *   <li>{@code orderItemRepository.sumQuantityByOrderCreatedAtAfter(dateDebut)} : retourne la somme totale des quantités sur la période.</li>
-     *   <li>Pour chaque ligne : usagePercent = totalSum > 0 ? (sum * 100.0 / totalSum) : 0.</li>
-     * </ul>
-     *
-     * @return liste de TopProductUsageDTO (productName, usagePercent entre 0 et 100)
-     */
-    @Override
-    public List<TopProductUsageDTO> getTop5ProductUsage() {
-        Users admin = getCurrentUser();
-        if (admin.getRole() != UserRole.ADMINISTRATOR) {
-            throw new RuntimeException("Seul un administrateur peut consulter le top 5 produits.");
-        }
-
-        // Période : 30 derniers jours (pour alignement avec d'autres stats catalogue si besoin).
-        LocalDateTime dateDebut = LocalDateTime.now().minusDays(30);
-        Pageable top5 = PageRequest.of(0, 5);
-
-        // 1) Récupérer les 5 produits les plus commandés (nom + somme des quantités).
-        List<Object[]> rawTop5 = orderItemRepository.findTop5ProductsByQuantitySince(dateDebut, top5);
-
-        // 2) Total des quantités commandées sur la période (dénominateur pour le %).
-        long totalSum = orderItemRepository.sumQuantityByOrderCreatedAtAfter(dateDebut);
-
-        // 3) Construire les DTO avec le pourcentage d'utilisation.
-        List<TopProductUsageDTO> result = new ArrayList<>();
-        for (Object[] row : rawTop5) {
-            String productName = (String) row[0];
-            long sumQuantity = ((Number) row[1]).longValue();
-            double usagePercent = totalSum > 0 ? (sumQuantity * 100.0 / totalSum) : 0.0;
-            result.add(new TopProductUsageDTO(productName, Math.round(usagePercent * 10) / 10.0));
-        }
-        return result;
-    }
 
     // ----------------------------------------------------------------------------
     // 🧾 GESTION DES FOURNISSEURS
@@ -1095,8 +1010,12 @@ public class AdminServiceImpl implements AdminService {
         }
 
         u.setIsActive(dto.getIsActive());
+        // Si l'admin désactive → marquer comme suspendu manuellement
+        // Si l'admin réactive  → lever la suspension
+        u.setDisabledByAdmin(!dto.getIsActive());
         userRepository.save(u);
-        log.info("Statut utilisateur {} mis à jour : isActive={}", u.getEmail(), dto.getIsActive());
+        log.info("Statut utilisateur {} mis à jour : isActive={}, disabledByAdmin={}",
+                u.getEmail(), dto.getIsActive(), !dto.getIsActive());
     }
 
     @Override
@@ -1247,135 +1166,6 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
-    // ============================================================================
-    // 📊 DASHBOARD ADMIN
-    // ============================================================================
-
-    /**
-     * Construit les statistiques du tableau de bord admin (sans filtre de période).
-     * Utilisé par l'API GET /api/admin/dashboard/stats.
-     * Tous les comptages sont globaux (toutes les commandes/paiements concernés, sans restriction de date).
-     */
-    @Override
-    public AdminDashboardStatsDTO getDashboardStats(String periode) {
-        // KPIs et paiements par statut : plus de filtre par période, on compte tout
-        long commandesEnAttente = orderRepository.countByStatus(OrderStatus.EN_ATTENTE);
-        long paiementsEchoues = paymentRepository.countByStatus(PaymentStatus.FAILED);
-        long reclamationsOuvertes = claimRepository.countByStatus(ClaimStatus.EN_ATTENTE);
-
-        List<PaymentStatusItemDTO> paiementsParStatut = new ArrayList<>();
-        long payes = paymentRepository.countByStatus(PaymentStatus.PAID);
-        paiementsParStatut.add(new PaymentStatusItemDTO(PaymentStatus.PAID.getLabel(), payes));
-        long enAttente = paymentRepository.countByStatus(PaymentStatus.UNPAID);
-        paiementsParStatut.add(new PaymentStatusItemDTO(PaymentStatus.UNPAID.getLabel(), enAttente));
-        long echoues = paymentRepository.countByStatus(PaymentStatus.FAILED);
-        paiementsParStatut.add(new PaymentStatusItemDTO(PaymentStatus.FAILED.getLabel(), echoues));
-
-        return new AdminDashboardStatsDTO(
-                commandesEnAttente,
-                paiementsEchoues,
-                reclamationsOuvertes,
-                paiementsParStatut
-        );
-    }
-
-    @Override
-    public List<LivraisonParJourDTO> getCommandesVsLivraisons() {
-        return getLivraisonsParJour();
-    }
-
-    @Override
-    public List<LivraisonParJourDTO> getLivraisonsParJour() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
-        LocalDate today = LocalDate.now();
-        List<LivraisonParJourDTO> result = new ArrayList<>();
-        for (int i = 6; i >= 0; i--) {
-            LocalDate day = today.minusDays(i);
-            long nbPrevues = orderRepository.countByDeliveryDateExcludingCancelled(day, OrderStatus.ANNULEE);
-            long nbLivreesALaDate = orderRepository.countByStatusAndDeliveryDate(OrderStatus.LIVREE, day);
-            // Retard par jour : date prévue = ce jour, encore EN_ATTENTE (pas un cumul « livraison avant ce jour »).
-            long nbRetard = orderRepository.countByStatusAndDeliveryDate(OrderStatus.EN_ATTENTE, day);
-            result.add(new LivraisonParJourDTO(
-                    day.format(formatter), nbPrevues, nbLivreesALaDate, nbRetard));
-        }
-        return result;
-    }
-
-    //Retourne le nombre de fois qu'un coupon a été utilisé dans une commande par jour (7 derniers jours)
-    @Override
-    public List<CouponUsageParJourDTO> getCouponsUtilisesParJour() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
-        LocalDate today = LocalDate.now();
-        List<CouponUsageParJourDTO> result = new ArrayList<>();
-        for (int i = 6; i >= 0; i--) {
-            LocalDate day = today.minusDays(i);
-            LocalDateTime dayStart = day.atStartOfDay();
-            LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);
-            long nbUtilisations = orderRepository.countByCouponIsNotNullAndCreatedAtBetween(dayStart, dayEnd);
-            result.add(new CouponUsageParJourDTO(day.format(formatter), nbUtilisations));
-        }
-        return result;
-    }
-
-    @Override
-    public StockEtatGlobalDTO getStockEtatGlobal() {
-        long total = productRepository.count();
-        long sousSeuil = productRepository.countLowStock();
-        long critique = productRepository.countByCurrentStock(0);
-        long normal = total - sousSeuil - critique;
-        return new StockEtatGlobalDTO(normal, sousSeuil, critique);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public StatutTourneesDTO getStatutTournees() {
-        Map<String, Long> parStatut = new LinkedHashMap<>();
-        for (DeliveryTourStatus s : DeliveryTourStatus.values()) {
-            parStatut.put(s.name(), 0L);
-        }
-        for (StatusCountDTO row : deliveryTourRepository.countGroupByStatus()) {
-            parStatut.put(row.status().name(), row.count());
-        }
-        return new StatutTourneesDTO(parStatut);
-    }
-
-    /**
-     * Construit la liste des alertes pour le tableau de bord admin (GET /admin/alerts).
-     * — Alerte 1 : livraisons en retard (commandes EN_ATTENTE avec date de livraison avant aujourd'hui).
-     * — Alerte 2 : stocks critiques (produits dont le stock est strictement inférieur au seuil ; message = nombre).
-     * Chaque alerte contient un module (LIVRAISONS / STOCKS) pour que le front redirige au clic (ex. STOCKS → page Gestion des stocks).
-     */
-    @Override
-    public AdminAlertsDTO getAlerts() {
-        List<AlertItemDTO> alerts = new ArrayList<>();
-        LocalDate today = LocalDate.now();
-
-        // Alerte 1 — Livraisons en retard
-        long retard = orderRepository.countByStatusAndDeliveryDateBefore(OrderStatus.EN_ATTENTE, today);
-        if (retard > 0) {
-            alerts.add(new AlertItemDTO(
-                    "WARNING",
-                    retard + " livraison(s) en retard",
-                    "Cliquez pour ouvrir le module concerné",
-                    "LIVRAISONS",
-                    today
-            ));
-        }
-
-        // Alerte 2 — Stocks critiques (stock strictement inférieur au seuil ; on affiche le nombre)
-        long stocksCritiques = productRepository.countByCurrentStockLessThanMinThreshold();
-        if (stocksCritiques > 0) {//si le nombre de stocks critiques est supérieur à 0, on ajoute une alerte
-            alerts.add(new AlertItemDTO(
-                    "DANGER",
-                    stocksCritiques + " stock(s) en critique",
-                    "Cliquez pour ouvrir le module concerné",
-                    "STOCKS",
-                    today
-            ));
-        }
-
-        return new AdminAlertsDTO(alerts);
-    }
 
     // ============================================================================
     // 📋 RÉFÉRENTIELS (types réclamation, raisons livraison)
@@ -1557,6 +1347,200 @@ public class AdminServiceImpl implements AdminService {
         companySectorRepository.deleteById(id);
     }
 
+
+    // ----------------------------------------------------------------------------
+    // 🔧 STATISTIQUES
+    // --------------------------------------------------------------------------
+    @Override
+    public ProductStatsDTO getProductStats() {
+
+        Users admin = getCurrentUser();
+
+        // Vérifier que l'utilisateur connecté est bien un Administrateur
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut consulter les statistiques des produits");
+        }
+
+        long total = productRepository.count();
+        long active = productRepository.countByStatus(true);
+        long inactive = productRepository.countByStatus(false);
+
+        return new ProductStatsDTO(total, active, inactive);
+    }
+
+    /**
+     * Récupère le top 5 des produits les plus commandés avec leur taux d'utilisation en %.
+     *
+     * <p><b>Principe :</b>
+     * <ul>
+     *   <li>On récupère les 5 produits ayant le plus de quantités commandées depuis une date (ex. 30 derniers jours).</li>
+     *   <li>On calcule le total des quantités commandées (tous produits) sur la même période.</li>
+     *   <li>Pour chaque produit du top 5 : usagePercent = (quantité du produit / total) × 100.</li>
+     * </ul>
+     *
+     * <p><b>Méthode associée :</b>
+     * <ul>
+     *   <li>{@code orderItemRepository.findTop5ProductsByQuantitySince(dateDebut, PageRequest.of(0, 5))} : retourne [nom, sommeQuantité] pour les 5 premiers.</li>
+     *   <li>{@code orderItemRepository.sumQuantityByOrderCreatedAtAfter(dateDebut)} : retourne la somme totale des quantités sur la période.</li>
+     *   <li>Pour chaque ligne : usagePercent = totalSum > 0 ? (sum * 100.0 / totalSum) : 0.</li>
+     * </ul>
+     *
+     * @return liste de TopProductUsageDTO (productName, usagePercent entre 0 et 100)
+     */
+    @Override
+    public List<TopProductUsageDTO> getTop5ProductUsage() {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut consulter le top 5 produits.");
+        }
+
+        // Période : 30 derniers jours (pour alignement avec d'autres stats catalogue si besoin).
+        LocalDateTime dateDebut = LocalDateTime.now().minusDays(30);
+        Pageable top5 = PageRequest.of(0, 5);
+
+        // 1) Récupérer les 5 produits les plus commandés (nom + somme des quantités).
+        List<Object[]> rawTop5 = orderItemRepository.findTop5ProductsByQuantitySince(dateDebut, top5);
+
+        // 2) Total des quantités commandées sur la période (dénominateur pour le %).
+        long totalSum = orderItemRepository.sumQuantityByOrderCreatedAtAfter(dateDebut);
+
+        // 3) Construire les DTO avec le pourcentage d'utilisation.
+        List<TopProductUsageDTO> result = new ArrayList<>();
+        for (Object[] row : rawTop5) {
+            String productName = (String) row[0];
+            long sumQuantity = ((Number) row[1]).longValue();
+            double usagePercent = totalSum > 0 ? (sumQuantity * 100.0 / totalSum) : 0.0;
+            result.add(new TopProductUsageDTO(productName, Math.round(usagePercent * 10) / 10.0));
+        }
+        return result;
+    }
+
+    /**
+     * Construit les statistiques du tableau de bord admin (sans filtre de période).
+     * Utilisé par l'API GET /api/admin/dashboard/stats.
+     * Tous les comptages sont globaux (toutes les commandes/paiements concernés, sans restriction de date).
+     */
+    @Override
+    public AdminDashboardStatsDTO getDashboardStats(String periode) {
+        // KPIs et paiements par statut : plus de filtre par période, on compte tout
+        long commandesEnAttente = orderRepository.countByStatus(OrderStatus.EN_ATTENTE);
+        long paiementsEchoues = paymentRepository.countByStatus(PaymentStatus.FAILED);
+        long reclamationsOuvertes = claimRepository.countByStatus(ClaimStatus.EN_ATTENTE);
+
+        List<PaymentStatusItemDTO> paiementsParStatut = new ArrayList<>();
+        long payes = paymentRepository.countByStatus(PaymentStatus.PAID);
+        paiementsParStatut.add(new PaymentStatusItemDTO(PaymentStatus.PAID.getLabel(), payes));
+        long enAttente = paymentRepository.countByStatus(PaymentStatus.UNPAID);
+        paiementsParStatut.add(new PaymentStatusItemDTO(PaymentStatus.UNPAID.getLabel(), enAttente));
+        long echoues = paymentRepository.countByStatus(PaymentStatus.FAILED);
+        paiementsParStatut.add(new PaymentStatusItemDTO(PaymentStatus.FAILED.getLabel(), echoues));
+
+        return new AdminDashboardStatsDTO(
+                commandesEnAttente,
+                paiementsEchoues,
+                reclamationsOuvertes,
+                paiementsParStatut
+        );
+    }
+
+    @Override
+    public List<LivraisonParJourDTO> getCommandesVsLivraisons() {
+        return getLivraisonsParJour();
+    }
+
+    @Override
+    public List<LivraisonParJourDTO> getLivraisonsParJour() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
+        LocalDate today = LocalDate.now();
+        List<LivraisonParJourDTO> result = new ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate day = today.minusDays(i);
+            long nbPrevues = orderRepository.countByDeliveryDateExcludingCancelled(day, OrderStatus.ANNULEE);
+            long nbLivreesALaDate = orderRepository.countByStatusAndDeliveryDate(OrderStatus.LIVREE, day);
+            // Retard par jour : date prévue = ce jour, encore EN_ATTENTE (pas un cumul « livraison avant ce jour »).
+            long nbRetard = orderRepository.countByStatusAndDeliveryDate(OrderStatus.EN_ATTENTE, day);
+            result.add(new LivraisonParJourDTO(
+                    day.format(formatter), nbPrevues, nbLivreesALaDate, nbRetard));
+        }
+        return result;
+    }
+
+    //Retourne le nombre de fois qu'un coupon a été utilisé dans une commande par jour (7 derniers jours)
+    @Override
+    public List<CouponUsageParJourDTO> getCouponsUtilisesParJour() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
+        LocalDate today = LocalDate.now();
+        List<CouponUsageParJourDTO> result = new ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate day = today.minusDays(i);
+            LocalDateTime dayStart = day.atStartOfDay();
+            LocalDateTime dayEnd = day.atTime(23, 59, 59, 999_999_999);
+            long nbUtilisations = orderRepository.countByCouponIsNotNullAndCreatedAtBetween(dayStart, dayEnd);
+            result.add(new CouponUsageParJourDTO(day.format(formatter), nbUtilisations));
+        }
+        return result;
+    }
+
+    @Override
+    public StockEtatGlobalDTO getStockEtatGlobal() {
+        long total = productRepository.count();
+        long sousSeuil = productRepository.countLowStock();
+        long critique = productRepository.countByCurrentStock(0);
+        long normal = total - sousSeuil - critique;
+        return new StockEtatGlobalDTO(normal, sousSeuil, critique);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StatutTourneesDTO getStatutTournees() {
+        Map<String, Long> parStatut = new LinkedHashMap<>();
+        for (DeliveryTourStatus s : DeliveryTourStatus.values()) {
+            parStatut.put(s.name(), 0L);
+        }
+        for (StatusCountDTO row : deliveryTourRepository.countGroupByStatus()) {
+            parStatut.put(row.status().name(), row.count());
+        }
+        return new StatutTourneesDTO(parStatut);
+    }
+
+    /**
+     * Construit la liste des alertes pour le tableau de bord admin (GET /admin/alerts).
+     * — Alerte 1 : livraisons en retard (commandes EN_ATTENTE avec date de livraison avant aujourd'hui).
+     * — Alerte 2 : stocks critiques (produits dont le stock est strictement inférieur au seuil ; message = nombre).
+     * Chaque alerte contient un module (LIVRAISONS / STOCKS) pour que le front redirige au clic (ex. STOCKS → page Gestion des stocks).
+     */
+    @Override
+    public AdminAlertsDTO getAlerts() {
+        List<AlertItemDTO> alerts = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+
+        // Alerte 1 — Livraisons en retard
+        long retard = orderRepository.countByStatusAndDeliveryDateBefore(OrderStatus.EN_ATTENTE, today);
+        if (retard > 0) {
+            alerts.add(new AlertItemDTO(
+                    "WARNING",
+                    retard + " livraison(s) en retard",
+                    "Cliquez pour ouvrir le module concerné",
+                    "LIVRAISONS",
+                    today
+            ));
+        }
+
+        // Alerte 2 — Stocks critiques (stock strictement inférieur au seuil ; on affiche le nombre)
+        long stocksCritiques = productRepository.countByCurrentStockLessThanMinThreshold();
+        if (stocksCritiques > 0) {//si le nombre de stocks critiques est supérieur à 0, on ajoute une alerte
+            alerts.add(new AlertItemDTO(
+                    "DANGER",
+                    stocksCritiques + " stock(s) en critique",
+                    "Cliquez pour ouvrir le module concerné",
+                    "STOCKS",
+                    today
+            ));
+        }
+
+        return new AdminAlertsDTO(alerts);
+    }
+
     // ----------------------------------------------------------------------------
     // 🔧 MÉTHODES UTILITAIRES
     // ----------------------------------------------------------------------------
@@ -1671,6 +1655,31 @@ public class AdminServiceImpl implements AdminService {
                         "Utilisateur introuvable avec email: " + userEmail
                 ));
     }
+
+    /**
+     * Ajuste la largeur des colonnes Excel pour éviter les erreurs
+     */
+    private void autoSizeColumnsSafe(Sheet sheet, int columnCount) {
+        for (int i = 0; i < columnCount; i++) {
+            try {
+                sheet.autoSizeColumn(i);
+            } catch (Throwable e) {
+                log.debug("autoSizeColumn({}) ignoré (headless / polices): {}", i, e.getMessage());
+                sheet.setColumnWidth(i, 20 * 256);
+            }
+        }
+    }
+
+    private CategoryListItemDTO mapCategoryToListItemDTO(Category c) {
+        CategoryListItemDTO dto = new CategoryListItemDTO();
+        dto.setId(c.getId());
+        dto.setName(c.getName());
+        dto.setIcon(c.getIcon());
+        dto.setProductCount(productRepository.countByCategory(c));
+        dto.setActiveProductCount(productRepository.countByCategoryAndStatus(c, true));
+        return dto;
+    }
+
 
 }
 
