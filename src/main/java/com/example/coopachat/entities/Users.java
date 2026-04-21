@@ -56,8 +56,16 @@ public class Users {
     private String companyCommercial;  //Entreprise liée (commercial)
 
 
-    @Column (nullable = false)
-    private Boolean isActive = false ;
+    @Column(nullable = false)
+    private Boolean isActive = false;
+
+    /**
+     * Indique que le compte a été suspendu manuellement par un administrateur.
+     * Permet de distinguer un compte jamais activé (isActive=false, disabledByAdmin=false)
+     * d'un compte suspendu (isActive=false, disabledByAdmin=true).
+     */
+    @Column(nullable = false)
+    private Boolean disabledByAdmin = false;
 
     /** Nom du fichier photo de profil (ex. uuid.jpg), servi via GET /api/files/{filename}. Null si non renseigné. */
     @Column(name = "profile_photo_url", length = 255)
