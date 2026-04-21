@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { MainLayoutComponent } from '../../../../core/layouts/main-layout/main-layout.component';
 import { AdminService, ReferenceItemDTO } from '../../../../shared/services/admin.service';
 import Swal from 'sweetalert2';
 
@@ -10,11 +11,13 @@ import Swal from 'sweetalert2';
 @Component({
   selector: 'app-reference-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MainLayoutComponent],
   templateUrl: './reference-management.component.html'
 })
 export class ReferenceManagementComponent implements OnInit {
+  role: 'admin' = 'admin';
   title = '';
+  description = '';
   type: 'claim-types' | 'delivery-reasons' | 'employee-reasons' | 'activity-sectors' = 'claim-types';
   items: ReferenceItemDTO[] = [];
   loading = false;
@@ -41,18 +44,22 @@ export class ReferenceManagementComponent implements OnInit {
       case 'claim-types':
         this.type = 'claim-types';
         this.title = 'Types de réclamation';
+        this.description = 'Ces types alimentent le champ “Nature du problème” dans le formulaire de réclamation de l’application salarié.';
         break;
       case 'delivery-reasons':
         this.type = 'delivery-reasons';
         this.title = 'Motifs incidents (Livreur)';
+        this.description = 'Ces raisons apparaissent dans l’application livreur lorsqu’un échec de livraison est signalé.';
         break;
       case 'employee-reasons':
         this.type = 'employee-reasons';
         this.title = 'Motifs incidents (Salarié)';
+        this.description = 'Ces raisons apparaissent dans l’application salarié lorsqu’un problème de livraison est signalé.';
         break;
       case 'activity-sectors':
         this.type = 'activity-sectors';
         this.title = 'Secteurs d\'activité';
+        this.description = 'Les secteurs d’activité sont utilisés lors de la création d’une entreprise cliente.';
         break;
     }
   }

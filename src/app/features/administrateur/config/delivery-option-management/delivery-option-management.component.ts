@@ -1,16 +1,18 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MainLayoutComponent } from '../../../../core/layouts/main-layout/main-layout.component';
 import { AdminService, DeliveryOptionDTO } from '../../../../shared/services/admin.service';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-delivery-option-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MainLayoutComponent],
   templateUrl: './delivery-option-management.component.html'
 })
 export class DeliveryOptionManagementComponent implements OnInit {
+  role: 'admin' = 'admin';
   items: DeliveryOptionDTO[] = [];
   loading = false;
   showModal = false;

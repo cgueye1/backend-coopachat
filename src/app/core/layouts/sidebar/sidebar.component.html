@@ -65,16 +65,20 @@
               <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
-          <ul *ngIf="item.icon === 'promotion' ? offresExpanded : configExpanded" class="mt-1 ml-4 pl-2 border-l border-white/20 space-y-1">
+          <ul *ngIf="item.icon === 'promotion' ? offresExpanded : configExpanded" 
+            class="mt-2 ml-8 pl-4 border-l border-white/30 space-y-3">
             <li *ngFor="let child of item.children">
               <a [routerLink]="child.link" (click)="isOpen && toggleMobile()"
-                class="group flex items-center gap-2 px-2 py-1.5 sm:px-3 rounded-md transition-all duration-150 w-full text-sm"
+                class="group flex items-center gap-3 py-1 transition-all duration-150 w-full text-[13px]"
                 [ngClass]="{ 
-                  'opacity-100': child.active,
-                  'opacity-60 hover:opacity-100': !child.active
-                }" [style.background-color]="child.active ? '#FFFFFF1A' : 'transparent'"
-                [attr.aria-current]="child.active ? 'page' : null">
-                <span class="text-xs sm:text-sm font-medium tracking-tight">{{ child.label }}</span>
+                  'text-[#FFD8B3] font-bold': child.active, 
+                  'text-white/70 hover:text-white': !child.active 
+                }">
+                <!-- Dot (Puce) -->
+                <span class="w-1.5 h-1.5 rounded-full shrink-0"
+                  [ngClass]="child.active ? 'bg-white' : 'bg-white/40 group-hover:bg-white'">
+                </span>
+                {{ child.label }}
               </a>
             </li>
           </ul>
