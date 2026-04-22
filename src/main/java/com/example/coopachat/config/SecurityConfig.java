@@ -131,7 +131,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // Origines autorisées
-        configuration.setAllowedOriginPatterns(Arrays.asList(
+        configuration.setAllowedOrigins(Arrays.asList(
                 "https://coopachat.innovimpactdev.cloud",
                 "http://localhost:8080",
                 "http://localhost:4200"

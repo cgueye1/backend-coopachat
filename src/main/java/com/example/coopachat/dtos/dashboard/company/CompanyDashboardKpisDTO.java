@@ -16,4 +16,7 @@ public class CompanyDashboardKpisDTO {
 
     // Pour le graphique "Commandes par mois"
     private List<CommandesParMoisDTO> evolutionCommandes;
+
+    // Pour le top 5 des employés
+    private List<TopEmployeeDTO> topEmployees;
 }

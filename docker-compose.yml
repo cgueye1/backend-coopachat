@@ -65,10 +65,16 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       
-      # Base de données (Priorité à l'URL complète si définie dans le .env)
-      SPRING_DATASOURCE_URL: ${spring_datasource_url:-jdbc:mysql://db:3306/coopachat?useSSL=false}
-      SPRING_DATASOURCE_USERNAME: ${spring_datasource_username:-coopachat}
-      SPRING_DATASOURCE_PASSWORD: ${spring_datasource_password:-coopachat}
+      # Admin par défaut
+      ADMIN_DEFAULT_EMAIL: ${ADMIN_DEFAULT_EMAIL:-admincoopachat@yopmail.com}
+      ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-Passer@123}
+      
+      # Base de données
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME:-coopachat}
+      DB_USER: ${DB_USER:-coopachat}
+      DB_PASSWORD: ${DB_PASSWORD:-coopachat}
       
       # JWT
       JWT_SECRET: ${JWT_SECRET:-coopachat-secret-key-256-bits-minimum-required-for-security-2025}
