@@ -484,7 +484,7 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private static UserDetailsDTO toUserDetailsDto(Users u) {
+    private UserDetailsDTO toUserDetailsDto(Users u) {
         UserDetailsDTO dto = new UserDetailsDTO();
         dto.setId(u.getId());
         dto.setRefUser(u.getRefUser());
@@ -498,6 +498,16 @@ public class AuthServiceImpl implements AuthService {
         dto.setIsActive(u.getIsActive());
         dto.setProfilePhotoUrl(u.getProfilePhotoUrl());
         dto.setCreatedAt(u.getCreatedAt());
+
+        // Si c'est un responsable entreprise, on récupère le nom de sa boîte
+        if (u.getRole() == UserRole.COMPANY) {
+            employeeRepository.findByUser(u).ifPresent(emp -> {
+                if (emp.getCompany() != null) {
+                    dto.setCompanyName(emp.getCompany().getName());
+                }
+            });
+        }
+
         return dto;
     }
 

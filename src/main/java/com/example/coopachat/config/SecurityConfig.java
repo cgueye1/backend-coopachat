@@ -64,10 +64,10 @@ public class SecurityConfig {
                         // ==================================
                         // 🔒 PROFIL UTILISATEUR CONNECTÉ (avant permitAll /api/auth/**)
                         // ==================================
-                        // PUT /api/auth/me* : profil commercial / RL (JWT + rôle)
-                        .requestMatchers(HttpMethod.PUT, "/api/auth/me").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER")
-                        .requestMatchers(HttpMethod.PUT, "/api/auth/me/profile-photo").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/auth/me/profile-photo").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER")
+                        // PUT /api/auth/me* : profil commercial / RL / Entreprise (JWT + rôle)
+                        .requestMatchers(HttpMethod.PUT, "/api/auth/me").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER", "COMPANY")
+                        .requestMatchers(HttpMethod.PUT, "/api/auth/me/profile-photo").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER", "COMPANY")
+                        .requestMatchers(HttpMethod.DELETE, "/api/auth/me/profile-photo").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER", "COMPANY")
 
                         // GET /api/auth/me : « Mon compte » — JWT obligatoire, tous les rôles (géré par AuthController + AuthService)
                         .requestMatchers("/api/auth/me").authenticated()
@@ -100,6 +100,9 @@ public class SecurityConfig {
 
                         // Livreur + Admin
                         .requestMatchers("/api/deliveries/**", "/api/driver/**").hasAnyRole("DELIVERY_DRIVER", "ADMINISTRATOR")
+                        
+                        // Responsable Entreprise
+                        .requestMatchers("/api/entreprise/**").hasRole("COMPANY")
 
                         // ==================================
                         // 🔴 TOUT LE RESTE

@@ -100,4 +100,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
      * Compte le nombre d'employés d'une entreprise (pour les détails entreprise partenaire).
      */
     long countByCompany(Company company);
+
+    /**
+     * Compte le nombre d'employés d'une entreprise selon leur statut.
+     */
+    long countByCompanyAndUserIsActive(Company company, Boolean isActive);
 }

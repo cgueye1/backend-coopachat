@@ -25,6 +25,7 @@ public class UserDetailsDTO {
     private UserRole role;
     private String roleLabel;
     private String companyCommercial;
+    private String companyName;
     private Boolean isActive;
 
     /** Nom du fichier photo de profil. URL d'affichage : /api/files/{profilePhotoUrl}. */

@@ -193,44 +193,44 @@ public class CommercialServiceImpl implements CommercialService {
             companyPage = companyRepository.findByCommercialAndOptionalFilters(
                     commercial, companyType, prospectionStatus, searchTerm, sector, isActive, pageable);
         } else {
-        // Récupérer la page d'entreprises selon les filtres fournis (sans filtre partenaire/prospect)
-        // Cas 1 : Recherche + Secteur + isActive
-        if (searchTerm != null && sector != null && isActive != null) {
-            companyPage = companyRepository.findByCommercialAndNameContainingIgnoreCaseAndSectorAndIsActive(
-                    commercial, searchTerm, sector, isActive, pageable);
-        }
-        // Cas 2 : Recherche + Secteur (pas de isActive)
-        else if (searchTerm != null && sector != null) {
-            companyPage = companyRepository.findByCommercialAndNameContainingIgnoreCaseAndSector(
-                    commercial, searchTerm, sector, pageable);
-        }
-        // Cas 3 : Recherche + isActive (pas de secteur)
-        else if (searchTerm != null && isActive != null) {
-            companyPage = companyRepository.findByCommercialAndNameContainingIgnoreCaseAndIsActive(
-                    commercial, searchTerm, isActive, pageable);
-        }
-        // Cas 4 : Recherche seulement (pas de secteur, pas de isActive)
-        else if (searchTerm != null) {
-            companyPage = companyRepository.findByCommercialAndNameContainingIgnoreCase(
-                    commercial, searchTerm, pageable);
-        }
-        // Cas 5 : Secteur + isActive (pas de recherche)
-        else if (sector != null && isActive != null) {
-            companyPage = companyRepository.findByCommercialAndSectorAndIsActive(
-                    commercial, sector, isActive, pageable);
-        }
-        // Cas 6 : Secteur seulement (pas de recherche, pas de isActive)
-        else if (sector != null) {
-            companyPage = companyRepository.findByCommercialAndSector(commercial, sector, pageable);
-        }
-        // Cas 7 : isActive seulement (pas de recherche, pas de secteur)
-        else if (isActive != null) {
-            companyPage = companyRepository.findByCommercialAndIsActive(commercial, isActive, pageable);
-        }
-        // Cas 8 : Aucun filtre (toutes les entreprises)
-        else {
-            companyPage = companyRepository.findByCommercial(commercial, pageable);
-        }
+            // Récupérer la page d'entreprises selon les filtres fournis (sans filtre partenaire/prospect)
+            // Cas 1 : Recherche + Secteur + isActive
+            if (searchTerm != null && sector != null && isActive != null) {
+                companyPage = companyRepository.findByCommercialAndNameContainingIgnoreCaseAndSectorAndIsActive(
+                        commercial, searchTerm, sector, isActive, pageable);
+            }
+            // Cas 2 : Recherche + Secteur (pas de isActive)
+            else if (searchTerm != null && sector != null) {
+                companyPage = companyRepository.findByCommercialAndNameContainingIgnoreCaseAndSector(
+                        commercial, searchTerm, sector, pageable);
+            }
+            // Cas 3 : Recherche + isActive (pas de secteur)
+            else if (searchTerm != null && isActive != null) {
+                companyPage = companyRepository.findByCommercialAndNameContainingIgnoreCaseAndIsActive(
+                        commercial, searchTerm, isActive, pageable);
+            }
+            // Cas 4 : Recherche seulement (pas de secteur, pas de isActive)
+            else if (searchTerm != null) {
+                companyPage = companyRepository.findByCommercialAndNameContainingIgnoreCase(
+                        commercial, searchTerm, pageable);
+            }
+            // Cas 5 : Secteur + isActive (pas de recherche)
+            else if (sector != null && isActive != null) {
+                companyPage = companyRepository.findByCommercialAndSectorAndIsActive(
+                        commercial, sector, isActive, pageable);
+            }
+            // Cas 6 : Secteur seulement (pas de recherche, pas de isActive)
+            else if (sector != null) {
+                companyPage = companyRepository.findByCommercialAndSector(commercial, sector, pageable);
+            }
+            // Cas 7 : isActive seulement (pas de recherche, pas de secteur)
+            else if (isActive != null) {
+                companyPage = companyRepository.findByCommercialAndIsActive(commercial, isActive, pageable);
+            }
+            // Cas 8 : Aucun filtre (toutes les entreprises)
+            else {
+                companyPage = companyRepository.findByCommercial(commercial, pageable);
+            }
         }
 
         // Mapper les entités Company vers CompanyListItemDTO
@@ -248,8 +248,8 @@ public class CommercialServiceImpl implements CommercialService {
         response.setHasNext(companyPage.hasNext());
         response.setHasPrevious(companyPage.hasPrevious());
 
-        log.info("Page {} de {} entreprises récupérée pour le commercial {} (total: {} entreprises, recherche: '{}', secteurId: {}, isActive: {}, type: {})", 
-                page + 1, companyPage.getTotalPages(), commercial.getEmail(), companyPage.getTotalElements(), 
+        log.info("Page {} de {} entreprises récupérée pour le commercial {} (total: {} entreprises, recherche: '{}', secteurId: {}, isActive: {}, type: {})",
+                page + 1, companyPage.getTotalPages(), commercial.getEmail(), companyPage.getTotalElements(),
                 searchTerm != null ? searchTerm : "aucune", sectorId != null ? sectorId : "tous", isActive != null ? isActive : "tous", companyType != null ? companyType : "tous");
 
         return response;
@@ -305,7 +305,7 @@ public class CommercialServiceImpl implements CommercialService {
         // Mapper l'entité Company vers CompanyDetailsDTO
         CompanyDetailsDTO companyDetails = mapToCompanyDetailsDTO(company);
 
-        log.info("Détails de l'entreprise {} récupérés par le commercial {}", 
+        log.info("Détails de l'entreprise {} récupérés par le commercial {}",
                 company.getName(), commercial.getEmail());
 
         return companyDetails;
@@ -344,7 +344,7 @@ public class CommercialServiceImpl implements CommercialService {
         if (updateCompanyDTO.getContactEmail() != null) {
             String newEmail = updateCompanyDTO.getContactEmail().trim();
             if (!newEmail.isEmpty()
-                // Vérifier que l'email du contact n'existe pas déjà pour une autre entreprise (exclut l'id donné)
+                    // Vérifier que l'email du contact n'existe pas déjà pour une autre entreprise (exclut l'id donné)
                     && companyRepository.existsByContactEmailIgnoreCaseAndIdNot(newEmail, id)) {
                 throw new EmailAlreadyExistsException("Cet email de contact existe déjà. Utilisez un autre email.");
             }
@@ -368,7 +368,7 @@ public class CommercialServiceImpl implements CommercialService {
         // Sauvegarder les modifications
         companyRepository.save(company);
 
-        log.info("Entreprise {} modifiée avec succès par le commercial {}", 
+        log.info("Entreprise {} modifiée avec succès par le commercial {}",
                 company.getName(), commercial.getEmail());
     }
 
@@ -402,9 +402,9 @@ public class CommercialServiceImpl implements CommercialService {
         companyRepository.save(company);
 
         // Log avec l'ancien et le nouveau statut
-        //statusChange = activée si true, désactivée si false 
+        //statusChange = activée si true, désactivée si false
         String statusChange = updateCompanyStatusDTO.getIsActive() ? "activée" : "désactivée";
-        log.info("Entreprise {} {} par le commercial {} (ancien statut: {}, nouveau statut: {})", 
+        log.info("Entreprise {} {} par le commercial {} (ancien statut: {}, nouveau statut: {})",
                 company.getName(), statusChange, commercial.getEmail(), oldStatus, updateCompanyStatusDTO.getIsActive());
     }
 
@@ -1098,7 +1098,7 @@ public class CommercialServiceImpl implements CommercialService {
         for (ProductReductionItemDTO item : items) {
             if (item.getDiscountValue() == null || item.getDiscountValue().compareTo(java.math.BigDecimal.ZERO) <= 0
                     || item.getDiscountValue().compareTo(new BigDecimal("100")) > 0)//
-                     {
+            {
                 throw new RuntimeException("La réduction doit être entre 1 et 100 % pour le produit id " + item.getProductId());
             }
             Product product = productRepository.findById(item.getProductId())
@@ -1405,7 +1405,7 @@ public class CommercialServiceImpl implements CommercialService {
         return result;
     }
 
-     /**
+    /**
      * Construit la liste des 6 derniers mois avec le nombre de commandes pour le graphique « Nombre de commandes ».
      * Appelle orderRepository.countCommandesParMois puis remplit les 6 mois (libellé Jan, Fév, …) ; les mois sans donnée ont 0 commande.
      */
@@ -1708,4 +1708,3 @@ public class CommercialServiceImpl implements CommercialService {
         return CouponStatus.ACTIVE;//Sinon, le statut est ACTIVE
     }
 }
-
