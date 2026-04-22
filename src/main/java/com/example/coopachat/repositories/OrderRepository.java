@@ -1,5 +1,6 @@
 package com.example.coopachat.repositories;
 
+import com.example.coopachat.entities.Company;
 import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Order;
 import com.example.coopachat.entities.Users;
@@ -429,22 +430,22 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     /** Nombre de commandes passées par les salariés d'une entreprise (pour détails entreprise partenaire). */
     @Query("SELECT COUNT(o) FROM Order o WHERE o.employee.company = :company")
-    long countByEmployeeCompany(@Param("company") com.example.coopachat.entities.Company company);
+    long countByEmployeeCompany(@Param("company") Company company);
 
     /** Nombre de commandes passées par les salariés d'une entreprise après une date donnée. */
     @Query("SELECT COUNT(o) FROM Order o WHERE o.employee.company = :company AND o.createdAt >= :date")
     long countByEmployeeCompanyAndCreatedAtAfter(
-            @Param("company") com.example.coopachat.entities.Company company,
+            @Param("company") Company company,
             @Param("date") LocalDateTime date);
 
     /** Nombre de salariés uniques ayant passé au moins une commande dans une entreprise donnée. */
     @Query("SELECT COUNT(DISTINCT o.employee) FROM Order o WHERE o.employee.company = :company")
-    long countDistinctEmployeeByEmployeeCompany(@Param("company") com.example.coopachat.entities.Company company);
+    long countDistinctEmployeeByEmployeeCompany(@Param("company") Company company);
 
     /** Commandes par mois pour une entreprise spécifique (année, mois, count) — createdAt entre debut et fin. */
     @Query("SELECT YEAR(o.createdAt), MONTH(o.createdAt), COUNT(o) FROM Order o WHERE o.employee.company = :company AND o.createdAt BETWEEN :debut AND :fin GROUP BY YEAR(o.createdAt), MONTH(o.createdAt) ORDER BY YEAR(o.createdAt), MONTH(o.createdAt)")
     List<Object[]> countCommandesParMoisByCompany(
-            @Param("company") com.example.coopachat.entities.Company company,
+            @Param("company") Company company,
             @Param("debut") LocalDateTime debut,
             @Param("fin") LocalDateTime fin);
 
@@ -454,7 +455,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
            "GROUP BY o.employee " +
            "ORDER BY COUNT(o) DESC")
     List<Object[]> findTopEmployeesByOrders(
-            @Param("company") com.example.coopachat.entities.Company company,
+            @Param("company") Company company,
             @Param("start") LocalDateTime start,
             Pageable pageable);
 }

@@ -60,6 +60,11 @@ public interface EmailService {
     void sendEmployeeActivationLink(String email, String code, String firstName, String commercialName, String companyName);
 
     /**
+     * Envoie un lien d'activation direct par email au représentant d'une entreprise créée
+     */
+    void sendCompanyActivationLink(String email, String code, String contactName, String companyName);
+
+    /**
      * Envoie un email libre (sujet + corps texte).
      *
      * @param to      Email du destinataire

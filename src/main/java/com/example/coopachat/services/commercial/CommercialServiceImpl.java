@@ -110,10 +110,16 @@ public class CommercialServiceImpl implements CommercialService {
             throw new RuntimeException("Seuls les commerciaux peuvent créer des entreprises");
         }
 
-        // Vérifier que l'email du contact n'existe pas déjà
-        if (createCompanyDTO.getContactEmail() != null && !createCompanyDTO.getContactEmail().trim().isEmpty()
-                && companyRepository.existsByContactEmailIgnoreCase(createCompanyDTO.getContactEmail().trim())) {
-            throw new EmailAlreadyExistsException("Cet email de contact existe déjà. Utilisez un autre email.");
+        String contactEmail = createCompanyDTO.getContactEmail() != null ? createCompanyDTO.getContactEmail().trim() : "";
+
+        // Vérifier que l'email du contact n'existe pas déjà (table Company)
+        if (!contactEmail.isEmpty() && companyRepository.existsByContactEmailIgnoreCase(contactEmail)) {
+            throw new EmailAlreadyExistsException("Cet email de contact existe déjà dans une autre entreprise.");
+        }
+
+        // Vérifier aussi dans la table Users pour éviter les doublons de compte
+        if (!contactEmail.isEmpty() && userRepository.existsByEmail(contactEmail)) {
+            throw new EmailAlreadyExistsException("Un compte utilisateur existe déjà avec cet email.");
         }
 
         // Vérifier que le téléphone du contact n'existe pas déjà
@@ -136,21 +142,75 @@ public class CommercialServiceImpl implements CommercialService {
         }
         company.setLocation(createCompanyDTO.getLocation());
         company.setContactName(createCompanyDTO.getContactName());
-        company.setContactEmail(createCompanyDTO.getContactEmail());
+        company.setContactEmail(contactEmail.isEmpty() ? null : contactEmail);
         company.setContactPhone(createCompanyDTO.getContactPhone());
         company.setStatus(createCompanyDTO.getStatus());
         company.setNote(createCompanyDTO.getNote());
-        company.setIsActive(false);
+        company.setIsActive(false); // Inactif jusqu'à activation
         company.setCommercial(commercial);
         if (createCompanyDTO.getLogo() != null && !createCompanyDTO.getLogo().isBlank()) {
             company.setLogo(createCompanyDTO.getLogo());
         }
 
         // Sauvegarder l'entreprise en base
-        companyRepository.save(company);
+        Company savedCompany = companyRepository.save(company);
+
+        // Si un email est fourni, on crée le compte "Espace Entreprise" pour le contact
+        if (!contactEmail.isEmpty()) {
+            createOrUpdateCompanyAccount(savedCompany, contactEmail, createCompanyDTO.getContactName(), createCompanyDTO.getContactPhone(), commercial);
+        }
 
         log.info("Entreprise créée avec succès: {} (code: {}) par le commercial {}",
-                company.getName(), companyCode, commercial.getEmail());
+                savedCompany.getName(), companyCode, commercial.getEmail());
+    }
+
+    /**
+     * Crée ou met à jour le compte utilisateur "Espace Entreprise" associé au contact d'une entreprise.
+     */
+    private void createOrUpdateCompanyAccount(Company company, String email, String contactName, String phone, Users commercial) {
+        if (email == null || email.isBlank()) return;
+
+        // Vérifier si un compte existe déjà pour cet email
+        Optional<Users> existingUser = userRepository.findByEmail(email);
+        
+        if (existingUser.isEmpty()) {
+            // Créer le compte utilisateur
+            Users user = new Users();
+            user.setEmail(email);
+            
+            // Découpage sommaire du nom (Prénom Nom)
+            String[] nameParts = contactName.split("\\s+", 2);
+            if (nameParts.length > 1) {
+                user.setFirstName(nameParts[0]);
+                user.setLastName(nameParts[1]);
+            } else {
+                user.setFirstName(contactName);
+                user.setLastName("-"); // Placeholder car le champ est  obligatoire au nniveau de la table users
+            }
+            
+            user.setPhone(phone);
+            user.setRole(UserRole.COMPANY);
+            user.setIsActive(false);
+            user.setRefUser(userReferenceGenerator.generateUniqueRefUser());
+            Users savedUser = userRepository.save(user);
+
+            // Créer l'entrée Employee pour le lien (le représentant de l'entreprise est considéré comme le "salarié n°1")
+            Employee representative = new Employee();
+            representative.setCompany(company);
+            representative.setUser(savedUser);
+            representative.setCreatedBy(commercial);
+            representative.setEmployeeCode(generateUniqueEmployeeCode());
+            employeeRepository.save(representative);
+
+            // Envoyer l'email d'activation
+            String code = activationCodeService.generateAndStoreCode(savedUser.getEmail());
+            emailService.sendCompanyActivationLink(savedUser.getEmail(), code, savedUser.getFirstName(), company.getName());
+            
+            log.info("Nouveau compte Espace Entreprise créé pour {} (Entreprise: {})", email, company.getName());
+        } else {
+            // Si l'utilisateur existe déjà
+            log.warn("Un compte utilisateur existe déjà pour l'email {}, création ignorée.", email);
+        }
     }
 
     @Override
@@ -367,6 +427,12 @@ public class CommercialServiceImpl implements CommercialService {
 
         // Sauvegarder les modifications
         companyRepository.save(company);
+
+        // Si l'email a été modifié ou ajouté, on s'assure que le compte utilisateur existe
+        if (updateCompanyDTO.getContactEmail() != null && !updateCompanyDTO.getContactEmail().trim().isEmpty()) {
+            createOrUpdateCompanyAccount(company, updateCompanyDTO.getContactEmail().trim(), 
+                    company.getContactName(), company.getContactPhone(), commercial);
+        }
 
         log.info("Entreprise {} modifiée avec succès par le commercial {}",
                 company.getName(), commercial.getEmail());
