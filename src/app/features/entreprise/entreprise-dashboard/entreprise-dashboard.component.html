@@ -1,0 +1,169 @@
+<app-entreprise-layout>
+  <div class="p-6 space-y-6">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <p class="text-xs text-[#8A8EA7]">{{ companyName }} · Espace entreprise</p>
+        <h1 class="text-2xl sm:text-3xl font-semibold text-[#2C2D5B]">Tableau de bord</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <select class="text-sm border border-gray-200 rounded-lg px-3 py-2 text-[#2C2D5B] bg-white focus:outline-none focus:ring-2 focus:ring-[#2B3674]/20">
+          <option>Ce mois — Avril 2026</option>
+          <option>Mars 2026</option>
+          <option>Février 2026</option>
+        </select>
+        <button class="bg-[#2B3674] hover:bg-[#1e254d] text-white px-5 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 transition-all shadow-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Inscrire un salarié
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div *ngFor="let kpi of kpis"
+        class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 hover:shadow-md transition-shadow"
+        [class]="kpi.border + ' bg-white rounded-2xl p-5 border-y border-r border-gray-100 shadow-sm border-l-4 hover:shadow-md transition-shadow'">
+        <p class="text-sm text-[#8A8EA7] mb-1">{{ kpi.label }}</p>
+        <p class="text-3xl font-bold text-[#2C2D5B]">{{ kpi.value }}</p>
+        <p class="text-xs mt-1" [class]="kpi.subColor">{{ kpi.sub }}</p>
+      </div>
+    </div>
+
+    <!-- Bannière alerte -->
+    <div class="bg-[#FFF4EB] border border-[#FFD8B3] rounded-xl p-4 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="text-[#FF6B00] flex-shrink-0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-[#854d0e]">13 salariés n'ont pas encore activé leur compte</p>
+          <p class="text-xs text-[#a16207]">Ils ont été inscrits mais n'ont pas encore passé de commande — pensez à les relancer</p>
+        </div>
+      </div>
+      <button class="flex-shrink-0 text-sm font-semibold text-[#FF6B00] border border-[#FF6B00] rounded-lg px-4 py-2 hover:bg-[#FF6B00] hover:text-white transition-all">
+        Voir la liste
+      </button>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Commandes par mois (mock visuel) -->
+      <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <h3 class="text-base font-semibold text-[#2C2D5B] mb-4">Commandes par mois</h3>
+        <div class="flex items-end gap-3 h-40">
+          <div *ngFor="let bar of [
+            {month:'Nov', h:8}, {month:'Déc', h:12}, {month:'Jan', h:18},
+            {month:'Fév', h:25}, {month:'Mar', h:90}, {month:'Avr', h:70}
+          ]" class="flex flex-col items-center gap-1 flex-1">
+            <div class="w-full bg-[#2B3674] rounded-t-md transition-all"
+              [style.height.%]="bar.h"></div>
+            <span class="text-[10px] text-[#8A8EA7]">{{ bar.month }}</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 mt-3">
+          <div class="w-3 h-3 rounded-sm bg-[#2B3674]"></div>
+          <span class="text-xs text-[#8A8EA7]">Commandes salariés</span>
+        </div>
+      </div>
+
+      <!-- Donut statut salariés (mock visuel) -->
+      <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <h3 class="text-base font-semibold text-[#2C2D5B] mb-4">Statut des salariés</h3>
+        <div class="flex items-center gap-6">
+          <!-- Donut SVG mock -->
+          <svg width="120" height="120" viewBox="0 0 120 120" class="flex-shrink-0">
+            <circle cx="60" cy="60" r="45" fill="none" stroke="#E5E7EB" stroke-width="20"/>
+            <!-- En attente (orange) ~59% = 168deg -->
+            <circle cx="60" cy="60" r="45" fill="none" stroke="#FF6B00" stroke-width="20"
+              stroke-dasharray="165 117" stroke-dashoffset="0" transform="rotate(-90 60 60)"/>
+            <!-- Actifs (bleu) ~41% = 117deg -->
+            <circle cx="60" cy="60" r="45" fill="none" stroke="#2B3674" stroke-width="20"
+              stroke-dasharray="117 165" stroke-dashoffset="-165" transform="rotate(-90 60 60)"/>
+          </svg>
+          <!-- Légende -->
+          <div class="space-y-3 flex-1">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-sm bg-[#2B3674]"></div>
+                <span class="text-sm text-gray-600">Actifs</span>
+              </div>
+              <span class="font-bold text-[#2C2D5B]">9</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-sm bg-[#FF6B00]"></div>
+                <span class="text-sm text-gray-600">En attente</span>
+              </div>
+              <span class="font-bold text-[#2C2D5B]">13</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-sm bg-gray-200"></div>
+                <span class="text-sm text-gray-600">Inactifs</span>
+              </div>
+              <span class="font-bold text-[#2C2D5B]">0</span>
+            </div>
+            <p class="text-xs text-[#8A8EA7] pt-1 border-t border-gray-100">Total : 22 salariés</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table top salariés -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div>
+          <span class="font-semibold text-[#2C2D5B]">Salariés les plus actifs</span>
+          <span class="text-sm text-[#8A8EA7] ml-2">— Top commandes ce mois</span>
+        </div>
+        <button class="text-sm font-medium text-[#2B3674] border border-[#2B3674] rounded-lg px-4 py-1.5 hover:bg-[#2B3674] hover:text-white transition-all">
+          Voir tous
+        </button>
+      </div>
+      <table class="w-full">
+        <thead>
+          <tr class="bg-gray-50 text-xs text-[#8A8EA7] font-semibold uppercase tracking-wide">
+            <th class="px-6 py-3 text-left">Salarié</th>
+            <th class="px-6 py-3 text-left">Commandes</th>
+            <th class="px-6 py-3 text-left">Activité</th>
+            <th class="px-6 py-3 text-left">Statut</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+          <tr *ngFor="let s of topSalaries" class="hover:bg-gray-50 transition-colors">
+            <td class="px-6 py-3">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-[#2B3674]/10 text-[#2B3674] flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  {{ s.initials }}
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-[#2C2D5B]">{{ s.name }}</p>
+                  <p class="text-xs text-[#8A8EA7]">{{ s.ref }}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-6 py-3 text-sm font-semibold text-[#2C2D5B]">{{ s.commandes }}</td>
+            <td class="px-6 py-3 w-48">
+              <div class="w-full bg-gray-100 rounded-full h-2">
+                <div class="bg-[#2B3674] h-2 rounded-full transition-all" [style.width.%]="s.activite"></div>
+              </div>
+            </td>
+            <td class="px-6 py-3">
+              <span class="px-2.5 py-1 rounded-full text-xs font-semibold" [class]="getStatutClass(s.statut)">
+                {{ s.statut }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</app-entreprise-layout>

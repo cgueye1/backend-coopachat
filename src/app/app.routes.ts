@@ -183,6 +183,13 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/commercial/promotions-produits/promotions-produits.component').then(c => c.PromotionsProduitsComponent)
   },
+
+  // ===== ESPACE ENTREPRISE =====
+  {
+    path: 'entreprise/dashboard',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/entreprise/entreprise-dashboard/entreprise-dashboard.component').then(c => c.EntrepriseDashboardComponent)
+  },
   {
     path: 'portail',
     loadComponent: () => import('./features/portail/portail.component').then(c => c.PortailComponent)

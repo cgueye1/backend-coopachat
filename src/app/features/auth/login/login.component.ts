@@ -94,6 +94,8 @@ export class LoginComponent implements OnInit {
               this.router.navigate(['/log/dashboardlog']);
             } else if (role === 'Commercial') {
               this.router.navigate(['/com/dashboard']);
+            } else if (role === 'Responsable Entreprise') {
+              this.router.navigate(['/entreprise/dashboard']);
             } else {
               this.router.navigate(['/portail']);
             }

@@ -145,7 +145,7 @@
         <button (click)="closeModal()" class="px-4 py-2.5 rounded-lg font-medium text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
           Annuler
         </button>
-        <button (click)="save()" [disabled]="loading || uploadingIcon" class="px-4 py-2.5 rounded-lg font-medium text-sm text-white bg-gradient-to-r from-[#FF6B00] to-[#FF914D] hover:opacity-90 disabled:opacity-50 transition-colors">
+        <button (click)="save()" [disabled]="loading || uploadingIcon" class="px-6 py-2.5 rounded-lg font-bold text-sm text-white bg-[#2B3674] hover:bg-[#1e254d] disabled:opacity-50 transition-colors shadow-sm">
           {{ loading ? 'Enregistrement…' : uploadingIcon ? 'Envoi de l\'icône…' : (isEdit ? 'Enregistrer' : 'Créer') }}
         </button>
       </div>
