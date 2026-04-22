@@ -734,9 +734,6 @@ public class AdminServiceImpl implements AdminService {
         if (dto.getEmail() == null || dto.getEmail().isBlank()) {
             throw new RuntimeException("L'adresse email est obligatoire");
         }
-        if (dto.getPhoneNumber() == null || dto.getPhoneNumber().isBlank()) {
-            throw new RuntimeException("Le téléphone est obligatoire");
-        }
         if (dto.getRole() == null) {
             throw new RuntimeException("Le rôle est obligatoire");
         }
@@ -744,8 +741,11 @@ public class AdminServiceImpl implements AdminService {
         if (userRepository.existsByEmail(dto.getEmail())) {
             throw new RuntimeException("Cet email est déjà utilisé");
         }
-        if (userRepository.existsByPhone(dto.getPhoneNumber())) {
-            throw new RuntimeException("Ce numéro de téléphone est déjà utilisé");
+
+        if (dto.getPhoneNumber() != null && !dto.getPhoneNumber().isBlank()) {
+            if (userRepository.existsByPhone(dto.getPhoneNumber())) {
+                throw new RuntimeException("Ce numéro de téléphone est déjà utilisé");
+            }
         }
 
         if (dto.getRole() == UserRole.COMMERCIAL) {
@@ -758,7 +758,7 @@ public class AdminServiceImpl implements AdminService {
         user.setFirstName(dto.getFirstName());
         user.setLastName(dto.getLastName());
         user.setEmail(dto.getEmail());
-        user.setPhone(dto.getPhoneNumber());
+        user.setPhone((dto.getPhoneNumber() != null && !dto.getPhoneNumber().isBlank()) ? dto.getPhoneNumber() : null);
         user.setRole(dto.getRole());
         user.setProfilePhotoUrl(dto.getProfilePhoto());
         user.setCompanyCommercial(dto.getCompanyCommercial());
