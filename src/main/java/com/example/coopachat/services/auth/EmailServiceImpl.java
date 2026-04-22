@@ -338,6 +338,44 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    @Override
+    public void sendCompanyActivationLink(String email, String code, String contactName, String companyName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(mailFrom);
+            helper.setTo(email);
+            helper.setSubject("Bienvenue sur " + appName + " - " + companyName);
+
+            String activationLink = activationUrl + code + "&email=" + email;
+            String safeName = HtmlUtils.htmlEscape(contactName != null ? contactName : "Représentant");
+            String safeCompany = HtmlUtils.htmlEscape(companyName);
+            String safeApp = HtmlUtils.htmlEscape(appName);
+            String hrefUrl = HtmlUtils.htmlEscape(activationLink);
+
+            String htmlBody = String.format(
+                "<html><body style=\"font-family:sans-serif;font-size:15px;line-height:1.5;color:#333;\">" +
+                "<p>Bonjour %s,</p>" +
+                "<p>Bienvenue sur <strong>%s</strong> ! Votre espace entreprise pour <strong>%s</strong> a été créé.</p>" +
+                "<p>Identifiant de connexion : <strong>%s</strong></p>" +
+                "<p>Pour commencer à gérer votre entreprise et vos salariés, veuillez définir votre mot de passe en cliquant sur le bouton ci-dessous :</p>" +
+                "<p style=\"margin:24px 0;\"><a href=\"%s\" style=\"display:inline-block;padding:12px 24px;background-color:#ea580c;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;\">Activer l'Espace Entreprise</a></p>" +
+                "<p style=\"font-size:13px;color:#555;\">Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :</p>" +
+                "<p style=\"word-break:break-all;font-size:13px;\">%s</p>" +
+                "<p>Cordialement,<br>L'équipe Support %s</p>" +
+                "</body></html>",
+                safeName, safeApp, safeCompany, HtmlUtils.htmlEscape(email), hrefUrl, hrefUrl, safeApp);
+
+            helper.setText("", htmlBody);
+            mailSender.send(message);
+
+            log.info("Lien d'activation entreprise envoyé avec succès à: {}", email);
+        } catch (Exception e) {
+            log.error("Erreur lors de l'envoi du lien d'activation entreprise à {}: {}", email, e.getMessage());
+        }
+    }
+
      private String buildResetUrl(PasswordResetChannel channel, String token) {
         String configuredBaseUrl = channel == PasswordResetChannel.MOBILE
                 ? resetPasswordUrlMobile
