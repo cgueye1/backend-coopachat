@@ -61,43 +61,48 @@ services:
         condition: service_healthy
 
     # Variables d'environnement (valeurs depuis .env ou host)
-    # - Profil Spring = docker (charge application-docker.properties, connexion à db:3306)
-    # - Connexion base de données, JWT, Email, Google Auth, MinIO
+    # - Profil Spring = docker (charge application-docker.properties)
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      DB_NAME: ${DB_NAME:-coopachat}
-      DB_USER: ${DB_USER:-coopachat}
-      DB_PASSWORD: ${DB_PASSWORD:-coopachat}
-
+      
+      # Base de données (Priorité à l'URL complète si définie dans le .env)
+      SPRING_DATASOURCE_URL: ${spring_datasource_url:-jdbc:mysql://db:3306/coopachat?useSSL=false}
+      SPRING_DATASOURCE_USERNAME: ${spring_datasource_username:-coopachat}
+      SPRING_DATASOURCE_PASSWORD: ${spring_datasource_password:-coopachat}
+      
+      # JWT
       JWT_SECRET: ${JWT_SECRET:-coopachat-secret-key-256-bits-minimum-required-for-security-2025}
 
-      # Configuration Email
-      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
-      MAIL_PORT: ${MAIL_PORT:-587}
-      MAIL_USERNAME: ${MAIL_USERNAME:-}
-      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      # Configuration Email (mappée sur les noms du fichier .env)
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
       MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-true}
       MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-true}
       MAIL_SMTP_STARTTLS_REQUIRED: ${MAIL_SMTP_STARTTLS_REQUIRED:-true}
       MAIL_SMTP_SSL_TRUST: ${MAIL_SMTP_SSL_TRUST:-smtp.gmail.com}
-      MAIL_SMTP_CONNECTION_TIMEOUT: ${MAIL_SMTP_CONNECTION_TIMEOUT:-10000}
-      MAIL_SMTP_WRITE_TIMEOUT: ${MAIL_SMTP_WRITE_TIMEOUT:-10000}
 
-      # Google OAuth
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+      # URLs frontend
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-https://coopachat.innovimpactdev.cloud}
+      FRONTEND_RESET_PASSWORD_URL: ${FRONTEND_RESET_PASSWORD_URL}
+      FRONTEND_ACTIVATION_URL: ${FRONTEND_ACTIVATION_URL}
 
-      # URLs frontend (emails : reset MDP, activation). Adapter le port ou le domaine via .env
-      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:4200}
-      FRONTEND_RESET_PASSWORD_URL: ${FRONTEND_RESET_PASSWORD_URL:-http://localhost:4200/create-password?token=}
-      FRONTEND_RESET_PASSWORD_URL_MOBILE: ${FRONTEND_RESET_PASSWORD_URL_MOBILE:-https://coopachat.innovimpactdev.cloud/create-password?token=}
+      # Configuration Paiement TouchPay
+      TOUCHPAY_SERVICE_ID: ${TOUCHPAY_SERVICE_ID}
+      TOUCHPAY_TOKEN: ${TOUCHPAY_TOKEN}
+      TOUCHPAY_AGENCY_CODE: ${TOUCHPAY_AGENCY_CODE}
+      TOUCHPAY_CALLBACK_URL: ${TOUCHPAY_CALLBACK_URL}
+      TOUCHPAY_HOSTED_SCRIPT_URL: ${TOUCHPAY_HOSTED_SCRIPT_URL}
+      TOUCHPAY_HOSTED_SUCCESS_REDIRECT_URL: ${TOUCHPAY_HOSTED_SUCCESS_REDIRECT_URL}
+      TOUCHPAY_HOSTED_FAILED_REDIRECT_URL: ${TOUCHPAY_HOSTED_FAILED_REDIRECT_URL}
+      TOUCHPAY_HOSTED_DEFAULT_CITY: ${TOUCHPAY_HOSTED_DEFAULT_CITY:-Dakar}
 
       # Configuration MinIO
-      MINIO_URL: ${MINIO_URL:-}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-}
-      MINIO_BUCKET: ${MINIO_BUCKET:-coop-achat}
+      MINIO_URL: ${MINIO_URL}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: ${MINIO_BUCKET}
 
     # Ports
     # 8083 → Port accessible depuis mon PC
