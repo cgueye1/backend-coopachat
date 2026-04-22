@@ -2,6 +2,7 @@ package com.example.coopachat.services.company;
 
 import com.example.coopachat.dtos.dashboard.commercial.CommandesParMoisDTO;
 import com.example.coopachat.dtos.dashboard.company.CompanyDashboardKpisDTO;
+import com.example.coopachat.dtos.dashboard.company.TopEmployeeDTO;
 import com.example.coopachat.dtos.employees.*;
 import com.example.coopachat.entities.Address;
 import com.example.coopachat.entities.Company;
@@ -80,7 +81,29 @@ public class CompanyServiceImpl implements CompanyService {
         LocalDateTime debut = fin.minusMonths(5).withDayOfMonth(1).withHour(0).withMinute(0);
         dto.setEvolutionCommandes(buildEvolutionCommandes(company, debut, fin));
 
+        // Top 5 salariés les plus actifs (commandes du mois)
+        LocalDateTime startOfMonth = fin.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+        List<Object[]> topData = orderRepository.findTopEmployeesByOrders(company, startOfMonth, PageRequest.of(0, 5));
+        dto.setTopEmployees(mapToTopEmployees(topData));
+
         return dto;
+    }
+
+    private List<TopEmployeeDTO> mapToTopEmployees(List<Object[]> data) {
+        if (data == null) return Collections.emptyList();
+        return data.stream().map(row -> {
+            Employee emp = (Employee) row[0];
+            long count = (long) row[1];
+            TopEmployeeDTO top = new TopEmployeeDTO();
+            top.setFirstName(emp.getUser().getFirstName());
+            top.setLastName(emp.getUser().getLastName());
+            top.setEmployeeCode(emp.getEmployeeCode());
+            top.setNbCommandes(count);
+            top.setStatus(emp.getUser().getIsActive() ? "Actif" : "Inactif");
+            // Activité arbitraire pour le UI (on peut mettre 100 pour le 1er, 80 pour le 2e...)
+            top.setActivite(100); 
+            return top;
+        }).collect(Collectors.toList());
     }
 
     @Override

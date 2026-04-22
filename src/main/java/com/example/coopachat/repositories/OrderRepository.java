@@ -447,4 +447,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("company") com.example.coopachat.entities.Company company,
             @Param("debut") LocalDateTime debut,
             @Param("fin") LocalDateTime fin);
+
+    /** Top 5 salariés d'une entreprise ayant passé le plus de commandes depuis :start. */
+    @Query("SELECT o.employee, COUNT(o) FROM Order o " +
+           "WHERE o.employee.company = :company AND o.createdAt >= :start " +
+           "GROUP BY o.employee " +
+           "ORDER BY COUNT(o) DESC")
+    List<Object[]> findTopEmployeesByOrders(
+            @Param("company") com.example.coopachat.entities.Company company,
+            @Param("start") LocalDateTime start,
+            Pageable pageable);
 }
