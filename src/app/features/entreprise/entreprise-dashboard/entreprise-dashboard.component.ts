@@ -1,37 +1,105 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { EntrepriseLayoutComponent } from '../entreprise-layout/entreprise-layout.component';
+import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
+import { HeaderComponent } from '../../../core/layouts/header/header.component';
+import { AuthService } from '../../../shared/services/auth.service';
+import { EntrepriseService, CompanyDashboardKpisDTO } from '../../../shared/services/entreprise.service';
 
 @Component({
   selector: 'app-entreprise-dashboard',
   standalone: true,
-  imports: [CommonModule, EntrepriseLayoutComponent],
-  templateUrl: './entreprise-dashboard.component.html'
+  imports: [CommonModule, MainLayoutComponent, HeaderComponent],
+  templateUrl: './entreprise-dashboard.component.html',
+  styles: [`
+    .animate-fadeIn {
+      animation: fadeIn 0.5s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  `]
 })
-export class EntrepriseDashboardComponent {
-  companyName = 'SENICO DAKAR';
-  selectedPeriod = 'Ce mois — Avril 2026';
+export class EntrepriseDashboardComponent implements OnInit {
+  role: any = 'company';
+  userName = '';
+  companyName = '';
 
-  // KPIs (données mock — à brancher sur l'API plus tard)
-  kpis = [
-    { label: 'Taux d\'adoption',   value: '41%',  sub: '+8% vs mois dernier',         subColor: 'text-green-600',  border: 'border-l-[#FF6B00]' },
-    { label: 'Salariés actifs',    value: '9/22', sub: '13 en attente d\'activation', subColor: 'text-[#FF6B00]',  border: 'border-l-green-500' },
-    { label: 'Commandes ce mois',  value: '34',   sub: 'Moy. 3,8 cmd/salarié actif', subColor: 'text-gray-400',   border: 'border-l-[#2B3674]' },
-    { label: 'Salariés inactifs',  value: '13',   sub: 'Pas encore commandé',         subColor: 'text-red-500',    border: 'border-l-red-400' },
-  ];
+  // KPIs
+  kpis: any[] = [];
+  chartData: any[] = [];
+  statusData = { actifs: 0, enAttente: 0, inactifs: 0 };
+
+  constructor(
+    private entrepriseService: EntrepriseService,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit(): void {
+    this.loadUserProfile();
+    this.loadDashboardData();
+  }
+
+  loadUserProfile(): void {
+    this.authService.getCurrentUserProfile().subscribe({
+      next: (user) => {
+        this.userName = `${user.firstName} ${user.lastName}`;
+        this.companyName = user.companyName || 'Mon Entreprise';
+      },
+      error: (err) => console.error('Erreur profil', err)
+    });
+  }
+
+  loadDashboardData(): void {
+    this.entrepriseService.getDashboardKpis().subscribe({
+      next: (data: CompanyDashboardKpisDTO) => {
+        this.kpis = [
+          { label: 'Total salariés',     value: data.totalEmployees,    sub: 'Effectif total inscrit',      subColor: 'text-gray-400',   border: 'border-l-[#2B3674]', icon: 'icones/users.svg' },
+          { label: 'Salariés actifs',    value: data.activeEmployeesRatio, sub: 'Comptes activés',             subColor: 'text-green-600',  border: 'border-l-green-500', icon: 'icones/actif.svg' },
+          { label: 'Salariés inactifs',  value: data.inactiveEmployees, sub: 'En attente d\'activation',    subColor: 'text-[#FF6B00]',  border: 'border-l-[#FF6B00]', icon: 'icones/exclamUser.svg' },
+          { label: 'Commandes ce mois',  value: data.ordersThisMonth,   sub: 'Activité de l\'entreprise',    subColor: 'text-blue-500',   border: 'border-l-blue-400', icon: 'icones/commandes.svg' },
+        ];
+        
+        this.statusData = {
+          actifs: data.activeEmployees,
+          enAttente: data.inactiveEmployees,
+          inactifs: 0
+        };
+
+        if (data.evolutionCommandes) {
+          this.chartData = data.evolutionCommandes;
+        }
+      },
+      error: (err) => {
+        console.error('Erreur lors du chargement des KPIs', err);
+      }
+    });
+  }
 
   // Top salariés (mock)
   topSalaries = [
     { initials: 'MS', name: 'Mariama Sow',   ref: 'SAL-2026-34', commandes: 8, activite: 100, statut: 'Actif' },
     { initials: 'AT', name: 'Aminata Tall',  ref: 'SAL-2026-32', commandes: 6, activite: 75,  statut: 'Actif' },
     { initials: 'CD', name: 'Coumba Diagne', ref: 'SAL-2026-31', commandes: 5, activite: 62,  statut: 'Actif' },
-    { initials: 'FL', name: 'Fatima Lawson', ref: 'SAL-679A7603', commandes: 0, activite: 0,  statut: 'En attente' },
-    { initials: 'KK', name: 'Khadija Ka',    ref: 'SAL-2026-03', commandes: 0, activite: 0,  statut: 'En attente' },
   ];
 
+  // Helpers UI
   getStatutClass(statut: string): string {
-    return statut === 'Actif'
-      ? 'bg-green-100 text-green-700'
-      : 'bg-orange-100 text-orange-600';
+    switch (statut) {
+      case 'Actif': return 'bg-green-100 text-green-700';
+      case 'En attente': return 'bg-orange-100 text-orange-700';
+      case 'Inactif': return 'bg-gray-100 text-gray-700';
+      default: return 'bg-blue-100 text-blue-700';
+    }
+  }
+
+  getStatutIcon(statut: string): string {
+    return statut === 'Actif' ? 'icones/check.svg' : 'icones/clock.svg';
+  }
+
+  getActiviteColor(percent: number): string {
+    if (percent >= 80) return 'bg-green-500';
+    if (percent >= 50) return 'bg-blue-500';
+    return 'bg-orange-500';
   }
 }

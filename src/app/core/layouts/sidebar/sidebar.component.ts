@@ -10,7 +10,7 @@ import { mapUserDetailsToDisplay } from '../../../shared/models/user-display.map
 import Swal from 'sweetalert2';
 import { HttpErrorResponse } from '@angular/common/http';
 
-type Role = 'log' | 'com' | 'admin' | 'commercial';
+type Role = 'log' | 'com' | 'admin' | 'commercial' | 'company';
 
 @Component({
   selector: 'app-sidebar',
@@ -98,6 +98,10 @@ export class SidebarComponent implements OnChanges, OnInit {
         { label: 'Secteurs d\'activité', link: '/admin/config/activity-sectors', active: false },
       ],
     },
+
+    { label: 'Tableau de bord', icon: 'dashboard', link: '/entreprise/dashboard', active: false },
+    { label: 'Mes salariés', icon: 'users', link: '/entreprise/salaries', active: false },
+    { label: 'Mon profil', icon: 'settings', link: '/entreprise/profil', active: false },
   ];
 
   filteredMenuItems = this.menuItems.slice();
@@ -146,10 +150,10 @@ export class SidebarComponent implements OnChanges, OnInit {
     });
   }
 
-  private normalizeRole(input: Role): 'log' | 'com' | 'admin' {
+  private normalizeRole(input: Role): 'log' | 'com' | 'admin' | 'company' {
     if (!input) return 'log';
     if (input === 'commercial') return 'com';
-    if (input === 'com' || input === 'log' || input === 'admin') return input;
+    if (input === 'com' || input === 'log' || input === 'admin' || input === 'company') return input;
     return 'log';
   }
 
@@ -162,7 +166,7 @@ export class SidebarComponent implements OnChanges, OnInit {
       default: this.roleLabel = 'Logistique';
     }
 
-    const prefix = normalized === 'com' ? '/com' : normalized === 'log' ? '/log' : '/admin';
+    const prefix = normalized === 'com' ? '/com' : normalized === 'log' ? '/log' : normalized === 'admin' ? '/admin' : '/entreprise';
     this.filteredMenuItems = this.menuItems.filter(item =>
       item.link ? item.link.startsWith(prefix) : (item.children?.some(c => c.link.startsWith(prefix)) ?? false)
     );

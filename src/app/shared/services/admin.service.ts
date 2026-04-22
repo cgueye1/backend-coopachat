@@ -107,6 +107,7 @@ export interface UserDetailsDTO {
   role: string;
   roleLabel: string;
   companyCommercial?: string | null;
+  companyName?: string;
   isActive: boolean;
   profilePhotoUrl?: string | null;
   createdAt: string;

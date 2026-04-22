@@ -7,7 +7,7 @@ import { SidebarComponent } from '../sidebar/sidebar.component';
 import { UserProfileDetailModalComponent } from '../../../shared/components/user-profile-detail-modal/user-profile-detail-modal.component';
 import { MyAccountModalService } from '../../../shared/services/my-account-modal.service';
 
-type Role = 'log' | 'com' | 'admin' | 'commercial';
+export type Role = 'log' | 'com' | 'admin' | 'commercial' | 'company';
 
 @Component({
   selector: 'app-main-layout',
@@ -60,10 +60,10 @@ export class MainLayoutComponent {
   }
 
   /** Normalisation du rôle */
-  get normalizedRole(): 'log' | 'com' | 'admin' {
+  get normalizedRole(): 'log' | 'com' | 'admin' | 'company' {
     if (!this.role) return 'log';
     if (this.role === 'commercial') return 'com';
-    if (this.role === 'com' || this.role === 'log' || this.role === 'admin') return this.role;
+    if (this.role === 'com' || this.role === 'log' || this.role === 'admin' || this.role === 'company') return this.role;
     return 'log';
   }
 }
