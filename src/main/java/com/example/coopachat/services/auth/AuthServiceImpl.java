@@ -210,8 +210,6 @@ public class AuthServiceImpl implements AuthService {
     // ============================================================================
     // 🔐 ACTIVATION DE COMPTE
     // ============================================================================
-
-
     /**
      * Vérifie un code d'activation pour un utilisateur
      */

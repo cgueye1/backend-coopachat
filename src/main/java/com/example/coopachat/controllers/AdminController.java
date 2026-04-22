@@ -522,8 +522,8 @@ public class  AdminController {
             @Parameter(description = "Adresse email", required = true)
             @RequestParam String email,
 
-            @Parameter(description = "Numéro de téléphone", required = true)
-            @RequestParam String phoneNumber,
+            @Parameter(description = "Numéro de téléphone")
+            @RequestParam(required = false) String phoneNumber,
 
             @Parameter(description = "Rôle (ADMINISTRATOR, COMMERCIAL, LOGISTICS_MANAGER, DELIVERY_DRIVER)", required = true)
             @RequestParam String role,

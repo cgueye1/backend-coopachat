@@ -9,6 +9,7 @@ public enum UserRole {
     LOGISTICS_MANAGER("Responsable Logistique"),
     DELIVERY_DRIVER("Livreur"),
     SUPPLIER("Fournisseur"),
+    COMPANY("Responsable Entreprise"),
     ADMINISTRATOR("Administrateur");
 
     private final String label;

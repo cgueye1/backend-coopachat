@@ -110,6 +110,16 @@
 			<version>8.0.32</version>
 		</dependency>
 
+		<!-- Flyway for database migrations -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-mysql</artifactId>
+		</dependency>
+
 		<!-- Lombok (ça nous permet d'ajouter les annotations pour get set et constructeur) -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
