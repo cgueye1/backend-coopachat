@@ -54,7 +54,7 @@ public interface UserRepository extends JpaRepository<Users, Long> {
     /**
      * Liste paginée des utilisateurs avec filtres optionnels (admin).
      * - search : recherche sur prénom, nom, nom complet ou email (insensible à la casse)
-     * - role : u.role <> EMPLOYEE = on exclut tous les employés, quoi qu’il arrive.
+     * - role : u.role <> EMPLOYEE et COMPANY = on exclut tous les employés et entreprises, quoi qu’il arrive.
      * Puis AND (:role IS NULL OR u.role = :role) = si l’admin choisit un rôle (Commercial, RL, …) on filtre dessus parmi ceux qui restent sinon si role est null on prend tous les autres rôles
      * - isActive : filtre par statut (null = tous, true = actif, false = inactif)
      * Tri : du plus récent au plus ancien (createdAt DESC).

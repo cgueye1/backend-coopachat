@@ -802,7 +802,7 @@ public class AdminServiceImpl implements AdminService {
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
         Pageable pageable = PageRequest.of(page, size);
 
-        //Tous les users sauf les employés
+        //Tous les users sauf les employés et les entreprises 
         Page<Users> userPage = userRepository.findAllWithFilters(searchTerm, role, status, pageable);
 
         // Mapper chaque utilisateur vers un DTO de liste
