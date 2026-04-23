@@ -207,6 +207,32 @@ public class AuthServiceImpl implements AuthService {
         );
     }
 
+    @Override
+    @Transactional
+    public void resendAdminOtp(String email) {
+        // Vérifier si l'utilisateur existe
+        Users user = getUserByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
+
+        // Vérifier que c'est bien un administrateur et qu'il est actif
+        if (user.getRole() != UserRole.ADMINISTRATOR || !Boolean.TRUE.equals(user.getIsActive())) {
+            throw new RuntimeException("Action non autorisée");
+        }
+
+        // Vérifier le cooldown (délai entre deux envois)
+        long cooldown = activationCodeService.getRemainingCooldownSecond(email, CodeType.ACTIVATION);
+        if (cooldown > 0) {
+            throw new RuntimeException("Veuillez attendre " + cooldown + " secondes avant de demander un nouveau code.");
+        }
+
+        // Générer et stocker un nouveau code OTP (6 chiffres)
+        String code = activationCodeService.generateAndStoreCode(email);
+
+        // Envoyer le code par email
+        emailService.sendOtpCode(email, code, user.getFirstName());
+        log.info("Nouveau code OTP envoyé à l'administrateur : {}", email);
+    }
+
     // ============================================================================
     // 🔐 ACTIVATION DE COMPTE
     // ============================================================================
