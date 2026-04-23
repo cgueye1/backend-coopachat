@@ -83,6 +83,8 @@ export class SidebarComponent implements OnChanges, OnInit {
 
     { label: 'Tableau de bord', icon: 'dashboard', link: '/admin/dashboardadmin', active: false },
     { label: 'Utilisateurs', icon: 'users', link: '/admin/users', active: false },
+    { label: 'Fournisseurs', icon: 'fournisseurs', link: '/admin/suppliers', active: false },
+
     { label: 'Catalogue', icon: 'catalogue', link: '/admin/catalogue', active: false },
     { label: 'Catégories', icon: 'categories', link: '/admin/categories', active: false },
     {

@@ -130,9 +130,9 @@ export class ProspectionComponent implements OnInit, OnDestroy {
       this.commercialService.getProspectStats().subscribe({
         next: (stats: ProspectStats) => {
           this.metricsData = [
-            { title: 'Total Prospects', value: stats.total, icon: '/icones/users-group.svg' },
-            { title: 'En attente', value: stats.enAttente, icon: '/icones/clock.svg' },
-            { title: 'Intéressés', value: stats.interesses, icon: '/icones/star.svg' }
+            { title: 'Total Prospects', value: stats.total, icon: '/icones/users.svg' },
+            { title: 'En attente', value: stats.enAttente, icon: '/icones/attente.svg' },
+            { title: 'Intéressés', value: stats.interesses, icon: '/icones/prospection.svg' }
           ];
           this.loadingStats = false;
         },
@@ -142,9 +142,9 @@ export class ProspectionComponent implements OnInit, OnDestroy {
       this.commercialService.getPartnerStats().subscribe({
         next: (stats: CompanyStats) => {
           this.metricsData = [
-            { title: 'Total Partenaires', value: stats.totalCompanies, icon: '/icones/building.svg' },
-            { title: 'Entreprises Actives', value: stats.activeCompanies, icon: '/icones/check-circle.svg' },
-            { title: 'Entreprises Inactives', value: stats.inactiveCompanies, icon: '/icones/x-circle.svg' }
+            { title: 'Total Partenaires', value: stats.totalCompanies, icon: '/icones/entreprise.svg' },
+            { title: 'Entreprises Actives', value: stats.activeCompanies, icon: '/icones/actif.svg' },
+            { title: 'Entreprises Inactives', value: stats.inactiveCompanies, icon: '/icones/inactif.svg' }
           ];
           this.loadingStats = false;
         },
@@ -205,6 +205,22 @@ export class ProspectionComponent implements OnInit, OnDestroy {
 
   private mapToProspect(c: any): Prospect {
     const initials = c.name ? c.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2) : '??';
+    
+    // Parsing robuste de la date (gère les strings ISO et les tableaux Jackson [y,m,d])
+    let displayDate = '—';
+    if (c.createdAt) {
+      const d = new Date(c.createdAt);
+      if (!isNaN(d.getTime())) {
+        displayDate = d.toLocaleDateString('fr-FR');
+      } else if (Array.isArray(c.createdAt) && c.createdAt.length >= 3) {
+        const [y, m, day] = c.createdAt;
+        const dateObj = new Date(y, m - 1, day);
+        if (!isNaN(dateObj.getTime())) {
+          displayDate = dateObj.toLocaleDateString('fr-FR');
+        }
+      }
+    }
+
     return {
       id: c.id,
       entreprise: c.name,
@@ -214,7 +230,7 @@ export class ProspectionComponent implements OnInit, OnDestroy {
         nom: c.contactName || '—',
         telephone: c.contactPhone || '—'
       },
-      date: c.createdAt ? new Date(c.createdAt).toLocaleDateString('fr-FR') : '—',
+      date: displayDate,
       prospectionStatus: c.statusLabel || c.status || 'En attente',
       statut: c.isActive ? 'Actif' : 'Inactif',
       logo: c.logo ? `${environment.imageServerUrl}/files/${c.logo}` : undefined,

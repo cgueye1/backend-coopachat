@@ -89,6 +89,10 @@
                 const apiBaseUrl = getApiBaseUrl();//URL de l'API pour recupérer les données de paiement
                 const token = getInjectedBearerToken();//Token du back-office injecté depuis le mobile
 
+                if (!token) {
+                    console.warn("Attention: window.__TOUCHPAY_BRIDGE_TOKEN est vide. La requête risque d'échouer (401).");
+                }
+
                 //Construction de l'URL apiBaseURL/api/payments/bridge/orderId
                 const url = `${apiBaseUrl}/api/payments/bridge/${encodeURIComponent(orderId)}`;
                 //Headers pour la requête et le token pour l'authentification
@@ -143,7 +147,17 @@
         }
 
         // Charger les données dès l'ouverture de la page
-        window.onload = loadPaymentData;
+        window.onload = () => {
+            // On laisse un tout petit délai (100ms) pour laisser le temps au mobile 
+            // d'injecter la variable avant de lancer le premier fetch
+            setTimeout(loadPaymentData, 100);
+        };
+
+        // Permettre au mobile de relancer le chargement manuellement si besoin
+        window.retryLoadWithToken = (token) => {
+            window.__TOUCHPAY_BRIDGE_TOKEN = token;
+            loadPaymentData();
+        };
     </script>
 </head>
 <body>

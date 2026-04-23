@@ -1,0 +1,54 @@
+<app-main-layout role="admin">
+  <div class="space-y-4 sm:space-y-5 lg:space-y-6">
+    <!-- Header -->
+    <app-header [title]="'Gestion des fournisseurs'" 
+                [breadcrumb]="'Pages / Gestion des fournisseurs'"
+                [type]="'simple'" 
+                [buttonLabel]="'Nouveau Fournisseur'" 
+                (actionClick)="nouveauFournisseur()">
+    </app-header>
+
+    <!-- Table Section -->
+    <div class="bg-white rounded-2xl hover:shadow-sm">
+      <!-- Filters & Search -->
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 border-b border-gray-50">
+        <div class="relative flex-1 max-w-md">
+          <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5" width="14" height="14"
+               viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13.1539 12.2073L10.6806 9.75393C11.6407 8.55687 12.1056 7.03747 11.9798 5.50813C11.854 3.9788 11.147 2.55579 10.0043 1.5317C8.86151 0.507604 7.3698 -0.0397263 5.83588 0.00224731C4.30196 0.0442209 2.84241 0.672308 1.75736 1.75736C0.672308 2.84241 0.0442209 4.30196 0.00224731 5.83588C-0.0397263 7.3698 0.507604 8.86151 1.5317 10.0043C2.55579 11.147 3.9788 11.854 5.50813 11.9798C7.03747 12.1056 8.55687 11.6407 9.75393 10.6806L12.2073 13.1339C12.2692 13.1964 12.343 13.246 12.4242 13.2799C12.5055 13.3137 12.5926 13.3311 12.6806 13.3311C12.7686 13.3311 12.8557 13.3137 12.937 13.2799C13.0182 13.246 13.092 13.1964 13.1539 13.1339C13.2741 13.0096 13.3413 12.8435 13.3413 12.6706C13.3413 12.4977 13.2741 12.3316 13.1539 12.2073ZM6.01393 10.6806C5.09095 10.6806 4.1887 10.4069 3.42127 9.89412C2.65384 9.38134 2.0557 8.65251 1.7025 7.79979C1.34929 6.94707 1.25687 6.00876 1.43694 5.10351C1.617 4.19827 2.06146 3.36675 2.7141 2.7141C3.36675 2.06146 4.19827 1.617 5.10351 1.43694C6.00876 1.25687 6.94707 1.34929 7.79979 1.7025C8.65251 2.0557 9.38134 2.65384 9.89412 3.42127C10.4069 4.1887 10.6806 5.09095 10.6806 6.01393C10.6806 7.25161 10.1889 8.43859 9.31376 9.31376C8.43859 10.1889 7.25161 10.6806 6.01393 10.6806Z"
+                  fill="#777777" />
+          </svg>
+          <input type="text" 
+                 [(ngModel)]="searchTerm"
+                 (ngModelChange)="onSearch()"
+                 placeholder="Rechercher par nom, email..." 
+                 class="w-full pl-10 pr-4 py-2.5 border border-[#EEEEEE] rounded-lg focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-xs sm:pl-12 sm:pr-4 sm:py-3 sm:text-sm bg-white placeholder-[#777777]">
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" (click)="onExport()"
+                  class="px-2.5 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-1.5 sm:px-3 sm:gap-2 bg-white transition-colors">
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" clip-rule="evenodd"
+                    d="M3.75 2.375C3.75 2.20924 3.81585 2.05027 3.93306 1.93306C4.05027 1.81585 4.20924 1.75 4.375 1.75H11.25C11.3321 1.74985 11.4135 1.7659 11.4894 1.79721C11.5653 1.82853 11.6344 1.8745 11.6925 1.9325L16.0675 6.3075C16.1255 6.36565 16.1715 6.43466 16.2028 6.51059C16.2341 6.58651 16.2501 6.66787 16.25 6.75V9.875H15V7.375H11.25C11.0842 7.375 10.9253 7.30915 10.8081 7.19194C10.6908 7.07473 10.625 6.91576 10.625 6.75V3H5V18H11.875V19.25H4.375C4.20924 19.25 4.05027 19.1842 3.93306 19.0669C3.81585 18.9497 3.75 18.7908 3.75 18.625V2.375ZM11.875 3.88375L14.1163 6.125H11.875V3.88375ZM15.4425 11.9338L17.9425 14.4338C18.0597 14.551 18.1255 14.7099 18.1255 14.8756C18.1255 15.0414 18.0597 15.2003 17.9425 15.3175L15.4425 17.8175L14.5575 16.9325L15.9913 15.5H10V14.25H15.9913L14.5575 12.8175L15.4425 11.9338Z"
+                    fill="#A3AED0" />
+            </svg>
+            <span>Exporter</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Placeholder Empty State -->
+      <div class="p-12 sm:p-20 flex flex-col items-center justify-center text-center">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 sm:mb-6">
+          <svg width="32" height="32" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 5.73038L11.029 4.52038L3.529 1.52038L0.943 2.55438C0.812528 2.60634 0.689999 2.67635 0.579 2.76238L8 5.73038ZM0.0350003 3.62338C0.0116737 3.72947 -6.18553e-05 3.83777 2.45166e-07 3.94638V11.5924C-4.98397e-05 11.8922 0.0897657 12.1852 0.257855 12.4335C0.425945 12.6818 0.664593 12.874 0.943 12.9854L6.7 15.2884C6.96067 15.3924 7.22733 15.4637 7.5 15.5024V6.60839L0.0350003 3.62338ZM8.5 15.5034C8.7742 15.464 9.04274 15.3921 9.3 15.2894L15.057 12.9864C15.3356 12.875 15.5743 12.6826 15.7424 12.4341C15.9105 12.1856 16.0002 11.8924 16 11.5924V3.94638C16 3.83572 15.9883 3.72772 15.965 3.62238L8.5 6.60839V15.5034ZM15.421 2.76338L12.375 3.98238L4.875 0.982385L6.7 0.250385C7.53452 -0.0834616 8.46548 -0.0834616 9.3 0.250385L15.057 2.55338C15.1875 2.60534 15.31 2.67535 15.421 2.76138"
+                  stroke="#2A538B" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <h3 class="text-base sm:text-lg font-semibold text-gray-800 mb-1 sm:mb-2">Aucun fournisseur pour le moment</h3>
+        <p class="text-xs sm:text-sm text-gray-500 max-w-sm px-4">La gestion des fournisseurs sera bientôt disponible. Vous pourrez y ajouter et gérer vos partenaires externes indépendamment des utilisateurs internes.</p>
+      </div>
+    </div>
+  </div>
+</app-main-layout>
