@@ -12,7 +12,7 @@
     [title]="routeMode === 'prospects' ? 'Prospections' : 'Entreprises'"
     [breadcrumb]="routeMode === 'prospects' ? 'Pages / Prospections' : 'Pages / Entreprises'"
     [type]="'simple'"
-    [buttonLabel]="'Nouvelle entreprise'"
+    [buttonLabel]="routeMode === 'prospects' ? 'Ajouter Prospect' : ''"
     (actionClick)="openCreateModal()">
   </app-header>
 

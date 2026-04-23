@@ -57,28 +57,6 @@ export class AuthService {
         );
     }
 
-    //----------------------------------------
-    // ACTIVATION DU COMPTE (CODE OTP)
-    //----------------------------------------
-
-    /**
-     * Vérifie le code OTP reçu par email après inscription.
-     * Si le code est valide, l'utilisateur peut créer son mot de passe.
-     */
-    verifyActivationCode(email: string, code: string): Observable<any> {
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/json'
-        });
-
-        return this.http.post(
-            `${this.apiUrl}/auth/verify-activation-code`,
-            { email, code },
-            {
-                headers,
-                responseType: 'text' as 'json'
-            }
-        );
-    }
 
     /**
      * Vérifie le code OTP pour les admins (authentification à deux facteurs).
@@ -93,6 +71,24 @@ export class AuthService {
             `${this.apiUrl}/auth/admin/verify-otp`,
             { email, code },
             { headers }
+        );
+    }
+
+    /**
+     * Renvoie le code OTP pour les admins (2FA).
+     */
+    resendAdminOtp(email: string): Observable<any> {
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json'
+        });
+
+        return this.http.post(
+            `${this.apiUrl}/auth/resend-otp`,
+            { email },
+            {
+                headers,
+                responseType: 'text' as 'json'
+            }
         );
     }
 
@@ -128,17 +124,17 @@ export class AuthService {
     }
 
     /**
-     * Crée le mot de passe après vérification du code OTP.
+     * Crée le mot de passe après vérification du code d'activation.
      * Étape finale de l'inscription avant la connexion.
      */
-    setPassword(email: string, password: string, confirmPassword: string): Observable<any> {
+    setPassword(email: string, token: string, password: string, confirmPassword: string): Observable<any> {
         const headers = new HttpHeaders({
             'Content-Type': 'application/json'
         });
 
         return this.http.post(
             `${this.apiUrl}/auth/set-password`,
-            { email, password, confirmPassword },
+            { email, token, password, confirmPassword },
             {
                 headers,
                 responseType: 'text' as 'json'
@@ -146,45 +142,19 @@ export class AuthService {
         );
     }
 
-    //----------------------------------------
-    // ENVOI ET RENVOI DU CODE D'ACTIVATION
-    //----------------------------------------
 
     /**
-     * Demande l'envoi d'un nouveau code d'activation par email.
-     * Utilisé quand l'utilisateur n'a pas reçu le premier envoi.
+     * Renvoie un lien d'activation (email) quand l'ancien a expiré.
+     * Le backend détermine le format (WEB/MOBILE) selon le rôle.
      */
-    sendActivationCode(email: string): Observable<any> {
+    resendActivation(email: string): Observable<string> {
         const headers = new HttpHeaders({
             'Content-Type': 'application/json'
         });
-
         return this.http.post(
-            `${this.apiUrl}/auth/send-activation-code`,
+            `${this.apiUrl}/auth/resend-activation`,
             { email },
-            {
-                headers,
-                responseType: 'text' as 'json'
-            }
-        );
-    }
-
-    /**
-     * Renvoie le code OTP par email (par ex. si le précédent a expiré).
-     * Limité par un délai pour éviter les abus.
-     */
-    resendActivationCode(email: string): Observable<any> {
-        const headers = new HttpHeaders({
-            'Content-Type': 'application/json'
-        });
-
-        return this.http.post(
-            `${this.apiUrl}/auth/resend-activation-code`,
-            { email },
-            {
-                headers,
-                responseType: 'text' as 'json'
-            }
+            { headers, responseType: 'text' }
         );
     }
 

@@ -146,17 +146,11 @@ export class CreatePasswordComponent implements OnInit {
         
         if (emailFromUrl) {
           // --- CAS 1 : ACTIVATION (Token + Email présents) ---
-          // 1. On vérifie d'abord la validité du code d'activation
-          this.authService.verifyActivationCode(emailFromUrl, this.resetToken).subscribe({
+          // On appelle directement setPassword avec le token. Le backend s'occupe de la vérification.
+          this.authService.setPassword(emailFromUrl, this.resetToken, newPassword, confirmPassword).subscribe({
             next: () => {
-              // 2. Si le code est valide, on définit le mot de passe et on active le compte
-              this.authService.setPassword(emailFromUrl, newPassword, confirmPassword).subscribe({
-                next: () => {
-                  this.isSubmitting = false;
-                  this.showSuccessMessage();
-                },
-                error: (error) => this.handleSubmitError(error)
-              });
+              this.isSubmitting = false;
+              this.showSuccessMessage();
             },
             error: (error) => this.handleSubmitError(error)
           });
@@ -182,8 +176,9 @@ export class CreatePasswordComponent implements OnInit {
         return;
       }
 
-      //Dans ce cas on appelle la méthode setPassword du service authService
-      this.authService.setPassword(email, newPassword, confirmPassword).subscribe({
+      // Dans ce cas, le token est déjà vérifié via l'écran OTP précédent. 
+      // On passe une chaîne vide pour le token, le backend vérifiera via hasUsedActivationCode.
+      this.authService.setPassword(email, '', newPassword, confirmPassword).subscribe({
         next: () => {
           this.isSubmitting = false;
           if (isPlatformBrowser(this.platformId)) {
@@ -207,11 +202,72 @@ export class CreatePasswordComponent implements OnInit {
       error,
       'Impossible d\'enregistrer le mot de passe. Vérifiez les critères ou réessayez.'
     );
-    Swal.fire({
-      title: 'Erreur',
-      text: backendMessage,
-      icon: 'error',
-      confirmButtonText: 'OK'
+
+    const emailFromUrl = this.route.snapshot.queryParamMap.get('email');
+    const isExpirationError = backendMessage.toLowerCase().includes('expir') || backendMessage.toLowerCase().includes('invalid');
+
+    // Si on est dans le flux d'activation par lien (email présent dans l'URL) et que c'est une erreur d'expiration
+    if (emailFromUrl && isExpirationError) {
+      Swal.fire({
+        title: 'Lien expiré ou invalide',
+        text: "Votre lien d'activation n'est plus valide ou a expiré. Voulez-vous recevoir un nouveau lien ?",
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonText: 'Renvoyer le lien',
+        cancelButtonText: 'Annuler',
+        buttonsStyling: false,
+        customClass: {
+          confirmButton: 'bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white px-6 py-2 rounded-md hover:from-orange-600 hover:to-orange-700 font-medium text-base ml-2',
+          cancelButton: 'bg-gray-200 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-300 font-medium text-base mr-2'
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          this.resendActivationLink(emailFromUrl);
+        }
+      });
+    } else {
+      Swal.fire({
+        title: 'Erreur',
+        text: backendMessage,
+        icon: 'error',
+        confirmButtonText: 'OK',
+        buttonsStyling: false,
+        customClass: {
+          confirmButton: 'bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white px-6 py-2 rounded-md hover:from-orange-600 hover:to-orange-700 font-medium text-base'
+        }
+      });
+    }
+  }
+
+  private resendActivationLink(email: string): void {
+    this.isSubmitting = true;
+    this.authService.resendActivation(email).subscribe({
+      next: (message) => {
+        this.isSubmitting = false;
+        Swal.fire({
+          title: 'Lien renvoyé !',
+          text: message || "Un nouveau lien d'activation a été envoyé à votre adresse email.",
+          icon: 'success',
+          confirmButtonText: 'OK',
+          buttonsStyling: false,
+          customClass: {
+            confirmButton: 'bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white px-6 py-2 rounded-md hover:from-orange-600 hover:to-orange-700 font-medium text-base'
+          }
+        });
+      },
+      error: (err) => {
+        this.isSubmitting = false;
+        Swal.fire({
+          title: 'Erreur',
+          text: getUserFacingHttpErrorMessage(err, "Impossible de renvoyer le lien d'activation."),
+          icon: 'error',
+          confirmButtonText: 'OK',
+          buttonsStyling: false,
+          customClass: {
+            confirmButton: 'bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white px-6 py-2 rounded-md hover:from-orange-600 hover:to-orange-700 font-medium text-base'
+          }
+        });
+      }
     });
   }
 

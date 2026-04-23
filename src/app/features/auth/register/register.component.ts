@@ -8,9 +8,7 @@ import { getUserFacingHttpErrorMessage } from '../../../shared/utils/http-error-
 import Swal from 'sweetalert2';
 
 /**
- * Activation de compte (Commercial / Responsable logistique) : l’admin crée l’utilisateur,
- * un code est envoyé par e-mail ; cette page ne demande que l’e-mail pour renvoyer un code
- * et enchaîne vers OTP puis création de mot de passe.
+ * Activation de compte (Commercial / Responsable logistique) : l’admin crée l’utilisateur.
  */
 @Component({
   selector: 'app-register',
@@ -40,38 +38,34 @@ export class RegisterComponent {
     }
     const email = (this.form.value.email as string).trim().toLowerCase();
     this.isLoading = true;
-    this.authService.sendActivationCode(email).subscribe({
+    this.authService.resendActivation(email).subscribe({
       next: () => {
         this.isLoading = false;
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem('verificationEmail', email);
-        }
         Swal.fire({
-          title: 'Code envoyé',
-          text: 'Un code de vérification vient de vous être envoyé par e-mail.',
+          title: 'Lien envoyé',
+          text: 'Un lien d\'activation vient de vous être envoyé par e-mail.',
           iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
-          showConfirmButton: false,
-          timer: 3500,
+          showConfirmButton: true,
+          confirmButtonText: 'D\'accord',
           buttonsStyling: false,
           customClass: {
             popup: 'rounded-3xl p-6',
             title: 'text-xl font-medium text-gray-900',
             htmlContainer: 'text-base text-gray-600',
-            icon: 'border-none'
+            icon: 'border-none',
+            confirmButton: 'bg-gradient-to-r from-[#FF6B00] to-[#FF914D] text-white px-6 py-2 rounded-md hover:from-orange-600 hover:to-orange-700 font-medium text-base'
           },
           backdrop: 'rgba(0,0,0,0.2)',
           width: '580px'
         }).then(() => {
-          void this.router.navigate(['/otp-verification'], {
-            queryParams: { email, flow: 'activation' }
-          });
+          void this.router.navigate(['/login']);
         });
       },
-      error: (error) => {
+      error: (error: any) => {
         this.isLoading = false;
         const message = getUserFacingHttpErrorMessage(
           error,
-          'Impossible d’envoyer le code. Vérifiez l’adresse ou réessayez plus tard.'
+          'Impossible d’envoyer le lien d\'activation. Vérifiez l’adresse ou réessayez plus tard.'
         );
         void Swal.fire({ icon: 'error', title: 'Erreur', text: message });
       }

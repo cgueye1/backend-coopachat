@@ -9,6 +9,16 @@ export interface CommandesParMoisDTO {
     nbCommandes: number;
 }
 
+/** Salarié top 5 le plus actif. */
+export interface TopEmployeeDTO {
+    firstName: string;
+    lastName: string;
+    employeeCode: string;
+    nbCommandes: number;
+    status: string;
+    activite: number;
+}
+
 /** KPIs du tableau de bord entreprise (GET /api/entreprise/dashboard/kpis). */
 export interface CompanyDashboardKpisDTO {
     totalEmployees: number;
@@ -17,6 +27,7 @@ export interface CompanyDashboardKpisDTO {
     ordersThisMonth: number;
     activeEmployeesRatio: string;
     evolutionCommandes: CommandesParMoisDTO[];
+    topEmployees: TopEmployeeDTO[];
 }
 
 @Injectable({

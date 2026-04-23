@@ -173,26 +173,17 @@ export class OtpVerificationComponent implements OnInit {
       return;
     }
 
-    const isAdminOtpFlow =
-      isPlatformBrowser(this.platformId) &&
-      !!sessionStorage.getItem('otpEmail') &&
-      this.route.snapshot.queryParams['flow'] !== 'activation';
-
-    const request$ = isAdminOtpFlow
-      ? this.authService.verifyAdminOtp(this.userEmail, this.otpValue)
-      // CAS ADMIN  → vérifie le code 2FA et retourne un token
-      : this.authService.verifyActivationCode(this.userEmail, this.otpValue);
-      // CAS INSCRIPTION → active le compte et ne retourne pas de token
+    const request$ = this.authService.verifyAdminOtp(this.userEmail, this.otpValue);
 
     // On envoie la requête
     request$.subscribe({
 
       // ✅ SI LE CODE EST CORRECT
-      next: (response) => {
+      next: (response: any) => {
         this.isLoading = false;
 
         // CAS ADMIN : on reçoit un token → on le stocke → redirection
-        if (isAdminOtpFlow && response?.accessToken) {
+        if (response?.accessToken) {
 
           // On stocke toutes les infos de l'utilisateur (session + local pour persistance au rechargement)
           const store = (key: string, value: string) => {
@@ -233,7 +224,7 @@ export class OtpVerificationComponent implements OnInit {
       },
 
       // ❌ SI LE CODE EST INCORRECT
-      error: (error) => {
+      error: (error: any) => {
         this.isLoading = false;
 
         this.errorMessage = getUserFacingHttpErrorMessage(
@@ -259,32 +250,30 @@ export class OtpVerificationComponent implements OnInit {
     this.isResendDisabled = true;
     this.errorMessage = '';
 
-    // Appel API : envoie un nouveau code par email
-    this.authService.resendActivationCode(this.userEmail).subscribe({
-
-      // ✅ CODE RENVOYÉ AVEC SUCCÈS
+    // Appel API : envoie un nouveau code OTP par email pour l'admin
+    this.authService.resendAdminOtp(this.userEmail).subscribe({
       next: () => {
-        // On lance un compte à rebours de 30 secondes pendant lequel le bouton reste désactivé
+        this.isLoading = false;
+        // On lance un compte à rebours de 30 secondes
         this.startResendCountdown(30);
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Nouveau code envoyé',
+          showConfirmButton: false,
+          timer: 3000
+        });
       },
-
-      // ❌ ERREUR LORS DU RENVOI
-      error: (error) => {
-        this.isResendDisabled = false; // on réactive le bouton
-
-        const errorMessage = getUserFacingHttpErrorMessage(
-          error,
-          'Erreur lors du renvoi du code'
-        );
+      error: (error: any) => {
+        this.isLoading = false;
+        this.isResendDisabled = false;
+        const errorMessage = getUserFacingHttpErrorMessage(error, 'Erreur lors du renvoi du code');
         this.errorMessage = errorMessage;
-
-        // Le backend peut envoyer un message comme : "Veuillez attendre 15 secondes avant de réessayer"
-        // On extrait le nombre de secondes avec une regex
+        
         const secondsMatch = errorMessage.match(/(\d+)\s*secondes?/);
         if (secondsMatch) {
-          // On lance le countdown avec le délai exact du backend
-          const remainingSeconds = parseInt(secondsMatch[1]);
-          this.startResendCountdown(remainingSeconds);
+          this.startResendCountdown(parseInt(secondsMatch[1]));
         }
       }
     });

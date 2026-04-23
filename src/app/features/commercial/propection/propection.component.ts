@@ -1,330 +1,326 @@
-import { Component, OnInit, NgZone, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { HeaderComponent } from '../../../core/layouts/header/header.component';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
+import { finalize, Subscription } from 'rxjs';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
-import { CompanyModalComponent, CompanyFormData, CompanySubmitPayload } from '../../../shared/components/company-modal/company-modal.component';
-import { CommercialService } from '../../../shared/services/commercial.service';
+import { HeaderComponent } from '../../../core/layouts/header/header.component';
+import { CompanyModalComponent, CompanySubmitPayload, CompanyFormData } from '../../../shared/components/company-modal/company-modal.component';
+import { CommercialService, ProspectStats, CompanyStats } from '../../../shared/services/commercial.service';
 import { environment } from '../../../../environments/environment';
 import Swal from 'sweetalert2';
 
-/** 2 pages en 1 : Prospections (à convaincre) ou Entreprises (partenaires). Mode lu via route.data['mode'] */
 interface Prospect {
   id: string;
-  companyCode?: string;
   entreprise: string;
   secteur: string;
-  note?: string;
   localisation: string;
   contact: {
     nom: string;
-    email?: string;
     telephone: string;
   };
-  statut: 'Actif' | 'Inactif';
-  prospectionStatus?: string;
   date: string;
+  prospectionStatus: string;
+  statut: 'Actif' | 'Inactif';
+  logo?: string;
   initials: string;
-  logo?: string; // URL pour afficher le logo (ex. /api/files/companies/uuid.png)
-  employeeCount?: number;
-  orderCount?: number;
-}
-
-//Interfaces pour les statistiques 
-interface MetricCard {
-  title: string;
-  value: string;
-  icon: string;
 }
 
 @Component({
-  selector: 'app-prospection',
+  selector: 'app-propection',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, MainLayoutComponent, CompanyModalComponent, HeaderComponent],
-  templateUrl: `./propection.component.html`,
-  styles: []
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    MainLayoutComponent,
+    HeaderComponent,
+    CompanyModalComponent
+  ],
+  templateUrl: './propection.component.html',
+  styleUrls: ['./propection.component.css']
 })
-export class ProspectionComponent implements OnInit {
+export class ProspectionComponent implements OnInit, OnDestroy {
+  routeMode: 'prospects' | 'partenaires' = 'prospects';
+  private routeSub?: Subscription;
 
-  // --- Variables de filtres ---
-  searchTerm = ''; // Terme de recherche dans le tableau
-  selectedStatus = ''; // Filtre Actif/Inactif (page partenaires)
-  selectedSector = ''; // Filtre secteur d'activité
-  selectedProspectionStatus = ''; // Filtre état prospection (page prospects)
-  selectedCompanyType = ''; // Type de vue (prospects ou partenaires)
-  routeMode: 'prospects' | 'partenaires' = 'prospects'; // Mode page courant
-
-  // --- Pagination ---
-  currentPage  = 1;
-  itemsPerPage = 6;
-  totalElements = 0; // Nombre total renvoyé par le backend
-
-  // --- Visibilité des menus déroulants ---
-  showStatusDropdown            = false;
-  showCompanyTypeDropdown       = false;
-  showProspectionStatusDropdown = false;
-  showSectorDropdown            = false;
-
-  // --- Modales (création / modification) ---
-  isCreateModalOpen    = false;
-  isEditModalOpen      = false;
-  isCompanySubmitting  = false; // Loader pendant l'enregistrement
-  editingCompanyId: string | null   = null;
+  // Modals
+  isCreateModalOpen = false;
+  isEditModalOpen = false;
+  isCompanySubmitting = false;
   editingCompanyData: CompanyFormData | null = null;
-  editingCompanyLogoUrl: string | null = null; // Logo existant en mode édition
-  private successPopupTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  private submitSequence = 0;
+  editingCompanyId: string | null = null;
+  editingCompanyLogoUrl: string | null = null;
 
-  // --- Données et listes ---
-  /** KPI en-tête (prospects ou partenaires selon routeMode). */
-  loadingStats: boolean = false;
-  /** Tableau paginé (liste entreprises / prospects). */
-  loadingCompanyList: boolean = false;
-  metricsData: MetricCard[] = []; // Cartes stats en haut
-  prospects: Prospect[] = [];
-  filteredProspects: Prospect[] = []; // Liste affichée (avec pagination)
+  // Stats
+  loadingStats = false;
+  metricsData: any[] = [];
 
+  // Table & Filters
+  searchTerm = '';
+  loadingCompanyList = false;
+  companyList: Prospect[] = [];
+  
+  currentPage = 1;
+  totalPages = 1;
+  totalElements = 0;
+  readonly itemsPerPage = 10;
+
+  // Sectors
+  showSectorDropdown = false;
+  selectedSector = '';
+  sectorOptions: { id: number; name: string }[] = [];
+  uniqueSectors: string[] = [];
+
+  // Status (Active/Inactive)
+  showStatusDropdown = false;
+  selectedStatus = '';
   uniqueStatuses = ['Tous les statuts', 'Actif', 'Inactif'];
+
+  // Prospection Status
+  showProspectionStatusDropdown = false;
+  selectedProspectionStatus = '';
   prospectionStatusOptions = [
-    { value: '',           label: 'Tous les statuts prospection' },
-    { value: 'PENDING',    label: 'En attente' },
-    { value: 'RELAUNCHED', label: 'Relancée' },
-    { value: 'INTERESTED', label: 'Intéressée' }
+    { label: 'Tous les états', value: '' },
+    { label: 'En attente', value: 'PENDING' },
+    { label: 'Relancée', value: 'RELAUNCHED' },
+    { label: 'Intéressée', value: 'INTERESTED' },
+    { label: 'Partenaire signé', value: 'PARTNER_SIGNED' }
   ];
 
-  /** Libellés API / affichage (alignés sur CompanyStatus côté backend). */
-  readonly prospectionTableStatusLabels: string[] = [
-    'En attente',
-    'Relancée',
-    'Intéressée',
-    'Partenaire signé'
-  ];
-
-  /** Ligne en cours de mise à jour (désactive le select). */
+  prospectionTableStatusLabels = ['En attente', 'Relancée', 'Intéressée', 'Partenaire signé'];
   updatingProspectionStatusId: string | null = null;
 
+  private commercialService = inject(CommercialService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
-  // Ferme tous les dropdowns au clic en dehors
+  ngOnInit(): void {
+    this.routeSub = this.route.data.subscribe(data => {
+      this.routeMode = data['mode'] || 'prospects';
+      this.resetFiltersAndLoad();
+    });
+    this.loadSectors();
+  }
+
+  ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
+  }
+
   @HostListener('document:click')
   onDocumentClick(): void {
-    this.showStatusDropdown = false;
     this.showSectorDropdown = false;
-    this.showCompanyTypeDropdown = false;
+    this.showStatusDropdown = false;
     this.showProspectionStatusDropdown = false;
   }
 
-  // Secteurs d'activité 
-  /** Secteurs chargés depuis l'API (référentiel admin). */
-  sectorOptions: { id: number; name: string }[] = [];
-  /** Pour le filtre : libellé affiché + option "Tous les secteurs". */
-  get uniqueSectors(): string[] {
-    return ['Tous les secteurs', ...this.sectorOptions.map(s => s.name)];
+  private resetFiltersAndLoad(): void {
+    this.currentPage = 1;
+    this.searchTerm = '';
+    this.selectedSector = '';
+    this.selectedStatus = '';
+    this.selectedProspectionStatus = '';
+    this.loadStats();
+    this.loadData();
   }
 
-  // ---------- BADGES (couleurs selon statut prospection) ----------
-  get selectedProspectionStatusLabel(): string {
-    return this.prospectionStatusOptions.find(o => o.value === this.selectedProspectionStatus)?.label
-      ?? 'Tous les statuts prospection';
-  }
-
-  /** Couleurs des badges selon statut prospection */
-  getProspectionStatusClasses(status: string | undefined): string {
-    if (!status) return 'bg-gray-50 text-gray-600';
-    const s = status.toLowerCase();
-    if (s.includes('attente')    || s === 'pending')    return 'bg-gray-50 text-gray-600';
-    if (s.includes('relanc')     || s === 'relaunched') return 'bg-blue-50 text-blue-600';
-    if (s.includes('intéress')   || s === 'interested') return 'bg-emerald-50 text-emerald-600';
-    if (s.includes('signé')      || s.includes('signed')) return 'bg-green-50 text-green-600';
-    return 'bg-gray-50 text-gray-600';
-  }
-
-  getProspectionStatusDotClasses(status: string | undefined): string {
-    if (!status) return 'bg-gray-400';
-    const s = status.toLowerCase();
-    if (s.includes('attente')    || s === 'pending')    return 'bg-gray-400';
-    if (s.includes('relanc')     || s === 'relaunched') return 'bg-blue-500';
-    if (s.includes('intéress')   || s === 'interested') return 'bg-emerald-500';
-    if (s.includes('signé')      || s.includes('signed')) return 'bg-green-500';
-    return 'bg-gray-400';
-  }
-
-  /** Valeur du select : toujours un libellé autorisé (Refusée / Rendez-vous / etc. → normalisé). */
-  prospectionRowSelectModel(prospect: Prospect): string {
-    return this.canonicalProspectionStatus(prospect.prospectionStatus);
-  }
-
-  async onProspectionStatusChange(prospect: Prospect, event: Event): Promise<void> {
-    const el = event.target as HTMLSelectElement;
-    const newStatus = el.value;
-    const previousDisplay = this.prospectionRowSelectModel(prospect);
-    if (newStatus === previousDisplay) {
-      return;
-    }
-
-    el.value = previousDisplay;
-
-    const result = await Swal.fire({
-      title: 'Modifier l\'état prospection ?',
-      text:
-        `« ${prospect.entreprise} » passera de « ${previousDisplay} » à « ${newStatus} ».`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Confirmer',
-      cancelButtonText: 'Annuler',
-      focusCancel: true,
-      confirmButtonColor: '#2C2D5B',
-      cancelButtonColor: '#6B7280'
-    });
-
-    if (!result.isConfirmed) {
-      return;
-    }
-
-    el.value = newStatus;
-    this.updatingProspectionStatusId = prospect.id;
-
-    this.ngZone.run(() => {
-      this.commercialService.updateCompanyProspectionStatus(prospect.id, newStatus).subscribe({
-        next: () => {
-          this.updatingProspectionStatusId = null;
-          const redirectPartners = this.routeMode === 'prospects' && newStatus === 'Partenaire signé';
-          const successDialog = Swal.fire({
-            icon: 'success',
-            title: 'État prospection enregistré',
-            text: `Statut choisi : ${newStatus}`,
-            timer: redirectPartners ? 2000 : 2600,
-            showConfirmButton: false
-          });
-          if (redirectPartners) {
-            void successDialog.then(() => this.router.navigate(['/com/entreprises']));
-          } else {
-            prospect.prospectionStatus = newStatus;
-            this.loadCompanies();
-            this.loadCompanyStats();
-          }
-        },
-        error: (err) => {
-          this.updatingProspectionStatusId = null;
-          el.value = this.prospectionRowSelectModel(prospect);
-          const msg = err?.error?.message ?? err?.error ?? 'Impossible de modifier l\'état prospection.';
-          Swal.fire({
-            icon: 'error',
-            title: 'Erreur',
-            text: typeof msg === 'string' ? msg : 'Impossible de modifier l\'état prospection.'
-          });
-        }
-      });
-    });
-  }
-
-  // ---------- INIT ----------
-  constructor(
-    private commercialService: CommercialService,
-    private route: ActivatedRoute,
-    private router: Router,
-    private ngZone: NgZone
-  ) {}
-
-  ngOnInit(): void {
-    const mode = this.route.snapshot.data['mode'] as 'prospects' | 'partenaires' | undefined;
-    this.routeMode = mode === 'partenaires' ? 'partenaires' : 'prospects';
-    this.selectedCompanyType = this.routeMode;
-
-    this.commercialService.getCompanySectors().subscribe({
-      next: (list) => { this.sectorOptions = list.map(s => ({ id: s.id, name: s.name })); },
-      error: () => { this.sectorOptions = []; }
-    });
-    this.loadCompanies();
-    this.loadCompanyStats();
-
-    this.route.queryParams.subscribe((params) => {
-      if (params['openEdit'] && this.routeMode === 'partenaires') {
-        const editId = String(params['openEdit']);
-        void this.router.navigate([], {
-          relativeTo: this.route,
-          queryParams: { openEdit: undefined },
-          queryParamsHandling: 'merge',
-          replaceUrl: true
-        });
-        queueMicrotask(() => this.editProspect(editId));
-        return;
-      }
-      if (params['id']) {
-        void this.router.navigate(['/com/entreprises', params['id'], 'salaries']);
-      }
-    });
-  }
-
-  // ---------- CHARGEMENT API (liste + stats) ----------
-  /** ID du secteur sélectionné pour le filtre (null = tous). */
-  selectedSectorId: number | null = null;
-
-  loadCompanies(): void {
-    const page   = this.currentPage - 1;
-    const size   = this.itemsPerPage;
-    const search = this.searchTerm;
-
-    this.loadingCompanyList = true;
-    const request = this.routeMode === 'prospects'
-      ? this.commercialService.getProspects(page, size, search, this.selectedSectorId ?? undefined, this.selectedProspectionStatus || undefined)
-      : this.commercialService.getCompanies(page, size, search, this.selectedSectorId ?? undefined, this.getIsActiveFilter());
-
-    request.subscribe({
-      next: (response) => {
-        const companies        = response?.content ?? [];
-        this.prospects         = companies.map((c: any) => this.mapCompanyToProspect(c));
-          this.filteredProspects = [...this.prospects];
-        this.totalElements     = response?.totalElements ?? this.prospects.length;
-        this.loadingCompanyList = false;
-      },
-      error: (error) => {
-        console.error('Erreur chargement:', error);
-        this.loadingCompanyList = false;
-      }
-    });
-  }
-
-  loadCompanyStats(): void {
+  loadStats(): void {
     this.loadingStats = true;
     if (this.routeMode === 'prospects') {
       this.commercialService.getProspectStats().subscribe({
-        next: (stats: any) => {
+        next: (stats: ProspectStats) => {
           this.metricsData = [
-            { title: 'Total prospects', value: String(stats?.total      ?? 0), icon: '/icones/entreprise.svg' },
-            { title: 'En attente',      value: String(stats?.enAttente  ?? 0), icon: '/icones/entreprise.svg' },
-            { title: 'Relancés',        value: String(stats?.relancer   ?? 0), icon: '/icones/entreprise.svg' },
-            { title: 'Intéressés',      value: String(stats?.interesses ?? 0), icon: '/icones/actif.svg' },
-            { title: 'Signés',          value: String(stats?.signes     ?? 0), icon: '/icones/inactif.svg' }
+            { title: 'Total Prospects', value: stats.total, icon: '/icones/users-group.svg' },
+            { title: 'En attente', value: stats.enAttente, icon: '/icones/clock.svg' },
+            { title: 'Intéressés', value: stats.interesses, icon: '/icones/star.svg' }
           ];
           this.loadingStats = false;
         },
-        error: () => {
-          this.metricsData = [];
-          this.loadingStats = false;
-        }
+        error: () => this.loadingStats = false
       });
     } else {
       this.commercialService.getPartnerStats().subscribe({
-        next: (stats: any) => {
+        next: (stats: CompanyStats) => {
           this.metricsData = [
-            { title: 'Total partenaires', value: String(stats?.totalCompanies    ?? 0), icon: '/icones/entreprise.svg' },
-            { title: 'Actives',           value: String(stats?.activeCompanies   ?? 0), icon: '/icones/actif.svg' },
-            { title: 'Inactives',         value: String(stats?.inactiveCompanies ?? 0), icon: '/icones/inactif.svg' }
+            { title: 'Total Partenaires', value: stats.totalCompanies, icon: '/icones/building.svg' },
+            { title: 'Entreprises Actives', value: stats.activeCompanies, icon: '/icones/check-circle.svg' },
+            { title: 'Entreprises Inactives', value: stats.inactiveCompanies, icon: '/icones/x-circle.svg' }
           ];
           this.loadingStats = false;
         },
-        error: () => {
-          this.metricsData = [];
-          this.loadingStats = false;
-        }
+        error: () => this.loadingStats = false
       });
     }
   }
 
-  // ---------- MODALE CRÉATION ----------
+  loadSectors(): void {
+    this.commercialService.getCompanySectors().subscribe({
+      next: (sectors) => {
+        this.sectorOptions = sectors;
+        this.uniqueSectors = ['Tous les secteurs', ...sectors.map(s => s.name)];
+      }
+    });
+  }
+
+  loadData(): void {
+    this.loadingCompanyList = true;
+    const sectorId = this.sectorOptions.find(s => s.name === this.selectedSector)?.id;
+    
+    if (this.routeMode === 'prospects') {
+      this.commercialService.getProspects(
+        this.currentPage - 1,
+        this.itemsPerPage,
+        this.searchTerm,
+        sectorId,
+        this.selectedProspectionStatus || undefined
+      ).subscribe({
+        next: (res) => {
+          this.processResponse(res);
+        },
+        error: () => this.loadingCompanyList = false
+      });
+    } else {
+      const isActive = this.selectedStatus === 'Actif' ? true : (this.selectedStatus === 'Inactif' ? false : undefined);
+      this.commercialService.getCompanies(
+        this.currentPage - 1,
+        this.itemsPerPage,
+        this.searchTerm,
+        sectorId,
+        isActive
+      ).subscribe({
+        next: (res) => {
+          this.processResponse(res);
+        },
+        error: () => this.loadingCompanyList = false
+      });
+    }
+  }
+
+  private processResponse(res: any): void {
+    this.companyList = (res.content || []).map((c: any) => this.mapToProspect(c));
+    this.totalElements = res.totalElements || 0;
+    this.totalPages = res.totalPages || 1;
+    this.loadingCompanyList = false;
+  }
+
+  private mapToProspect(c: any): Prospect {
+    const initials = c.name ? c.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2) : '??';
+    return {
+      id: c.id,
+      entreprise: c.name,
+      secteur: c.sectorLabel || '—',
+      localisation: c.location || '—',
+      contact: {
+        nom: c.contactName || '—',
+        telephone: c.contactPhone || '—'
+      },
+      date: c.createdAt ? new Date(c.createdAt).toLocaleDateString('fr-FR') : '—',
+      prospectionStatus: c.statusLabel || c.status || 'En attente',
+      statut: c.isActive ? 'Actif' : 'Inactif',
+      logo: c.logo ? `${environment.imageServerUrl}/files/${c.logo}` : undefined,
+      initials
+    };
+  }
+
+  onSearch(): void {
+    this.currentPage = 1;
+    this.loadData();
+  }
+
+  toggleSectorDropdown(): void {
+    this.showSectorDropdown = !this.showSectorDropdown;
+  }
+
+  selectSector(sector: string): void {
+    this.selectedSector = sector === 'Tous les secteurs' ? '' : sector;
+    this.showSectorDropdown = false;
+    this.currentPage = 1;
+    this.loadData();
+  }
+
+  toggleStatusDropdown(): void {
+    this.showStatusDropdown = !this.showStatusDropdown;
+  }
+
+  selectStatus(status: string): void {
+    this.selectedStatus = status === 'Tous les statuts' ? '' : status;
+    this.showStatusDropdown = false;
+    this.currentPage = 1;
+    this.loadData();
+  }
+
+  toggleProspectionStatusDropdown(): void {
+    this.showProspectionStatusDropdown = !this.showProspectionStatusDropdown;
+  }
+
+  selectProspectionStatus(value: string): void {
+    this.selectedProspectionStatus = value;
+    this.showProspectionStatusDropdown = false;
+    this.currentPage = 1;
+    this.loadData();
+  }
+
+  get selectedProspectionStatusLabel(): string {
+    return this.prospectionStatusOptions.find(o => o.value === this.selectedProspectionStatus)?.label || 'Tous les états';
+  }
+
+  onProspectionStatusChange(prospect: Prospect, event: any): void {
+    const newStatusLabel = event.target.value;
+    this.updatingProspectionStatusId = prospect.id;
+    
+    this.commercialService.updateCompanyProspectionStatus(prospect.id, newStatusLabel)
+      .pipe(finalize(() => this.updatingProspectionStatusId = null))
+      .subscribe({
+        next: () => {
+          prospect.prospectionStatus = newStatusLabel;
+          if (newStatusLabel === 'Partenaire signé') {
+            Swal.fire({
+              title: 'Statut changé avec succès !',
+              text: 'L\'entreprise est désormais partenaire. L\'utilisateur peut maintenant activer son compte via l\'email envoyé.',
+              icon: 'success',
+              confirmButtonColor: '#2B3674'
+            });
+            // Si on est en mode prospects, on rafraîchit car l'entreprise devrait disparaître de cette liste
+            if (this.routeMode === 'prospects') {
+              this.loadData();
+              this.loadStats();
+            }
+          } else {
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              icon: 'success',
+              title: 'Statut mis à jour',
+              showConfirmButton: false,
+              timer: 3000
+            });
+          }
+        },
+        error: (err) => {
+          Swal.fire('Erreur', 'Impossible de mettre à jour le statut', 'error');
+        }
+      });
+  }
+
+  getProspectionStatusClasses(status: string): string {
+    switch (status) {
+      case 'Partenaire signé': return 'bg-green-50 text-green-700';
+      case 'Intéressée': return 'bg-blue-50 text-blue-700';
+      case 'Relancée': return 'bg-orange-50 text-orange-700';
+      default: return 'bg-gray-50 text-gray-700';
+    }
+  }
+
+  getProspectionStatusDotClasses(status: string): string {
+    switch (status) {
+      case 'Partenaire signé': return 'bg-green-500';
+      case 'Intéressée': return 'bg-blue-500';
+      case 'Relancée': return 'bg-orange-500';
+      default: return 'bg-gray-500';
+    }
+  }
+
   openCreateModal(): void {
-    this.isEditModalOpen   = false;
     this.isCreateModalOpen = true;
   }
 
@@ -333,431 +329,147 @@ export class ProspectionComponent implements OnInit {
   }
 
   onCompanyCreate(payload: CompanySubmitPayload): void {
-    this.submitCompany(payload, false);
+    this.isCompanySubmitting = true;
+    const sectorId = this.sectorOptions.find(s => s.name === payload.formData.secteur)?.id;
+    
+    this.commercialService.createCompany({
+      name: payload.formData.nom,
+      sectorId,
+      location: payload.formData.localisation,
+      contactName: payload.formData.contact,
+      contactEmail: payload.formData.email,
+      contactPhone: payload.formData.telephone,
+      status: payload.formData.statut,
+      note: payload.formData.note,
+      logo: payload.logo
+    }).pipe(finalize(() => this.isCompanySubmitting = false))
+      .subscribe({
+        next: () => {
+          this.onCloseCreateModal();
+          this.loadData();
+          this.loadStats();
+          Swal.fire('Succès', 'Entreprise créée avec succès', 'success');
+        },
+        error: (err) => {
+          Swal.fire('Erreur', 'Impossible de créer l\'entreprise', 'error');
+        }
+      });
   }
 
-  // ---------- MODALE MODIFICATION ----------
   editProspect(id: string): void {
-    this.isCreateModalOpen = false;
+    this.loadingCompanyList = true;
     this.commercialService.getCompanyDetails(id).subscribe({
       next: (details) => {
-        this.editingCompanyId    = id;
-        this.editingCompanyData  = this.mapCompanyDetailsToFormData(details);
-        this.editingCompanyLogoUrl = details?.logo
-          ? `${environment.imageServerUrl}/files/${details.logo}`
-          : null;
-        this.isEditModalOpen     = true;
+        this.editingCompanyId = id;
+        this.editingCompanyData = {
+          nom: details.name,
+          secteur: details.sectorLabel || '',
+          localisation: details.location || '',
+          statut: details.statusLabel || details.status || 'En attente',
+          contact: details.contactName || '',
+          email: details.contactEmail || '',
+          telephone: details.contactPhone || '',
+          note: details.note || ''
+        };
+        this.editingCompanyLogoUrl = details.logo ? `${environment.imageServerUrl}/files/${details.logo}` : null;
+        this.isEditModalOpen = true;
+        this.loadingCompanyList = false;
       },
-      error: (error) => console.error('Erreur chargement pour modification:', error)
+      error: () => this.loadingCompanyList = false
     });
   }
 
-  // Méthode qui permet de : ......
   onCloseEditModal(): void {
-    this.isEditModalOpen      = false;
-    this.editingCompanyId     = null;
-    this.editingCompanyData   = null;
-    this.editingCompanyLogoUrl = null;
+    this.isEditModalOpen = false;
+    this.editingCompanyId = null;
+    this.editingCompanyData = null;
   }
-
 
   onCompanyEdit(payload: CompanySubmitPayload): void {
     if (!this.editingCompanyId) return;
-    this.submitCompany(payload, true);
-  }
-
-  // ---------- ACTIVER / DÉSACTIVER ENTREPRISE ----------
-  async toggleProspectStatus(prospect: Prospect): Promise<void> {
-    const nextIsActive = prospect.statut !== 'Actif';
-
-    const result = await Swal.fire({
-      title: nextIsActive ? 'Activer cette entreprise partenaire ?' : 'Désactiver cette entreprise partenaire ?',
-      text: nextIsActive
-        ? 'Les membres auront accès à leurs actions (commandes, promotions, etc.).'
-        : 'Les salariés ne pourront plus se connecter ni effectuer de commandes.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: nextIsActive ? '#22C55E' : '#EF4444',
-      cancelButtonColor: '#6B7280',
-      confirmButtonText: nextIsActive ? 'Activer' : 'Désactiver',
-      cancelButtonText: 'Annuler'
-    });
-
-    if (!result.isConfirmed) return;
-
-    this.ngZone.run(() => {
-    this.commercialService.updateCompanyStatus(prospect.id, nextIsActive).subscribe({
-      next: () => {
-        prospect.statut = nextIsActive ? 'Actif' : 'Inactif';
-        this.loadCompanies();
-          this.loadCompanyStats();
-          Swal.fire({
-            title: nextIsActive ? 'Entreprise activée' : 'Entreprise désactivée',
-            icon: 'success', timer: 2000, showConfirmButton: false
-          });
-      },
-      error: (error) => {
-          const msg = error?.error?.message || 'Impossible de modifier le statut.';
-          Swal.fire({ title: 'Erreur', text: typeof msg === 'string' ? msg : 'Impossible de modifier le statut.', icon: 'error' });
-        }
-      });
-    });
-  }
-
-  // ---------- SOUMISSION FORMULAIRE (création + modification) ----------
-  private submitCompany(payload: CompanySubmitPayload, isEdit: boolean): void {
-    const data = payload.formData;
-    const submitId = ++this.submitSequence;
     this.isCompanySubmitting = true;
-    Swal.close();
-
-    if (this.successPopupTimeoutId) {
-      clearTimeout(this.successPopupTimeoutId);
-      this.successPopupTimeoutId = null;
-    }
-
-    const fallbackData = this.editingCompanyData;
-    const resolveValue = (value?: string, fallback?: string): string => {
-      const trimmed = value?.trim();
-      return trimmed ? trimmed : (fallback?.trim() ?? '');
-    };
-
-    const secteurLabel = resolveValue(data.secteur, fallbackData?.secteur) || undefined;
-    const sectorId = secteurLabel ? this.sectorOptions.find(s => s.name === secteurLabel)?.id : undefined;
-    const apiPayload = {
-      name:         resolveValue(data.nom,          fallbackData?.nom),
+    const sectorId = this.sectorOptions.find(s => s.name === payload.formData.secteur)?.id;
+    
+    const update$ = this.commercialService.updateCompany(this.editingCompanyId, {
+      name: payload.formData.nom,
       sectorId,
-      location:     resolveValue(data.localisation, fallbackData?.localisation),
-      contactName:  resolveValue(data.contact,      fallbackData?.contact),
-      contactEmail: resolveValue(data.email,        fallbackData?.email)        || undefined,
-      contactPhone: resolveValue(data.telephone,    fallbackData?.telephone),
-      status:       resolveValue(data.statut,       fallbackData?.statut),
-      note:         (data.note ?? fallbackData?.note ?? '').trim()
-    };
+      location: payload.formData.localisation,
+      contactName: payload.formData.contact,
+      contactEmail: payload.formData.email,
+      contactPhone: payload.formData.telephone,
+      status: payload.formData.statut,
+      note: payload.formData.note
+    });
 
-    const request$ = isEdit && this.editingCompanyId
-      ? this.commercialService.updateCompany(this.editingCompanyId, apiPayload)
-      : this.commercialService.createCompany({ ...apiPayload, logo: payload.logo });
+    update$.pipe(finalize(() => this.isCompanySubmitting = false))
+      .subscribe({
+        next: () => {
+          // Gérer le logo séparément si nécessaire (si payload.logo ou deleteLogo)
+          if (payload.logo) {
+            this.commercialService.uploadCompanyLogo(this.editingCompanyId!, payload.logo).subscribe();
+          } else if (payload.deleteLogo) {
+            this.commercialService.deleteCompanyLogo(this.editingCompanyId!).subscribe();
+          }
 
-    const isPartnerSigned = (apiPayload.status === 'Partenaire signé' || apiPayload.status === 'PARTNER_SIGNED');
-    const shouldRedirectToPartners = this.routeMode === 'prospects' && isPartnerSigned;
+          const wasNotSigned = this.editingCompanyData?.statut !== 'Partenaire signé';
+          const isNowSigned = payload.formData.statut === 'Partenaire signé';
 
-    request$.subscribe({
-      next: () => {
-        if (isEdit) {
-          const logoFile = payload.logo;
-          const deleteLogo = payload.deleteLogo;
-          if (logoFile) {
-            this.commercialService.uploadCompanyLogo(this.editingCompanyId!, logoFile).subscribe({
-              next: () => this.finishSubmitSuccess(true, shouldRedirectToPartners, this.editingCompanyId ?? undefined),
-              error: () => {
-                this.isCompanySubmitting = false;
-                Swal.fire({
-                  icon: 'warning',
-                  title: 'Logo non enregistré',
-                  text: 'L\'entreprise a été modifiée mais l\'upload du logo a échoué.',
-                  confirmButtonText: 'OK'
-                });
-                this.finishSubmitSuccess(true, shouldRedirectToPartners, this.editingCompanyId ?? undefined);
-              }
-            });
-          } else if (deleteLogo) {
-            this.commercialService.deleteCompanyLogo(this.editingCompanyId!).subscribe({
-              next: () => this.finishSubmitSuccess(true, shouldRedirectToPartners, this.editingCompanyId ?? undefined),
-              error: () => {
-                this.isCompanySubmitting = false;
-                Swal.fire({
-                  icon: 'warning',
-                  title: 'Logo non supprimé',
-                  text: 'L\'entreprise a été modifiée mais la suppression du logo a échoué.',
-                  confirmButtonText: 'OK'
-                });
-                this.finishSubmitSuccess(true, shouldRedirectToPartners, this.editingCompanyId ?? undefined);
-              }
+          this.onCloseEditModal();
+          this.loadData();
+          this.loadStats();
+
+          if (wasNotSigned && isNowSigned) {
+            Swal.fire({
+              title: 'Statut changé avec succès !',
+              text: 'L\'entreprise est désormais partenaire. L\'utilisateur peut maintenant activer son compte via l\'email envoyé.',
+              icon: 'success',
+              confirmButtonColor: '#2B3674'
             });
           } else {
-            this.finishSubmitSuccess(true, shouldRedirectToPartners, this.editingCompanyId ?? undefined);
+            Swal.fire('Succès', 'Entreprise modifiée avec succès', 'success');
           }
-        } else {
-          this.finishSubmitSuccess(false, shouldRedirectToPartners);
-        }
+        },
+        error: () => Swal.fire('Erreur', 'Impossible de modifier l\'entreprise', 'error')
+      });
+  }
+
+  toggleProspectStatus(prospect: Prospect): void {
+    const nextActive = prospect.statut !== 'Actif';
+    this.commercialService.updateCompanyStatus(prospect.id, nextActive).subscribe({
+      next: () => {
+        prospect.statut = nextActive ? 'Actif' : 'Inactif';
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: `Entreprise ${nextActive ? 'activée' : 'désactivée'}`,
+          showConfirmButton: false,
+          timer: 2000
+        });
       },
-      error: (error) => {
-        this.isCompanySubmitting = false;
-        if (this.successPopupTimeoutId) {
-          clearTimeout(this.successPopupTimeoutId);
-          this.successPopupTimeoutId = null;
-        }
-        Swal.close();
-
-        const rawMessage = error?.error?.message || 'Erreur lors de l\'enregistrement';
-        let message = rawMessage;
-        if (rawMessage.includes('email') && rawMessage.includes('existe déjà')) {
-          message = 'Cet email de contact existe déjà. Utilise un autre email.';
-        } else if (rawMessage.includes('téléphone') && rawMessage.includes('existe déjà')) {
-          message = 'Ce numéro de téléphone existe déjà. Utilise un autre numéro.';
-        } else if (rawMessage.includes('Duplicata')) {
-          message = 'Cet email de contact existe déjà. Utilise un autre email.';
-        }
-
-        Swal.fire({ icon: 'error', title: isEdit ? 'Modification échouée' : 'Création échouée', text: message });
-      }
+      error: () => Swal.fire('Erreur', 'Impossible de changer le statut', 'error')
     });
   }
 
-  private finishSubmitSuccess(isEdit: boolean, redirectToPartners = false, updatedCompanyId?: string): void {
-    const idToRefetch = isEdit ? (updatedCompanyId ?? this.editingCompanyId ?? undefined) : undefined;
-    this.isCompanySubmitting = false;
-    if (isEdit) {
-      this.isEditModalOpen      = false;
-      this.editingCompanyId     = null;
-      this.editingCompanyData   = null;
-      this.editingCompanyLogoUrl = null;
-    } else {
-      this.isCreateModalOpen = false;
-          }
-          Swal.fire({
-            title: isEdit ? 'Entreprise modifiée avec succès' : 'Entreprise créée avec succès',
-      iconHtml: `<img src="/icones/message success.svg" alt="success" style="width: 95px; height: 95px; margin: 0 auto;" />`,
-            showConfirmButton: false,
-      timer: 3000,
-            buttonsStyling: false,
-            customClass: {
-              popup: 'rounded-3xl p-6',
-              title: 'text-xl font-medium text-gray-900',
-              icon: 'border-none'
-            },
-      backdrop: 'rgba(0,0,0,0.2)',
-            width: '580px',
-      showClass: { popup: 'animate__animated animate__fadeIn animate__faster' },
-      hideClass: { popup: 'animate__animated animate__fadeOut animate__faster' }
-    });
-    if (redirectToPartners) {
-      this.router.navigate(['/com/entreprises']);
-    } else {
-      this.loadCompanies();
-      this.loadCompanyStats();
-      // Rafraîchir les détails de l’entreprise modifiée pour mettre à jour le secteur (et la note) dans la liste
-      if (idToRefetch) {
-        this.commercialService.getCompanyDetails(idToRefetch).subscribe({
-          next: (details) => {
-            const updated = this.mapCompanyDetailsToProspect(details);
-            const idx = this.prospects.findIndex(p => p.id === idToRefetch || p.id === updated.id);
-            if (idx !== -1) {
-              this.prospects[idx] = { ...this.prospects[idx], ...updated };
-              this.filteredProspects = [...this.prospects];
-            }
-          }
-        });
-      }
+  trackByProspect(index: number, item: Prospect): string {
+    return item.id;
+  }
+
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.loadData();
     }
   }
 
-  // ---------- FILTRES (toggle + select → recharge) ----------
-  toggleStatusDropdown():            void { this.showStatusDropdown = !this.showStatusDropdown; this.showSectorDropdown = this.showCompanyTypeDropdown = this.showProspectionStatusDropdown = false; }
-  toggleSectorDropdown():            void { this.showSectorDropdown = !this.showSectorDropdown; this.showStatusDropdown = this.showCompanyTypeDropdown = this.showProspectionStatusDropdown = false; }
-  toggleCompanyTypeDropdown():       void { this.showCompanyTypeDropdown = !this.showCompanyTypeDropdown; this.showSectorDropdown = this.showStatusDropdown = this.showProspectionStatusDropdown = false; }
-  toggleProspectionStatusDropdown(): void { this.showProspectionStatusDropdown = !this.showProspectionStatusDropdown; this.showSectorDropdown = this.showStatusDropdown = this.showCompanyTypeDropdown = false; }
-
-  selectStatus(status: string): void {
-    this.selectedStatus     = status === 'Tous les statuts' ? '' : status;
-    this.showStatusDropdown = false;
-    this.currentPage        = 1;
-    this.loadCompanies();
-  }
-
-  selectSector(sector: string): void {
-    this.selectedSector     = sector === 'Tous les secteurs' ? '' : sector;
-    this.selectedSectorId   = sector === 'Tous les secteurs' ? null : (this.sectorOptions.find(s => s.name === sector)?.id ?? null);
-    this.showSectorDropdown = false;
-    this.currentPage        = 1;
-    this.loadCompanies();
-  }
-
-  selectCompanyType(value: string): void {
-    this.selectedCompanyType         = value;
-    this.selectedProspectionStatus   = '';
-    this.showCompanyTypeDropdown     = false;
-    this.currentPage                 = 1;
-    this.loadCompanies();
-  }
-
-  selectProspectionStatus(value: string): void {
-    this.selectedProspectionStatus        = value;
-    this.showProspectionStatusDropdown    = false;
-    this.currentPage                      = 1;
-    this.loadCompanies();
-  }
-
-  onSearch(): void {
-    this.currentPage = 1;
-    this.loadCompanies();
-  }
-
-  // ---------- PAGINATION (backend gère la tranche) ----------
-  get totalResults(): number {
-    return this.totalElements > 0 ? this.totalElements : this.filteredProspects.length;
-  }
-
-  get totalPages(): number {
-    return Math.max(1, Math.ceil(this.totalResults / this.itemsPerPage));
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.loadData();
+    }
   }
 
   getCurrentPageProspects(): Prospect[] {
-    return this.filteredProspects;
-  }
-
-  trackByProspect(index: number, prospect: Prospect): string {
-    return `${prospect.id}-${prospect.prospectionStatus ?? ''}`;
-  }
-
-  getDisplayStart(): number {
-    if (this.totalResults === 0) return 0;
-    return (this.currentPage - 1) * this.itemsPerPage + 1;
-  }
-
-  getDisplayEnd(): number {
-    return Math.min(this.currentPage * this.itemsPerPage, this.totalResults);
-  }
-
-  getPageNumbers(): number[] {
-    const pages = [];
-    const maxVisible = 5;
-    let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
-    let end   = Math.min(this.totalPages, start + maxVisible - 1);
-    if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
-    for (let i = start; i <= end; i++) pages.push(i);
-    return pages;
-  }
-
-  previousPage(): void { if (this.currentPage > 1)                  { this.currentPage--; this.loadCompanies(); } }
-  nextPage():     void { if (this.currentPage < this.totalPages)     { this.currentPage++; this.loadCompanies(); } }
-  goToPage(page: number): void { if (page >= 1 && page <= this.totalPages) { this.currentPage = page; this.loadCompanies(); } }
-
-  // ---------- TRANSFORMATIONS API → FRONT (tableau, détails, formulaire) ----------
-  private mapCompanyToProspect(company: any): Prospect {
-    const name     = company?.name ?? '';
-    const initials = name.split(' ')
-      .filter((w: string) => w)
-      .map((w: string) => w[0])
-      .join('')
-      .substring(0, 2)
-      .toUpperCase();
-
-    const logoUrl = company?.logo
-      ? `${environment.imageServerUrl}/files/${company.logo}`
-      : undefined;
-    return {
-      id:                company?.id?.toString() ?? initials,
-      entreprise:        name,
-      secteur:           company?.sector ?? 'Non défini',
-      localisation:      company?.location ?? '',
-      contact: {
-        nom:       company?.contactName  ?? '',
-        email:     company?.contactEmail ?? '',
-        telephone: company?.contactPhone ?? ''
-      },
-      statut:            this.deriveStatutFromCompany(company),
-      prospectionStatus: this.canonicalProspectionStatus(company?.status),
-      date:              this.formatCreatedAt(company?.createdAt),
-      initials,
-      logo:              logoUrl
-    };
-  }
-
-  private mapCompanyDetailsToProspect(details: any): Prospect {
-    const name     = details?.name ?? '';
-    const initials = name.split(' ')
-      .filter((w: string) => w)
-      .map((w: string) => w[0])
-      .join('')
-      .substring(0, 2)
-      .toUpperCase();
-
-    const logoUrl = details?.logo
-      ? `${environment.imageServerUrl}/files/${details.logo}`
-      : undefined;
-    return {
-      id:                details?.id?.toString() ?? initials,
-      companyCode:       details?.companyCode ?? '',
-      entreprise:        name,
-      secteur:           details?.sectorLabel ?? 'Non défini',
-      note:              details?.note        ?? '',
-      localisation:      details?.location    ?? '',
-      contact: {
-        nom:       details?.contactName  ?? '',
-        email:     details?.contactEmail ?? '',
-        telephone: details?.contactPhone ?? ''
-      },
-      statut:            this.deriveStatutFromCompany(details),
-      prospectionStatus: this.canonicalProspectionStatus(details?.status),
-      date:              this.formatCreatedAt(details?.createdAt),
-      initials,
-      logo:              logoUrl,
-      employeeCount:     details?.employeeCount ?? undefined,
-      orderCount:        details?.orderCount    ?? undefined
-    };
-  }
-
-  private mapCompanyDetailsToFormData(details: any): CompanyFormData {
-    return {
-      nom:          details?.name          ?? '',
-      secteur:      details?.sectorLabel   ?? '',
-      localisation: details?.location      ?? '',
-      statut:       this.normalizeStatusForForm(details?.status),
-      contact:      details?.contactName   ?? '',
-      email:        details?.contactEmail  ?? '',
-      telephone:    details?.contactPhone  ?? '',
-      note:         details?.note          ?? ''
-    };
-  }
-
-  private deriveStatutFromCompany(company: any): 'Actif' | 'Inactif' {
-    if (company?.isActive === true)  return 'Actif';
-    if (company?.isActive === false) return 'Inactif';
-    if (company?.active === true)    return 'Actif';
-    if (company?.active === false)   return 'Inactif';
-    const status = typeof company?.status === 'string' ? company.status.trim().toUpperCase() : '';
-    if (status === 'INACTIVE' || status === 'INACTIF') return 'Inactif';
-    return 'Actif';
-  }
-
-  private getIsActiveFilter(): boolean | undefined {
-    if (this.selectedStatus === 'Actif')   return true;
-    if (this.selectedStatus === 'Inactif') return false;
-    return undefined;
-  }
-
-  /** Libellé prospection affiché / envoyé : jamais Refusée ni Rendez-vous (statuts retirés). */
-  private canonicalProspectionStatus(raw: string | undefined): string {
-    const allowed = ['En attente', 'Relancée', 'Intéressée', 'Partenaire signé'];
-    const s = raw?.trim() ?? '';
-    if (allowed.includes(s)) return s;
-    const mapping: Record<string, string> = {
-      PENDING: 'En attente',
-      RELAUNCHED: 'Relancée',
-      INTERESTED: 'Intéressée',
-      PARTNER_SIGNED: 'Partenaire signé',
-      Intéressé: 'Intéressée'
-    };
-    return mapping[s] ?? mapping[s.toUpperCase()] ?? 'En attente';
-  }
-
-  private normalizeStatusForForm(rawStatus: string | undefined): string {
-    return this.canonicalProspectionStatus(rawStatus);
-  }
-
-  private formatCreatedAt(createdAt: string | undefined): string {
-    if (!createdAt) return '';
-    return createdAt.split(' ')[0] ?? createdAt;
-  }
-
-  // ---------- BADGES Actif/Inactif (tableau) ----------
-  getStatusClass(status: string): string {
-    return status === 'Actif' ? 'bg-[#0A97480F] text-[#0A9748]' : 'bg-red-50 text-[#FF0909]';
-  }
-
-  getStatusDotClass(status: string): string {
-    return status === 'Actif' ? 'bg-[#0A9748]' : 'bg-[#FF0909]';
+    return this.companyList;
   }
 }

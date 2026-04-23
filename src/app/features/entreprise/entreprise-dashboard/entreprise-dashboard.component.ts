@@ -50,6 +50,9 @@ export class EntrepriseDashboardComponent implements OnInit {
     });
   }
 
+  // Top salariés
+  topSalaries: any[] = [];
+
   loadDashboardData(): void {
     this.entrepriseService.getDashboardKpis().subscribe({
       next: (data: CompanyDashboardKpisDTO) => {
@@ -69,6 +72,17 @@ export class EntrepriseDashboardComponent implements OnInit {
         if (data.evolutionCommandes) {
           this.chartData = data.evolutionCommandes;
         }
+
+        if (data.topEmployees) {
+          this.topSalaries = data.topEmployees.map(emp => ({
+            initials: this.getInitials(emp.firstName, emp.lastName),
+            name: `${emp.firstName} ${emp.lastName}`,
+            ref: emp.employeeCode,
+            commandes: emp.nbCommandes,
+            activite: emp.activite,
+            statut: emp.status
+          }));
+        }
       },
       error: (err) => {
         console.error('Erreur lors du chargement des KPIs', err);
@@ -76,12 +90,9 @@ export class EntrepriseDashboardComponent implements OnInit {
     });
   }
 
-  // Top salariés (mock)
-  topSalaries = [
-    { initials: 'MS', name: 'Mariama Sow',   ref: 'SAL-2026-34', commandes: 8, activite: 100, statut: 'Actif' },
-    { initials: 'AT', name: 'Aminata Tall',  ref: 'SAL-2026-32', commandes: 6, activite: 75,  statut: 'Actif' },
-    { initials: 'CD', name: 'Coumba Diagne', ref: 'SAL-2026-31', commandes: 5, activite: 62,  statut: 'Actif' },
-  ];
+  getInitials(firstName: string, lastName: string): string {
+    return (firstName?.charAt(0) || '') + (lastName?.charAt(0) || '');
+  }
 
   // Helpers UI
   getStatutClass(statut: string): string {
