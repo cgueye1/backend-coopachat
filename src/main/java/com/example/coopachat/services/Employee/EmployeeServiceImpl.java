@@ -45,6 +45,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayOutputStream;
 import com.itextpdf.layout.Document;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -1115,6 +1118,17 @@ public class EmployeeServiceImpl implements EmployeeService {
         // On construit l'URL de la WebView TouchPay (bridge) via le template configuré
         //touchPayBridgeUrlTemplate contient le lien de base avec le marqueur %d (défini dans votre .env)/orderId (l'ID de la commande) vient remplacer ce %d grâce à String.format.
         response.setPaymentUrl(String.format(touchPayBridgeUrlTemplate, orderId));
+
+        // On récupère le token JWT actuel pour le passer au mobile (pour injection WebView)
+        try {
+            HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                response.setJwtToken(authHeader.substring(7));
+            }
+        } catch (Exception e) {
+            log.warn("Impossible de récupérer le token JWT pour le bridge: {}", e.getMessage());
+        }
 
         //la partie mobile , reçoit les infos et les utilise pour ouvrir l’interface de paiement -> touchpay-bridge.html .
         return response;
