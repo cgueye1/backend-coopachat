@@ -202,15 +202,32 @@ public class CommercialServiceImpl implements CommercialService {
             representative.setEmployeeCode(generateUniqueEmployeeCode());
             employeeRepository.save(representative);
 
-            // Envoyer l'email d'activation
-            String code = activationCodeService.generateAndStoreCode(savedUser.getEmail());
-            emailService.sendCompanyActivationLink(savedUser.getEmail(), code, savedUser.getFirstName(), company.getName());
+            // Envoyer l'email d'activation seulement si l'entreprise est signée
+            if (company.getStatus() == CompanyStatus.PARTNER_SIGNED) {
+                sendCompanyActivationEmail(savedUser, company);
+            } else {
+                log.info("Compte créé pour {} mais email d'activation différé car statut = {}", email, company.getStatus());
+            }
             
             log.info("Nouveau compte Espace Entreprise créé pour {} (Entreprise: {})", email, company.getName());
         } else {
             // Si l'utilisateur existe déjà
             log.warn("Un compte utilisateur existe déjà pour l'email {}, création ignorée.", email);
+            
+            // Si le statut est PARTNER_SIGNED, on vérifie s'il faut envoyer l'email (au cas où il n'aurait pas été envoyé)
+            if (company.getStatus() == CompanyStatus.PARTNER_SIGNED) {
+                Users user = existingUser.get();
+                if (user.getPassword() == null || user.getPassword().isBlank()) {
+                    sendCompanyActivationEmail(user, company);
+                }
+            }
         }
+    }
+
+    private void sendCompanyActivationEmail(Users user, Company company) {
+        String code = activationCodeService.generateAndStoreCode(user.getEmail());
+        emailService.sendCompanyActivationLink(user.getEmail(), code, user.getFirstName(), company.getName());
+        log.info("Email d'activation envoyé à {} pour l'entreprise {}", user.getEmail(), company.getName());
     }
 
     @Override
@@ -418,6 +435,7 @@ public class CommercialServiceImpl implements CommercialService {
             }
             company.setContactPhone(updateCompanyDTO.getContactPhone());
         }
+        CompanyStatus oldStatus = company.getStatus();
         if (updateCompanyDTO.getStatus() != null) {
             company.setStatus(updateCompanyDTO.getStatus());
         }
@@ -427,6 +445,11 @@ public class CommercialServiceImpl implements CommercialService {
 
         // Sauvegarder les modifications
         companyRepository.save(company);
+
+        // Si le statut passe à PARTNER_SIGNED, on déclenche l'envoi de l'email d'activation
+        if (oldStatus != CompanyStatus.PARTNER_SIGNED && company.getStatus() == CompanyStatus.PARTNER_SIGNED) {
+            triggerActivationForCompany(company);
+        }
 
         // Si l'email a été modifié ou ajouté, on s'assure que le compte utilisateur existe
         if (updateCompanyDTO.getContactEmail() != null && !updateCompanyDTO.getContactEmail().trim().isEmpty()) {
@@ -611,8 +634,8 @@ public class CommercialServiceImpl implements CommercialService {
         Company company = companyRepository.findById(employee.getCompanyId())
                 .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
 
-        if (company.getStatus() != CompanyStatus.PARTNER_SIGNED) {
-            throw new RuntimeException("L'entreprise doit avoir le statut « Partenaire signé » pour pouvoir inscrire des salariés.");
+        if (company.getStatus() != CompanyStatus.PARTNER_SIGNED || !Boolean.TRUE.equals(company.getIsActive())) {
+            throw new RuntimeException("L'entreprise doit avoir le statut « Partenaire signé » et son compte doit être actif pour pouvoir inscrire des salariés.");
         }
 
         // Créer l'utilisateur (employé)
@@ -661,8 +684,8 @@ public class CommercialServiceImpl implements CommercialService {
         }
         Company company = companyRepository.findById(employee.getCompanyId())
                 .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
-        if (company.getStatus() != CompanyStatus.PARTNER_SIGNED) {
-            throw new RuntimeException("L'entreprise doit avoir le statut « Partenaire signé » pour pouvoir inscrire des salariés.");
+        if (company.getStatus() != CompanyStatus.PARTNER_SIGNED || !Boolean.TRUE.equals(company.getIsActive())) {
+            throw new RuntimeException("L'entreprise doit avoir le statut « Partenaire signé » et son compte doit être actif pour pouvoir inscrire des salariés.");
         }
         Users user = new Users();
         user.setEmail(employee.getEmail());
@@ -707,8 +730,8 @@ public class CommercialServiceImpl implements CommercialService {
 
         Company company = companyRepository.findById(companyId)//Récupérer l'entreprise associée
                 .orElseThrow(() -> new RuntimeException("Entreprise introuvable"));
-        if (company.getStatus() != CompanyStatus.PARTNER_SIGNED) {//Vérifier que l'entreprise a le statut « Partenaire signé »
-            throw new RuntimeException("L'entreprise doit avoir le statut « Partenaire signé » pour pouvoir inscrire des salariés.");
+        if (company.getStatus() != CompanyStatus.PARTNER_SIGNED || !Boolean.TRUE.equals(company.getIsActive())) {
+            throw new RuntimeException("L'entreprise doit avoir le statut « Partenaire signé » et son compte doit être actif pour pouvoir inscrire des salariés.");
         }
 
         //Vérifier que le fichier est un fichier Excel
@@ -1772,5 +1795,22 @@ public class CommercialServiceImpl implements CommercialService {
             return CouponStatus.PLANNED;//Si la date de début est dans le futur, le statut est PLANNED
         }
         return CouponStatus.ACTIVE;//Sinon, le statut est ACTIVE
+    }
+
+    private void triggerActivationForCompany(Company company) {
+        // Le représentant est le "salarié n°1" lié à cette entreprise
+        // On cherche l'utilisateur lié à cette entreprise avec le rôle COMPANY
+        List<Employee> employees = employeeRepository.findAllByCompany(company);
+        for (Employee emp : employees) {
+            Users user = emp.getUser();
+            if (user.getRole() == UserRole.COMPANY) {
+                // Si l'utilisateur n'a pas encore de mot de passe, on lui envoie le lien d'activation
+                if (user.getPassword() == null || user.getPassword().isBlank()) {
+                    sendCompanyActivationEmail(user, company);
+                    log.info("Activation déclenchée pour le représentant {} de l'entreprise {}", user.getEmail(), company.getName());
+                }
+                break;
+            }
+        }
     }
 }

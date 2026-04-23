@@ -769,8 +769,8 @@ public class AdminServiceImpl implements AdminService {
 
         // Seuls les rôles "agents" : Admin, Responsable logistique, Commercial, Livreur.
         switch (dto.getRole()) {
-            case EMPLOYEE -> throw new RuntimeException(
-                    "Les salariés ne se créent pas ici. Utilisez le flux Commercial (Créer un employé).");
+            case EMPLOYEE, COMPANY -> throw new RuntimeException(
+                    "Les salariés et entreprises ne se créent pas ici. Utilisez le flux Commercial.");
             case DELIVERY_DRIVER -> {
                 Driver driver = new Driver();
                 driver.setUser(savedUser);
@@ -921,20 +921,29 @@ public class AdminServiceImpl implements AdminService {
             throw new RuntimeException("Seul un administrateur peut consulter les statistiques des utilisateurs par rôle");
         }
 
-        // Nombre total d'utilisateurs (pour calculer les pourcentages)
-        long total = userRepository.count();
+        // Nombre total d'utilisateurs concernés (Internal Staff + Employees, hors Company)
+        // On recalcule le total dynamiquement selon ce qu'on va afficher pour avoir des % cohérents
         List<UserStatsByRoleItemDTO> result = new ArrayList<>();
-
-        // Parcourir tous les rôles définis dans l'enum (EMPLOYEE, COMMERCIAL, DELIVERY_DRIVER, etc.)
+        long totalForStats = 0;
+        
+        // 1. Calculer d'abord les effectifs pour chaque rôle (hors COMPANY)
+        Map<UserRole, Long> counts = new LinkedHashMap<>();
         for (UserRole role : UserRole.values()) {
-            // Pour Salarié : compter les fiches Employee (aligné avec le commercial, tous salariés du système)
-            // Pour les autres rôles : compter les Users
+            if (role == UserRole.COMPANY || role == UserRole.EMPLOYEE) continue;
+            
             long count = (role == UserRole.EMPLOYEE)
                     ? employeeRepository.count()
                     : userRepository.countByRole(role);
-            // Part en % par rapport au total (0 si aucun utilisateur)
-            double percentage = total > 0 ? count * 100.0 / total : 0;
-            // Ajouter au résultat : rôle, libellé affichable, effectif, pourcentage
+            
+            counts.put(role, count);
+            totalForStats += count;
+        }
+
+        // 2. Calculer les pourcentages basés sur ce nouveau total
+        for (Map.Entry<UserRole, Long> entry : counts.entrySet()) {
+            UserRole role = entry.getKey();
+            long count = entry.getValue();
+            double percentage = totalForStats > 0 ? count * 100.0 / totalForStats : 0;
             result.add(new UserStatsByRoleItemDTO(role, role.getLabel(), count, percentage));
         }
         return result;

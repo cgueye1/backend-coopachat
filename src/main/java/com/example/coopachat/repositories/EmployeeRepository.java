@@ -5,6 +5,7 @@ import com.example.coopachat.entities.Employee;
 import com.example.coopachat.entities.Users;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -105,4 +106,15 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
      * Compte le nombre d'employés d'une entreprise selon leur statut.
      */
     long countByCompanyAndUserIsActive(Company company, Boolean isActive);
+
+    /**
+     * Récupère directement l'entreprise associée à un utilisateur.
+     */
+    @Query("SELECT e.company FROM Employee e WHERE e.user = :user")
+    Optional<Company> findCompanyByUser(@Param("user") Users user);
+
+    /**
+     * Récupère tous les employés d'une entreprise (sans pagination).
+     */
+    List<Employee> findAllByCompany(Company company);
 }

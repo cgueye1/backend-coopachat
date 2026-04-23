@@ -62,7 +62,7 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     @Transactional(readOnly = true)
     public CompanyDashboardKpisDTO getDashboardKpis() {
-        Company company = getMyCompany();
+        Company company = getMyCompany();//sécurité 
         CompanyDashboardKpisDTO dto = new CompanyDashboardKpisDTO();
         
         long totalEmployees = employeeRepository.countByCompany(company);
@@ -109,7 +109,7 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     @Transactional(readOnly = true)
     public EmployeeListResponseDTO getMyEmployees(int page, int size, String search, Boolean isActive) {
-        Company company = getMyCompany();
+        Company company = getMyCompany();//sécurité
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
 
@@ -142,11 +142,7 @@ public class CompanyServiceImpl implements CompanyService {
     @Transactional
     public void createEmployee(CreateEmployeeDTO employeeDTO) {
         Users representative = getCurrentUser();
-        Company company = getMyCompany();
-
-        if (company.getStatus() != CompanyStatus.PARTNER_SIGNED) {
-            throw new RuntimeException("Votre entreprise doit être au statut 'Partenaire signé' pour inscrire des salariés.");
-        }
+        Company company = getMyCompany();//Sécurité
 
         if (userRepository.existsByEmail(employeeDTO.getEmail())) {
             throw new RuntimeException("Cet email est déjà utilisé");
@@ -180,7 +176,7 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     @Transactional
     public void importEmployees(MultipartFile file) {
-        Company company = getMyCompany();
+        Company company = getMyCompany();//sécurité
         Users representative = getCurrentUser();
 
         if (file == null || file.isEmpty()) throw new RuntimeException("Fichier requis");
@@ -203,6 +199,7 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     @Transactional(readOnly = true)
     public ByteArrayResource exportEmployees(String search, Boolean isActive) {
+        Company myCompany = getMyCompany();//Sécurité
         EmployeeListResponseDTO data = getMyEmployees(0, Integer.MAX_VALUE, search, isActive);
         List<EmployeeListItemDTO> employees = data.getContent();
 
@@ -236,7 +233,7 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     @Transactional
     public void updateEmployee(Long id, UpdateEmployeeDTO updateEmployeeDTO) {
-        Company myCompany = getMyCompany();
+        Company myCompany = getMyCompany();//Sécurité
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Salarié introuvable"));
         
@@ -286,7 +283,7 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     @Transactional
     public void updateEmployeeStatus(Long id, UpdateEmployeeStatusDTO updateEmployeeStatusDTO) {
-        Company myCompany = getMyCompany();
+        Company myCompany = getMyCompany();//Sécurité
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Salarié introuvable"));
         
@@ -313,13 +310,25 @@ public class CompanyServiceImpl implements CompanyService {
     }
 
     private Company getMyCompany() {
+        // 1. Récupérer l'utilisateur actuellement connecté
         Users user = getCurrentUser();
+
+        // 2. Sécurité : Vérifier que l'utilisateur a bien le rôle COMPANY
         if (user.getRole() != UserRole.COMPANY) {
             throw new RuntimeException("Accès refusé.");
         }
-        return employeeRepository.findByUser(user)
-                .map(Employee::getCompany)
+
+        // 3. Récupérer l'entreprise liée à cet utilisateur via le repository
+        Company company = employeeRepository.findCompanyByUser(user)
                 .orElseThrow(() -> new RuntimeException("Aucune entreprise liée."));
+
+        // 4. Validation métier : L'entreprise doit être signée (PARTNER_SIGNED) et son compte doit être actif
+        if (company.getStatus() != CompanyStatus.PARTNER_SIGNED || !Boolean.TRUE.equals(company.getIsActive())) {
+            throw new RuntimeException("Votre entreprise doit être au statut 'Partenaire signé' et son compte doit être actif pour accéder à cet espace.");
+        }
+
+        // 5. Retourner l'entreprise validée
+        return company;
     }
 
     private EmployeeListItemDTO mapToEmployeeListItemDTO(Employee e) {
