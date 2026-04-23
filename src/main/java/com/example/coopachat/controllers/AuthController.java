@@ -110,6 +110,13 @@ public class AuthController {
                 return ResponseEntity.ok(response);
         }
 
+        @Operation(summary = "Renvoyer le code OTP Admin", description = "Génère un nouveau code OTP et le renvoie par email pour un administrateur en cours de connexion.")
+        @PostMapping("/resend-otp")
+        public ResponseEntity<String> resendOtp(@RequestBody @Valid ResendActivationRequestDTO requestDTO) {
+                authService.resendAdminOtp(requestDTO.getEmail());
+                return ResponseEntity.ok("Un nouveau code OTP a été envoyé à votre adresse email");
+        }
+
         // ============================================================================
         // 🔑 MOT DE PASSE
         // ============================================================================

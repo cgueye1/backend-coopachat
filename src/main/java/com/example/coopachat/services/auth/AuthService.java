@@ -46,6 +46,13 @@ public interface AuthService {
      * @throws RuntimeException si l'utilisateur n'existe pas, n'est pas administrateur, ou si le code OTP est invalide
      */
     LoginResponseDTO verifyOtpAndGenerateToken(String email, String otp);
+ 
+    /**
+     * Renvoie un code OTP par email pour un administrateur (2FA)
+     *
+     * @param email L'email de l'administrateur
+     */
+    void resendAdminOtp(String email);
 
 
     /**
