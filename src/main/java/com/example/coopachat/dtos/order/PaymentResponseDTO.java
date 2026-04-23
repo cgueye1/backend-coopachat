@@ -25,4 +25,8 @@ public class PaymentResponseDTO {
 
     // Montant total à payer (sous-total + frais de service) - utile côté UI
     private BigDecimal amountPaid;
+
+    // URL de la WebView TouchPay  à ouvrir sur le mobile
+    private String paymentUrl;
+
 }
