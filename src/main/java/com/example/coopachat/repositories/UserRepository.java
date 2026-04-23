@@ -65,7 +65,7 @@ public interface UserRepository extends JpaRepository<Users, Long> {
             "      LOWER(u.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "      LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "      LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-            "AND (u.role <> com.example.coopachat.enums.UserRole.EMPLOYEE) " +
+            "AND (u.role NOT IN (com.example.coopachat.enums.UserRole.EMPLOYEE, com.example.coopachat.enums.UserRole.COMPANY)) " +
             "AND (:role IS NULL OR u.role = :role) " +
             "AND (:isActive IS NULL OR u.isActive = :isActive) " +
             "ORDER BY u.createdAt DESC")
@@ -85,14 +85,14 @@ public interface UserRepository extends JpaRepository<Users, Long> {
     /** Nombre d'utilisateurs inactifs (isActive = false). */
     long countByIsActiveFalse();
 
-    /** Comptages admin : même périmètre que findAllWithFilters (hors salariés / EMPLOYEE). */
-    @Query("SELECT COUNT(u) FROM Users u WHERE u.role <> com.example.coopachat.enums.UserRole.EMPLOYEE")
+    /** Comptages admin : même périmètre que findAllWithFilters (hors salariés et entreprises). */
+    @Query("SELECT COUNT(u) FROM Users u WHERE u.role NOT IN (com.example.coopachat.enums.UserRole.EMPLOYEE, com.example.coopachat.enums.UserRole.COMPANY)")
     long countExcludingEmployee();
 
-    @Query("SELECT COUNT(u) FROM Users u WHERE u.role <> com.example.coopachat.enums.UserRole.EMPLOYEE AND u.isActive = true")
+    @Query("SELECT COUNT(u) FROM Users u WHERE u.role NOT IN (com.example.coopachat.enums.UserRole.EMPLOYEE, com.example.coopachat.enums.UserRole.COMPANY) AND u.isActive = true")
     long countByIsActiveTrueExcludingEmployee();
 
-    @Query("SELECT COUNT(u) FROM Users u WHERE u.role <> com.example.coopachat.enums.UserRole.EMPLOYEE AND u.isActive = false")
+    @Query("SELECT COUNT(u) FROM Users u WHERE u.role NOT IN (com.example.coopachat.enums.UserRole.EMPLOYEE, com.example.coopachat.enums.UserRole.COMPANY) AND u.isActive = false")
     long countByIsActiveFalseExcludingEmployee();
 
     /** Nombre d'utilisateurs pour un rôle donné (pour le graphique "Utilisateurs par rôle"). */

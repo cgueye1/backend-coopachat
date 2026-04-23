@@ -20,9 +20,6 @@ import org.springframework.web.util.HtmlUtils;
 @RequiredArgsConstructor
 @Slf4j
 public class EmailServiceImpl implements EmailService {
-    // Route Angular qui consomme le token pour créer un nouveau mot de passe
-    private static final String DEFAULT_WEB_RESET_URL = "https://coopachat.innovimpactdev.cloud/create-password?token=";
-    private static final String DEFAULT_MOBILE_RESET_URL = "https://coopachat.innovimpactdev.cloud/create-password?token=";
 
     // ============================================================================
     // 📦 DEPENDENCIES
@@ -44,11 +41,14 @@ public class EmailServiceImpl implements EmailService {
     @Value("${app.frontend.reset-password-url:https://coopachat.innovimpactdev.cloud/create-password?token=}")
     private String resetPasswordUrl;
 
-    @Value("${app.frontend.reset-password-url-mobile:https://coopachat.innovimpactdev.cloud/create-password?token=}")
+    @Value("${app.frontend.reset-password-url-mobile:https://coopachat.innovimpactdev.cloud/reset-password?token=}")
     private String resetPasswordUrlMobile;
 
     @Value("${app.frontend.activation-url:https://coopachat.innovimpactdev.cloud/create-password?token=}")
     private String activationUrl;
+
+    @Value("${app.frontend.activation-url-mobile:https://coopachat.innovimpactdev.cloud/set-password?token=}")
+    private String activationUrlMobile;
 
     // ============================================================================
     // 📧 ENVOI D'EMAILS - ACTIVATION DE COMPTE
@@ -93,16 +93,16 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(email);
             helper.setSubject("Activation de votre compte - " + appName);
 
-            String activationLink = activationUrl + code + "&email=" + email;
+            String webLink = activationUrl + code + "&email=" + email;
 
             String body = String.format(
                 "Bonjour %s,%n%nVotre compte %s a été créé. Pour définir votre mot de passe et activer votre compte, cliquez sur le lien suivant : %n%s%n%nCe lien expire dans 15 minutes.%n%nL'équipe %s",
-                firstName != null ? firstName : "", appName, activationLink, appName
+                firstName != null ? firstName : "", appName, webLink, appName
             );
 
             String safeName = HtmlUtils.htmlEscape(firstName != null ? firstName : "");
             String safeApp = HtmlUtils.htmlEscape(appName);
-            String hrefUrl = HtmlUtils.htmlEscape(activationLink);
+            String safeWeb = HtmlUtils.htmlEscape(webLink);
 
             String htmlBody = String.format(
                 "<html><body style=\"font-family:sans-serif;font-size:15px;line-height:1.5;color:#333;\">" +
@@ -112,11 +112,11 @@ public class EmailServiceImpl implements EmailService {
                         "<p>Pour définir votre mot de passe et activer votre compte, cliquez sur le bouton ci-dessous :</p>" +
                         "<p style=\"margin:24px 0;\"><a href=\"%s\" style=\"display:inline-block;padding:12px 24px;background-color:#F68647;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;\">Activer mon compte</a></p>" +
                         "<p style=\"font-size:13px;color:#555;\">Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :</p>" +
-                        "<p style=\"word-break:break-all;font-size:13px;\">%s</p>" +
+                        "<p style=\"word-break:break-all;font-size:11px;\">%s</p>" +
                         "<p>Ce lien expire dans <strong>15 minutes</strong>.</p>" +
                         "<p>L'équipe %s</p>" +
                         "</body></html>",
-                safeName, safeApp, HtmlUtils.htmlEscape(email), hrefUrl, hrefUrl, safeApp);
+                safeName, safeApp, HtmlUtils.htmlEscape(email), safeWeb, safeWeb, safeApp);
 
             helper.setText(body, htmlBody);
             mailSender.send(message);
@@ -270,24 +270,23 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(email);
             helper.setSubject("Activation de votre compte livreur - " + appName);
 
-            String activationLink = activationUrl + code + "&email=" + email;
+            String mobileLink = activationUrlMobile + code + "&email=" + email;
             String safeName = HtmlUtils.htmlEscape(firstName != null ? firstName : "Livreur");
             String safeApp = HtmlUtils.htmlEscape(appName);
-            String hrefUrl = HtmlUtils.htmlEscape(activationLink);
+            String safeMobile = HtmlUtils.htmlEscape(mobileLink);
 
             String htmlBody = String.format(
                 "<html><body style=\"font-family:sans-serif;font-size:15px;line-height:1.5;color:#333;\">" +
                 "<p>Bonjour %s,</p>" +
                 "<p>Vous avez été ajouté en tant que livreur sur la plateforme <strong>%s</strong>.</p>" +
                 "<p>Identifiant de connexion : <strong>%s</strong></p>" +
-                "<p>Pour commencer à utiliser votre compte, vous devez définir votre mot de passe en cliquant sur le bouton ci-dessous :</p>" +
-                "<p style=\"margin:24px 0;\"><a href=\"%s\" style=\"display:inline-block;padding:12px 24px;background-color:#ea580c;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;\">Activer mon compte</a></p>" +
-                "<p style=\"font-size:13px;color:#555;\">Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :</p>" +
+                "<p>Pour commencer à utiliser votre compte, vous devez définir votre mot de passe depuis l'application mobile :</p>" +
+                "<p style=\"margin:24px 0;\"><a href=\"%s\" style=\"display:inline-block;padding:12px 24px;background-color:#2B3674;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;\">Ouvrir dans l'application</a></p>" +
+                "<p style=\"font-size:13px;color:#555;\">Si le bouton ne fonctionne pas, copiez cette adresse sur votre téléphone :</p>" +
                 "<p style=\"word-break:break-all;font-size:13px;\">%s</p>" +
-                "<p>Une fois votre mot de passe créé, vous pourrez vous connecter à l'application mobile.</p>" +
                 "<p>Cordialement,<br>L'équipe Support %s</p>" +
                 "</body></html>",
-                safeName, safeApp, HtmlUtils.htmlEscape(email), hrefUrl, hrefUrl, safeApp);
+                safeName, safeApp, HtmlUtils.htmlEscape(email), safeMobile, safeMobile, safeApp);
 
             helper.setText("", htmlBody);
             mailSender.send(message);
@@ -308,12 +307,12 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(email);
             helper.setSubject("Invitation à rejoindre " + companyName + " - " + appName);
 
-            String activationLink = activationUrl + code + "&email=" + email;
+            String mobileLink = activationUrlMobile + code + "&email=" + email;
             String safeName = HtmlUtils.htmlEscape(firstName != null ? firstName : "");
             String safeCompany = HtmlUtils.htmlEscape(companyName);
             String safeCommercial = HtmlUtils.htmlEscape(commercialName);
             String safeApp = HtmlUtils.htmlEscape(appName);
-            String hrefUrl = HtmlUtils.htmlEscape(activationLink);
+            String safeMobile = HtmlUtils.htmlEscape(mobileLink);
 
             String htmlBody = String.format(
                 "<html><body style=\"font-family:sans-serif;font-size:15px;line-height:1.5;color:#333;\">" +
@@ -321,13 +320,12 @@ public class EmailServiceImpl implements EmailService {
                 "<p>Votre entreprise <strong>%s</strong> utilise désormais <strong>%s</strong> pour ses achats.</p>" +
                 "<p>Le commercial <strong>%s</strong> a paramétré votre compte salarié.</p>" +
                 "<p>Identifiant de connexion : <strong>%s</strong></p>" +
-                "<p>Pour finaliser votre inscription et accéder à vos avantages, veuillez définir votre mot de passe en cliquant sur le bouton ci-dessous :</p>" +
-                "<p style=\"margin:24px 0;\"><a href=\"%s\" style=\"display:inline-block;padding:12px 24px;background-color:#ea580c;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;\">Activer mon compte</a></p>" +
-                "<p style=\"font-size:13px;color:#555;\">Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :</p>" +
+                "<p>Pour finaliser votre inscription et accéder à vos avantages, veuillez définir votre mot de passe depuis l'application mobile :</p>" +
+                "<p style=\"margin:24px 0;\"><a href=\"%s\" style=\"display:inline-block;padding:12px 24px;background-color:#2B3674;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;\">Ouvrir dans l'application</a></p>" +
                 "<p style=\"word-break:break-all;font-size:13px;\">%s</p>" +
                 "<p>Cordialement,<br>L'équipe Support %s</p>" +
                 "</body></html>",
-                safeName, safeCompany, safeApp, safeCommercial, HtmlUtils.htmlEscape(email), hrefUrl, hrefUrl, safeApp);
+                safeName, safeCompany, safeApp, safeCommercial, HtmlUtils.htmlEscape(email), safeMobile, safeMobile, safeApp);
 
             helper.setText("", htmlBody);
             mailSender.send(message);
@@ -348,24 +346,23 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(email);
             helper.setSubject("Bienvenue sur " + appName + " - " + companyName);
 
-            String activationLink = activationUrl + code + "&email=" + email;
+            String webLink = activationUrl + code + "&email=" + email;
             String safeName = HtmlUtils.htmlEscape(contactName != null ? contactName : "Représentant");
             String safeCompany = HtmlUtils.htmlEscape(companyName);
             String safeApp = HtmlUtils.htmlEscape(appName);
-            String hrefUrl = HtmlUtils.htmlEscape(activationLink);
+            String safeWeb = HtmlUtils.htmlEscape(webLink);
 
             String htmlBody = String.format(
                 "<html><body style=\"font-family:sans-serif;font-size:15px;line-height:1.5;color:#333;\">" +
                 "<p>Bonjour %s,</p>" +
                 "<p>Bienvenue sur <strong>%s</strong> ! Votre espace entreprise pour <strong>%s</strong> a été créé.</p>" +
                 "<p>Identifiant de connexion : <strong>%s</strong></p>" +
-                "<p>Pour commencer à gérer votre entreprise et vos salariés, veuillez définir votre mot de passe en cliquant sur le bouton ci-dessous :</p>" +
+                "<p>Pour commencer à gérer votre entreprise et vos salariés, veuillez définir votre mot de passe :</p>" +
                 "<p style=\"margin:24px 0;\"><a href=\"%s\" style=\"display:inline-block;padding:12px 24px;background-color:#ea580c;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;\">Activer l'Espace Entreprise</a></p>" +
-                "<p style=\"font-size:13px;color:#555;\">Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :</p>" +
                 "<p style=\"word-break:break-all;font-size:13px;\">%s</p>" +
                 "<p>Cordialement,<br>L'équipe Support %s</p>" +
                 "</body></html>",
-                safeName, safeApp, safeCompany, HtmlUtils.htmlEscape(email), hrefUrl, hrefUrl, safeApp);
+                safeName, safeApp, safeCompany, HtmlUtils.htmlEscape(email), safeWeb, safeWeb, safeApp);
 
             helper.setText("", htmlBody);
             mailSender.send(message);
@@ -376,18 +373,14 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-     private String buildResetUrl(PasswordResetChannel channel, String token) {
-        String configuredBaseUrl = channel == PasswordResetChannel.MOBILE
+      private String buildResetUrl(PasswordResetChannel channel, String token) {
+        String effectiveBaseUrl = channel == PasswordResetChannel.MOBILE
                 ? resetPasswordUrlMobile
                 : resetPasswordUrl;
-        String fallbackBaseUrl = channel == PasswordResetChannel.MOBILE
-                ? DEFAULT_MOBILE_RESET_URL
-                : DEFAULT_WEB_RESET_URL;
 
-        String effectiveBaseUrl = StringUtils.hasText(configuredBaseUrl) ? configuredBaseUrl : fallbackBaseUrl;
-        if (!StringUtils.hasText(configuredBaseUrl)) {
-            log.warn("URL de reset {} absente/vide dans la configuration. Fallback utilisé: {}",
-                    channel, fallbackBaseUrl);
+        if (!StringUtils.hasText(effectiveBaseUrl)) {
+            log.error("URL de reset {} absente de la configuration !", channel);
+            throw new RuntimeException("Configuration manquante pour le lien de réinitialisation");
         }
 
         String finalUrl = effectiveBaseUrl + token;
