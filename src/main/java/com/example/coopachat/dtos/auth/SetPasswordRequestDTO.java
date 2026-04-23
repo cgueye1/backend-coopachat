@@ -17,6 +17,8 @@ public class SetPasswordRequestDTO {
     @Email(message = "Format d'email invalide")
     private String email;
 
+    private String token; // Optionnel : si présent, vérifié pendant le setPassword (Flux Lien). Sinon, vérifie hasUsedActivationCode (Flux OTP).
+
     @NotBlank(message = "Le mot de passe est obligatoire")
     @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caractères")
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",

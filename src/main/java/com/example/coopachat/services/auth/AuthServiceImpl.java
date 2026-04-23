@@ -134,10 +134,10 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Votre compte n'est pas actif");
         }
 
-        // Règle 3 : si salarié, vérifier que son entreprise est active
-        if (user.getRole() == UserRole.EMPLOYEE) {
+        // Règle 3 : si salarié ou représentant d'entreprise, vérifier que l'entreprise est active
+        if (user.getRole() == UserRole.EMPLOYEE || user.getRole() == UserRole.COMPANY) {
             Employee employee = employeeRepository.findByUser(user)
-                    .orElseThrow(() -> new RuntimeException("Salarié introuvable"));
+                    .orElseThrow(() -> new RuntimeException(user.getRole() == UserRole.COMPANY ? "Représentant introuvable" : "Salarié introuvable"));
             if (employee.getCompany() == null || !Boolean.TRUE.equals(employee.getCompany().getIsActive())) {
                 throw new RuntimeException("Votre entreprise est inactive. Vous ne pouvez pas vous connecter.");
             }
@@ -211,40 +211,24 @@ public class AuthServiceImpl implements AuthService {
     // 🔐 ACTIVATION DE COMPTE
     // ============================================================================
     /**
-     * Vérifie un code d'activation pour un utilisateur
-     */
-    @Override
-    public void verifyActivationCode(String email, String code) {
-
-        // Vérifier si l'utilisateur existe
-        Users user = getUserByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
-
-        // Vérifier le code d'activation
-        boolean isValid = activationCodeService.verifyActivationCode(email, code);
-
-        if(!isValid){
-            throw new RuntimeException("Code d'activation invalide ou expiré");
-        }
-        // Sinon, Marquer le code comme utilisé
-        activationCodeService.markCodeAsUsed(email, code);
-
-    }
-
-    /**
      * Crée le mot de passe et active le compte d'un utilisateur
      */
     @Override
     @Transactional
-    public void setPassword(String email, String password, String confirmPassword) {
+    public void setPassword(String email, String token, String password, String confirmPassword) {
 
         // Vérifier si l'utilisateur existe
         Users user = getUserByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable avec cet email"));
 
-        // Vérifier qu'un code d'activation a été vérifié
-        if(!activationCodeService.hasUsedActivationCode(email)){
-            throw new RuntimeException("Vous devez d'abord vérifier votre code d'activation");
+        // Vérification du token d'activation
+        if (token == null || token.isBlank()) {
+            throw new RuntimeException("Le token d'activation est manquant");
+        }
+
+        boolean isValid = activationCodeService.verifyActivationCode(email, token);
+        if (!isValid) {
+            throw new RuntimeException("Lien d'activation invalide ou expiré");
         }
 
         // Vérifier que les mots de passe correspondent
@@ -265,6 +249,74 @@ public class AuthServiceImpl implements AuthService {
         // Supprimer le code utilisé on en a plus besoin
         activationCodeRepository.deleteByEmail(email);
 
+    }
+
+    /**
+     * Renvoie un lien d'activation à un utilisateur
+     */
+    @Override
+    @Transactional
+    public void resendActivationLink(String email) {
+
+        // Vérifier si l'utilisateur existe
+        Users user = getUserByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable avec cet email"));
+
+        // Vérifier si le compte est déjà actif
+        if (Boolean.TRUE.equals(user.getIsActive())) {
+            throw new RuntimeException("Ce compte est déjà actif.");
+        }
+
+        // Bloquer si le compte a été suspendu manuellement
+        if (Boolean.TRUE.equals(user.getDisabledByAdmin())) {
+            throw new RuntimeException("Ce compte a été désactivé par un administrateur.");
+        }
+
+        // Bloquer si le salarié ou l'entreprise a été désactivé par le commercial
+        if (user.getRole() == UserRole.EMPLOYEE || user.getRole() == UserRole.COMPANY) {
+            Employee employee = employeeRepository.findByUser(user).orElse(null);
+            if (employee != null && employee.getCompany() != null && !Boolean.TRUE.equals(employee.getCompany().getIsActive())) {
+                throw new RuntimeException("Votre entreprise est inactive. Vous ne pouvez pas recevoir de lien d'activation.");
+            }
+        }
+
+        // Supprimer les anciens codes d'activation
+        activationCodeRepository.deleteByEmailAndType(email, CodeType.ACTIVATION);
+
+        // Générer un nouveau code
+        String code = activationCodeService.generateAndStoreCode(email);
+
+        // Envoyer le lien spécifique en fonction du rôle
+        if (user.getRole() == UserRole.DELIVERY_DRIVER) {
+            emailService.sendDriverActivationLink(email, code, user.getFirstName());
+        } else if (user.getRole() == UserRole.EMPLOYEE) {
+            String companyName = "";
+            String commercialName = "";
+            Optional<Employee> empOpt = employeeRepository.findByUser(user);
+            if (empOpt.isPresent()) {
+                Employee emp = empOpt.get();
+                if (emp.getCompany() != null) {
+                    companyName = emp.getCompany().getName();
+                }
+                if (emp.getCreatedBy() != null) {
+                    commercialName = emp.getCreatedBy().getFirstName() + " " + emp.getCreatedBy().getLastName();
+                }
+            }
+            emailService.sendEmployeeActivationLink(email, code, user.getFirstName(), commercialName, companyName);
+        } else if (user.getRole() == UserRole.COMPANY) {
+            String companyName = "";
+            Optional<Employee> empOpt = employeeRepository.findByUser(user);// le représentant est un salarié de son entreprise
+            if (empOpt.isPresent() && empOpt.get().getCompany() != null) {
+                companyName = empOpt.get().getCompany().getName();
+            }
+            String contactName = user.getFirstName() + " " + user.getLastName();
+            emailService.sendCompanyActivationLink(email, code, contactName, companyName);
+        } else {
+            // Pour les administrateurs , commerciaux etc, le lien d'activation générique est web
+            emailService.sendActivationLink(email, code, user.getFirstName());
+        }
+        
+        log.info("Lien d'activation renvoyé pour: {}", email);
     }
 
 
@@ -313,9 +365,18 @@ public class AuthServiceImpl implements AuthService {
                     "Veuillez contacter votre administrateur pour le réactiver.");
         }
 
-        // Note : On autorise le forgotPassword si isActive est false ET disabledByAdmin est false.
-        // Cela permet aux nouveaux utilisateurs dont le lien d'activation a expiré de redemander un lien.
+        // Vérifier si le compte est actif
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new RuntimeException("Ce compte n'est pas encore actif. Si votre lien a expiré, veuillez demander un nouveau lien d'activation.");
+        }
 
+        // Bloquer si le salarié ou l'entreprise a été désactivé par le commercial
+        if (user.getRole() == UserRole.EMPLOYEE || user.getRole() == UserRole.COMPANY) {
+            Employee employee = employeeRepository.findByUser(user).orElse(null);
+            if (employee != null && employee.getCompany() != null && !Boolean.TRUE.equals(employee.getCompany().getIsActive())) {
+                throw new RuntimeException("Votre entreprise est inactive. Action non autorisée.");
+            }
+        }
         // Supprimer les tokens existants pour cet email
         activationCodeRepository.deleteByEmailAndType(email, CodeType.PASSWORD_RESET);
 

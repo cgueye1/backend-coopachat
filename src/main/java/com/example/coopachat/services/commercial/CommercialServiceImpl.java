@@ -487,7 +487,7 @@ public class CommercialServiceImpl implements CommercialService {
         // Mettre à jour le statut
         company.setIsActive(updateCompanyStatusDTO.getIsActive());
 
-        // Sauvegarder les modifications
+        // Sauvegarder les modifications de l'entreprise
         companyRepository.save(company);
 
         // Log avec l'ancien et le nouveau statut

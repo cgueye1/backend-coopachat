@@ -49,23 +49,24 @@ public interface AuthService {
 
 
     /**
-     * Vérifie un code d'activation pour un utilisateur
+     * Crée le mot de passe et active le compte d'un utilisateur en utilisant le token fourni dans l'URL
      *
      * @param email L'email de l'utilisateur
-     * @param code  Le code d'activation à 6 chiffres
-     * @throws RuntimeException si l'utilisateur n'existe pas ou si le code est invalide
-     */
-    void verifyActivationCode(String email , String code);
-
-    /**
-     * Crée le mot de passe et active le compte d'un utilisateur
-     *
-     * @param email L'email de l'utilisateur
+     * @param token Le token d'activation
      * @param password Le mot de passe à définir
      * @param confirmPassword  la confirmation
-     * @throws RuntimeException si l'utilisateur n'existe pas, si le code n'a pas été vérifié, ou si les mots de passe ne correspondent pas
+     * @throws RuntimeException si l'utilisateur n'existe pas, si le code n'est pas valide, ou si les mots de passe ne correspondent pas
      */
-    void setPassword(String email, String password, String confirmPassword);
+    void setPassword(String email, String token, String password, String confirmPassword);
+
+    /**
+     * Renvoie un lien d'activation à un utilisateur dont le compte n'est pas encore actif.
+     * Le type de lien (web ou mobile) dépend automatiquement du rôle de l'utilisateur.
+     *
+     * @param email L'email de l'utilisateur
+     * @throws RuntimeException si l'utilisateur n'existe pas ou si le compte est déjà actif
+     */
+    void resendActivationLink(String email);
 
     /**
      * Génère un token de réinitialisation de mot de passe et l'envoie par email
