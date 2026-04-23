@@ -58,18 +58,7 @@ public interface ActivationCodeService {
     boolean verifyActivationCode(String email, String code);
 
     /**
-     * Vérifie si un code d'activation a été utilisé pour un email
-     *
-     * @param email L'email de l'utilisateur
-     * @return true si un code a été utilisé, false sinon
-     */
-    boolean hasUsedActivationCode(String email);
-
-    /**
-     * Marque un code d'activation comme utilisé
-     *
-     * @param email L'email de l'utilisateur
-     * @param code  Le code à marquer comme utilisé
+     * Marque un code comme utilisé
      */
     void markCodeAsUsed(String email, String code);
 

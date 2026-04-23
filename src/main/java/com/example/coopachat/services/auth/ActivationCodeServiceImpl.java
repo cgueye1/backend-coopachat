@@ -151,18 +151,6 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
         return activationCodeOpt.isPresent();
     }
 
-    /**
-     * Vérifie si un code d'activation a été utilisé pour un email (utile pour la création d'un mot de passe)
-     */
-    @Override
-    public boolean hasUsedActivationCode(String email) {
-        Boolean hasUsed = activationCodeRepository.hasUsedCode(email);
-        return hasUsed;
-    }
-
-    /**
-     * Marque un code d'activation comme utilisé
-     */
     @Override
     @Transactional
     public void markCodeAsUsed(String email, String code) {
@@ -170,7 +158,7 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
         if (activationCodeOpt.isPresent()) {
             activationCodeOpt.get().setUsed(true);
             activationCodeRepository.save(activationCodeOpt.get());
-            log.info("Code d'activation marqué comme utilisé pour l'email: {}", email);
+            log.info("Code marqué comme utilisé pour l'email: {}", email);
         }
     }
 
