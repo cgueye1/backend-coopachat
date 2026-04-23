@@ -1602,6 +1602,8 @@ public class CommercialServiceImpl implements CommercialService {
         dto.setId(company.getId());
         dto.setName(company.getName());
         dto.setSector(company.getSector() != null ? company.getSector().getName() : null);
+        dto.setSectorLabel(company.getSector() != null ? company.getSector().getName() : null);
+
         dto.setLocation(company.getLocation());
         dto.setContactName(company.getContactName());
         dto.setContactPhone(company.getContactPhone());

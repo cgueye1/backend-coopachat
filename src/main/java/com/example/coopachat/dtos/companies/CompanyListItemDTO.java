@@ -18,6 +18,8 @@ public class CompanyListItemDTO {
     private Long id ;
     private String name;
     private String sector;
+    private String sectorLabel; // Libellé du secteur (nom) pour le frontend
+
     private String location;
     private String contactName;
     private String contactPhone;

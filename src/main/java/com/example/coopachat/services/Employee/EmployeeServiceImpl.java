@@ -52,7 +52,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 /**
@@ -108,6 +107,9 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Value("${touchpay.hosted.default-city:Dakar}")
     private String touchPayDefaultCity;
+
+    @Value("${app.touchpay.bridge-url}")
+    private String touchPayBridgeUrlTemplate;
 
     /**
      * Règle 3 : Vérifie que l'entreprise du salarié connecté est active.
@@ -1109,6 +1111,10 @@ public class EmployeeServiceImpl implements EmployeeService {
         response.setMessage("Paiement initié avec succès.");
         response.setTransactionReference(transactionRef);//l’identifiant UNIQUE du paiement
         response.setAmountPaid(totalPaid);//montant à payer
+
+        // On construit l'URL de la WebView TouchPay (bridge) via le template configuré
+        //touchPayBridgeUrlTemplate contient le lien de base avec le marqueur %d (défini dans votre .env)/orderId (l'ID de la commande) vient remplacer ce %d grâce à String.format.
+        response.setPaymentUrl(String.format(touchPayBridgeUrlTemplate, orderId));
 
         //la partie mobile , reçoit les infos et les utilise pour ouvrir l’interface de paiement -> touchpay-bridge.html .
         return response;
