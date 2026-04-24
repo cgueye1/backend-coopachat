@@ -47,6 +47,30 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         localStorage.removeItem('profilePhotoUrl');
     };
 
+    /**
+     * Fonction utilitaire pour nettoyer les messages d'erreurs techniques du backend
+     */
+    const getFriendlyErrorMessage = (err: any): string => {
+        const rawMessage = err?.error?.message || err?.message || "";
+        
+        // Liste des mots-clés "techniques" à masquer
+        const technicalKeywords = [
+            'hibernate', 'jpa', 'sql', 'jdbc', 'constraint', 'violation', 
+            'optimistic', 'lock', 'staleobject', 'row was updated', 'unsaved-value',
+            '.entities.', 'com.example', 'nullpointer'
+        ];
+
+        const isTechnical = technicalKeywords.some(key => 
+            rawMessage.toLowerCase().includes(key.toLowerCase())
+        );
+
+        if (isTechnical) {
+            return "Une erreur de synchronisation s'est produite. Veuillez rafraîchir la page et réessayer.";
+        }
+
+        return rawMessage;
+    };
+
     // Récupérer le token stocké (sessionStorage prioritaire, sinon localStorage)
     const token = isBrowser
         ? (sessionStorage.getItem('token') || localStorage.getItem('token'))
@@ -56,17 +80,27 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     if (!token) {
         return next(req).pipe(
             catchError((err: unknown) => {
-                //SI on n'est pas côté navigateur(on est côté serveur), on retourne l'erreur
                 if (!isBrowser) return throwError(() => err);
-                // Sans token : on redirige seulement sur 401 (token manquant), jamais sur 403 (interdit / rôle).
-                // Et on ne touche pas au flux des endpoints d'auth (login, otp, reset, etc.).
-                if (!isAuthEndpoint && err instanceof HttpErrorResponse && err.status === 401) {
-                    clearSession();
-                    if (router.url !== '/login') {
-                        router.navigate(['/login']);
+                
+                let errorToReturn = err;
+                if (err instanceof HttpErrorResponse) {
+                    const friendlyMessage = getFriendlyErrorMessage(err);
+                    errorToReturn = new HttpErrorResponse({
+                        error: typeof err.error === 'object' ? { ...err.error, message: friendlyMessage } : { message: friendlyMessage },
+                        status: err.status,
+                        statusText: err.statusText,
+                        url: err.url || undefined
+                    });
+
+                    if (!isAuthEndpoint && err.status === 401) {
+                        clearSession();
+                        if (router.url !== '/login') {
+                            router.navigate(['/login']);
+                        }
                     }
                 }
-                return throwError(() => err);
+                
+                return throwError(() => errorToReturn);
             })
         );
     }
@@ -78,19 +112,29 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         }
     });
 
-    return next(authReq).pipe(//ON envoie la requête avec le header Authorization
-        //SI on a une erreur, on vérifie si on est côté navigateur ou côté serveur
+    return next(authReq).pipe(
         catchError((err: unknown) => {
-            //SI on n'est pas côté navigateur(on est côté serveur), on retourne l'erreur
             if (!isBrowser) return throwError(() => err);
-           //SI on n'est pas sur un endpoint d'auth et que l'erreur est une erreur 401, on nettoie la session et on redirige vers /login
-            if (!isAuthEndpoint && err instanceof HttpErrorResponse && err.status === 401) {
-                clearSession();//ON nettoie la session
-                if (router.url !== '/login') {//SI on n'est pas sur /login, on redirige vers /login
-                    router.navigate(['/login']);//ON redirige vers /login
+            
+            let errorToReturn = err;
+            if (err instanceof HttpErrorResponse) {
+                const friendlyMessage = getFriendlyErrorMessage(err);
+                errorToReturn = new HttpErrorResponse({
+                    error: typeof err.error === 'object' ? { ...err.error, message: friendlyMessage } : { message: friendlyMessage },
+                    status: err.status,
+                    statusText: err.statusText,
+                    url: err.url || undefined
+                });
+
+                if (!isAuthEndpoint && err.status === 401) {
+                    clearSession();
+                    if (router.url !== '/login') {
+                        router.navigate(['/login']);
+                    }
                 }
             }
-            return throwError(() => err);//ON retourne l'erreur
+            
+            return throwError(() => errorToReturn);
         })
     );
 };

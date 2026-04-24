@@ -87,17 +87,19 @@
 
             try {
                 const apiBaseUrl = getApiBaseUrl();//URL de l'API pour recupérer les données de paiement
-                const token = getInjectedBearerToken();//Token du back-office injecté depuis le mobile
+                // const token = getInjectedBearerToken();// Token désactivé pour TEST PUBLIC
 
+                /* 
                 if (!token) {
-                    console.warn("Attention: window.__TOUCHPAY_BRIDGE_TOKEN est vide. La requête risque d'échouer (401).");
+                    console.warn("Attention: window.__TOUCHPAY_BRIDGE_TOKEN est vide.");
                 }
+                */
 
                 //Construction de l'URL apiBaseURL/api/payments/bridge/orderId
                 const url = `${apiBaseUrl}/api/payments/bridge/${encodeURIComponent(orderId)}`;
-                //Headers pour la requête et le token pour l'authentification
+                //Headers pour la requête
                 const headers = { 'Accept': 'application/json' };
-                if (token) headers['Authorization'] = `Bearer ${token}`;
+                // if (token) headers['Authorization'] = `Bearer ${token}`; // Désactivé pour TEST PUBLIC
 
                 //requête GET pour recupérer les données de paiement
                 const res = await fetch(url, { method: 'GET', headers });
