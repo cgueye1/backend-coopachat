@@ -24,7 +24,6 @@ public class CompanyListItemDTO {
     private String contactName;
     private String contactPhone;
 
-    @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime createdAt;
 
     private String status; // Libellé du statut de prospection (ex. Partenaire signé)

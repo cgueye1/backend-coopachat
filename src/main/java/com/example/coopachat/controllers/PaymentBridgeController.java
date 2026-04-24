@@ -50,67 +50,75 @@ public class PaymentBridgeController {
 
     @GetMapping("/{orderId}")
     public PaymentBridgeResponseDTO getBridgePayload(@PathVariable Long orderId) {
-        Users currentUser = getCurrentUser();//Utilisateur connecté
-
-        //Recuperation de l'employé connecté
-        Employee employee = employeeRepository.findByUser(currentUser)
-                .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
-
-        //Recuperation de la commande
+        // Recuperation de la commande
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
 
-        // Sécurité : le salarié ne peut récupérer que SES commandes
-        if (order.getEmployee() == null || !order.getEmployee().getId().equals(employee.getId())) {
-            throw new RuntimeException("Cette commande ne vous appartient pas");
+        Users currentUser = null;
+        try {
+            currentUser = getCurrentUser();
+        } catch (Exception e) {
+            log.warn("Mode TEST : Accès au bridge de paiement sans authentification pour la commande ID {}", orderId);
+        }
+
+        // Si authentifié, on garde la vérification de sécurité
+        if (currentUser != null) {
+            Employee employee = employeeRepository.findByUser(currentUser)
+                    .orElseThrow(() -> new RuntimeException("Employé non trouvé"));
+            if (order.getEmployee() == null || !order.getEmployee().getId().equals(employee.getId())) {
+                throw new RuntimeException("Cette commande ne vous appartient pas");
+            }
+        } else {
+            // Mode Public (Test) : On récupère l'utilisateur lié à l'employé de la commande
+            if (order.getEmployee() != null && order.getEmployee().getUser() != null) {
+                currentUser = order.getEmployee().getUser();
+            } else {
+                throw new RuntimeException("Utilisateur introuvable pour cette commande (mode public)");
+            }
         }
 
         Payment payment = order.getPayment();
         if (payment == null) {
-            // Normalement créé à la commande, mais on sécurise le cas.
             payment = new Payment();
             payment.setOrder(order);
             payment.setStatus(PaymentStatus.UNPAID);
         }
 
-        // On s'assure d'avoir une référence (order_number côté TouchPay).
         if (payment.getTransactionReference() == null || payment.getTransactionReference().isBlank()) {
             payment.setTransactionReference(String.valueOf(System.currentTimeMillis()));
         }
 
-        // Statut local: au moment où on ouvre la page TouchPay, on passe en PENDING
         if (payment.getStatus() == PaymentStatus.UNPAID) {
             payment.setStatus(PaymentStatus.PENDING);
         }
 
-        paymentRepository.save(payment);//Enregistrement de la transaction
+        paymentRepository.save(payment);
 
-        BigDecimal subtotal = order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;//Sous-total de la commande
-        BigDecimal serviceFee = feeService.calculateTotalFees();//Frais de service
-        if (serviceFee == null) serviceFee = BigDecimal.ZERO;//Si les frais de service sont nuls, on les set à 0
-        BigDecimal total = subtotal.add(serviceFee);//Total de la commande
+        BigDecimal subtotal = order.getTotalPrice() != null ? order.getTotalPrice() : BigDecimal.ZERO;
+        BigDecimal serviceFee = feeService.calculateTotalFees();
+        if (serviceFee == null) serviceFee = BigDecimal.ZERO;
+        BigDecimal total = subtotal.add(serviceFee);
 
-        //Retourne la réponse de la page Web TouchPay
         return new PaymentBridgeResponseDTO(
-                payment.getTransactionReference(),//Référence de la transaction
-                agencyCode,//Code de l'agence TouchPay
-                token,//Token TouchPay
-                serviceId,//Service ID TouchPay
-                hostedScriptUrl,//URL du script TouchPay
-                total,//Total de la commande
-                defaultCity,//Ville par défaut
-                successRedirectUrl,//URL de redirection en cas de succès
-                failedRedirectUrl,//URL de redirection en cas d'échec
-                currentUser.getEmail(),//Email de l'utilisateur
-                currentUser.getFirstName(),//Prénom de l'utilisateur
-                currentUser.getLastName(),//Nom de l'utilisateur
-                currentUser.getPhone()//Téléphone de l'utilisateur
+                payment.getTransactionReference(),
+                agencyCode,
+                token,
+                serviceId,
+                hostedScriptUrl,
+                total,
+                defaultCity,
+                successRedirectUrl,
+                failedRedirectUrl,
+                currentUser.getEmail(),
+                currentUser.getFirstName(),
+                currentUser.getLastName(),
+                currentUser.getPhone()
         );
     }
 
     private Users getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || authentication.getName() == null) {
+        if (authentication == null || authentication.getName() == null || authentication.getName().equals("anonymousUser")) {
             throw new RuntimeException("Utilisateur non authentifié");
         }
         return userRepository.findByEmail(authentication.getName())
