@@ -86,6 +86,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     private final DriverNotificationService driverNotificationService;
     private final LogisticsManagerNotificationService logisticsManagerNotificationService;
     private final UserReferenceGenerator userReferenceGenerator;
+    private final SupplierRepository supplierRepository;
 
 
 
@@ -94,11 +95,27 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
     // ----------------------------------------------------------------------------
 
     @Override
-    public List<SupplierListItemDTO> getAllSuppliers() {
-        return userRepository.findByRoleAndIsActiveTrue(UserRole.SUPPLIER)
+    public List<SupplierListItemDTO> getAllSuppliers(Long categoryId, SupplierType type) {
+        // On récupère uniquement les fournisseurs actifs
+        return supplierRepository.findWithFilters(null, categoryId, type, true, Pageable.unpaged())
                 .stream()
-                .map(user -> new SupplierListItemDTO(user.getId(), user.getFirstName() + " " + user.getLastName()))
+                .map(this::mapToSupplierListItemDTO)
                 .collect(Collectors.toList());
+    }
+
+    private SupplierListItemDTO mapToSupplierListItemDTO(Supplier s) {
+        SupplierListItemDTO dto = new SupplierListItemDTO();
+        dto.setId(s.getId());
+        dto.setName(s.getName());
+        dto.setSectorName(s.getCategories() != null && !s.getCategories().isEmpty() 
+            ? s.getCategories().stream().map(Category::getName).collect(java.util.stream.Collectors.joining(", ")) 
+            : null);
+        dto.setType(s.getType());
+        dto.setContactName(s.getContactName());
+        dto.setPhone(s.getPhone());
+        dto.setEmail(s.getEmail());
+        dto.setActive(s.getIsActive());
+        return dto;
     }
 
     // ============================================================================
@@ -124,11 +141,11 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         }
 
         // Vérifier que le fournisseur existe
-        Users supplier = userRepository.findById(createSupplierOrderDTO.getSupplierId())
+        Supplier supplier = supplierRepository.findById(createSupplierOrderDTO.getSupplierId())
                 .orElseThrow(() -> new RuntimeException("Fournisseur introuvable"));
 
         // Vérifier que le fournisseur est actif
-        if (!supplier.getIsActive()) {
+        if (supplier.getIsActive() != null && !supplier.getIsActive()) {
             throw new RuntimeException("Le fournisseur sélectionné est inactif");
         }
 
@@ -529,7 +546,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
 
                 row.createCell(0).setCellValue(order.getOrderNumber() != null ? order.getOrderNumber() : "");
                 row.createCell(1).setCellValue(
-                        order.getSupplier() != null ? order.getSupplier().getFirstName()+" "+order.getSupplier().getLastName() : "");
+                        order.getSupplier() != null ? order.getSupplier().getName() : "");
                 row.createCell(2).setCellValue(order.getExpectedDate() != null
                         ? order.getExpectedDate().format(dateFormatter) : "");
                 row.createCell(3).setCellValue(buildProductsSummary(order.getItems()));
@@ -3075,7 +3092,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         dto.setId(supplierOrder.getId());
         dto.setOrderNumber(supplierOrder.getOrderNumber());
         dto.setSupplierId(supplierOrder.getSupplier().getId());
-        dto.setSupplierName(supplierOrder.getSupplier().getFirstName()+ " "+supplierOrder.getSupplier().getLastName() );
+        dto.setSupplierName(supplierOrder.getSupplier().getName());
         dto.setExpectedDate(supplierOrder.getExpectedDate());
         dto.setStatus(supplierOrder.getStatus().getLabel()); // Récupérer le label de l'enum
         dto.setNotes(supplierOrder.getNotes());
@@ -3114,7 +3131,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         SupplierOrderListItemDTO dto = new SupplierOrderListItemDTO();
         dto.setId(supplierOrder.getId());
         dto.setOrderNumber(supplierOrder.getOrderNumber());
-        dto.setSupplierName(supplierOrder.getSupplier().getFirstName()+" "+supplierOrder.getSupplier().getLastName() );
+        dto.setSupplierName(supplierOrder.getSupplier().getName());
         dto.setExpectedDate(supplierOrder.getExpectedDate());
         dto.setStatus(supplierOrder.getStatus().getLabel()); // Récupérer le label de l'enum
         dto.setProductsSummary(buildProductsSummary(supplierOrder.getItems())); // Construire le résumé des produits

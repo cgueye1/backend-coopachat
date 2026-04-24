@@ -29,7 +29,4 @@ public class PaymentResponseDTO {
     // URL de la WebView TouchPay  à ouvrir sur le mobile
     private String paymentUrl;
 
-    // Token JWT à injecter dans la WebView 
-    private String jwtToken;
-
 }

@@ -65,7 +65,7 @@ public interface UserRepository extends JpaRepository<Users, Long> {
             "      LOWER(u.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "      LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "      LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-            "AND (u.role NOT IN (com.example.coopachat.enums.UserRole.EMPLOYEE, com.example.coopachat.enums.UserRole.COMPANY)) " +
+            "AND (u.role NOT IN (com.example.coopachat.enums.UserRole.EMPLOYEE, com.example.coopachat.enums.UserRole.COMPANY, com.example.coopachat.enums.UserRole.SUPPLIER)) " +
             "AND (:role IS NULL OR u.role = :role) " +
             "AND (:isActive IS NULL OR u.isActive = :isActive) " +
             "ORDER BY u.createdAt DESC")
@@ -86,13 +86,13 @@ public interface UserRepository extends JpaRepository<Users, Long> {
     long countByIsActiveFalse();
 
     /** Comptages admin : même périmètre que findAllWithFilters (hors salariés et entreprises). */
-    @Query("SELECT COUNT(u) FROM Users u WHERE u.role NOT IN (com.example.coopachat.enums.UserRole.EMPLOYEE, com.example.coopachat.enums.UserRole.COMPANY)")
+    @Query("SELECT COUNT(u) FROM Users u WHERE u.role NOT IN (com.example.coopachat.enums.UserRole.EMPLOYEE, com.example.coopachat.enums.UserRole.COMPANY, com.example.coopachat.enums.UserRole.SUPPLIER)")
     long countExcludingEmployee();
 
-    @Query("SELECT COUNT(u) FROM Users u WHERE u.role NOT IN (com.example.coopachat.enums.UserRole.EMPLOYEE, com.example.coopachat.enums.UserRole.COMPANY) AND u.isActive = true")
+    @Query("SELECT COUNT(u) FROM Users u WHERE u.role NOT IN (com.example.coopachat.enums.UserRole.EMPLOYEE, com.example.coopachat.enums.UserRole.COMPANY, com.example.coopachat.enums.UserRole.SUPPLIER) AND u.isActive = true")
     long countByIsActiveTrueExcludingEmployee();
 
-    @Query("SELECT COUNT(u) FROM Users u WHERE u.role NOT IN (com.example.coopachat.enums.UserRole.EMPLOYEE, com.example.coopachat.enums.UserRole.COMPANY) AND u.isActive = false")
+    @Query("SELECT COUNT(u) FROM Users u WHERE u.role NOT IN (com.example.coopachat.enums.UserRole.EMPLOYEE, com.example.coopachat.enums.UserRole.COMPANY, com.example.coopachat.enums.UserRole.SUPPLIER) AND u.isActive = false")
     long countByIsActiveFalseExcludingEmployee();
 
     /** Nombre d'utilisateurs pour un rôle donné (pour le graphique "Utilisateurs par rôle"). */

@@ -1,5 +1,7 @@
 package com.example.coopachat.services.LogisticsManager;
 
+import com.example.coopachat.enums.SupplierType;
+
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.CancelDeliveryTourDTO;
 import com.example.coopachat.dtos.DeliveryDriver.RegisterDriverRequestDTO;
@@ -45,11 +47,13 @@ public interface LogisticsManagerService {
     // ============================================================================
 
     /**
-     * Récupère la liste des fournisseurs (id + nom)
+     * Récupère la liste des fournisseurs (id + nom) avec filtres
      *
-     * @return liste des fournisseurs actifs
+     * @param categoryId ID de la catégorie pour filtrer (optionnel)
+     * @param type Type de fournisseur pour filtrer (optionnel)
+     * @return liste des fournisseurs actifs filtrés
      */
-     List<SupplierListItemDTO> getAllSuppliers();
+     List<SupplierListItemDTO> getAllSuppliers(Long categoryId, SupplierType type);
 
     // ============================================================================
     // 📦 GESTION DES COMMANDES FOURNISSEURS

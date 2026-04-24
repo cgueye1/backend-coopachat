@@ -17,19 +17,25 @@ FROM maven:3.9.9-eclipse-temurin-17 AS build
 # Définit le dossier de travail dans le conteneur
 WORKDIR /app
 
-# Copie le fichier pom.xml (gestion des dépendances)
-# Permet à Docker d'utiliser le cache si ce fichier ne change pas
+# 1. On copie UNIQUEMENT le fichier de dépendances (pom.xml)
+# Cela permet à Docker de mettre en cache cette couche tant que le fichier ne change pas.
 COPY pom.xml .
 
-# Copie le code source (src/)
+# 2. On télécharge les dépendances en avance (avec options de secours SSL/TLS)
+RUN mvn dependency:go-offline -B \
+    -Dhttps.protocols=TLSv1.2 \
+    -Dmaven.wagon.http.ssl.insecure=true \
+    -Dmaven.wagon.http.ssl.allowall=true \
+    -Dmaven.wagon.http.retryHandler.count=3
+
+# 3. On copie ensuite le code source (src/)
 COPY src ./src
 
-# Compile le projet :
-# - clean      → supprime anciens fichiers compilés
-# - package    → génère le .jar
-# -DskipTests  → ne lance pas les tests (plus rapide)
-# -B           → mode non interactif (CI) ; sans -q pour que les erreurs Maven s’affichent dans docker build
-RUN mvn -B -DskipTests clean package
+# 4. On compile le projet :
+RUN mvn -B -DskipTests clean package \
+    -Dhttps.protocols=TLSv1.2 \
+    -Dmaven.wagon.http.ssl.insecure=true \
+    -Dmaven.wagon.http.ssl.allowall=true
 
 # Résultat : fichier .jar généré dans /app/target/
 # ═══════════════════════════════════
