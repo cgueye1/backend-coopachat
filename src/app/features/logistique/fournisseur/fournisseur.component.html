@@ -269,18 +269,61 @@
                 <!-- Body (scrollable) -->
                 <div class="overflow-y-auto p-2 sm:p-4 space-y-4 flex-1">
                     <div class="grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2 md:gap-3">
-                        <!-- Fournisseur -->
-                        <div class="space-y-2 px-1 sm:px-2">
-                            <label class="text-[15px] font-medium text-gray-700">Fournisseur <span
-                                    class="text-red-500">*</span></label>
-                            <select [(ngModel)]="newCommande.fournisseur" [disabled]="isEditMode"
-                                [class.border-red-500]="errors.fournisseur"
-                                class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-lg text-gray-600 appearance-none bg-white">
-                                <option [ngValue]="null" disabled>Sélectionner</option>
-                                <option *ngFor="let fournisseur of suppliers" [ngValue]="fournisseur.id">
-                                    {{ fournisseur.name }}
-                                </option>
-                            </select>
+                        <!-- Fournisseur avec Autocomplete and Filters -->
+                        <div class="col-span-1 md:col-span-2 space-y-3 px-1 sm:px-2 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-[15px] font-semibold text-[#2C2D5B]">Rechercher un fournisseur <span class="text-red-500">*</span></label>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <!-- Search Input -->
+                                <div class="relative md:col-span-1">
+                                    <input type="text" [(ngModel)]="modalSearchText" (input)="onModalSupplierSearch()" 
+                                           placeholder="Nom du fournisseur..." [disabled]="isEditMode"
+                                           class="w-full p-3 pl-10 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] outline-none transition-all text-sm">
+                                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    
+                                    <!-- Autocomplete Dropdown -->
+                                    <div *ngIf="showModalSupplierDropdown && !isEditMode" 
+                                         class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-[60] max-h-48 overflow-y-auto">
+                                        <div *ngFor="let supplier of filteredModalSuppliers" 
+                                             (click)="selectModalSupplier(supplier)"
+                                             class="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-50 last:border-0 transition-colors">
+                                            {{ supplier.name }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Category Filter -->
+                                <div class="relative md:col-span-1">
+                                    <select [(ngModel)]="modalSelectedCategoryId" (change)="onModalFilterChange()" [disabled]="isEditMode"
+                                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] outline-none text-sm appearance-none bg-white">
+                                        <option [ngValue]="null">Toutes catégories</option>
+                                        <option *ngFor="let cat of categories" [ngValue]="cat.id">{{ cat.name }}</option>
+                                    </select>
+                                    <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M1 1L5 5L9 1" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <!-- Type Filter -->
+                                <div class="relative md:col-span-1">
+                                    <select [(ngModel)]="modalSelectedType" (change)="onModalFilterChange()" [disabled]="isEditMode"
+                                            class="w-full p-3 rounded-lg border border-[#CBD5E1] focus:border-[#2B3674] outline-none text-sm appearance-none bg-white">
+                                        <option [ngValue]="null">Tous les types</option>
+                                        <option *ngFor="let type of supplierTypes" [value]="type">{{ type }}</option>
+                                    </select>
+                                    <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M1 1L5 5L9 1" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
                             <p *ngIf="errors.fournisseur" class="text-red-500 text-xs mt-1">{{ errors.fournisseur }}</p>
                         </div>
                         <!-- Produit -->

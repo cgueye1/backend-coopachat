@@ -1,0 +1,122 @@
+<app-main-layout role="admin">
+  <div class="max-w-5xl mx-auto space-y-6">
+    <!-- Header -->
+    <app-header 
+      [title]="editId ? 'Modifier le fournisseur' : 'Nouveau fournisseur'" 
+      [breadcrumb]="editId ? 'Pages / Fournisseurs / Modifier' : 'Pages / Fournisseurs / Nouveau'"
+      [type]="'simple'">
+    </app-header>
+
+    <form (ngSubmit)="onSubmit()" #supplierForm="ngForm" class="space-y-6">
+      <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-50">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+          
+          <!-- Informations Générales -->
+          <div class="space-y-6">
+            <h3 class="text-lg font-semibold text-[#2B3674] border-b pb-2">Informations Générales</h3>
+            
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700">Nom du fournisseur *</label>
+              <input type="text" name="name" [(ngModel)]="supplier.name" required
+                     class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder-gray-400"
+                     placeholder="Ex: Global Logistics SA">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-gray-700">Type</label>
+                <select name="type" [(ngModel)]="supplier.type"
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                  <option [ngValue]="''">Sélectionner un type</option>
+                  <option *ngFor="let t of supplierTypes" [value]="t.key">{{ t.label }}</option>
+                </select>
+              </div>
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-gray-700">Secteur</label>
+                <select name="sectorId" [(ngModel)]="supplier.sectorId"
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                  <option [ngValue]="null">Sélectionner un secteur</option>
+                  <option *ngFor="let s of sectors" [value]="s.id">{{ s.name }}</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700">NINEA</label>
+              <input type="text" name="ninea" [(ngModel)]="supplier.ninea"
+                     class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder-gray-400"
+                     placeholder="Numéro d'identification fiscale">
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700">Description</label>
+              <textarea name="description" [(ngModel)]="supplier.description" rows="3"
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder-gray-400"
+                        placeholder="Brève description de l'activité..."></textarea>
+            </div>
+          </div>
+
+          <!-- Contact et Logistique -->
+          <div class="space-y-6">
+            <h3 class="text-lg font-semibold text-[#2B3674] border-b pb-2">Contact et Logistique</h3>
+
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700">Nom du contact</label>
+              <input type="text" name="contactName" [(ngModel)]="supplier.contactName"
+                     class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder-gray-400"
+                     placeholder="Nom de la personne ressource">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-gray-700">Email *</label>
+                <input type="email" name="email" [(ngModel)]="supplier.email" required
+                       class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder-gray-400"
+                       placeholder="contact@fournisseur.com">
+              </div>
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-gray-700">Téléphone *</label>
+                <input type="text" name="phone" [(ngModel)]="supplier.phone" required
+                       class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder-gray-400"
+                       placeholder="+221 ...">
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700">Adresse complète *</label>
+              <input type="text" name="address" [(ngModel)]="supplier.address" required
+                     class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder-gray-400"
+                     placeholder="Rue, Ville, Pays">
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700">Délai de livraison estimé</label>
+              <input type="text" name="deliveryTime" [(ngModel)]="supplier.deliveryTime"
+                     class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder-gray-400"
+                     placeholder="Ex: 24h - 48h">
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+              <input type="checkbox" name="isActive" [(ngModel)]="supplier.isActive" id="isActive"
+                     class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+              <label for="isActive" class="text-sm font-medium text-gray-700">Compte fournisseur actif</label>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-end gap-4 pb-12">
+        <button type="button" (click)="annuler()"
+                class="px-8 py-3 border border-gray-200 rounded-xl text-gray-600 font-semibold hover:bg-gray-50 transition-all">
+          Annuler
+        </button>
+        <button type="submit" [disabled]="!supplierForm.form.valid || saving"
+                class="px-10 py-3 bg-indigo-600 text-white rounded-xl font-semibold shadow-lg shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+          {{ saving ? 'Enregistrement...' : (editId ? 'Mettre à jour' : 'Enregistrer') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</app-main-layout>

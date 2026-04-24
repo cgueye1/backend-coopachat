@@ -12,8 +12,11 @@ export class LogisticsService {
     constructor(private http: HttpClient) { }
 
     // Liste des fournisseurs (pour dropdown)
-    getSuppliers(): Observable<any> {
-        return this.http.get(`${this.apiUrl}/logistics/suppliers`);
+    getSuppliers(categoryId?: number, type?: string): Observable<any> {
+        let params = new HttpParams();
+        if (categoryId) params = params.set('categoryId', categoryId.toString());
+        if (type) params = params.set('type', type);
+        return this.http.get(`${this.apiUrl}/logistics/suppliers`, { params });
     }
 
     /**
@@ -184,7 +187,7 @@ export class LogisticsService {
     // Modifier le statut d'une commande fournisseur
     updateSupplierOrderStatus(orderId: string, status: string): Observable<any> {
         return this.http.patch(
-            `${this.apiUrl}/logistics/suppliers-orders/${orderId}/status`,
+            `${this.apiUrl}/logistics/supplier-orders/${orderId}/status`,
             { status },
             { responseType: 'text' as 'json' }
         );

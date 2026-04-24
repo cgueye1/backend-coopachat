@@ -14,7 +14,6 @@
         let dynamicAmount = 0; //Montant de la commande
         let dynamicTransactionRef = ''; //Référence de la transaction
         let dynamicAgencyCode = ''; //Code de l'agence TouchPay 
-        let dynamicToken = ''; //Token TouchPay
         let dynamicServiceId = ''; //Service ID TouchPay
         let dynamicEmail = ''; //Email du client
         let dynamicFirstName = ''; //Prénom du client
@@ -30,11 +29,11 @@
                 return;
             }
 
-            //on appelle la fonction et lui passe (toutes les variables globales qui ont été remplies via la fonction ) pour envoyer les informations de paiement à TouchPay 
+            //on appelle la fonction pour envoyer les informations de paiement à TouchPay 
             sendPaymentInfos(
                 dynamicTransactionRef,
                 dynamicAgencyCode,
-                dynamicToken,
+                '', // Pas de token (mode public)
                 dynamicServiceId,
                 '',
                 '',
@@ -55,15 +54,7 @@
                 ? apiBaseUrl.trim().replace(/\/+$/, '')
                 : window.location.origin;
         }
-        //fonction qui recupère le token
-        function getInjectedBearerToken() {
-            try {
-                const t = window.__TOUCHPAY_BRIDGE_TOKEN;
-                return t && String(t).trim() ? String(t).trim() : null;
-            } catch (e) {
-                return null;
-            }
-        }
+
         //fonction qui recupère l'ID de la commande
         function getOrderId() {
             const params = new URLSearchParams(window.location.search);
@@ -87,19 +78,12 @@
 
             try {
                 const apiBaseUrl = getApiBaseUrl();//URL de l'API pour recupérer les données de paiement
-                // const token = getInjectedBearerToken();// Token désactivé pour TEST PUBLIC
-
-                /* 
-                if (!token) {
-                    console.warn("Attention: window.__TOUCHPAY_BRIDGE_TOKEN est vide.");
-                }
-                */
 
                 //Construction de l'URL apiBaseURL/api/payments/bridge/orderId
                 const url = `${apiBaseUrl}/api/payments/bridge/${encodeURIComponent(orderId)}`;
-                //Headers pour la requête
+                
+                //Headers pour la requête (plus de Bearer Token requis)
                 const headers = { 'Accept': 'application/json' };
-                // if (token) headers['Authorization'] = `Bearer ${token}`; // Désactivé pour TEST PUBLIC
 
                 //requête GET pour recupérer les données de paiement
                 const res = await fetch(url, { method: 'GET', headers });
@@ -124,7 +108,6 @@
                 dynamicTransactionRef = String(data.transactionReference);
                 dynamicAmount = Number(data.amount || data.total || 0);
                 dynamicAgencyCode = String(data.agencyCode || '');
-                dynamicToken = String(data.token || '');
                 dynamicServiceId = String(data.serviceId || '');
                 
                 // Extraction des données client pour pré-remplir TouchPay
@@ -150,15 +133,8 @@
 
         // Charger les données dès l'ouverture de la page
         window.onload = () => {
-            // On laisse un tout petit délai (100ms) pour laisser le temps au mobile 
-            // d'injecter la variable avant de lancer le premier fetch
+            // Petit délai pour assurer le rendu
             setTimeout(loadPaymentData, 100);
-        };
-
-        // Permettre au mobile de relancer le chargement manuellement si besoin
-        window.retryLoadWithToken = (token) => {
-            window.__TOUCHPAY_BRIDGE_TOKEN = token;
-            loadPaymentData();
         };
     </script>
 </head>

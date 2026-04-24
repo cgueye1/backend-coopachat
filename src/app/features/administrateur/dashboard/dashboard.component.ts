@@ -49,7 +49,6 @@ const USERS_ROLE_ORDER: Array<{ key: string; label: string }> = [
   { key: 'COMMERCIAL', label: 'Commercial' },
   { key: 'LOGISTICS_MANAGER', label: 'Responsable Logistique' },
   { key: 'DELIVERY_DRIVER', label: 'Livreur' },
-  { key: 'SUPPLIER', label: 'Fournisseur' },
   { key: 'ADMINISTRATOR', label: 'Administrateur' }
 ];
 
@@ -292,8 +291,6 @@ export class AdminPageComponent implements OnInit, AfterViewInit {
           const roleLabel = String((item as { roleLabel?: string }).roleLabel ?? '').trim().toLowerCase();
           const pct = Number((item as { percentage?: number }).percentage ?? 0) || 0;
           if (roleKey) pctByRole.set(roleKey, pct);
-          // Fallback si l'API renvoie uniquement un libellé.
-          if (!roleKey && roleLabel.includes('fournisseur')) pctByRole.set('SUPPLIER', pct);
         }
 
         this.usersRolePctLabels = USERS_ROLE_ORDER.map(r => r.label);

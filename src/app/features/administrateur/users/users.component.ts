@@ -30,12 +30,11 @@ const ROLE_LABEL_TO_ENUM: Record<string, string> = {
   'Administrateur': 'ADMINISTRATOR',
   'Commercial': 'COMMERCIAL',
   'Livreur': 'DELIVERY_DRIVER',
-  'Responsable Logistique': 'LOGISTICS_MANAGER',
-  'Fournisseur': 'SUPPLIER'
+  'Responsable Logistique': 'LOGISTICS_MANAGER'
 };
 
 /** Salariés gérés par le commercial, pas listés / filtrés côté admin. */
-const ROLES_FOR_FILTER = ['Toutes les rôles', 'Administrateur', 'Commercial', 'Livreur', 'Responsable Logistique', 'Fournisseur'];
+const ROLES_FOR_FILTER = ['Toutes les rôles', 'Administrateur', 'Commercial', 'Livreur', 'Responsable Logistique'];
 
 function formatDate(v: string | { day?: number; month?: number; year?: number } | unknown): string {
   if (typeof v === 'string') {

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MainLayoutComponent } from '../../../core/layouts/main-layout/main-layout.component';
 import { HeaderComponent } from '../../../core/layouts/header/header.component';
-import { Product } from '../../../shared/services/product.service';
+import { Product, ProductService } from '../../../shared/services/product.service';
 import { environment } from '../../../../environments/environment';
 import { finalize } from 'rxjs';
 import { LogisticsService } from '../../../shared/services/logistics.service';
@@ -37,9 +37,13 @@ interface Commande {
   styles: []
 })
 export class FournisseurComponent {
-  constructor(private logisticsService: LogisticsService) {
+  constructor(
+    private logisticsService: LogisticsService,
+    private productService: ProductService
+  ) {
     this.loadAllProducts();
     this.loadSuppliers();
+    this.loadCategories();
     this.loadOrders();
     this.loadOrderStats();
   }
@@ -61,7 +65,16 @@ export class FournisseurComponent {
   pendingSupplierName: string | null = null;
   selectedCommande: Commande | null = null;
   allProducts: Product[] = [];
+  categories: { id: number; name: string }[] = [];
+  supplierTypes = ['GROSSISTE', 'PRODUCTEUR', 'IMPORTATEUR'];
   suppliers: { id: number; name: string }[] = [];
+  
+  // Modal specific filters and search
+  modalSearchText = '';
+  modalSelectedCategoryId: number | null = null;
+  modalSelectedType: string | null = null;
+  showModalSupplierDropdown = false;
+  filteredModalSuppliers: { id: number; name: string }[] = [];
   selectedCommandeItems: { id: string; name: string; category: string; icon: string; quantity: number }[] = [];
   newCommande: any = {
     fournisseur: null,
@@ -227,14 +240,54 @@ export class FournisseurComponent {
         };
         if (fournisseurId == null && details?.supplierName) {
           const match = this.suppliers.find(s => s.name === details.supplierName);
-          if (match) this.newCommande.fournisseur = match.id;
+          if (match) {
+            this.newCommande.fournisseur = match.id;
+            this.modalSearchText = match.name;
+          }
+        } else if (fournisseurId != null) {
+          const match = this.suppliers.find(s => s.id === fournisseurId);
+          if (match) this.modalSearchText = match.name;
         }
+        this.modalSelectedCategoryId = null;
+        this.modalSelectedType = null;
+        this.showModalSupplierDropdown = false;
+        this.filteredModalSuppliers = [...this.suppliers];
         this.showModal = true;
       },
       error: (error) => {
         console.error('Erreur lors du chargement pour modification:', error);
       }
     });
+  }
+
+  onModalSupplierSearch(): void {
+    const text = this.modalSearchText.toLowerCase().trim();
+    if (!text && !this.modalSelectedCategoryId && !this.modalSelectedType) {
+      this.filteredModalSuppliers = [...this.suppliers];
+      return;
+    }
+
+    this.logisticsService.getSuppliers(this.modalSelectedCategoryId || undefined, this.modalSelectedType || undefined).subscribe({
+      next: (suppliers) => {
+        this.suppliers = Array.isArray(suppliers) ? suppliers : [];
+        if (text) {
+          this.filteredModalSuppliers = this.suppliers.filter(s => s.name.toLowerCase().includes(text));
+        } else {
+          this.filteredModalSuppliers = [...this.suppliers];
+        }
+        this.showModalSupplierDropdown = this.filteredModalSuppliers.length > 0;
+      }
+    });
+  }
+
+  selectModalSupplier(supplier: { id: number; name: string }): void {
+    this.newCommande.fournisseur = supplier.id;
+    this.modalSearchText = supplier.name;
+    this.showModalSupplierDropdown = false;
+  }
+
+  onModalFilterChange(): void {
+    this.onModalSupplierSearch();
   }
 
   nouvelleCommande(): void {
@@ -249,6 +302,11 @@ export class FournisseurComponent {
       note: '',
       statut: 'En attente'
     };
+    this.modalSearchText = '';
+    this.modalSelectedCategoryId = null;
+    this.modalSelectedType = null;
+    this.showModalSupplierDropdown = false;
+    this.filteredModalSuppliers = [...this.suppliers];
     this.showModal = true;
   }
 
@@ -556,10 +614,22 @@ export class FournisseurComponent {
     this.logisticsService.getSuppliers().subscribe({
       next: (suppliers) => {
         this.suppliers = Array.isArray(suppliers) ? suppliers : [];
+        this.filteredModalSuppliers = [...this.suppliers];
         this.setSupplierFromName();
       },
       error: (error) => {
         console.error('Erreur lors du chargement des fournisseurs:', error);
+      }
+    });
+  }
+
+  private loadCategories(): void {
+    this.productService.getCategories().subscribe({
+      next: (categories) => {
+        this.categories = Array.isArray(categories) ? categories : [];
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des catégories:', error);
       }
     });
   }

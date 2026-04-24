@@ -88,6 +88,16 @@ export const routes: Routes = [
     canActivate: [authGuard, administratorRoleGuard],
     loadComponent: () => import('./features/administrateur/suppliers/suppliers.component').then(c => c.SuppliersComponent)
   },
+  {
+    path: 'admin/suppliers/add',
+    canActivate: [authGuard, administratorRoleGuard],
+    loadComponent: () => import('./features/administrateur/suppliers/add-supplier/add-supplier.component').then(c => c.AddSupplierComponent)
+  },
+  {
+    path: 'admin/suppliers/edit/:id',
+    canActivate: [authGuard, administratorRoleGuard],
+    loadComponent: () => import('./features/administrateur/suppliers/add-supplier/add-supplier.component').then(c => c.AddSupplierComponent)
+  },
 
   {
     path: 'admin/users/add',

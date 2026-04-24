@@ -8,15 +8,58 @@
                 (actionClick)="nouveauFournisseur()">
     </app-header>
 
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
+      <div class="bg-white rounded-lg p-4 sm:p-5 hover:shadow-sm transition-shadow">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <div class="text-xs text-[#6B7280] mb-0.5 sm:mb-1">Total Fournisseurs</div>
+            <div class="text-xl font-semibold text-[#2B3674] mb-1.5 sm:text-2xl sm:mb-2">{{ stats?.totalSuppliers || 0 }}</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 sm:w-12 sm:h-12 bg-blue-50">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg p-4 sm:p-5 hover:shadow-sm transition-shadow">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <div class="text-xs text-[#6B7280] mb-0.5 sm:mb-1">Actifs</div>
+            <div class="text-xl font-semibold text-[#05CD99] mb-1.5 sm:text-2xl sm:mb-2">{{ stats?.activeSuppliers || 0 }}</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 sm:w-12 sm:h-12 bg-green-50">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg p-4 sm:p-5 hover:shadow-sm transition-shadow">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <div class="text-xs text-[#6B7280] mb-0.5 sm:mb-1">Inactifs</div>
+            <div class="text-xl font-semibold text-[#EE5D50] mb-1.5 sm:text-2xl sm:mb-2">{{ stats?.inactiveSuppliers || 0 }}</div>
+          </div>
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 sm:w-12 sm:h-12 bg-red-50">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Table Section -->
-    <div class="bg-white rounded-2xl hover:shadow-sm">
+    <div class="bg-white rounded-2xl hover:shadow-sm overflow-hidden">
       <!-- Filters & Search -->
       <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 border-b border-gray-50">
         <div class="relative flex-1 max-w-md">
           <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5" width="14" height="14"
                viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M13.1539 12.2073L10.6806 9.75393C11.6407 8.55687 12.1056 7.03747 11.9798 5.50813C11.854 3.9788 11.147 2.55579 10.0043 1.5317C8.86151 0.507604 7.3698 -0.0397263 5.83588 0.00224731C4.30196 0.0442209 2.84241 0.672308 1.75736 1.75736C0.672308 2.84241 0.0442209 4.30196 0.00224731 5.83588C-0.0397263 7.3698 0.507604 8.86151 1.5317 10.0043C2.55579 11.147 3.9788 11.854 5.50813 11.9798C7.03747 12.1056 8.55687 11.6407 9.75393 10.6806L12.2073 13.1339C12.2692 13.1964 12.343 13.246 12.4242 13.2799C12.5055 13.3137 12.5926 13.3311 12.6806 13.3311C12.7686 13.3311 12.8557 13.3137 12.937 13.2799C13.0182 13.246 13.092 13.1964 13.1539 13.1339C13.2741 13.0096 13.3413 12.8435 13.3413 12.6706C13.3413 12.4977 13.2741 12.3316 13.1539 12.2073ZM6.01393 10.6806C5.09095 10.6806 4.1887 10.4069 3.42127 9.89412C2.65384 9.38134 2.0557 8.65251 1.7025 7.79979C1.34929 6.94707 1.25687 6.00876 1.43694 5.10351C1.617 4.19827 2.06146 3.36675 2.7141 2.7141C3.36675 2.06146 4.19827 1.617 5.10351 1.43694C6.00876 1.25687 6.94707 1.34929 7.79979 1.7025C8.65251 2.0557 9.38134 2.65384 9.89412 3.42127C10.4069 4.1887 10.6806 5.09095 10.6806 6.01393C10.6806 7.25161 10.1889 8.43859 9.31376 9.31376C8.43859 10.1889 7.25161 10.6806 6.01393 10.6806Z"
-                  fill="#777777" />
+                   fill="#777777" />
           </svg>
           <input type="text" 
                  [(ngModel)]="searchTerm"
@@ -25,7 +68,22 @@
                  class="w-full pl-10 pr-4 py-2.5 border border-[#EEEEEE] rounded-lg focus:outline-none focus:border-[#2B3674] focus:ring-1 focus:ring-[#2B3674] text-xs sm:pl-12 sm:pr-4 sm:py-3 sm:text-sm bg-white placeholder-[#777777]">
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Sector Filter -->
+          <select [(ngModel)]="selectedSectorId" (change)="onFilterChange()"
+                  class="px-2.5 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 bg-white focus:outline-none focus:border-[#2B3674]">
+            <option [ngValue]="null">Tous les secteurs</option>
+            <option *ngFor="let sector of sectors" [value]="sector.id">{{ sector.name }}</option>
+          </select>
+
+          <!-- Status Filter -->
+          <select [(ngModel)]="selectedStatus" (change)="onFilterChange()"
+                  class="px-2.5 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 bg-white focus:outline-none focus:border-[#2B3674]">
+            <option [ngValue]="null">Tous les statuts</option>
+            <option [ngValue]="true">Actif</option>
+            <option [ngValue]="false">Inactif</option>
+          </select>
+
           <button type="button" (click)="onExport()"
                   class="px-2.5 py-2 border border-[#EEEEEE] rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex items-center gap-1.5 sm:px-3 sm:gap-2 bg-white transition-colors">
             <svg class="w-4 h-4 shrink-0" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -38,16 +96,109 @@
         </div>
       </div>
 
-      <!-- Placeholder Empty State -->
-      <div class="p-12 sm:p-20 flex flex-col items-center justify-center text-center">
-        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 sm:mb-6">
-          <svg width="32" height="32" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8 5.73038L11.029 4.52038L3.529 1.52038L0.943 2.55438C0.812528 2.60634 0.689999 2.67635 0.579 2.76238L8 5.73038ZM0.0350003 3.62338C0.0116737 3.72947 -6.18553e-05 3.83777 2.45166e-07 3.94638V11.5924C-4.98397e-05 11.8922 0.0897657 12.1852 0.257855 12.4335C0.425945 12.6818 0.664593 12.874 0.943 12.9854L6.7 15.2884C6.96067 15.3924 7.22733 15.4637 7.5 15.5024V6.60839L0.0350003 3.62338ZM8.5 15.5034C8.7742 15.464 9.04274 15.3921 9.3 15.2894L15.057 12.9864C15.3356 12.875 15.5743 12.6826 15.7424 12.4341C15.9105 12.1856 16.0002 11.8924 16 11.5924V3.94638C16 3.83572 15.9883 3.72772 15.965 3.62238L8.5 6.60839V15.5034ZM15.421 2.76338L12.375 3.98238L4.875 0.982385L6.7 0.250385C7.53452 -0.0834616 8.46548 -0.0834616 9.3 0.250385L15.057 2.55338C15.1875 2.60534 15.31 2.67535 15.421 2.76138"
-                  stroke="#2A538B" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+      <!-- Table Content -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs sm:text-sm">
+          <thead class="bg-[#F4F7FE]">
+            <tr>
+              <th class="text-left text-xs text-[#2C3E50] py-3 px-4 sm:py-4 sm:px-6">Fournisseur</th>
+              <th class="text-left text-xs text-[#2C3E50] py-3 px-4 sm:py-4 sm:px-6">Secteur</th>
+              <th class="text-left text-xs text-[#2C3E50] py-3 px-4 sm:py-4 sm:px-6">Contact</th>
+              <th class="text-left text-xs text-[#2C3E50] py-3 px-4 sm:py-4 sm:px-6">Téléphone / Email</th>
+              <th class="text-left text-xs text-[#2C3E50] py-3 px-4 sm:py-4 sm:px-6">Statut</th>
+              <th class="text-left text-xs text-[#2C3E50] py-3 px-4 sm:py-4 sm:px-6">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr *ngIf="isLoading" class="hover:bg-gray-50">
+              <td colspan="6" class="py-8 text-center text-sm text-[#6B7280]">Chargement...</td>
+            </tr>
+            <tr *ngIf="!isLoading && suppliers.length === 0" class="hover:bg-gray-50">
+              <td colspan="6" class="py-12 text-center">
+                <div class="flex flex-col items-center">
+                  <div class="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                  </div>
+                  <h3 class="text-sm font-medium text-gray-900">Aucun fournisseur trouvé</h3>
+                  <p class="text-xs text-gray-500 mt-1">Essayez de modifier vos filtres ou effectuez une nouvelle recherche.</p>
+                </div>
+              </td>
+            </tr>
+            <tr *ngFor="let supplier of suppliers" class="hover:bg-gray-50 transition-colors">
+              <td class="py-3 px-4 sm:py-4 sm:px-6">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 font-semibold text-sm">
+                    {{ supplier.name.substring(0, 2).toUpperCase() }}
+                  </div>
+                  <div>
+                    <div class="text-sm font-medium text-[#2B3674]">{{ supplier.name }}</div>
+                    <div class="text-[10px] text-gray-500 uppercase tracking-wider">
+                      {{ supplier.type ? typeLabels[supplier.type] : 'N/A' }}
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="py-3 px-4 sm:py-4 sm:px-6">
+                <span class="px-2 py-1 rounded bg-gray-100 text-gray-700 text-[10px] font-medium uppercase">
+                  {{ supplier.sectorName || 'Non défini' }}
+                </span>
+              </td>
+              <td class="py-3 px-4 sm:py-4 sm:px-6 text-sm text-gray-600">
+                {{ supplier.contactName || 'N/A' }}
+              </td>
+              <td class="py-3 px-4 sm:py-4 sm:px-6">
+                <div class="text-sm text-[#2B3674] font-medium">{{ supplier.phone }}</div>
+                <div class="text-xs text-gray-500">{{ supplier.email }}</div>
+              </td>
+              <td class="py-3 px-4 sm:py-4 sm:px-6">
+                <span [class]="'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ' + (supplier.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')">
+                  <span [class]="'w-1.5 h-1.5 rounded-full ' + (supplier.isActive ? 'bg-green-600' : 'bg-red-600')"></span>
+                  {{ supplier.isActive ? 'Actif' : 'Inactif' }}
+                </span>
+              </td>
+              <td class="py-3 px-4 sm:py-4 sm:px-6">
+                <div class="flex items-center gap-3">
+                  <button (click)="viewSupplier(supplier.id)" title="Détails" class="text-gray-400 hover:text-[#2B3674] transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                  </button>
+                  <button (click)="editSupplier(supplier.id)" title="Modifier" class="text-gray-400 hover:text-orange-500 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 sm:px-6 py-3 sm:py-4 border-t border-[#F4F7FE]">
+        <div class="flex items-center gap-3 text-sm text-gray-600">
+          <span>Afficher</span>
+          <select [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)"
+                  class="px-2 py-1.5 border border-[#EEEEEE] rounded-lg bg-white text-gray-700 focus:outline-none focus:border-[#2B3674]">
+            <option *ngFor="let opt of pageSizeOptions" [ngValue]="opt">{{ opt }}</option>
+          </select>
+          <span>par page</span>
+          <span class="ml-4">Page {{ currentPage + 1 }} sur {{ totalPages }}</span>
         </div>
-        <h3 class="text-base sm:text-lg font-semibold text-gray-800 mb-1 sm:mb-2">Aucun fournisseur pour le moment</h3>
-        <p class="text-xs sm:text-sm text-gray-500 max-w-sm px-4">La gestion des fournisseurs sera bientôt disponible. Vous pourrez y ajouter et gérer vos partenaires externes indépendamment des utilisateurs internes.</p>
+        <div class="flex gap-2">
+          <button (click)="previousPage()" [disabled]="currentPage === 0"
+                  class="px-4 py-2 border border-[#EEEEEE] rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            Précédent
+          </button>
+          <button (click)="nextPage()" [disabled]="currentPage >= totalPages - 1"
+                  class="px-4 py-2 border border-[#EEEEEE] rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            Suivant
+          </button>
+        </div>
       </div>
     </div>
   </div>
