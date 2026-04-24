@@ -22,7 +22,7 @@ WORKDIR /app
 COPY pom.xml .
 
 # 2. On télécharge les dépendances en avance (avec options de secours SSL/TLS)
-RUN mvn dependency:go-offline -B \
+RUN --mount=type=cache,target=/root/.m2 mvn dependency:go-offline -B \
     -Dhttps.protocols=TLSv1.2 \
     -Dmaven.wagon.http.ssl.insecure=true \
     -Dmaven.wagon.http.ssl.allowall=true \
@@ -32,10 +32,7 @@ RUN mvn dependency:go-offline -B \
 COPY src ./src
 
 # 4. On compile le projet :
-RUN mvn -B -DskipTests clean package \
-    -Dhttps.protocols=TLSv1.2 \
-    -Dmaven.wagon.http.ssl.insecure=true \
-    -Dmaven.wagon.http.ssl.allowall=true
+RUN mvn clean package -DskipTests
 
 # Résultat : fichier .jar généré dans /app/target/
 # ═══════════════════════════════════

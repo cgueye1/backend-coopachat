@@ -25,8 +25,7 @@ public class EmailServiceImpl implements EmailService {
     // 📦 DEPENDENCIES
     // ============================================================================
 
-    @Autowired(required = false)//Ne plante pas si tu ne trouves pas JavaMailSender
-    private  JavaMailSender mailSender;
+    private final JavaMailSender mailSender;
 
     // ============================================================================
     // ⚙️ CONFIGURATION
