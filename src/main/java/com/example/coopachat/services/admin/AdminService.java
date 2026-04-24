@@ -1,5 +1,7 @@
 package com.example.coopachat.services.admin;
 
+import com.example.coopachat.enums.SupplierType;
+
 import com.example.coopachat.dtos.delivery.DeliveryOptionDTO;
 import com.example.coopachat.dtos.fee.CreateFeeDTO;
 import com.example.coopachat.dtos.fee.FeeDTO;
@@ -21,7 +23,7 @@ import com.example.coopachat.dtos.user.UserListResponseDTO;
 import com.example.coopachat.dtos.user.UserStatsByRoleItemDTO;
 import com.example.coopachat.dtos.user.UserStatsByStatusItemDTO;
 import com.example.coopachat.dtos.user.UserStatsDTO;
-import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.dtos.suppliers.*;
 import com.example.coopachat.dtos.dashboard.admin.AdminAlertsDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
 import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
@@ -156,6 +158,38 @@ public interface AdminService {
      * @return Liste des fournisseurs
      */
     List<SupplierListItemDTO> getAllSuppliers();
+
+    /**
+     * Crée un nouveau fournisseur avec toutes les informations détaillées.
+     *
+     * @param dto Les informations du fournisseur à créer
+     */
+    void createSupplier(CreateSupplierDTO dto);
+
+    /**
+     * Liste paginée des fournisseurs avec recherche et filtres.
+     */
+    SupplierListResponseDTO getSuppliers(int page, int size, String search, Long categoryId, SupplierType type, Boolean status);
+
+    /**
+     * Récupère les détails d'un fournisseur par son ID.
+     */
+    SupplierDetailsDTO getSupplierById(Long id);
+
+    /**
+     * Met à jour les informations d'un fournisseur.
+     */
+    void updateSupplier(Long id, UpdateSupplierDTO dto);
+
+    /**
+     * Active ou désactive un fournisseur.
+     */
+    void updateSupplierStatus(Long id, UpdateSupplierStatusDTO dto);
+
+    /**
+     * Récupère les statistiques des fournisseurs (Total, Actifs, Inactifs).
+     */
+    SupplierStatsDTO getSupplierStats();
 
     /**
      * Crée une nouvelle option de livraison

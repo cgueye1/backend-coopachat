@@ -1119,17 +1119,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         //touchPayBridgeUrlTemplate contient le lien de base avec le marqueur %d (défini dans votre .env)/orderId (l'ID de la commande) vient remplacer ce %d grâce à String.format.
         response.setPaymentUrl(String.format(touchPayBridgeUrlTemplate, orderId));
 
-        // On récupère le token JWT actuel pour le passer au mobile (pour injection WebView)
-        try {
-            HttpServletRequest httpRequest = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                response.setJwtToken(authHeader.substring(7));
-            }
-        } catch (Exception e) {
-            log.warn("Impossible de récupérer le token JWT pour le bridge: {}", e.getMessage());
-        }
-
         //la partie mobile , reçoit les infos et les utilise pour ouvrir l’interface de paiement -> touchpay-bridge.html .
         return response;
     }

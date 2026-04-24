@@ -23,7 +23,13 @@ import com.example.coopachat.dtos.products.ProductStatsDTO;
 import com.example.coopachat.dtos.products.TopProductUsageDTO;
 import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
+import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
+import com.example.coopachat.dtos.suppliers.SupplierDetailsDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.dtos.suppliers.SupplierListResponseDTO;
+import com.example.coopachat.dtos.suppliers.SupplierStatsDTO;
+import com.example.coopachat.dtos.suppliers.UpdateSupplierDTO;
+import com.example.coopachat.dtos.suppliers.UpdateSupplierStatusDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminAlertsDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
 import com.example.coopachat.dtos.dashboard.admin.AlertItemDTO;
@@ -41,6 +47,7 @@ import com.example.coopachat.enums.EtatStock;
 import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.PaymentStatus;
 import com.example.coopachat.enums.DeliveryTourStatus;
+import com.example.coopachat.enums.SupplierType;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.exceptions.BadRequestBusinessException;
 import com.example.coopachat.repositories.*;
@@ -75,6 +82,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 import java.util.ArrayList;
@@ -112,6 +121,7 @@ public class AdminServiceImpl implements AdminService {
     private final CompanySectorRepository companySectorRepository;
     private final UserReferenceGenerator userReferenceGenerator;
     private final DeliveryTourRepository deliveryTourRepository;
+    private final SupplierRepository supplierRepository;
 
 
     // ============================================================================
@@ -623,10 +633,200 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public List<SupplierListItemDTO> getAllSuppliers() {
-        return userRepository.findByRoleAndIsActiveTrue(UserRole.SUPPLIER)
+        // Nouvelle logique : on récupère depuis la table dédiée des fournisseurs
+        return supplierRepository.findAll(Sort.by(Sort.Direction.ASC, "name"))
                 .stream()
-                .map(user -> new SupplierListItemDTO(user.getId(), user.getFirstName() + " " + user.getLastName()))
+                .map(this::mapToSupplierListItemDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void createSupplier(CreateSupplierDTO dto) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut créer un fournisseur");
+        }
+
+        // Vérifier les doublons
+        if (supplierRepository.findByEmail(dto.getEmail()).isPresent()) {
+            throw new BadRequestBusinessException("Cet email est déjà utilisé par un autre fournisseur");
+        }
+        if (supplierRepository.findByPhone(dto.getPhone()).isPresent()) {
+            throw new BadRequestBusinessException("Ce numéro de téléphone est déjà utilisé par un autre fournisseur");
+        }
+        if (dto.getNinea() != null && !dto.getNinea().isBlank()) {
+            if (supplierRepository.findByNinea(dto.getNinea()).isPresent()) {
+                throw new BadRequestBusinessException("Ce numéro NINEA/Registre est déjà utilisé");
+            }
+        }
+
+        // Récupérer les catégories si fournies
+        Set<Category> categories = new HashSet<>();
+        if (dto.getCategoryIds() != null && !dto.getCategoryIds().isEmpty()) {
+            categories.addAll(categoryRepository.findAllById(dto.getCategoryIds()));
+        }
+ 
+        Supplier supplier = new Supplier();
+        supplier.setName(dto.getName());
+        supplier.setType(dto.getType());
+        supplier.setCategories(categories);
+        supplier.setDescription(dto.getDescription());
+        supplier.setAddress(dto.getAddress());
+        supplier.setPhone(dto.getPhone());
+        supplier.setEmail(dto.getEmail());
+        supplier.setContactName(dto.getContactName());
+        supplier.setNinea(dto.getNinea());
+        supplier.setDeliveryTime(dto.getDeliveryTime());
+        supplier.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
+ 
+        supplierRepository.save(supplier);
+        log.info("Fournisseur '{}' créé avec succès par l'admin {}", supplier.getName(), admin.getEmail());
+    }
+
+    @Override
+    public SupplierListResponseDTO getSuppliers(int page, int size, String search, Long categoryId, SupplierType type, Boolean status) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut lister les fournisseurs");
+        }
+ 
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+ 
+        Page<Supplier> supplierPage = supplierRepository.findWithFilters(searchTerm, categoryId, type, status, pageable);
+
+        List<SupplierListItemDTO> content = supplierPage.getContent().stream()
+                .map(this::mapToSupplierListItemDTO)
+                .collect(Collectors.toList());
+
+        SupplierListResponseDTO response = new SupplierListResponseDTO();
+        response.setContent(content);
+        response.setTotalElements(supplierPage.getTotalElements());
+        response.setTotalPages(supplierPage.getTotalPages());
+        response.setCurrentPage(supplierPage.getNumber());
+        response.setPageSize(supplierPage.getSize());
+        response.setHasNext(supplierPage.hasNext());
+        response.setHasPrevious(supplierPage.hasPrevious());
+
+        return response;
+    }
+
+    @Override
+    public SupplierDetailsDTO getSupplierById(Long id) {
+        Supplier s = supplierRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Fournisseur introuvable"));
+        return mapToSupplierDetailsDTO(s);
+    }
+
+    @Override
+    @Transactional
+    public void updateSupplier(Long id, UpdateSupplierDTO dto) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut modifier un fournisseur");
+        }
+
+        Supplier s = supplierRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Fournisseur introuvable"));
+
+        if (dto.getName() != null) s.setName(dto.getName());
+        if (dto.getType() != null) s.setType(dto.getType());
+        if (dto.getDescription() != null) s.setDescription(dto.getDescription());
+        if (dto.getAddress() != null) s.setAddress(dto.getAddress());
+        if (dto.getContactName() != null) s.setContactName(dto.getContactName());
+        if (dto.getDeliveryTime() != null) s.setDeliveryTime(dto.getDeliveryTime());
+
+        if (dto.getEmail() != null && !dto.getEmail().equals(s.getEmail())) {
+            if (supplierRepository.findByEmail(dto.getEmail()).isPresent()) {
+                throw new BadRequestBusinessException("Cet email est déjà utilisé");
+            }
+            s.setEmail(dto.getEmail());
+        }
+
+        if (dto.getPhone() != null && !dto.getPhone().equals(s.getPhone())) {
+            if (supplierRepository.findByPhone(dto.getPhone()).isPresent()) {
+                throw new BadRequestBusinessException("Ce numéro de téléphone est déjà utilisé");
+            }
+            s.setPhone(dto.getPhone());
+        }
+
+        if (dto.getNinea() != null && !dto.getNinea().equals(s.getNinea())) {
+            if (supplierRepository.findByNinea(dto.getNinea()).isPresent()) {
+                throw new BadRequestBusinessException("Ce numéro NINEA est déjà utilisé");
+            }
+            s.setNinea(dto.getNinea());
+        }
+
+        if (dto.getCategoryIds() != null) {
+            Set<Category> categories = new HashSet<>(categoryRepository.findAllById(dto.getCategoryIds()));
+            s.setCategories(categories);
+        }
+
+        supplierRepository.save(s);
+    }
+
+    @Override
+    @Transactional
+    public void updateSupplierStatus(Long id, UpdateSupplierStatusDTO dto) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut modifier le statut");
+        }
+        Supplier s = supplierRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Fournisseur introuvable"));
+        s.setIsActive(dto.getIsActive());
+        supplierRepository.save(s);
+    }
+
+    @Override
+    public SupplierStatsDTO getSupplierStats() {
+        long total = supplierRepository.count();
+        long active = supplierRepository.countByIsActive(true);
+        long inactive = supplierRepository.countByIsActive(false);
+        return new SupplierStatsDTO(total, active, inactive);
+    }
+
+    private SupplierListItemDTO mapToSupplierListItemDTO(Supplier s) {
+        SupplierListItemDTO dto = new SupplierListItemDTO();
+        dto.setId(s.getId());
+        dto.setName(s.getName());
+        dto.setSectorName(s.getCategories() != null && !s.getCategories().isEmpty() 
+            ? s.getCategories().stream().map(Category::getName).collect(java.util.stream.Collectors.joining(", ")) 
+            : null);
+        dto.setType(s.getType());
+        dto.setContactName(s.getContactName());
+        dto.setPhone(s.getPhone());
+        dto.setEmail(s.getEmail());
+        dto.setActive(s.getIsActive());
+        return dto;
+    }
+
+    private SupplierDetailsDTO mapToSupplierDetailsDTO(Supplier s) {
+        SupplierDetailsDTO dto = new SupplierDetailsDTO();
+        dto.setId(s.getId());
+        dto.setName(s.getName());
+        dto.setType(s.getType());
+        if (s.getCategories() != null && !s.getCategories().isEmpty()) {
+            dto.setCategories(s.getCategories().stream()
+                    .map(c -> {
+                        CategoryListItemDTO catDto = new CategoryListItemDTO();
+                        catDto.setId(c.getId());
+                        catDto.setName(c.getName());
+                        catDto.setIcon(c.getIcon());
+                        return catDto;
+                    })
+                    .collect(Collectors.toList()));
+        }
+        dto.setDescription(s.getDescription());
+        dto.setAddress(s.getAddress());
+        dto.setPhone(s.getPhone());
+        dto.setEmail(s.getEmail());
+        dto.setContactName(s.getContactName());
+        dto.setNinea(s.getNinea());
+        dto.setDeliveryTime(s.getDeliveryTime());
+        dto.setIsActive(s.getIsActive());
+        return dto;
     }
 
     // ----------------------------------------------------------------------------
@@ -929,7 +1129,7 @@ public class AdminServiceImpl implements AdminService {
         // 1. Calculer d'abord les effectifs pour chaque rôle (hors COMPANY)
         Map<UserRole, Long> counts = new LinkedHashMap<>();
         for (UserRole role : UserRole.values()) {
-            if (role == UserRole.COMPANY || role == UserRole.EMPLOYEE) continue;
+            if (role == UserRole.COMPANY || role == UserRole.EMPLOYEE || role == UserRole.SUPPLIER) continue;
             
             long count = (role == UserRole.EMPLOYEE)
                     ? employeeRepository.count()

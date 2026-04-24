@@ -1,5 +1,7 @@
 package com.example.coopachat.controllers;
 
+import com.example.coopachat.enums.SupplierType;
+
 import com.example.coopachat.dtos.DeliveryDriver.AvailableDriverDTO;
 import com.example.coopachat.dtos.DeliveryDriver.CancelDeliveryTourDTO;
 import com.example.coopachat.dtos.dashboard.admin.LivraisonParJourDTO;
@@ -67,11 +69,14 @@ public class LogisticsManagerController {
 
     @Operation(
             summary = "Lister les fournisseurs",
-            description = "Récupère la liste complète des fournisseurs actifs (id + nom)."
+            description = "Récupère la liste complète des fournisseurs actifs (id + nom) avec filtres optionnels par catégorie et type."
     )
     @GetMapping("/suppliers")
-    public ResponseEntity<List<SupplierListItemDTO>> getAllSuppliers() {
-        List<SupplierListItemDTO> suppliers = logisticsManagerService.getAllSuppliers();
+    public ResponseEntity<List<SupplierListItemDTO>> getAllSuppliers(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) SupplierType type
+    ) {
+        List<SupplierListItemDTO> suppliers = logisticsManagerService.getAllSuppliers(categoryId, type);
         return ResponseEntity.ok(suppliers);
     }
     @Operation(

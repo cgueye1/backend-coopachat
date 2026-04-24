@@ -14,5 +14,11 @@ public class SupplierListItemDTO {
 
     private Long id;
     private String name;
+    private String sectorName;
+    private com.example.coopachat.enums.SupplierType type;
+    private String contactName;
+    private String phone;
+    private String email;
+    private boolean isActive;
 }
 

@@ -16,7 +16,6 @@ import java.math.BigDecimal;
 public class PaymentBridgeResponseDTO {
     private String transactionReference;
     private String agencyCode;
-    private String token;
     private String serviceId;
     private String hostedScriptUrl;
     private BigDecimal amount;

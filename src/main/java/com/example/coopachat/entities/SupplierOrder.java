@@ -35,7 +35,7 @@ public class SupplierOrder {
     @ManyToOne
     @JoinColumn(name = "supplier_id", nullable = false)
     @NotNull(message = "Le fournisseur est obligatoire")
-    private Users supplier; // Fournisseur référencé (dropdown)
+    private Supplier supplier; // Fournisseur référencé (dropdown)
 
     @OneToMany(mappedBy = "supplierOrder", cascade = CascadeType.ALL, orphanRemoval = true) //la suppression de la commande supprime automatiquement tous ses items.
     private List<SupplierOrderItem> items = new ArrayList<>(); // Liste des produits dans la commande

@@ -21,7 +21,13 @@ import com.example.coopachat.dtos.products.ProductStatsDTO;
 import com.example.coopachat.dtos.products.TopProductUsageDTO;
 import com.example.coopachat.dtos.products.UpdateProductDTO;
 import com.example.coopachat.dtos.products.UpdateProductStatusDTO;
+import com.example.coopachat.dtos.suppliers.CreateSupplierDTO;
+import com.example.coopachat.dtos.suppliers.SupplierDetailsDTO;
 import com.example.coopachat.dtos.suppliers.SupplierListItemDTO;
+import com.example.coopachat.dtos.suppliers.SupplierListResponseDTO;
+import com.example.coopachat.dtos.suppliers.SupplierStatsDTO;
+import com.example.coopachat.dtos.suppliers.UpdateSupplierDTO;
+import com.example.coopachat.dtos.suppliers.UpdateSupplierStatusDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminAlertsDTO;
 import com.example.coopachat.dtos.dashboard.admin.AdminDashboardStatsDTO;
 import com.example.coopachat.dtos.dashboard.admin.CouponUsageParJourDTO;
@@ -30,6 +36,7 @@ import com.example.coopachat.dtos.dashboard.admin.StockEtatGlobalDTO;
 import com.example.coopachat.dtos.dashboard.logisticsManager.StatutTourneesDTO;
 import com.example.coopachat.dtos.reference.CreateReferenceItemDTO;
 import com.example.coopachat.dtos.reference.ReferenceItemDTO;
+import com.example.coopachat.enums.SupplierType;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.services.admin.AdminService;
 import com.example.coopachat.services.minio.MinioService;
@@ -461,6 +468,87 @@ public class  AdminController {
     public ResponseEntity<List<SupplierListItemDTO>> getAllSuppliers() {
         List<SupplierListItemDTO> suppliers = adminService.getAllSuppliers();
         return ResponseEntity.ok(suppliers);
+    }
+
+    @Operation(
+            summary = "Créer un nouveau fournisseur",
+            description = "Permet à un administrateur de créer un nouveau fournisseur avec toutes ses informations détaillées (nom, type, secteur, contact, NINEA, etc.)."
+    )
+    @PostMapping("/suppliers")
+    public ResponseEntity<String> createSupplier(@RequestBody @Valid CreateSupplierDTO dto) {
+        try {
+            adminService.createSupplier(dto);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body("Fournisseur créé avec succès");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @Operation(
+            summary = "Lister les fournisseurs (paginé avec filtres)",
+            description = "Récupère la liste paginée des fournisseurs. Filtres : search (nom, email, phone), sectorId (secteur d'activité), status (actif/inactif)."
+    )
+    @GetMapping("/suppliers/paged")
+    public ResponseEntity<SupplierListResponseDTO> getSuppliers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) SupplierType type,
+            @RequestParam(required = false) Boolean status
+    ) {
+        return ResponseEntity.ok(adminService.getSuppliers(page, size, search, categoryId, type, status));
+    }
+
+    @Operation(
+            summary = "Détails d'un fournisseur",
+            description = "Récupère toutes les informations d'un fournisseur spécifique par son ID."
+    )
+    @GetMapping("/suppliers/{id}")
+    public ResponseEntity<SupplierDetailsDTO> getSupplierById(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.getSupplierById(id));
+    }
+
+    @Operation(
+            summary = "Modifier un fournisseur",
+            description = "Met à jour les informations d'un fournisseur. Seuls les champs fournis sont modifiés."
+    )
+    @PutMapping("/suppliers/{id}")
+    public ResponseEntity<String> updateSupplier(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateSupplierDTO dto) {
+        try {
+            adminService.updateSupplier(id, dto);
+            return ResponseEntity.ok("Fournisseur mis à jour avec succès");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @Operation(
+            summary = "Activer/Désactiver un fournisseur",
+            description = "Change le statut actif/inactif d'un fournisseur."
+    )
+    @PatchMapping("/suppliers/{id}/status")
+    public ResponseEntity<String> updateSupplierStatus(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateSupplierStatusDTO dto) {
+        try {
+            adminService.updateSupplierStatus(id, dto);
+            return ResponseEntity.ok(dto.getIsActive() ? "Fournisseur activé" : "Fournisseur désactivé");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @Operation(
+            summary = "Statistiques des fournisseurs",
+            description = "Retourne le nombre total de fournisseurs, ainsi que le nombre de fournisseurs actifs et inactifs."
+    )
+    @GetMapping("/suppliers/stats")
+    public ResponseEntity<SupplierStatsDTO> getSupplierStats() {
+        return ResponseEntity.ok(adminService.getSupplierStats());
     }
     // ============================================================================
     // 🚚 GESTION DES OPTIONS DE LIVRAISON
