@@ -107,7 +107,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         SupplierListItemDTO dto = new SupplierListItemDTO();
         dto.setId(s.getId());
         dto.setName(s.getName());
-        dto.setSectorName(s.getCategories() != null && !s.getCategories().isEmpty() 
+        dto.setCategoryNames(s.getCategories() != null && !s.getCategories().isEmpty() 
             ? s.getCategories().stream().map(Category::getName).collect(java.util.stream.Collectors.joining(", ")) 
             : null);
         dto.setType(s.getType());

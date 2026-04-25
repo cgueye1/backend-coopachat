@@ -134,6 +134,7 @@ public class SecurityConfig {
         // Origines autorisées
         configuration.setAllowedOrigins(Arrays.asList(
                 "https://coopachat.innovimpactdev.cloud",
+                "https://api.coopachat.innovimpactdev.cloud",
                 "http://localhost:8080",
                 "http://localhost:4200"
         ));
