@@ -32,6 +32,8 @@ public class PaymentBridgeController {
     private String agencyCode;//Code de l'agence TouchPay 
     @Value("${touchpay.service-id:}")
     private String serviceId;//Service ID TouchPay
+    @Value("${touchpay.token:}")
+    private String merchantToken;//Token marchand TouchPay
     @Value("${touchpay.hosted.success-redirect-url:}")
     private String successRedirectUrl;//URL de redirection en cas de succès
     @Value("${touchpay.hosted.failed-redirect-url:}")
@@ -76,6 +78,7 @@ public class PaymentBridgeController {
         BigDecimal total = subtotal.add(serviceFee);
 
         return new PaymentBridgeResponseDTO(
+                merchantToken,
                 payment.getTransactionReference(),
                 agencyCode,
                 serviceId,

@@ -22,11 +22,7 @@ WORKDIR /app
 COPY pom.xml .
 
 # 2. On télécharge les dépendances en avance (avec options de secours SSL/TLS)
-RUN --mount=type=cache,target=/root/.m2 mvn dependency:go-offline -B \
-    -Dhttps.protocols=TLSv1.2 \
-    -Dmaven.wagon.http.ssl.insecure=true \
-    -Dmaven.wagon.http.ssl.allowall=true \
-    -Dmaven.wagon.http.retryHandler.count=3
+RUN mvn dependency:go-offline
 
 # 3. On copie ensuite le code source (src/)
 COPY src ./src
