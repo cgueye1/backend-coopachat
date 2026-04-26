@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PaymentBridgeResponseDTO {
+    private String merchantToken;
     private String transactionReference;
     private String agencyCode;
     private String serviceId;
