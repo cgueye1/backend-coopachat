@@ -177,6 +177,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return true;
         }
 
+        // Paiements (Callbacks InTouch et Bridge public pour TouchPay)
+        if (path.startsWith("/api/payments/intouch/") || path.startsWith("/api/payments/bridge/")) {
+            return true;
+        }
+
         return false;
     }
 
