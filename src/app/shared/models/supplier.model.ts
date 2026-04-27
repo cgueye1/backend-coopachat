@@ -13,7 +13,7 @@ export const SupplierTypeLabels: Record<SupplierType, string> = {
 export interface SupplierListItemDTO {
   id: number;
   name: string;
-  sectorName?: string;
+  categoryNames?: string;
   type?: SupplierType;
   contactName?: string;
   phone: string;
@@ -35,8 +35,7 @@ export interface SupplierDetailsDTO {
   id: number;
   name: string;
   type?: SupplierType;
-  sectorId?: number;
-  sectorName?: string;
+  categories?: { id: number, name: string }[];
   description?: string;
   address: string;
   phone: string;
@@ -50,7 +49,7 @@ export interface SupplierDetailsDTO {
 export interface CreateSupplierDTO {
   name: string;
   type?: SupplierType;
-  sectorId?: number;
+  categoryIds?: number[];
   description?: string;
   address: string;
   phone: string;
@@ -64,7 +63,7 @@ export interface CreateSupplierDTO {
 export interface UpdateSupplierDTO {
   name?: string;
   type?: SupplierType;
-  sectorId?: number;
+  categoryIds?: number[];
   description?: string;
   address?: string;
   phone?: string;

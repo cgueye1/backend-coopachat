@@ -22,7 +22,7 @@ export class SupplierService {
   /**
    * Liste paginée des fournisseurs avec recherche optionnelle
    */
-  getSuppliers(params: { page: number; size: number; search?: string; sectorId?: number; status?: boolean }): Observable<SupplierListResponseDTO> {
+  getSuppliers(params: { page: number; size: number; search?: string; categoryId?: number; status?: boolean }): Observable<SupplierListResponseDTO> {
     let httpParams = new HttpParams()
       .set('page', params.page.toString())
       .set('size', params.size.toString());
@@ -30,8 +30,8 @@ export class SupplierService {
     if (params.search && params.search.trim() !== '') {
       httpParams = httpParams.set('search', params.search.trim());
     }
-    if (params.sectorId) {
-      httpParams = httpParams.set('sectorId', params.sectorId.toString());
+    if (params.categoryId) {
+      httpParams = httpParams.set('categoryId', params.categoryId.toString());
     }
     if (params.status !== undefined) {
       httpParams = httpParams.set('status', params.status.toString());
@@ -50,15 +50,15 @@ export class SupplierService {
   /**
    * Création d'un fournisseur
    */
-  createSupplier(dto: CreateSupplierDTO): Observable<SupplierDetailsDTO> {
-    return this.http.post<SupplierDetailsDTO>(this.apiUrl, dto);
+  createSupplier(dto: CreateSupplierDTO): Observable<string> {
+    return this.http.post(this.apiUrl, dto, { responseType: 'text' });
   }
 
   /**
    * Mise à jour d'un fournisseur
    */
-  updateSupplier(id: number, dto: UpdateSupplierDTO): Observable<SupplierDetailsDTO> {
-    return this.http.put<SupplierDetailsDTO>(`${this.apiUrl}/${id}`, dto);
+  updateSupplier(id: number, dto: UpdateSupplierDTO): Observable<string> {
+    return this.http.put(`${this.apiUrl}/${id}`, dto, { responseType: 'text' });
   }
 
   /**

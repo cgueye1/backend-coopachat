@@ -7,7 +7,7 @@ import { HeaderComponent } from '../../../core/layouts/header/header.component';
 import { SupplierService } from '../../../shared/services/supplier.service';
 import { SupplierDetailsDTO, SupplierListItemDTO, SupplierStatsDTO, SupplierTypeLabels } from '../../../shared/models/supplier.model';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
-import { AdminService, ReferenceItemDTO } from '../../../shared/services/admin.service';
+import { AdminService, CategoryListItemDTO } from '../../../shared/services/admin.service';
 
 @Component({
   selector: 'app-suppliers',
@@ -29,13 +29,14 @@ export class SuppliersComponent implements OnInit {
   pageSizeOptions: number[] = [5, 10, 20, 50];
 
   // Filters
-  selectedSectorId: number | null = null;
+  selectedCategoryId: number | null = null;
   selectedStatus: boolean | null = null;
-  sectors: ReferenceItemDTO[] = [];
+  categories: CategoryListItemDTO[] = [];
 
   // Stats
   stats: SupplierStatsDTO | null = null;
   typeLabels = SupplierTypeLabels;
+  metricsData: { title: string, value: string, icon: string }[] = [];
 
   private searchSubject = new Subject<string>();
 
@@ -55,20 +56,27 @@ export class SuppliersComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadSuppliers();
-    this.loadSectors();
+    this.loadCategories();
     this.loadStats();
   }
 
-  loadSectors(): void {
-    this.adminService.getAllCompanySectors().subscribe({
-      next: (sectors) => this.sectors = sectors,
-      error: (err) => console.error('Error loading sectors', err)
+  loadCategories(): void {
+    this.adminService.getCategories().subscribe({
+      next: (categories) => this.categories = categories,
+      error: (err) => console.error('Error loading categories', err)
     });
   }
 
   loadStats(): void {
     this.supplierService.getStats().subscribe({
-      next: (stats) => this.stats = stats,
+      next: (stats) => {
+        this.stats = stats;
+        this.metricsData = [
+          { title: 'Fournisseurs', value: String(stats.totalSuppliers || 0).padStart(2, '0'), icon: '/icones/utilisateurs.svg' },
+          { title: 'Actifs', value: String(stats.activeSuppliers || 0).padStart(2, '0'), icon: '/icones/GreenUser.svg' },
+          { title: 'Inactifs', value: String(stats.inactiveSuppliers || 0).padStart(2, '0'), icon: '/icones/OrangeUser.svg' }
+        ];
+      },
       error: (err) => console.error('Error loading stats', err)
     });
   }
@@ -79,7 +87,7 @@ export class SuppliersComponent implements OnInit {
       page: this.currentPage,
       size: this.pageSize,
       search: this.searchTerm,
-      sectorId: this.selectedSectorId || undefined,
+      categoryId: this.selectedCategoryId || undefined,
       status: this.selectedStatus !== null ? this.selectedStatus : undefined
     }).subscribe({
       next: (response) => {

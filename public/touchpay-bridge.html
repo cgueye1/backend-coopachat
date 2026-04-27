@@ -15,10 +15,13 @@
         let dynamicTransactionRef = ''; //Référence de la transaction
         let dynamicAgencyCode = ''; //Code de l'agence TouchPay 
         let dynamicServiceId = ''; //Service ID TouchPay
+        let dynamicMerchantToken = ''; //Token/Hash TouchPay
         let dynamicEmail = ''; //Email du client
         let dynamicFirstName = ''; //Prénom du client
         let dynamicLastName = ''; //Nom du client
         let dynamicPhone = ''; //Téléphone du client
+        let dynamicSuccessUrl = ''; //URL de redirection en cas de succès
+        let dynamicFailedUrl = ''; //URL de redirection en cas d'échec
 
         // Fonction pour appeler TouchPay 
         function calltouchpay() {
@@ -30,13 +33,23 @@
             }
 
             //on appelle la fonction pour envoyer les informations de paiement à TouchPay 
+            console.log("Appel TouchPay avec:", {
+                ref: dynamicTransactionRef,
+                agency: dynamicAgencyCode,
+                token: dynamicMerchantToken,
+                service: dynamicServiceId,
+                amount: dynamicAmount,
+                successUrl: dynamicSuccessUrl,
+                failedUrl: dynamicFailedUrl
+            });
+
             sendPaymentInfos(
                 dynamicTransactionRef,
                 dynamicAgencyCode,
-                '', // Pas de token (mode public)
+                dynamicMerchantToken,
                 dynamicServiceId,
-                '',
-                '',
+                dynamicSuccessUrl,
+                dynamicFailedUrl,
                 dynamicAmount,
                 'Dakar',
                 dynamicEmail,
@@ -105,20 +118,26 @@
                 const data = payload.data ? payload.data : payload;
 
                 // On extrait la référence, le montant et les identifiants
-                dynamicTransactionRef = String(data.transactionReference);
+                // On gère à la fois le camelCase (backend standard) et le snake_case (vu dans les logs)
+                dynamicTransactionRef = String(data.transactionReference || data.order_number || '');
                 dynamicAmount = Number(data.amount || data.total || 0);
-                dynamicAgencyCode = String(data.agencyCode || '');
-                dynamicServiceId = String(data.serviceId || '');
+                dynamicAgencyCode = String(data.agencyCode || data.agency_code || '');
+                dynamicServiceId = String(data.serviceId || data.domaine_name || '');
+                dynamicMerchantToken = String(data.merchantToken || data.hash || '');
                 
                 // Extraction des données client pour pré-remplir TouchPay
-                dynamicEmail = data.customerEmail ? String(data.customerEmail) : '';
-                dynamicFirstName = data.customerFirstName ? String(data.customerFirstName) : '';
-                dynamicLastName = data.customerLastName ? String(data.customerLastName) : '';
+                dynamicEmail = data.customerEmail || data.customer_email || '';
+                dynamicFirstName = data.customerFirstName || data.customer_first_name || '';
+                dynamicLastName = data.customerLastName || data.customer_last_name || '';
                 
                 // Nettoyage du numéro de téléphone pour TouchPay (garder uniquement les chiffres)
-                if (data.customerPhone) {
-                    dynamicPhone = String(data.customerPhone).replace(/[^\d+]/g, '');
+                let rawPhone = data.customerPhone || data.customer_phone || '';
+                if (rawPhone) {
+                    dynamicPhone = String(rawPhone).replace(/[^\d+]/g, '');
                 }
+
+                dynamicSuccessUrl = data.successRedirectUrl || '';
+                dynamicFailedUrl = data.failedRedirectUrl || '';
 
                 // On cache le chargement et on affiche le bouton "continuer"
                 loading.style.display = 'none';

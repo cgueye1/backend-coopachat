@@ -92,11 +92,13 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadInitialDataInParallel();
-    // Auto-refresh : recharge la liste et les stats toutes les 30 secondes
-    this.refreshInterval = setInterval(() => {
-      this.loadUsers();
-      this.loadStats();
-    }, this.REFRESH_INTERVAL_MS);
+    // Auto-refresh : recharge la liste et les stats toutes les 30 secondes (côté navigateur uniquement)
+    if (isPlatformBrowser(this.platformId)) {
+      this.refreshInterval = setInterval(() => {
+        this.loadUsers();
+        this.loadStats();
+      }, this.REFRESH_INTERVAL_MS);
+    }
   }
 
   ngOnDestroy() {
