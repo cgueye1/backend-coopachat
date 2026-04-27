@@ -93,10 +93,10 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Value("${touchpay.hosted.script-url:https://touchpay.gutouch.net/touchpayv2/script/touchpaynr/prod_touchpay-0.0.1.js}")
     private String touchPayHostedScriptUrl;
 
-    @Value("${touchpay.hosted.agency-code:}")
+    @Value("${touchpay.agency-code:}")
     private String touchPayAgencyCode;//l’identifiant de Notre compte marchand chez TouchPoint
 
-    @Value("${touchpay.hosted.secure-code:}")
+    @Value("${touchpay.token:}")
     private String touchPaySecureCode;//Mot de passe qui prouve qu'on est outorisé , fournit par touchpoint
 
     @Value("${touchpay.hosted.domain-name:}")
