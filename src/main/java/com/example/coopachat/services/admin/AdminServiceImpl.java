@@ -685,6 +685,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @Transactional
     public SupplierListResponseDTO getSuppliers(int page, int size, String search, Long categoryId, SupplierType type, Boolean status) {
         Users admin = getCurrentUser();
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
@@ -791,9 +792,18 @@ public class AdminServiceImpl implements AdminService {
         SupplierListItemDTO dto = new SupplierListItemDTO();
         dto.setId(s.getId());
         dto.setName(s.getName());
-        dto.setCategoryNames(s.getCategories() != null && !s.getCategories().isEmpty() 
-            ? s.getCategories().stream().map(Category::getName).collect(java.util.stream.Collectors.joining(", ")) 
-            : null);
+        
+        List<String> categoryNames = s.getCategories() != null 
+            ? s.getCategories().stream().map(Category::getName).collect(Collectors.toList())
+            : new ArrayList<>();
+            
+        dto.setCategoryNames(String.join(", ", categoryNames));
+        
+        List<String> display = categoryNames.size() > 2
+            ? Arrays.asList(categoryNames.get(0), categoryNames.get(1), "+" + (categoryNames.size() - 2))
+            : categoryNames;
+        dto.setCategoriesDisplay(display);
+
         dto.setType(s.getType());
         dto.setContactName(s.getContactName());
         dto.setPhone(s.getPhone());
@@ -877,6 +887,33 @@ public class AdminServiceImpl implements AdminService {
 
     }
 
+    @Override
+    @Transactional
+    public void updateDeliveryOption(Long id, DeliveryOptionDTO dto) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut modifier une option de livraison");
+        }
+        DeliveryOption option = deliveryOptionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Option de livraison introuvable"));
+        
+        if (dto.getName() != null) option.setName(dto.getName());
+        if (dto.getDescription() != null) option.setDescription(dto.getDescription());
+        if (dto.getIsActive() != null) option.setIsActive(dto.getIsActive());
+        
+        deliveryOptionRepository.save(option);
+    }
+
+    @Override
+    @Transactional
+    public void deleteDeliveryOption(Long id) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut supprimer une option de livraison");
+        }
+        deliveryOptionRepository.deleteById(id);
+    }
+
     // ============================================================================
     // 💰 FRAIS (paramétrables par l'admin)
     // ============================================================================
@@ -910,6 +947,33 @@ public class AdminServiceImpl implements AdminService {
         fee.setIsActive(true);
         feeRepository.save(fee);
         log.info("Frais créé : {} = {} FCFA", dto.getName(), dto.getAmount());
+    }
+
+    @Override
+    @Transactional
+    public void updateFee(Long id, CreateFeeDTO dto) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut modifier un frais");
+        }
+        Fee fee = feeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Frais introuvable"));
+        
+        if (dto.getName() != null) fee.setName(dto.getName());
+        if (dto.getDescription() != null) fee.setDescription(dto.getDescription());
+        if (dto.getAmount() != null) fee.setAmount(dto.getAmount());
+        
+        feeRepository.save(fee);
+    }
+
+    @Override
+    @Transactional
+    public void deleteFee(Long id) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut supprimer un frais");
+        }
+        feeRepository.deleteById(id);
     }
 
     // ============================================================================

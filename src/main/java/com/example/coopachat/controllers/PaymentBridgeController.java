@@ -28,12 +28,16 @@ public class PaymentBridgeController {
 
     @Value("${touchpay.hosted.script-url:https://touchpay.gutouch.net/touchpayv2/script/touchpaynr/prod_touchpay-0.0.1.js}")
     private String hostedScriptUrl;//URL du script TouchPay
+
     @Value("${touchpay.agency-code:}")
     private String agencyCode;//Code de l'agence TouchPay 
+
     @Value("${touchpay.service-id:}")
     private String serviceId;//Service ID TouchPay
+
     @Value("${touchpay.token:}")
     private String merchantToken;//Token marchand TouchPay
+    
     @Value("${touchpay.hosted.success-redirect-url:}")
     private String successRedirectUrl;//URL de redirection en cas de succès
     @Value("${touchpay.hosted.failed-redirect-url:}")
@@ -43,7 +47,7 @@ public class PaymentBridgeController {
 
     @GetMapping("/{orderId}")
     public PaymentBridgeResponseDTO getBridgePayload(@PathVariable Long orderId) {
-        // Recuperation de la commande
+        // Récuperation de la commande
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
 

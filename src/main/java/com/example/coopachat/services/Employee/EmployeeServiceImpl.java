@@ -1089,7 +1089,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                     request.getMobileOperator().getLabel(), order.getOrderNumber());
         } // si le paiement est par carte bancaire
         else if (request.getPaymentMethod() == PaymentMethodType.CREDIT_CARD) {
-            // En mode Hosted TouchPay, les infos carte ne transitent pas par notre backend.
+            //En mode Hosted TouchPay(la page de paiement est hébergé par touchpay), les infos de la  carte ne transitent pas par notre backend(c'est géré par touchpay).
             payment.setMobileOperator(null);
             log.info("💳 Paiement carte initié pour commande {}", order.getOrderNumber());
         }
@@ -1116,7 +1116,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         response.setAmountPaid(totalPaid);//montant à payer
 
         // On construit l'URL de la WebView TouchPay (bridge) via le template configuré
-        //touchPayBridgeUrlTemplate contient le lien de base avec le marqueur %d (défini dans votre .env)/orderId (l'ID de la commande) vient remplacer ce %d grâce à String.format.
+        //touchPayBridgeUrlTemplate contient le lien de base avec le marqueur %d (défini dans notre .env)/orderId (l'ID de la commande) vient remplacer ce %d grâce à String.format.
         response.setPaymentUrl(String.format(touchPayBridgeUrlTemplate, orderId));
 
         //la partie mobile , reçoit les infos et les utilise pour ouvrir l’interface de paiement -> touchpay-bridge.html .
