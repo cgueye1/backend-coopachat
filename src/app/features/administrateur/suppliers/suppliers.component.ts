@@ -32,6 +32,17 @@ export class SuppliersComponent implements OnInit {
   selectedCategoryId: number | null = null;
   selectedStatus: boolean | null = null;
   categories: CategoryListItemDTO[] = [];
+  toggleLoadingId: number | null = null;
+
+  // Detail modal
+  showDetailModal: boolean = false;
+  selectedSupplierDetails: SupplierDetailsDTO | null = null;
+  loadingDetails: boolean = false;
+
+  // Category filter dropdown
+  isCategoryDropdownOpen: boolean = false;
+  categoryFilterSearch: string = '';
+  filteredCategoriesForFilter: CategoryListItemDTO[] = [];
 
   // Stats
   stats: SupplierStatsDTO | null = null;
@@ -62,7 +73,10 @@ export class SuppliersComponent implements OnInit {
 
   loadCategories(): void {
     this.adminService.getCategories().subscribe({
-      next: (categories) => this.categories = categories,
+      next: (categories) => {
+        this.categories = categories;
+        this.filteredCategoriesForFilter = categories;
+      },
       error: (err) => console.error('Error loading categories', err)
     });
   }
@@ -106,6 +120,38 @@ export class SuppliersComponent implements OnInit {
   nouveauFournisseur(): void {
     this.router.navigate(['/admin/suppliers/add']);
   }
+
+  // ---- Category filter dropdown ----
+  toggleCategoryFilterDropdown(): void {
+    this.isCategoryDropdownOpen = !this.isCategoryDropdownOpen;
+    if (this.isCategoryDropdownOpen) {
+      this.categoryFilterSearch = '';
+      this.filteredCategoriesForFilter = this.categories;
+    }
+  }
+
+  selectCategoryFilter(id: number | null): void {
+    this.selectedCategoryId = id;
+    this.isCategoryDropdownOpen = false;
+    this.categoryFilterSearch = '';
+    this.filteredCategoriesForFilter = this.categories;
+    this.currentPage = 0;
+    this.loadSuppliers();
+  }
+
+  getSelectedCategoryLabel(): string {
+    if (!this.selectedCategoryId) return 'Toutes les catégories';
+    const found = this.categories.find(c => c.id === this.selectedCategoryId);
+    return found ? found.name : 'Toutes les catégories';
+  }
+
+  filterCategoryDropdown(): void {
+    const term = this.categoryFilterSearch.toLowerCase();
+    this.filteredCategoriesForFilter = term
+      ? this.categories.filter(c => c.name.toLowerCase().includes(term))
+      : this.categories;
+  }
+
 
   onSearch(): void {
     this.searchSubject.next(this.searchTerm);
@@ -162,6 +208,62 @@ export class SuppliersComponent implements OnInit {
   }
 
   viewSupplier(id: number): void {
-    this.router.navigate(['/admin/suppliers/view', id]);
+    this.showDetailModal = true;
+    this.loadingDetails = true;
+    this.selectedSupplierDetails = null;
+    this.supplierService.getSupplierById(id).subscribe({
+      next: (details) => {
+        this.selectedSupplierDetails = details;
+        this.loadingDetails = false;
+      },
+      error: (err) => {
+        console.error('Error loading supplier details', err);
+        this.loadingDetails = false;
+      }
+    });
+  }
+
+  closeDetailModal(): void {
+    this.showDetailModal = false;
+    this.selectedSupplierDetails = null;
+  }
+
+  toggleStatusFromModal(): void {
+    if (!this.selectedSupplierDetails) return;
+    const newStatus = !this.selectedSupplierDetails.isActive;
+    this.toggleLoadingId = this.selectedSupplierDetails.id!;
+    this.supplierService.updateStatus(this.selectedSupplierDetails.id!, { isActive: newStatus }).subscribe({
+      next: () => {
+        if (this.selectedSupplierDetails) {
+          this.selectedSupplierDetails.isActive = newStatus;
+          // Sync in the list too
+          const s = this.suppliers.find(x => x.id === this.selectedSupplierDetails!.id);
+          if (s) s.isActive = newStatus;
+        }
+        this.toggleLoadingId = null;
+        this.loadStats();
+      },
+      error: (err) => {
+        console.error('Error toggling status', err);
+        this.toggleLoadingId = null;
+      }
+    });
+  }
+
+  toggleSupplierStatus(supplier: SupplierListItemDTO): void {
+    const newStatus = !supplier.isActive;
+    this.toggleLoadingId = supplier.id;
+    
+    this.supplierService.updateStatus(supplier.id, { isActive: newStatus }).subscribe({
+      next: () => {
+        supplier.isActive = newStatus;
+        this.toggleLoadingId = null;
+        this.loadStats(); // Refresh stats
+      },
+      error: (error) => {
+        console.error('Error toggling status', error);
+        this.toggleLoadingId = null;
+      }
+    });
   }
 }

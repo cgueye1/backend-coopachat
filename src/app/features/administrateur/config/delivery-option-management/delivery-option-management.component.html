@@ -1,19 +1,13 @@
 <app-main-layout [role]="role">
   <div class="p-4 sm:p-6 lg:p-8">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-6">
-      <div>
-        <p class="text-xs text-[#8A8EA7] mb-1">Configuration / Options de livraison</p>
-        <h1 class="text-2xl sm:text-3xl font-semibold text-[#2C2D5B]">Options de Livraison</h1>
-      </div>
-      <button (click)="openAddModal()" 
-        class="bg-[#2B3674] hover:bg-[#1e254d] text-white px-5 py-2.5 rounded-full transition-all flex items-center gap-2 shadow-sm font-bold">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Nouvelle option
-      </button>
-    </div>
+    <!-- Header -->
+    <app-header 
+      [title]="'Options de Livraison'" 
+      [breadcrumb]="'Configuration / Options de livraison'" 
+      [type]="'simple'"
+      [buttonLabel]="'Nouvelle option'" 
+      (actionClick)="openAddModal()">
+    </app-header>
 
     <!-- Info Banner -->
     <div class="bg-[#FFF4EB] border border-[#FFD8B3] rounded-xl p-4 mb-6 flex items-start gap-3">
@@ -37,14 +31,15 @@
               <th class="px-6 py-4">Nom</th>
               <th class="px-6 py-4">Description</th>
               <th class="px-6 py-4 text-center">Statut</th>
+              <th class="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr *ngIf="loading" class="animate-pulse">
-              <td colspan="3" class="px-6 py-8 text-center text-gray-400">Chargement...</td>
+              <td colspan="4" class="px-6 py-8 text-center text-gray-400">Chargement...</td>
             </tr>
             <tr *ngIf="!loading && items.length === 0">
-              <td colspan="3" class="px-6 py-8 text-center text-gray-400 italic">Aucune option trouvée</td>
+              <td colspan="4" class="px-6 py-8 text-center text-gray-400 italic">Aucune option trouvée</td>
             </tr>
             <tr *ngFor="let item of items" class="hover:bg-gray-50 transition-colors">
               <td class="px-6 py-4 font-medium text-gray-800">{{ item.name }}</td>
@@ -55,6 +50,22 @@
                   {{ item.isActive ? 'Actif' : 'Inactif' }}
                 </span>
               </td>
+              <td class="px-6 py-4 text-right">
+                <div class="flex justify-end gap-2">
+                  <button (click)="openEditModal(item)" 
+                    class="p-2 text-[#F68647] hover:bg-orange-50 rounded-lg transition-colors" title="Modifier">
+                    <svg class="w-4 h-4" width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1.66667 13.3333H2.85417L11 5.1875L9.8125 4L1.66667 12.1458V13.3333ZM0 15V11.4583L11 0.479167C11.1667 0.326389 11.3508 0.208333 11.5525 0.125C11.7542 0.0416667 11.9658 0 12.1875 0C12.4092 0 12.6244 0.0416667 12.8333 0.125C13.0422 0.208333 13.2228 0.333333 13.375 0.5L14.5208 1.66667C14.6875 1.81944 14.8092 2 14.8858 2.20833C14.9625 2.41667 15.0006 2.625 15 2.83333C15 3.05556 14.9619 3.2675 14.8858 3.46917C14.8097 3.67083 14.6881 3.85472 14.5208 4.02083L3.54167 15H0ZM10.3958 4.60417L9.8125 4L11 5.1875L10.3958 4.60417Z" fill="#F68647" />
+                    </svg>
+                  </button>
+                  <button (click)="deleteItem(item)" 
+                    class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
             </tr>
           </tbody>
         </table>
@@ -65,7 +76,7 @@
     <div *ngIf="showModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
         <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-          <h2 class="text-xl font-bold text-gray-800">Ajouter une option</h2>
+          <h2 class="text-xl font-bold text-gray-800">{{ isEdit ? 'Modifier' : 'Ajouter' }} une option</h2>
           <button (click)="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>

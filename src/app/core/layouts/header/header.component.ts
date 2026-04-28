@@ -3,6 +3,10 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 
 type HeaderType = 'filter' | 'simple' | 'back';
 
+/** 
+ * Composant d'en-tête standard utilisé dans toute l'application 
+ * Supporte les types: filter, simple (avec bouton), back (avec retour)
+ */
 @Component({
   selector: 'app-header',
   standalone: true,

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { MainLayoutComponent } from '../../../../core/layouts/main-layout/main-layout.component';
+import { HeaderComponent } from '../../../../core/layouts/header/header.component';
 import { AdminService, ReferenceItemDTO } from '../../../../shared/services/admin.service';
 import Swal from 'sweetalert2';
 
@@ -11,7 +12,12 @@ import Swal from 'sweetalert2';
 @Component({
   selector: 'app-reference-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, MainLayoutComponent],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    MainLayoutComponent, 
+    HeaderComponent
+  ],
   templateUrl: './reference-management.component.html'
 })
 export class ReferenceManagementComponent implements OnInit {

@@ -97,8 +97,17 @@ export class AddSupplierComponent implements OnInit {
       this.supplierService.getSupplierById(this.editId).subscribe({
         next: (data: SupplierDetailsDTO) => {
           this.supplier = { 
-            ...data,
-            categoryIds: data.categories?.map(c => c.id) || []
+            name: data.name || '',
+            type: data.type || '',
+            categoryIds: data.categories?.map(c => c.id) || [],
+            description: data.description || '',
+            address: data.address || '',
+            phone: data.phone || '',
+            email: data.email || '',
+            contactName: data.contactName || '',
+            ninea: data.ninea || '',
+            deliveryTime: data.deliveryTime || '',
+            isActive: data.isActive ?? true
           };
         },
         error: (err) => {

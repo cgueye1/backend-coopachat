@@ -14,6 +14,7 @@ export interface SupplierListItemDTO {
   id: number;
   name: string;
   categoryNames?: string;
+  categoriesDisplay?: string[];
   type?: SupplierType;
   contactName?: string;
   phone: string;

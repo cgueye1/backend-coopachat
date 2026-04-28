@@ -399,6 +399,12 @@ export class AdminService {
   createDeliveryOption(dto: DeliveryOptionDTO): Observable<string> {
     return this.http.post(`${this.apiUrl}/admin/delivery-options`, dto, { responseType: 'text' });
   }
+  updateDeliveryOption(id: number, dto: DeliveryOptionDTO): Observable<string> {
+    return this.http.put(`${this.apiUrl}/admin/delivery-options/${id}`, dto, { responseType: 'text' });
+  }
+  deleteDeliveryOption(id: number): Observable<string> {
+    return this.http.delete(`${this.apiUrl}/admin/delivery-options/${id}`, { responseType: 'text' });
+  }
 
   // Frais
   getAllFees(): Observable<FeeDTO[]> {
@@ -406,6 +412,12 @@ export class AdminService {
   }
   createFee(dto: FeeDTO): Observable<string> {
     return this.http.post(`${this.apiUrl}/admin/fees`, dto, { responseType: 'text' });
+  }
+  updateFee(id: number, dto: FeeDTO): Observable<string> {
+    return this.http.put(`${this.apiUrl}/admin/fees/${id}`, dto, { responseType: 'text' });
+  }
+  deleteFee(id: number): Observable<string> {
+    return this.http.delete(`${this.apiUrl}/admin/fees/${id}`, { responseType: 'text' });
   }
 
   // Types de réclamation
