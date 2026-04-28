@@ -16,6 +16,7 @@ public class SupplierListItemDTO {
     private Long id;
     private String name;
     private String categoryNames;
+    private java.util.List<String> categoriesDisplay;
     private SupplierType type;
     private String contactName;
     private String phone;

@@ -212,6 +212,10 @@ public interface AdminService {
 
     List<FeeDTO> getAllFees();
     void createFee(CreateFeeDTO dto);
+    void updateFee(Long id, CreateFeeDTO dto);
+    void deleteFee(Long id);
+    void updateDeliveryOption(Long id, DeliveryOptionDTO dto);
+    void deleteDeliveryOption(Long id);
 
     /**
      * Crée un nouvel utilisateur "agent": Admin, Responsable logistique, Commercial ou Livreur.

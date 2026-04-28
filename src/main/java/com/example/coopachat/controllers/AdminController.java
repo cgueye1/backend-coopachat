@@ -573,6 +573,18 @@ public class  AdminController {
         return ResponseEntity.ok(options);
     }
 
+    @PutMapping("/delivery-options/{id}")
+    public ResponseEntity<String> updateDeliveryOption(@PathVariable Long id, @RequestBody DeliveryOptionDTO dto) {
+        adminService.updateDeliveryOption(id, dto);
+        return ResponseEntity.ok("Option de livraison mise à jour");
+    }
+
+    @DeleteMapping("/delivery-options/{id}")
+    public ResponseEntity<String> deleteDeliveryOption(@PathVariable Long id) {
+        adminService.deleteDeliveryOption(id);
+        return ResponseEntity.ok("Option de livraison supprimée");
+    }
+
     // ============================================================================
     // 💰 FRAIS
     // ============================================================================
@@ -588,6 +600,18 @@ public class  AdminController {
     public ResponseEntity<String> createFee(@RequestBody @Valid CreateFeeDTO dto) {
         adminService.createFee(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body("Frais créé avec succès");
+    }
+
+    @PutMapping("/fees/{id}")
+    public ResponseEntity<String> updateFee(@PathVariable Long id, @RequestBody @Valid CreateFeeDTO dto) {
+        adminService.updateFee(id, dto);
+        return ResponseEntity.ok("Frais mis à jour");
+    }
+
+    @DeleteMapping("/fees/{id}")
+    public ResponseEntity<String> deleteFee(@PathVariable Long id) {
+        adminService.deleteFee(id);
+        return ResponseEntity.ok("Frais supprimé");
     }
 
     // ============================================================================
