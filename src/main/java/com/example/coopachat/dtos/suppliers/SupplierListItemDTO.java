@@ -21,6 +21,6 @@ public class SupplierListItemDTO {
     private String contactName;
     private String phone;
     private String email;
-    private boolean isActive;
+    private Boolean isActive;
 }
 

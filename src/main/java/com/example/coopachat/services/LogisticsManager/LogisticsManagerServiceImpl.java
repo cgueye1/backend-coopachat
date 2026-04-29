@@ -114,7 +114,7 @@ public class LogisticsManagerServiceImpl implements LogisticsManagerService {
         dto.setContactName(s.getContactName());
         dto.setPhone(s.getPhone());
         dto.setEmail(s.getEmail());
-        dto.setActive(s.getIsActive());
+        dto.setIsActive(s.getIsActive());
         return dto;
     }
 
