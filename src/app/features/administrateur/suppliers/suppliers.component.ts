@@ -8,6 +8,8 @@ import { SupplierService } from '../../../shared/services/supplier.service';
 import { SupplierDetailsDTO, SupplierListItemDTO, SupplierStatsDTO, SupplierTypeLabels } from '../../../shared/models/supplier.model';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { AdminService, CategoryListItemDTO } from '../../../shared/services/admin.service';
+import Swal from 'sweetalert2';
+import { ErrorHandlerService } from '../../../core/services/error-handler.service';
 
 @Component({
   selector: 'app-suppliers',
@@ -54,7 +56,8 @@ export class SuppliersComponent implements OnInit {
   constructor(
     private router: Router,
     private supplierService: SupplierService,
-    private adminService: AdminService
+    private adminService: AdminService,
+    private errorHandler: ErrorHandlerService
   ) {
     this.searchSubject.pipe(
       debounceTime(300),
@@ -230,39 +233,92 @@ export class SuppliersComponent implements OnInit {
 
   toggleStatusFromModal(): void {
     if (!this.selectedSupplierDetails) return;
-    const newStatus = !this.selectedSupplierDetails.isActive;
-    this.toggleLoadingId = this.selectedSupplierDetails.id!;
-    this.supplierService.updateStatus(this.selectedSupplierDetails.id!, { isActive: newStatus }).subscribe({
-      next: () => {
-        if (this.selectedSupplierDetails) {
-          this.selectedSupplierDetails.isActive = newStatus;
-          // Sync in the list too
-          const s = this.suppliers.find(x => x.id === this.selectedSupplierDetails!.id);
-          if (s) s.isActive = newStatus;
-        }
-        this.toggleLoadingId = null;
-        this.loadStats();
-      },
-      error: (err) => {
-        console.error('Error toggling status', err);
-        this.toggleLoadingId = null;
+    
+    const supplier = this.selectedSupplierDetails;
+    const newStatus = !supplier.isActive;
+    const action = newStatus ? 'activer' : 'désactiver';
+
+    Swal.fire({
+      title: 'Êtes-vous sûr ?',
+      text: `Voulez-vous vraiment ${action} le fournisseur ${supplier.name} ?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#2B3674',
+      cancelButtonColor: '#CBD5E1',
+      confirmButtonText: `Oui, ${action} !`,
+      cancelButtonText: 'Annuler'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.toggleLoadingId = supplier.id!;
+        this.supplierService.updateStatus(supplier.id!, { isActive: newStatus }).subscribe({
+          next: (response) => {
+            this.selectedSupplierDetails!.isActive = newStatus;
+            
+            // Synchroniser dans la liste
+            const s = this.suppliers.find(x => x.id === supplier.id);
+            if (s) s.isActive = newStatus;
+            
+            this.toggleLoadingId = 0;
+            this.loadStats();
+
+            // Modal de succès centrée
+            Swal.fire({
+              title: 'Succès',
+              text: response || `Fournisseur ${newStatus ? 'activé' : 'désactivé'} avec succès`,
+              icon: 'success',
+              confirmButtonColor: '#2B3674',
+              timer: 2000,
+              showConfirmButton: false
+            });
+          },
+          error: (err) => {
+            console.error('Error toggling status', err);
+            this.toggleLoadingId = 0;
+            this.errorHandler.showError(err);
+          }
+        });
       }
     });
   }
 
   toggleSupplierStatus(supplier: SupplierListItemDTO): void {
     const newStatus = !supplier.isActive;
-    this.toggleLoadingId = supplier.id;
-    
-    this.supplierService.updateStatus(supplier.id, { isActive: newStatus }).subscribe({
-      next: () => {
-        supplier.isActive = newStatus;
-        this.toggleLoadingId = null;
-        this.loadStats(); // Refresh stats
-      },
-      error: (error) => {
-        console.error('Error toggling status', error);
-        this.toggleLoadingId = null;
+    const action = newStatus ? 'activer' : 'désactiver';
+
+    Swal.fire({
+      title: 'Êtes-vous sûr ?',
+      text: `Voulez-vous vraiment ${action} le fournisseur ${supplier.name} ?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#2B3674',
+      cancelButtonColor: '#CBD5E1',
+      confirmButtonText: `Oui, ${action} !`,
+      cancelButtonText: 'Annuler'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.toggleLoadingId = supplier.id;
+        this.supplierService.updateStatus(supplier.id, { isActive: newStatus }).subscribe({
+          next: (response) => {
+            supplier.isActive = newStatus;
+            this.toggleLoadingId = null;
+            this.loadStats(); // Rafraîchir les compteurs en haut
+            
+            // Modal de succès centrée
+            Swal.fire({
+              title: 'Succès',
+              text: response || `Fournisseur ${newStatus ? 'activé' : 'désactivé'} avec succès`,
+              icon: 'success',
+              confirmButtonColor: '#2B3674',
+              timer: 2000,
+              showConfirmButton: false
+            });
+          },
+          error: (error) => {
+            console.error('Error toggling status', error);
+            this.toggleLoadingId = null;
+            this.errorHandler.showError(error);
+          }
+        });
       }
     });
   }

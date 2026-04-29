@@ -64,8 +64,8 @@ export class SupplierService {
   /**
    * Activation/Désactivation d'un fournisseur
    */
-  updateStatus(id: number, dto: UpdateSupplierStatusDTO): Observable<void> {
-    return this.http.patch<void>(`${this.apiUrl}/${id}/status`, dto);
+  updateStatus(id: number, dto: UpdateSupplierStatusDTO): Observable<string> {
+    return this.http.patch(`${this.apiUrl}/${id}/status`, dto, { responseType: 'text' });
   }
 
   /**

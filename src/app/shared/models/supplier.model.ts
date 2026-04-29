@@ -1,7 +1,7 @@
 export enum SupplierType {
-  GROSSISTE = 'GROSSISTE',
-  PRODUCTEUR = 'PRODUCTEUR',
-  IMPORTATEUR = 'IMPORTATEUR'
+  GROSSISTE = 'Grossiste',
+  PRODUCTEUR = 'Producteur',
+  IMPORTATEUR = 'Importateur'
 }
 
 export const SupplierTypeLabels: Record<SupplierType, string> = {

@@ -50,25 +50,33 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     /**
      * Fonction utilitaire pour nettoyer les messages d'erreurs techniques du backend
      */
-    const getFriendlyErrorMessage = (err: any): string => {
-        const rawMessage = err?.error?.message || err?.message || "";
-        
-        // Liste des mots-clés "techniques" à masquer
+    const getFriendlyErrorMessage = (err: any): string | null => {
+        const body = err?.error;
+        const message = err?.message || "";
+
+        // 1. Si le backend a envoyé un message explicite, on le garde
+        if (body && typeof body === 'object' && body.message) {
+            return body.message;
+        }
+
+        // 2. Liste des mots-clés "techniques" (Java, SQL, Angular)
         const technicalKeywords = [
             'hibernate', 'jpa', 'sql', 'jdbc', 'constraint', 'violation', 
             'optimistic', 'lock', 'staleobject', 'row was updated', 'unsaved-value',
-            '.entities.', 'com.example', 'nullpointer'
+            '.entities.', 'com.example', 'nullpointer', 'http failure', 'localhost'
         ];
 
         const isTechnical = technicalKeywords.some(key => 
-            rawMessage.toLowerCase().includes(key.toLowerCase())
+            message.toLowerCase().includes(key.toLowerCase()) || 
+            (body && typeof body === 'string' && body.toLowerCase().includes(key.toLowerCase()))
         );
 
+        // Si c'est technique, on retourne null pour laisser ErrorHandlerService gérer le status code
         if (isTechnical) {
-            return "Une erreur de synchronisation s'est produite. Veuillez rafraîchir la page et réessayer.";
+            return null;
         }
 
-        return rawMessage;
+        return body?.message || null;// Si pas de message métier, on renvoie null aussi
     };
 
     // Récupérer le token stocké (sessionStorage prioritaire, sinon localStorage)

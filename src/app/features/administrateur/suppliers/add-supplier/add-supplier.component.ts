@@ -8,6 +8,7 @@ import { SupplierService } from '../../../../shared/services/supplier.service';
 import { AdminService, CategoryListItemDTO } from '../../../../shared/services/admin.service';
 import { CreateSupplierDTO, UpdateSupplierDTO, SupplierType, SupplierTypeLabels, SupplierDetailsDTO } from '../../../../shared/models/supplier.model';
 import Swal from 'sweetalert2';
+import { ErrorHandlerService } from '../../../../core/services/error-handler.service';
 
 @Component({
   selector: 'app-add-supplier',
@@ -43,7 +44,8 @@ export class AddSupplierComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private supplierService: SupplierService,
-    private adminService: AdminService
+    private adminService: AdminService,
+    private errorHandler: ErrorHandlerService
   ) {}
 
   ngOnInit(): void {
@@ -162,40 +164,7 @@ export class AddSupplierComponent implements OnInit {
   }
 
   showError(err: any): void {
-    let msg = 'Une erreur inattendue est survenue';
-    
-    // Tentative d'extraction du message d'erreur
-    if (err.error) {
-      if (typeof err.error === 'string') {
-        // Le backend a renvoyé un message texte brut (cas fréquent avec responseType: 'text')
-        msg = err.error;
-      } else if (err.error.message) {
-        // Le backend a renvoyé un objet JSON { message: "..." }
-        msg = err.error.message;
-      } else if (typeof err.error === 'object') {
-        // Cas rare où l'objet est complexe, on cherche une clé plausible
-        msg = err.error.error || err.error.text || msg;
-      }
-    } else if (err.message && !err.message.includes('Http failure response')) {
-      // Message d'erreur Angular/JS (mais on ignore le message technique "Http failure...")
-      msg = err.message;
-    }
-
-    // Gestion spécifique des statuts si le message est toujours le message par défaut
-    if (msg === 'Une erreur inattendue est survenue') {
-      if (err.status === 404) msg = 'La ressource demandée est introuvable.';
-      if (err.status === 400) msg = 'Les données saisies sont invalides ou incomplètes.';
-      if (err.status === 500) msg = 'Erreur interne du serveur. Veuillez réessayer plus tard.';
-      if (err.status === 0) msg = 'Impossible de contacter le serveur. Vérifiez votre connexion.';
-    }
-
-    Swal.fire({
-      title: 'Erreur',
-      text: msg,
-      icon: 'error',
-      confirmButtonText: 'OK',
-      confirmButtonColor: '#2B3674'
-    });
+    this.errorHandler.showError(err);
   }
 
   onCategoryToggle(categoryId: number): void {

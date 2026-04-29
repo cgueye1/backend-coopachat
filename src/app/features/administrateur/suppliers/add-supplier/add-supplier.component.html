@@ -22,7 +22,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                <div class="space-y-1.5 sm:space-y-2">
                    <label class="block font-medium text-[#333333] text-sm sm:text-base">
-                       Nom du fournisseur <span class="text-red-500">*</span>
+                      Raison sociale <span class="text-red-500">*</span>
                    </label>
                    <input type="text" name="name" [(ngModel)]="supplier.name" required
                           placeholder="Ex: Global Logistics SA"
@@ -155,14 +155,7 @@
                </div>
             </div>
 
-            <!-- Row 5 (Actif) -->
-            <div class="flex items-center gap-3">
-               <input type="checkbox" name="isActive" [(ngModel)]="supplier.isActive" id="isActive"
-                      class="w-5 h-5 text-[#2C2D5B] border-[#CBD5E1] rounded focus:ring-[#2B3674] focus:ring-2 cursor-pointer transition-colors">
-               <label for="isActive" class="text-sm font-medium text-[#333333] sm:text-base cursor-pointer">
-                   Compte fournisseur actif
-               </label>
-            </div>
+
 
             <!-- Row 6 (Description en dernier) -->
             <div class="space-y-1.5 sm:space-y-2 pt-2 border-t border-[#F4F7FE]">
