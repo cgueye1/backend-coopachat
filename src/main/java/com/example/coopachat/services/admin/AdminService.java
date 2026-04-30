@@ -33,6 +33,8 @@ import com.example.coopachat.dtos.dashboard.logisticsManager.StatutTourneesDTO;
 import com.example.coopachat.dtos.reference.CreateReferenceItemDTO;
 import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.enums.UserRole;
+import com.example.coopachat.dtos.documentTypes.CreateDocumentTypeDTO;
+import com.example.coopachat.dtos.documentTypes.DocumentTypeDTO;
 import java.util.List;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.web.multipart.MultipartFile;
@@ -367,4 +369,14 @@ public interface AdminService {
     void createCompanySector(CreateReferenceItemDTO dto);
     void updateCompanySector(Long id, CreateReferenceItemDTO dto);
     void deleteCompanySector(Long id);
+
+    // ============================================================================
+    // 📋 Documents Livreurs
+    // ============================================================================
+    List<DocumentTypeDTO> getAllDocumentTypes();
+    DocumentTypeDTO getDocumentTypeById(Long id);
+    void createDocumentType(CreateDocumentTypeDTO dto);
+    void updateDocumentType(Long id, CreateDocumentTypeDTO dto);
+    void deleteDocumentType(Long id);
+    void toggleDocumentTypeStatus(Long id);
 }

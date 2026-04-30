@@ -120,6 +120,7 @@ public class GlobalExceptionHandler {
         if (message != null && (
                 message.contains("Email ou mot de passe incorrect") ||
                         message.contains("compte n'est pas actif") ||
+                        message.contains("compte n'est pas encore actif") ||
                         message.contains("compte est inactif")
         )) {
             ErrorResponseDTO error = new ErrorResponseDTO(

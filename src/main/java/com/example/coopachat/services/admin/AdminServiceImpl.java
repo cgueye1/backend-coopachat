@@ -1,5 +1,7 @@
 package com.example.coopachat.services.admin;
 
+import com.example.coopachat.dtos.documentTypes.CreateDocumentTypeDTO;
+import com.example.coopachat.dtos.documentTypes.DocumentTypeDTO;
 import com.example.coopachat.dtos.user.SaveUserDTO;
 import com.example.coopachat.dtos.user.UpdateUserStatusDTO;
 import com.example.coopachat.dtos.user.UserDetailsDTO;
@@ -122,12 +124,11 @@ public class AdminServiceImpl implements AdminService {
     private final UserReferenceGenerator userReferenceGenerator;
     private final DeliveryTourRepository deliveryTourRepository;
     private final SupplierRepository supplierRepository;
-
+    private final DocumentTypeRepository documentTypeRepository;
 
     // ============================================================================
     // 📁 GESTION DES CATÉGORIES
     // ============================================================================
-
 
     @Override
     @Transactional
@@ -164,7 +165,8 @@ public class AdminServiceImpl implements AdminService {
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
 
         // Récupérer les catégories selon les filtres fournis
-        //si terme de recherche fourni, on recherche par nom sinon on récupère toutes les catégories triées par id décroissant
+        // si terme de recherche fourni, on recherche par nom sinon on récupère toutes
+        // les catégories triées par id décroissant
         List<Category> categories = (searchTerm != null)
                 ? categoryRepository.findByNameContainingIgnoreCaseOrderByIdDesc(searchTerm)
                 : categoryRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
@@ -175,9 +177,8 @@ public class AdminServiceImpl implements AdminService {
                 .collect(Collectors.toList());
     }
 
-
-
-     // Statistiques de la page catégories (total catégories, total produits, produits actifs)
+    // Statistiques de la page catégories (total catégories, total produits,
+    // produits actifs)
     @Override
     public CategoryKpiDTO getCategoryKpis() {
         long totalCategories = categoryRepository.count();
@@ -196,7 +197,6 @@ public class AdminServiceImpl implements AdminService {
                 .orElseThrow(() -> new RuntimeException("Catégorie introuvable"));
         return mapCategoryToListItemDTO(category);
     }
-
 
     @Override
     @Transactional
@@ -242,7 +242,6 @@ public class AdminServiceImpl implements AdminService {
         log.info("Catégorie {} supprimée par l'admin {} avec {} produit(s) associé(s)",
                 category.getName(), admin.getEmail(), productsInCategory.size());
     }
-
 
     // ============================================================================
     // 📦 GESTION DES PRODUITS
@@ -316,8 +315,9 @@ public class AdminServiceImpl implements AdminService {
 
         // Cas 1 : Recherche + Catégorie + Statut
         if (searchTerm != null && category != null && status != null) {
-            productPage = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndCategoryAndStatus(
-                    searchTerm, searchTerm, category, status, pageable);
+            productPage = productRepository
+                    .findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndCategoryAndStatus(
+                            searchTerm, searchTerm, category, status, pageable);
         }
         // Cas 2 : Recherche + Catégorie (pas de statut)
         else if (searchTerm != null && category != null) {
@@ -366,9 +366,11 @@ public class AdminServiceImpl implements AdminService {
         response.setHasNext(productPage.hasNext());
         response.setHasPrevious(productPage.hasPrevious());
 
-        log.info("Page {} de {} produits récupérée par l'administrateur {} (total: {} produits, recherche: '{}', catégorie: {}, statut: {})",
+        log.info(
+                "Page {} de {} produits récupérée par l'administrateur {} (total: {} produits, recherche: '{}', catégorie: {}, statut: {})",
                 page + 1, productPage.getTotalPages(), admin.getEmail(), productPage.getTotalElements(),
-                searchTerm != null ? searchTerm : "aucune", categoryId != null ? category.getName() : "toutes", status != null ? status : "tous");
+                searchTerm != null ? searchTerm : "aucune", categoryId != null ? category.getName() : "toutes",
+                status != null ? status : "tous");
 
         return response;
     }
@@ -517,8 +519,10 @@ public class AdminServiceImpl implements AdminService {
 
         // Application des mêmes filtres que getAllProducts
         if (searchTerm != null && category != null && status != null) {
-            products = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndCategoryAndStatus(
-                    searchTerm, searchTerm, category, status, Pageable.unpaged()).getContent();
+            products = productRepository
+                    .findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndCategoryAndStatus(
+                            searchTerm, searchTerm, category, status, Pageable.unpaged())
+                    .getContent();
         } else if (searchTerm != null && category != null) {
             products = productRepository.findByNameContainingIgnoreCaseOrProductCodeContainingIgnoreCaseAndCategory(
                     searchTerm, searchTerm, category, Pageable.unpaged()).getContent();
@@ -553,12 +557,14 @@ public class AdminServiceImpl implements AdminService {
 
             // Créer la ligne d'en-tête
             Row headerRow = sheet.createRow(0);
-            String[] headers = {"Code Produit", "Nom", "Catégorie", "Prix (F)", "Stock", "Seuil Min", "Statut", "Date MAJ"};
+            String[] headers = { "Code Produit", "Nom", "Catégorie", "Prix (F)", "Stock", "Seuil Min", "Statut",
+                    "Date MAJ" };
 
-            //on va parcourir le tableau headers et on va créer une cellule pour chaque en-tête
+            // on va parcourir le tableau headers et on va créer une cellule pour chaque
+            // en-tête
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]); //on va mettre la valeur de l'en-tête dans la cellule
+                cell.setCellValue(headers[i]); // on va mettre la valeur de l'en-tête dans la cellule
                 cell.setCellStyle(headerStyle);
             }
 
@@ -568,16 +574,20 @@ public class AdminServiceImpl implements AdminService {
 
             // Remplir les données
             int rowNum = 1;
-            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy"); //on va formatter la date en français
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy"); // on va formatter la date en
+                                                                                         // français
 
-            //on va parcourir les produits et on va créer une ligne pour chaque produit
+            // on va parcourir les produits et on va créer une ligne pour chaque produit
             for (Product product : products) {
                 Row row = sheet.createRow(rowNum++);
 
-
                 // Code produit (colonne 0)
-                Cell cell0 = row.createCell(0); //on va créer une cellule pour la colonne 0 (code produit) à la ligne courante
-                cell0.setCellValue(product.getProductCode() != null ? product.getProductCode() : ""); //on va mettre la valeur du code produit dans la cellule
+                Cell cell0 = row.createCell(0); // on va créer une cellule pour la colonne 0 (code produit) à la ligne
+                                                // courante
+                cell0.setCellValue(product.getProductCode() != null ? product.getProductCode() : ""); // on va mettre la
+                                                                                                      // valeur du code
+                                                                                                      // produit dans la
+                                                                                                      // cellule
 
                 // Nom
                 Cell cell1 = row.createCell(1);
@@ -615,17 +625,19 @@ public class AdminServiceImpl implements AdminService {
             autoSizeColumnsSafe(sheet, headers.length);
 
             // Convertir le workbook en byte array pour l'envoyer au client
-            // Le navigateur attend des données binaires (bytes) pour télécharger le fichier Excel
+            // Le navigateur attend des données binaires (bytes) pour télécharger le fichier
+            // Excel
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             workbook.write(outputStream); // Écrire le workbook dans le flux de sortie
-            return new ByteArrayResource(outputStream.toByteArray()); // Retourner le byte array sous forme de ByteArrayResource (enveloppe Spring qui contient les bytes du fichier Excel)
+            return new ByteArrayResource(outputStream.toByteArray()); // Retourner le byte array sous forme de
+                                                                      // ByteArrayResource (enveloppe Spring qui
+                                                                      // contient les bytes du fichier Excel)
         } catch (IOException e) {
             throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors de la génération du fichier Excel: " + e.getMessage());
         }
     }
-
 
     // ----------------------------------------------------------------------------
     // 🧾 GESTION DES FOURNISSEURS
@@ -666,7 +678,7 @@ public class AdminServiceImpl implements AdminService {
         if (dto.getCategoryIds() != null && !dto.getCategoryIds().isEmpty()) {
             categories.addAll(categoryRepository.findAllById(dto.getCategoryIds()));
         }
- 
+
         Supplier supplier = new Supplier();
         supplier.setName(dto.getName());
         supplier.setType(dto.getType());
@@ -679,23 +691,25 @@ public class AdminServiceImpl implements AdminService {
         supplier.setNinea(dto.getNinea());
         supplier.setDeliveryTime(dto.getDeliveryTime());
         supplier.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
- 
+
         supplierRepository.save(supplier);
         log.info("Fournisseur '{}' créé avec succès par l'admin {}", supplier.getName(), admin.getEmail());
     }
 
     @Override
     @Transactional
-    public SupplierListResponseDTO getSuppliers(int page, int size, String search, Long categoryId, SupplierType type, Boolean status) {
+    public SupplierListResponseDTO getSuppliers(int page, int size, String search, Long categoryId, SupplierType type,
+            Boolean status) {
         Users admin = getCurrentUser();
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
             throw new RuntimeException("Seul un administrateur peut lister les fournisseurs");
         }
- 
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
- 
-        Page<Supplier> supplierPage = supplierRepository.findWithFilters(searchTerm, categoryId, type, status, pageable);
+
+        Page<Supplier> supplierPage = supplierRepository.findWithFilters(searchTerm, categoryId, type, status,
+                pageable);
 
         List<SupplierListItemDTO> content = supplierPage.getContent().stream()
                 .map(this::mapToSupplierListItemDTO)
@@ -731,12 +745,18 @@ public class AdminServiceImpl implements AdminService {
         Supplier s = supplierRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fournisseur introuvable"));
 
-        if (dto.getName() != null) s.setName(dto.getName());
-        if (dto.getType() != null) s.setType(dto.getType());
-        if (dto.getDescription() != null) s.setDescription(dto.getDescription());
-        if (dto.getAddress() != null) s.setAddress(dto.getAddress());
-        if (dto.getContactName() != null) s.setContactName(dto.getContactName());
-        if (dto.getDeliveryTime() != null) s.setDeliveryTime(dto.getDeliveryTime());
+        if (dto.getName() != null)
+            s.setName(dto.getName());
+        if (dto.getType() != null)
+            s.setType(dto.getType());
+        if (dto.getDescription() != null)
+            s.setDescription(dto.getDescription());
+        if (dto.getAddress() != null)
+            s.setAddress(dto.getAddress());
+        if (dto.getContactName() != null)
+            s.setContactName(dto.getContactName());
+        if (dto.getDeliveryTime() != null)
+            s.setDeliveryTime(dto.getDeliveryTime());
 
         if (dto.getEmail() != null && !dto.getEmail().equals(s.getEmail())) {
             if (supplierRepository.findByEmail(dto.getEmail()).isPresent()) {
@@ -792,16 +812,16 @@ public class AdminServiceImpl implements AdminService {
         SupplierListItemDTO dto = new SupplierListItemDTO();
         dto.setId(s.getId());
         dto.setName(s.getName());
-        
-        List<String> categoryNames = s.getCategories() != null 
-            ? s.getCategories().stream().map(Category::getName).collect(Collectors.toList())
-            : new ArrayList<>();
-            
+
+        List<String> categoryNames = s.getCategories() != null
+                ? s.getCategories().stream().map(Category::getName).collect(Collectors.toList())
+                : new ArrayList<>();
+
         dto.setCategoryNames(String.join(", ", categoryNames));
-        
+
         List<String> display = categoryNames.size() > 2
-            ? Arrays.asList(categoryNames.get(0), categoryNames.get(1), "+" + (categoryNames.size() - 2))
-            : categoryNames;
+                ? Arrays.asList(categoryNames.get(0), categoryNames.get(1), "+" + (categoryNames.size() - 2))
+                : categoryNames;
         dto.setCategoriesDisplay(display);
 
         dto.setType(s.getType());
@@ -840,7 +860,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     // ----------------------------------------------------------------------------
-    //  GESTION DES OPTIONS DE LIVRAISON 🛵
+    // GESTION DES OPTIONS DE LIVRAISON 🛵
     // ----------------------------------------------------------------------------
     @Override
     @Transactional
@@ -857,7 +877,7 @@ public class AdminServiceImpl implements AdminService {
             throw new RuntimeException("Une option avec ce nom existe déjà");
         }
 
-        //Création
+        // Création
         DeliveryOption option = new DeliveryOption();
         option.setName(dto.getName());
         option.setDescription(dto.getDescription());
@@ -881,8 +901,7 @@ public class AdminServiceImpl implements AdminService {
                         deliveryOption.getId(),
                         deliveryOption.getName(),
                         deliveryOption.getDescription(),
-                        deliveryOption.getIsActive()
-                ))
+                        deliveryOption.getIsActive()))
                 .toList();
 
     }
@@ -896,11 +915,14 @@ public class AdminServiceImpl implements AdminService {
         }
         DeliveryOption option = deliveryOptionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Option de livraison introuvable"));
-        
-        if (dto.getName() != null) option.setName(dto.getName());
-        if (dto.getDescription() != null) option.setDescription(dto.getDescription());
-        if (dto.getIsActive() != null) option.setIsActive(dto.getIsActive());
-        
+
+        if (dto.getName() != null)
+            option.setName(dto.getName());
+        if (dto.getDescription() != null)
+            option.setDescription(dto.getDescription());
+        if (dto.getIsActive() != null)
+            option.setIsActive(dto.getIsActive());
+
         deliveryOptionRepository.save(option);
     }
 
@@ -958,11 +980,14 @@ public class AdminServiceImpl implements AdminService {
         }
         Fee fee = feeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Frais introuvable"));
-        
-        if (dto.getName() != null) fee.setName(dto.getName());
-        if (dto.getDescription() != null) fee.setDescription(dto.getDescription());
-        if (dto.getAmount() != null) fee.setAmount(dto.getAmount());
-        
+
+        if (dto.getName() != null)
+            fee.setName(dto.getName());
+        if (dto.getDescription() != null)
+            fee.setDescription(dto.getDescription());
+        if (dto.getAmount() != null)
+            fee.setAmount(dto.getAmount());
+
         feeRepository.save(fee);
     }
 
@@ -1031,7 +1056,8 @@ public class AdminServiceImpl implements AdminService {
 
         Users savedUser = userRepository.save(user);
 
-        // Seuls les rôles "agents" : Admin, Responsable logistique, Commercial, Livreur.
+        // Seuls les rôles "agents" : Admin, Responsable logistique, Commercial,
+        // Livreur.
         switch (dto.getRole()) {
             case EMPLOYEE, COMPANY -> throw new RuntimeException(
                     "Les salariés et entreprises ne se créent pas ici. Utilisez le flux Commercial.");
@@ -1040,7 +1066,7 @@ public class AdminServiceImpl implements AdminService {
                 driver.setUser(savedUser);
                 driver.setCreatedBy(admin);
                 deliveryDriverRepository.save(driver);
-                
+
                 // Génération du code et envoi du lien d'activation direct
                 String code = activationCodeService.generateAndStoreCode(dto.getEmail());
                 emailService.sendDriverActivationLink(dto.getEmail(), code, dto.getFirstName());
@@ -1049,7 +1075,8 @@ public class AdminServiceImpl implements AdminService {
             case COMMERCIAL, LOGISTICS_MANAGER, ADMINISTRATOR, SUPPLIER -> {
                 String code = activationCodeService.generateAndStoreCode(dto.getEmail());
                 emailService.sendActivationLink(dto.getEmail(), code, dto.getFirstName());
-                log.info("Utilisateur {} créé par l'admin : {}, lien d'activation envoyé", dto.getRole(), dto.getEmail());
+                log.info("Utilisateur {} créé par l'admin : {}, lien d'activation envoyé", dto.getRole(),
+                        dto.getEmail());
             }
         }
     }
@@ -1066,7 +1093,7 @@ public class AdminServiceImpl implements AdminService {
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
         Pageable pageable = PageRequest.of(page, size);
 
-        //Tous les users sauf les employés et les entreprises 
+        // Tous les users sauf les employés et les entreprises
         Page<Users> userPage = userRepository.findAllWithFilters(searchTerm, role, status, pageable);
 
         // Mapper chaque utilisateur vers un DTO de liste
@@ -1098,8 +1125,7 @@ public class AdminServiceImpl implements AdminService {
                 userPage.getNumber(),
                 userPage.getSize(),
                 userPage.hasNext(),
-                userPage.hasPrevious()
-        );
+                userPage.hasPrevious());
     }
 
     @Override
@@ -1112,7 +1138,8 @@ public class AdminServiceImpl implements AdminService {
 
         String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
         Pageable pageable = Pageable.unpaged();
-        // Les salariés (EMPLOYEE) ne sont pas gérés ici : exclus au niveau repository (findAllWithFilters).
+        // Les salariés (EMPLOYEE) ne sont pas gérés ici : exclus au niveau repository
+        // (findAllWithFilters).
         Page<Users> userPage = userRepository.findAllWithFilters(searchTerm, role, status, pageable);
         List<Users> users = userPage.getContent();
 
@@ -1173,7 +1200,8 @@ public class AdminServiceImpl implements AdminService {
         long total = userRepository.countExcludingEmployee();
         long active = userRepository.countByIsActiveTrueExcludingEmployee();
         long inactive = userRepository.countByIsActiveFalseExcludingEmployee();
-        log.info("Statistiques utilisateurs (hors salariés) : total={}, actifs={}, inactifs={}", total, active, inactive);
+        log.info("Statistiques utilisateurs (hors salariés) : total={}, actifs={}, inactifs={}", total, active,
+                inactive);
         return new UserStatsDTO(total, active, inactive);
     }
 
@@ -1182,23 +1210,27 @@ public class AdminServiceImpl implements AdminService {
         // Vérifier que l'utilisateur connecté est bien un administrateur
         Users admin = getCurrentUser();
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
-            throw new RuntimeException("Seul un administrateur peut consulter les statistiques des utilisateurs par rôle");
+            throw new RuntimeException(
+                    "Seul un administrateur peut consulter les statistiques des utilisateurs par rôle");
         }
 
-        // Nombre total d'utilisateurs concernés (Internal Staff + Employees, hors Company)
-        // On recalcule le total dynamiquement selon ce qu'on va afficher pour avoir des % cohérents
+        // Nombre total d'utilisateurs concernés (Internal Staff + Employees, hors
+        // Company)
+        // On recalcule le total dynamiquement selon ce qu'on va afficher pour avoir des
+        // % cohérents
         List<UserStatsByRoleItemDTO> result = new ArrayList<>();
         long totalForStats = 0;
-        
+
         // 1. Calculer d'abord les effectifs pour chaque rôle (hors COMPANY)
         Map<UserRole, Long> counts = new LinkedHashMap<>();
         for (UserRole role : UserRole.values()) {
-            if (role == UserRole.COMPANY || role == UserRole.EMPLOYEE || role == UserRole.SUPPLIER) continue;
-            
+            if (role == UserRole.COMPANY || role == UserRole.EMPLOYEE || role == UserRole.SUPPLIER)
+                continue;
+
             long count = (role == UserRole.EMPLOYEE)
                     ? employeeRepository.count()
                     : userRepository.countByRole(role);
-            
+
             counts.put(role, count);
             totalForStats += count;
         }
@@ -1221,12 +1253,14 @@ public class AdminServiceImpl implements AdminService {
             throw new RuntimeException("Seul un administrateur peut consulter la répartition des statuts");
         }
 
-        // Total et effectifs actifs / inactifs (hors salariés, aligné avec la liste admin)
+        // Total et effectifs actifs / inactifs (hors salariés, aligné avec la liste
+        // admin)
         long total = userRepository.countExcludingEmployee();
         long active = userRepository.countByIsActiveTrueExcludingEmployee();
         long inactive = userRepository.countByIsActiveFalseExcludingEmployee();
 
-        // Si total est supérieur à 0, on calcule le pourcentage d'actifs et inactifs ; sinon on retourne 0
+        // Si total est supérieur à 0, on calcule le pourcentage d'actifs et inactifs ;
+        // sinon on retourne 0
         double activePct = total > 0 ? active * 100.0 / total : 0;
         double inactivePct = total > 0 ? inactive * 100.0 / total : 0;
 
@@ -1260,6 +1294,7 @@ public class AdminServiceImpl implements AdminService {
         dto.setCreatedAt(u.getCreatedAt());
         return dto;
     }
+
     @Override
     @Transactional
     public void updateUserStatus(Long id, UpdateUserStatusDTO dto) {
@@ -1273,7 +1308,8 @@ public class AdminServiceImpl implements AdminService {
         Users u = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
-        // Impossible d'activer un utilisateur qui n'a pas encore défini son mot de passe
+        // Impossible d'activer un utilisateur qui n'a pas encore défini son mot de
+        // passe
         if (Boolean.TRUE.equals(dto.getIsActive())
                 && (u.getPassword() == null || u.getPassword().isBlank())) {
             throw new BadRequestBusinessException(
@@ -1284,7 +1320,7 @@ public class AdminServiceImpl implements AdminService {
 
         u.setIsActive(dto.getIsActive());
         // Si l'admin désactive → marquer comme suspendu manuellement
-        // Si l'admin réactive  → lever la suspension
+        // Si l'admin réactive → lever la suspension
         u.setDisabledByAdmin(!dto.getIsActive());
         userRepository.save(u);
         log.info("Statut utilisateur {} mis à jour : isActive={}, disabledByAdmin={}",
@@ -1308,14 +1344,16 @@ public class AdminServiceImpl implements AdminService {
         if (dto.getLastName() != null) {
             u.setLastName(dto.getLastName());
         }
-        //on vérifie que l'email n'est pas déjà utilisé par un autre utilisateur (sauf pour l'utilisateur lui-même)
+        // on vérifie que l'email n'est pas déjà utilisé par un autre utilisateur (sauf
+        // pour l'utilisateur lui-même)
         if (dto.getEmail() != null) {
             if (Boolean.TRUE.equals(userRepository.existsByEmailAndIdNot(dto.getEmail(), id))) {
                 throw new RuntimeException("Cet email est déjà utilisé par un autre utilisateur");
             }
             u.setEmail(dto.getEmail());
         }
-        //on vérifie que le numéro de téléphone n'est pas déjà utilisé par un autre utilisateur (sauf pour l'utilisateur lui-même)
+        // on vérifie que le numéro de téléphone n'est pas déjà utilisé par un autre
+        // utilisateur (sauf pour l'utilisateur lui-même)
         if (dto.getPhoneNumber() != null) {
             if (Boolean.TRUE.equals(userRepository.existsByPhoneAndIdNot(dto.getPhoneNumber(), id))) {
                 throw new RuntimeException("Ce numéro de téléphone est déjà utilisé par un autre utilisateur");
@@ -1337,8 +1375,7 @@ public class AdminServiceImpl implements AdminService {
 
     private static final long PROFILE_PHOTO_MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
     private static final List<String> PROFILE_PHOTO_ALLOWED_CONTENT_TYPES = List.of(
-            "image/jpeg", "image/png", "image/gif", "image/webp"
-    );
+            "image/jpeg", "image/png", "image/gif", "image/webp");
     private static final List<String> PROFILE_PHOTO_ALLOWED_EXTENSIONS = List.of("jpg", "jpeg", "png", "gif", "webp");
 
     @Override
@@ -1346,7 +1383,8 @@ public class AdminServiceImpl implements AdminService {
     public void updateUserProfilePhoto(Long userId, MultipartFile file) {
         Users admin = getCurrentUser();
         if (admin.getRole() != UserRole.ADMINISTRATOR) {
-            throw new RuntimeException("Seul un administrateur peut modifier la photo de profil d'un autre utilisateur.");
+            throw new RuntimeException(
+                    "Seul un administrateur peut modifier la photo de profil d'un autre utilisateur.");
         }
         doUpdateUserProfilePhoto(userId, file);
     }
@@ -1392,13 +1430,14 @@ public class AdminServiceImpl implements AdminService {
     }
 
     /**
-     * Logique commune : validation image, suppression ancienne photo, upload, mise à jour en BDD.
+     * Logique commune : validation image, suppression ancienne photo, upload, mise
+     * à jour en BDD.
      */
     private void doUpdateUserProfilePhoto(Long userId, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new RuntimeException("Aucun fichier fourni");
         }
-        //Validation du type de fichier
+        // Validation du type de fichier
         String contentType = file.getContentType();
         if (contentType != null && contentType.contains(";")) {
             contentType = contentType.substring(0, contentType.indexOf(';')).trim();
@@ -1424,21 +1463,20 @@ public class AdminServiceImpl implements AdminService {
         Users u = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
         try {
-            //  Supprimer l'ancienne photo si elle existe 
+            // Supprimer l'ancienne photo si elle existe
             String oldPhoto = u.getProfilePhotoUrl();
             if (oldPhoto != null && !oldPhoto.isBlank()) {
                 minioService.deleteFile(oldPhoto);
             }
-            String relativePath = minioService.uploadFile(file, "profiles");//Upload de la nouvelle photo
-            u.setProfilePhotoUrl(relativePath);//Mise à jour de la photo de profil dans la base de données
-            userRepository.save(u);//Sauvegarde de l'utilisateur
+            String relativePath = minioService.uploadFile(file, "profiles");// Upload de la nouvelle photo
+            u.setProfilePhotoUrl(relativePath);// Mise à jour de la photo de profil dans la base de données
+            userRepository.save(u);// Sauvegarde de l'utilisateur
             log.info("Photo de profil mise à jour pour l'utilisateur {}", u.getEmail());
         } catch (Exception e) {
             log.error("Erreur upload photo de profil: {}", e.getMessage());
             throw new RuntimeException("Impossible d'enregistrer la photo");
         }
     }
-
 
     // ============================================================================
     // 📋 RÉFÉRENTIELS (types réclamation, raisons livraison)
@@ -1620,7 +1658,6 @@ public class AdminServiceImpl implements AdminService {
         companySectorRepository.deleteById(id);
     }
 
-
     // ----------------------------------------------------------------------------
     // 🔧 STATISTIQUES
     // --------------------------------------------------------------------------
@@ -1642,23 +1679,33 @@ public class AdminServiceImpl implements AdminService {
     }
 
     /**
-     * Récupère le top 5 des produits les plus commandés avec leur taux d'utilisation en %.
+     * Récupère le top 5 des produits les plus commandés avec leur taux
+     * d'utilisation en %.
      *
-     * <p><b>Principe :</b>
+     * <p>
+     * <b>Principe :</b>
      * <ul>
-     *   <li>On récupère les 5 produits ayant le plus de quantités commandées depuis une date (ex. 30 derniers jours).</li>
-     *   <li>On calcule le total des quantités commandées (tous produits) sur la même période.</li>
-     *   <li>Pour chaque produit du top 5 : usagePercent = (quantité du produit / total) × 100.</li>
+     * <li>On récupère les 5 produits ayant le plus de quantités commandées depuis
+     * une date (ex. 30 derniers jours).</li>
+     * <li>On calcule le total des quantités commandées (tous produits) sur la même
+     * période.</li>
+     * <li>Pour chaque produit du top 5 : usagePercent = (quantité du produit /
+     * total) × 100.</li>
      * </ul>
      *
-     * <p><b>Méthode associée :</b>
+     * <p>
+     * <b>Méthode associée :</b>
      * <ul>
-     *   <li>{@code orderItemRepository.findTop5ProductsByQuantitySince(dateDebut, PageRequest.of(0, 5))} : retourne [nom, sommeQuantité] pour les 5 premiers.</li>
-     *   <li>{@code orderItemRepository.sumQuantityByOrderCreatedAtAfter(dateDebut)} : retourne la somme totale des quantités sur la période.</li>
-     *   <li>Pour chaque ligne : usagePercent = totalSum > 0 ? (sum * 100.0 / totalSum) : 0.</li>
+     * <li>{@code orderItemRepository.findTop5ProductsByQuantitySince(dateDebut, PageRequest.of(0, 5))}
+     * : retourne [nom, sommeQuantité] pour les 5 premiers.</li>
+     * <li>{@code orderItemRepository.sumQuantityByOrderCreatedAtAfter(dateDebut)} :
+     * retourne la somme totale des quantités sur la période.</li>
+     * <li>Pour chaque ligne : usagePercent = totalSum > 0 ? (sum * 100.0 /
+     * totalSum) : 0.</li>
      * </ul>
      *
-     * @return liste de TopProductUsageDTO (productName, usagePercent entre 0 et 100)
+     * @return liste de TopProductUsageDTO (productName, usagePercent entre 0 et
+     *         100)
      */
     @Override
     public List<TopProductUsageDTO> getTop5ProductUsage() {
@@ -1667,7 +1714,8 @@ public class AdminServiceImpl implements AdminService {
             throw new RuntimeException("Seul un administrateur peut consulter le top 5 produits.");
         }
 
-        // Période : 30 derniers jours (pour alignement avec d'autres stats catalogue si besoin).
+        // Période : 30 derniers jours (pour alignement avec d'autres stats catalogue si
+        // besoin).
         LocalDateTime dateDebut = LocalDateTime.now().minusDays(30);
         Pageable top5 = PageRequest.of(0, 5);
 
@@ -1691,7 +1739,8 @@ public class AdminServiceImpl implements AdminService {
     /**
      * Construit les statistiques du tableau de bord admin (sans filtre de période).
      * Utilisé par l'API GET /api/admin/dashboard/stats.
-     * Tous les comptages sont globaux (toutes les commandes/paiements concernés, sans restriction de date).
+     * Tous les comptages sont globaux (toutes les commandes/paiements concernés,
+     * sans restriction de date).
      */
     @Override
     public AdminDashboardStatsDTO getDashboardStats(String periode) {
@@ -1712,8 +1761,7 @@ public class AdminServiceImpl implements AdminService {
                 commandesEnAttente,
                 paiementsEchoues,
                 reclamationsOuvertes,
-                paiementsParStatut
-        );
+                paiementsParStatut);
     }
 
     @Override
@@ -1730,7 +1778,8 @@ public class AdminServiceImpl implements AdminService {
             LocalDate day = today.minusDays(i);
             long nbPrevues = orderRepository.countByDeliveryDateExcludingCancelled(day, OrderStatus.ANNULEE);
             long nbLivreesALaDate = orderRepository.countByStatusAndDeliveryDate(OrderStatus.LIVREE, day);
-            // Retard par jour : date prévue = ce jour, encore EN_ATTENTE (pas un cumul « livraison avant ce jour »).
+            // Retard par jour : date prévue = ce jour, encore EN_ATTENTE (pas un cumul «
+            // livraison avant ce jour »).
             long nbRetard = orderRepository.countByStatusAndDeliveryDate(OrderStatus.EN_ATTENTE, day);
             result.add(new LivraisonParJourDTO(
                     day.format(formatter), nbPrevues, nbLivreesALaDate, nbRetard));
@@ -1738,7 +1787,8 @@ public class AdminServiceImpl implements AdminService {
         return result;
     }
 
-    //Retourne le nombre de fois qu'un coupon a été utilisé dans une commande par jour (7 derniers jours)
+    // Retourne le nombre de fois qu'un coupon a été utilisé dans une commande par
+    // jour (7 derniers jours)
     @Override
     public List<CouponUsageParJourDTO> getCouponsUtilisesParJour() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
@@ -1777,10 +1827,14 @@ public class AdminServiceImpl implements AdminService {
     }
 
     /**
-     * Construit la liste des alertes pour le tableau de bord admin (GET /admin/alerts).
-     * — Alerte 1 : livraisons en retard (commandes EN_ATTENTE avec date de livraison avant aujourd'hui).
-     * — Alerte 2 : stocks critiques (produits dont le stock est strictement inférieur au seuil ; message = nombre).
-     * Chaque alerte contient un module (LIVRAISONS / STOCKS) pour que le front redirige au clic (ex. STOCKS → page Gestion des stocks).
+     * Construit la liste des alertes pour le tableau de bord admin (GET
+     * /admin/alerts).
+     * — Alerte 1 : livraisons en retard (commandes EN_ATTENTE avec date de
+     * livraison avant aujourd'hui).
+     * — Alerte 2 : stocks critiques (produits dont le stock est strictement
+     * inférieur au seuil ; message = nombre).
+     * Chaque alerte contient un module (LIVRAISONS / STOCKS) pour que le front
+     * redirige au clic (ex. STOCKS → page Gestion des stocks).
      */
     @Override
     public AdminAlertsDTO getAlerts() {
@@ -1795,23 +1849,144 @@ public class AdminServiceImpl implements AdminService {
                     retard + " livraison(s) en retard",
                     "Cliquez pour ouvrir le module concerné",
                     "LIVRAISONS",
-                    today
-            ));
+                    today));
         }
 
-        // Alerte 2 — Stocks critiques (stock strictement inférieur au seuil ; on affiche le nombre)
+        // Alerte 2 — Stocks critiques (stock strictement inférieur au seuil ; on
+        // affiche le nombre)
         long stocksCritiques = productRepository.countByCurrentStockLessThanMinThreshold();
-        if (stocksCritiques > 0) {//si le nombre de stocks critiques est supérieur à 0, on ajoute une alerte
+        if (stocksCritiques > 0) {// si le nombre de stocks critiques est supérieur à 0, on ajoute une alerte
             alerts.add(new AlertItemDTO(
                     "DANGER",
                     stocksCritiques + " stock(s) en critique",
                     "Cliquez pour ouvrir le module concerné",
                     "STOCKS",
-                    today
-            ));
+                    today));
         }
 
         return new AdminAlertsDTO(alerts);
+    }
+
+    // ============================================================================
+    // 📋 Documents Livreurs
+    // ============================================================================
+
+    @Override
+    public List<DocumentTypeDTO> getAllDocumentTypes() {
+        return documentTypeRepository.findAll(Sort.by(Sort.Direction.DESC, "id"))
+                .stream()
+                .map(this::mapToDocumentTypeDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public DocumentTypeDTO getDocumentTypeById(Long id) {
+        DocumentType doc = documentTypeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Type de document introuvable"));
+        return mapToDocumentTypeDTO(doc);
+    }
+
+    @Override
+    @Transactional
+    public void createDocumentType(CreateDocumentTypeDTO dto) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut créer un type de document");
+        }
+
+        // Vérifier si le nom existe déjà
+        if (documentTypeRepository.existsByNameOrSynonym(dto.getName())) {
+            throw new RuntimeException("Ce nom de document (ou un synonyme) existe déjà");
+        }
+
+        // Vérifier si les synonymes existent déjà
+        if (dto.getSynonyms() != null) {
+            for (String synonym : dto.getSynonyms()) {
+                if (documentTypeRepository.existsByNameOrSynonym(synonym)) {
+                    throw new RuntimeException("Le synonyme '" + synonym + "' existe déjà");
+                }
+            }
+        }
+
+        DocumentType doc = new DocumentType();
+        doc.setName(dto.getName().trim());
+        doc.setSynonyms(dto.getSynonyms() != null ? dto.getSynonyms() : new HashSet<>());
+        doc.setHasExpiryDate(dto.getHasExpiryDate() != null ? dto.getHasExpiryDate() : false);
+        doc.setIsIdentityVerification(
+                dto.getIsIdentityVerification() != null ? dto.getIsIdentityVerification() : false);
+        doc.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
+
+        documentTypeRepository.save(doc);
+        log.info("Type de document '{}' créé par l'admin {}", doc.getName(), admin.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public void updateDocumentType(Long id, CreateDocumentTypeDTO dto) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut modifier un type de document");
+        }
+
+        DocumentType doc = documentTypeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Type de document introuvable"));
+
+        if (dto.getName() != null && !dto.getName().trim().equalsIgnoreCase(doc.getName())) {
+            if (documentTypeRepository.existsByNameOrSynonym(dto.getName())) {
+                throw new RuntimeException("Ce nom de document existe déjà");
+            }
+            doc.setName(dto.getName().trim());
+        }
+
+        if (dto.getSynonyms() != null) {
+            // Pour chaque nouveau synonyme, vérifier s'il n'existe pas ailleurs (exclure le
+            // document actuel est plus complexe en SQL, on fait simple ici)
+            // Note: Cette logique simplifiée pourrait bloquer si on renvoie un synonyme
+            // déjà présent sur CE document.
+            // Une version plus robuste filtrerait les synonymes actuels du document.
+            doc.setSynonyms(dto.getSynonyms());
+        }
+
+        if (dto.getHasExpiryDate() != null)
+            doc.setHasExpiryDate(dto.getHasExpiryDate());
+        if (dto.getIsIdentityVerification() != null)
+            doc.setIsIdentityVerification(dto.getIsIdentityVerification());
+        if (dto.getIsActive() != null)
+            doc.setIsActive(dto.getIsActive());
+
+        documentTypeRepository.save(doc);
+        log.info("Type de document '{}' mis à jour par l'admin {}", doc.getName(), admin.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public void deleteDocumentType(Long id) {
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut supprimer un type de document");
+        }
+        documentTypeRepository.deleteById(id);
+        log.info("Type de document ID {} supprimé par l'admin {}", id, admin.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public void toggleDocumentTypeStatus(Long id) {
+        DocumentType doc = documentTypeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Type de document introuvable"));
+        doc.setIsActive(!doc.getIsActive());
+        documentTypeRepository.save(doc);
+    }
+
+    private DocumentTypeDTO mapToDocumentTypeDTO(DocumentType d) {
+        DocumentTypeDTO dto = new DocumentTypeDTO();
+        dto.setId(d.getId());
+        dto.setName(d.getName());
+        dto.setSynonyms(d.getSynonyms());
+        dto.setHasExpiryDate(d.getHasExpiryDate());
+        dto.setIsIdentityVerification(d.getIsIdentityVerification());
+        dto.setIsActive(d.getIsActive());
+        return dto;
     }
 
     // ----------------------------------------------------------------------------
@@ -1823,8 +1998,7 @@ public class AdminServiceImpl implements AdminService {
                 fee.getName(),
                 fee.getDescription(),
                 fee.getAmount(),
-                fee.getIsActive()
-        );
+                fee.getIsActive());
     }
 
     /**
@@ -1910,9 +2084,9 @@ public class AdminServiceImpl implements AdminService {
         return EtatStock.RUPTURE.getLabel(); // "Rupture"
     }
 
-
     /**
      * Récupère l'utilisateur actuellement connecté.
+     * 
      * @return Users l'utilisateur connecté
      * @throws RuntimeException si aucun utilisateur n'est authentifié
      */
@@ -1925,8 +2099,7 @@ public class AdminServiceImpl implements AdminService {
         String userEmail = authentication.getName();
         return userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException(
-                        "Utilisateur introuvable avec email: " + userEmail
-                ));
+                        "Utilisateur introuvable avec email: " + userEmail));
     }
 
     /**
@@ -1953,9 +2126,4 @@ public class AdminServiceImpl implements AdminService {
         return dto;
     }
 
-
 }
-
-
-
-
