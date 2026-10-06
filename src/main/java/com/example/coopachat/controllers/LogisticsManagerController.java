@@ -33,6 +33,8 @@ import com.example.coopachat.enums.OrderStatus;
 import com.example.coopachat.enums.SupplierOrderStatus;
 import com.example.coopachat.services.LogisticsManager.LogisticsManagerService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +49,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import org.springframework.security.access.prepost.PreAuthorize;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -57,6 +60,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/logistics")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('LOGISTICS_MANAGER')")
 @Tag(name = "Responsable Logistique", description = "API pour la gestion des actions du Responsable Logistique ")
 public class LogisticsManagerController {
 
@@ -71,6 +75,12 @@ public class LogisticsManagerController {
             summary = "Lister les fournisseurs",
             description = "Récupère la liste complète des fournisseurs actifs (id + nom) avec filtres optionnels par catégorie et type."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/suppliers")
     public ResponseEntity<List<SupplierListItemDTO>> getAllSuppliers(
             @RequestParam(required = false) Long categoryId,
@@ -85,6 +95,13 @@ public class LogisticsManagerController {
                          "La commande peut contenir un ou plusieurs produits. " +
                          "Chaque produit doit avoir une quantité commandée."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Créé"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/supplier-orders")
     public ResponseEntity<String> createSupplierOrder(@RequestBody @Valid CreateSupplierOrderDTO createSupplierOrderDTO) {
         try {
@@ -103,6 +120,14 @@ public class LogisticsManagerController {
                          "Tous les champs sont optionnels - seuls les champs fournis seront mis à jour. " +
                          "Si 'items' est fourni, il remplace toute la liste des produits."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PutMapping("/supplier-orders/{id}")
     public ResponseEntity<String> updateSupplierOrder(
             @PathVariable Long id,
@@ -121,6 +146,12 @@ public class LogisticsManagerController {
             summary = "Statistiques des commandes fournisseurs",
             description = "Retourne le total des commandes, le nombre en attente, livrées et annulées."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/supplier-orders/stats")
     public ResponseEntity<SupplierOrderStatsDTO> getSupplierOrderStats() {
         SupplierOrderStatsDTO stats = logisticsManagerService.getSupplierOrderStats();
@@ -155,6 +186,13 @@ public class LogisticsManagerController {
             description = "Récupère toutes les informations détaillées d'une commande fournisseur, " +
                          "incluant le fournisseur, la date prévue, le statut, les notes et la liste complète des produits commandés."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/supplier-orders/{id}")
     public ResponseEntity<SupplierOrderDetailsDTO> getSupplierOrderById(@PathVariable Long id) {
         try {
@@ -170,6 +208,12 @@ public class LogisticsManagerController {
             summary = "Lister les commandes fournisseurs",
             description = "Récupère la liste paginée des commandes fournisseurs avec recherche et filtres optionnels."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/supplier-orders")
     public ResponseEntity <SupplierOrderListResponseDTO> getAllSupplierOrders (
             @RequestParam(defaultValue = "0") int page,
@@ -185,6 +229,14 @@ public class LogisticsManagerController {
             summary = "Modifier le statut d'une commande fournisseur",
             description = "Permet de modifier le statut d'une commande fournisseur (ex: En attente, En cours, Livrée, Annulée)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PatchMapping("/suppliers-orders/{id}/status")
     public ResponseEntity <String> updateSupplierOrderStatus (@PathVariable Long id, @RequestBody @Valid UpdateSupplierOrderStatusDTO updateSupplierOrderStatusDTO){
         logisticsManagerService.updateSupplierOrderStatus(id, updateSupplierOrderStatusDTO);
@@ -198,6 +250,12 @@ public class LogisticsManagerController {
             summary = "Lister le suivi des stocks",
             description = "Récupère la liste paginée des produits pour le suivi des stocks avec recherche et filtres optionnels."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/stocks")
     public ResponseEntity<ProductStockListResponseDTO> getStockList(
             @RequestParam(defaultValue = "0") int page,
@@ -214,6 +272,12 @@ public class LogisticsManagerController {
             summary = "Exporter le suivi des stocks",
             description = "Exporte la liste des produits du suivi des stocks en Excel avec recherche et filtres optionnels."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/stocks/export")
     public ResponseEntity<Resource> exportStockList(
             @RequestParam(required = false) String search,
@@ -237,6 +301,14 @@ public class LogisticsManagerController {
             summary = "Entrée de stock",
             description = "Augmente le stock d'un produit (quantité positive)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/stocks/{productId}/in")
     public ResponseEntity<String> increaseStock(
             @PathVariable Long productId,
@@ -254,6 +326,14 @@ public class LogisticsManagerController {
             summary = "Sortie de stock",
             description = "Diminue le stock d'un produit (quantité positive)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/stocks/{productId}/out")
     public ResponseEntity<String> decreaseStock(
             @PathVariable Long productId,
@@ -271,6 +351,14 @@ public class LogisticsManagerController {
             summary = "Modifier le seuil minimum",
             description = "Met à jour le seuil minimum de stock d'un produit."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PatchMapping("/stocks/{productId}/threshold")
     public ResponseEntity<String> updateMinThreshold(
             @PathVariable Long productId,
@@ -288,6 +376,14 @@ public class LogisticsManagerController {
             summary = "Modifier le seuil minimum par pourcentage",
             description = "Met à jour le seuil minimum en appliquant un pourcentage sur le seuil actuel."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PatchMapping("/stocks/{productId}/threshold/percent")
     public ResponseEntity<String> updateMinThresholdByPercent(
             @PathVariable Long productId,
@@ -305,6 +401,12 @@ public class LogisticsManagerController {
             summary = "Statistiques du suivi des stocks",
             description = "Retourne le total des produits, le nombre sous-seuil et en rupture."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/stocks/stats")
     public ResponseEntity<StockStatsDTO> getStockStats() {
         StockStatsDTO stats = logisticsManagerService.getStockStats();
@@ -315,6 +417,12 @@ public class LogisticsManagerController {
             summary = "Liste des alertes de réapprovisionnement",
             description = "Récupère la liste paginée des produits en alerte (stock < seuil) avec recherche et filtre catégorie."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/stocks/alerts")
     public ResponseEntity<ProductStockListResponseDTO> getStockAlerts(
             @RequestParam(defaultValue = "0") int page,
@@ -330,6 +438,12 @@ public class LogisticsManagerController {
             summary = "Exporter les alertes de réapprovisionnement",
             description = "Exporte la liste des produits en alerte de stock (stock < seuil) en Excel."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/stocks/alerts/export")
     public ResponseEntity<Resource> exportStockAlerts(
             @RequestParam(required = false) String search,
@@ -353,6 +467,12 @@ public class LogisticsManagerController {
             summary = "Lister les commandes salariés",
             description = "Liste paginée des commandes salariés. Paramètre search optionnel : numéro de commande, nom du salarié ou nom d'un produit de la commande."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping(value = "/employee-orders", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OrderEmployeeListResponseDTO> getAllEmployeeOrders(
             @RequestParam(defaultValue = "0") int page,
@@ -369,6 +489,12 @@ public class LogisticsManagerController {
             summary = "Statistiques des commandes salariés",
             description = "Retourne les compteurs pour la page Gestion des commandes : total commandes (hors annulées), EN ATTENTE, EN RETARD, EN COURS, VALIDÉES, LIVRÉES ce mois."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping(value = "/employee-orders/stats", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EmployeeOrderStatsDTO> getEmployeeOrderStats() {
         EmployeeOrderStatsDTO stats = logisticsManagerService.getEmployeeOrderStats();
@@ -391,6 +517,13 @@ public class LogisticsManagerController {
             summary = "Récupérer les détails d'une commande salarié",
             description = "Récupère toutes les informations détaillées d'une commande salarié"
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping(value = "/employee-order/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OrderItemDetailsDTO> getOrderById(@PathVariable Long id) {
         OrderItemDetailsDTO details = logisticsManagerService.getOrderItemDetailById(id);
@@ -401,6 +534,14 @@ public class LogisticsManagerController {
             summary = "Replanifier une commande en échec",
             description = "Passe la commande en EN_ATTENTE, la retire de la tournée et notifie le salarié. Réservé au RL."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PatchMapping("/employee-orders/{orderId}/replan")
     public ResponseEntity<String> replanOrder(@PathVariable Long orderId) {
         try {
@@ -415,6 +556,14 @@ public class LogisticsManagerController {
             summary = "Annuler définitivement une commande après échec",
             description = "Passe la commande en ANNULEE, réintègre les produits en stock et notifie le salarié. Irréversible. Réservé au RL."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PatchMapping("/employee-orders/{orderId}/cancel-after-failure")
     public ResponseEntity<String> cancelOrderAfterFailure(@PathVariable Long orderId) {
         try {
@@ -429,6 +578,12 @@ public class LogisticsManagerController {
             summary = "Exporter les commandes salariés",
             description = "Exporte la liste des commandes salariés en fichier Excel (une ligne par commande)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/employee-orders/export")
     public ResponseEntity<Resource> exportEmployeeOrders(
             @RequestParam(required = false) String search,
@@ -455,6 +610,12 @@ public class LogisticsManagerController {
             summary = "Calendrier planification (mois)",
             description = "Vue globale : jours du mois (en attente / planifiées) + totalOverdueGlobal = toutes les commandes en retard non planifiées (toutes dates), aligné sur les commandes éligibles."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/delivery-tours/planning-calendar")
     public ResponseEntity<DeliveryPlanningCalendarResponseDTO> getPlanningCalendar(
             @RequestParam int year,
@@ -466,6 +627,12 @@ public class LogisticsManagerController {
             summary = "Récupérer les commandes éligibles",
             description = "Retourne la liste des commandes disponibles pour une tournée selon la date."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/delivery-tours/eligible-orders")
     public ResponseEntity<List<EligibleOrderDTO>> getEligibleOrders(
             @RequestParam @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate deliveryDate) {
@@ -477,6 +644,12 @@ public class LogisticsManagerController {
             summary = "Commandes éligibles groupées par proximité",
             description = "Retourne les commandes éligibles regroupées en lots par proximité GPS (date + lotSize)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/delivery-tours/eligible-orders/grouped")
     public ResponseEntity<List<EligibleOrderLotDTO>> getGroupedEligibleOrders(
             @RequestParam @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate deliveryDate,
@@ -489,6 +662,12 @@ public class LogisticsManagerController {
             summary = "Nombre de commandes éligibles (planification)",
             description = "Même périmètre que les commandes retournées par eligible-orders / grouped (deliveryDate <= paramètre, EN_ATTENTE, sans tournée, employé actif)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/delivery-tours/eligible-orders/count")
     public ResponseEntity<Long> countEligibleOrdersForPlanning(
             @RequestParam @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate deliveryDate) {
@@ -500,6 +679,12 @@ public class LogisticsManagerController {
             description = "Chauffeurs actifs. Avec deliveryDate (dd-MM-yyyy), exclut ceux déjà engagés "
                     + "(tournée ASSIGNEE ou EN_COURS ce jour). excludeTourId : ignorer cette tournée (modification)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/delivery-tours/available-drivers")
     public ResponseEntity<List<AvailableDriverDTO>> getAvailableDrivers(
             @RequestParam(required = false) @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate deliveryDate,
@@ -512,6 +697,13 @@ public class LogisticsManagerController {
             summary = "Créer une tournée de livraison",
             description = "Permet au responsable logistique de créer une nouvelle tournée de livraison avec un chauffeur et des commandes sélectionnées."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Créé"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/delivery-tours")
     public ResponseEntity<String> createDeliveryTour(@RequestBody @Valid CreateDeliveryTourDTO dto) {
         logisticsManagerService.createDeliveryTour(dto);
@@ -523,6 +715,13 @@ public class LogisticsManagerController {
             summary = "Récupérer les détails d'une tournée",
             description = "Retourne les détails complets d'une tournée de livraison spécifique."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/delivery-tours/{tourId}")
     public ResponseEntity<DeliveryTourDetailsDTO> getDeliveryTourDetails(
             @PathVariable Long tourId) {
@@ -535,6 +734,12 @@ public class LogisticsManagerController {
             summary = "Lister les tournées de livraison",
             description = "Retourne la liste paginée des tournées avec filtres."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/delivery-tours")
     public ResponseEntity<DeliveryTourListResponseDTO> getAllDeliveryTours(
             @RequestParam(defaultValue = "0") int page,
@@ -550,6 +755,14 @@ public class LogisticsManagerController {
             summary = "Modifier une tournée",
             description = "Met à jour les informations d'une tournée (véhicule, notes, liste des commandes)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PatchMapping("/delivery-tours/{tourId}")
     public ResponseEntity<?> updateDeliveryTour(
             @PathVariable Long tourId,
@@ -566,6 +779,13 @@ public class LogisticsManagerController {
     }
 
     @Operation(summary = "Retirer une commande d'une tournée", description = "Retire la commande de la tournée (tournée au statut ASSIGNEE uniquement).")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @DeleteMapping("/delivery-tours/{tourId}/orders/{orderId}")
     public ResponseEntity<String> removeOrderFromTour(
             @PathVariable Long tourId,
@@ -579,6 +799,14 @@ public class LogisticsManagerController {
             description = "Annule une tournée assignée avant départ livreur (statut: ASSIGNEE → ANNULEE) "
                     + "avec motif obligatoire."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/delivery-tours/{tourId}/cancel")
     public ResponseEntity<String> cancelDeliveryTour(
             @PathVariable Long tourId,
@@ -592,6 +820,12 @@ public class LogisticsManagerController {
             summary = "Exporter les tournées de livraison",
             description = "Exporte la liste des tournées en fichier Excel"
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/delivery-tours/export")
     public ResponseEntity<Resource> exportDeliveryTours(
             @RequestParam(required = false) String tourNumber,
@@ -613,6 +847,12 @@ public class LogisticsManagerController {
             summary = "Récupérer les statistiques des tournées",
             description = "Retourne le total des tournées et le nombre par statut (assignée, en cours, terminée, annulée)"
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/delivery-tours/stats")
     public ResponseEntity<DeliveryTourStatsDTO> getDeliveryTourStats() {
         DeliveryTourStatsDTO stats = logisticsManagerService.getDeliveryTourStats();
@@ -627,6 +867,12 @@ public class LogisticsManagerController {
             summary = "Statistiques des retours et réclamations",
             description = "Pour le tableau de bord / page Gestion des retours : total réclamations, validées, rejetées, réintégrées au stock, montant total remboursé."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/claims/stats")
     public ResponseEntity<ClaimStatsDTO> getClaimStats() {
         return ResponseEntity.ok(logisticsManagerService.getClaimStats());
@@ -640,6 +886,12 @@ public class LogisticsManagerController {
             summary = "Liste paginée des réclamations utilisateurs",
             description = "Toutes les réclamations (retours) avec recherche par référence commande, nom client ou nom du produit, et filtre par statut : EN_ATTENTE, VALIDE, REJETE."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/claims")
     public ResponseEntity<ClaimListResponseDTO> getClaims(
             @RequestParam(defaultValue = "0") int page,
@@ -653,6 +905,12 @@ public class LogisticsManagerController {
             summary = "Exporter les réclamations (retours)",
             description = "Exporte la liste des réclamations en fichier Excel (mêmes filtres search et status que la liste paginée)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/claims/export")
     public ResponseEntity<Resource> exportClaims(
             @RequestParam(required = false) String search,
@@ -677,6 +935,13 @@ public class LogisticsManagerController {
             summary = "Détail d'une réclamation",
             description = "Détails complets d'une réclamation : commande, produit concerné, type de problème, commentaire, statut, décision (réintégration/remboursement), motif de rejet éventuel."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/claims/{id}")
     public ResponseEntity<ClaimDetailDTO> getClaimById(@PathVariable Long id) {
         return ResponseEntity.ok(logisticsManagerService.getClaimById(id));
@@ -690,6 +955,14 @@ public class LogisticsManagerController {
             summary = "Valider une réclamation (retour)",
             description = "Décision du RL : soit réintégration au stock (quantité remise en stock), soit remboursement (montant obligatoire). La réclamation doit être en attente."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/claims/{id}/validate")
     public ResponseEntity<String> validateClaim(
             @PathVariable Long id,
@@ -708,6 +981,14 @@ public class LogisticsManagerController {
             summary = "Rejeter une réclamation",
             description = "Rejette la réclamation avec un motif obligatoire. La réclamation doit être en attente."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/claims/{id}/reject")
     public ResponseEntity<String> rejectClaim(
             @PathVariable Long id,
@@ -722,18 +1003,36 @@ public class LogisticsManagerController {
             summary = "KPIs tableau de bord RL",
             description = "En attente / en retard : même périmètre que la planification (EN_ATTENTE, sans tournée, salarié actif) ; « en retard » = date de livraison avant aujourd'hui. Tournées actives, livrées ce mois."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/dashboard/kpis")
     public ResponseEntity<RLDashboardKpisDTO> getDashboardKpis() {
         return ResponseEntity.ok(logisticsManagerService.getDashboardKpis());
     }
 
     @Operation(summary = "Statut tournées", description = "Effectif par statut (ASSIGNEE, EN_COURS, TERMINEE, ANNULEE) pour le graphique.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/dashboard/statut-tournees")
     public ResponseEntity<StatutTourneesDTO> getStatutTournees() {
         return ResponseEntity.ok(logisticsManagerService.getStatutTournees());
     }
 
     @Operation(summary = "Commandes par jour (7 derniers jours)", description = "Pour chaque jour : date (dd/MM), nbCommandes. Alimente le graphique « Commandes par jour » du tableau de bord RL.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/dashboard/commandes-par-jour")
     public ResponseEntity<List<CommandesParJourDTO>> getCommandesParJour() {
         return ResponseEntity.ok(logisticsManagerService.getCommandesParJour());
@@ -743,12 +1042,24 @@ public class LogisticsManagerController {
             summary = "Taux de retours par jour (7 derniers jours)",
             description = "Pour chaque jour : date (dd/MM), tauxPercent = (commandes livrées ce jour avec au moins une réclamation / commandes livrées ce jour) × 100. La réclamation peut avoir été créée après la livraison."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/dashboard/taux-retours-par-jour")
     public ResponseEntity<List<TauxRetoursParJourDTO>> getTauxRetoursParJour() {
         return ResponseEntity.ok(logisticsManagerService.getTauxRetoursParJour());
     }
 
     @Operation(summary = "Top 5 produits les plus commandés (en %)", description = "Pour le graphique « Produits les plus fréquents » sur la page Gestion des commandes. Retourne productName et usagePercent (30 derniers jours).")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/dashboard/top5-products-usage")
     public ResponseEntity<List<TopProductUsageDTO>> getTop5ProductUsage() {
         return ResponseEntity.ok(logisticsManagerService.getTop5ProductUsage());
@@ -758,18 +1069,36 @@ public class LogisticsManagerController {
             summary = "Livraisons par jour — tableau de bord RL (7 jours)",
             description = "Même payload que GET .../livraisons-par-jour : date, nbPrevues, nbLivreesALaDate, nbRetard (date de livraison prévue)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/dashboard/commandes-vs-livraisons")
     public ResponseEntity<List<LivraisonParJourDTO>> getCommandesVsLivraisons() {
         return ResponseEntity.ok(logisticsManagerService.getCommandesVsLivraisons());
     }
 
     @Operation(summary = "Stocks - État global", description = "Effectifs : normal, sous seuil, critique (donut).")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/dashboard/stock-etat-global")
     public ResponseEntity<StockEtatGlobalDTO> getStockEtatGlobal() {
         return ResponseEntity.ok(logisticsManagerService.getStockEtatGlobal());
     }
 
     @Operation(summary = "Livraisons par jour (7 derniers jours)", description = "Pour chaque jour : date, nbPrevues, nbLivreesALaDate, nbRetard.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/dashboard/livraisons-par-jour")
     public ResponseEntity<List<LivraisonParJourDTO>> getLivraisonsParJour() {
         return ResponseEntity.ok(logisticsManagerService.getLivraisonsParJour());

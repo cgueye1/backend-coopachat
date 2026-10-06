@@ -155,79 +155,8 @@ public class CommercialServiceImpl implements CommercialService {
         // Sauvegarder l'entreprise en base
         Company savedCompany = companyRepository.save(company);
 
-        // Si un email est fourni, on crée le compte "Espace Entreprise" pour le contact
-        if (!contactEmail.isEmpty()) {
-            createOrUpdateCompanyAccount(savedCompany, contactEmail, createCompanyDTO.getContactName(), createCompanyDTO.getContactPhone(), commercial);
-        }
-
         log.info("Entreprise créée avec succès: {} (code: {}) par le commercial {}",
                 savedCompany.getName(), companyCode, commercial.getEmail());
-    }
-
-    /**
-     * Crée ou met à jour le compte utilisateur "Espace Entreprise" associé au contact d'une entreprise.
-     */
-    private void createOrUpdateCompanyAccount(Company company, String email, String contactName, String phone, Users commercial) {
-        if (email == null || email.isBlank()) return;
-
-        // Vérifier si un compte existe déjà pour cet email
-        Optional<Users> existingUser = userRepository.findByEmail(email);
-        
-        if (existingUser.isEmpty()) {
-            // Créer le compte utilisateur
-            Users user = new Users();
-            user.setEmail(email);
-            
-            // Découpage sommaire du nom (Prénom Nom)
-            String[] nameParts = contactName.split("\\s+", 2);
-            if (nameParts.length > 1) {
-                user.setFirstName(nameParts[0]);
-                user.setLastName(nameParts[1]);
-            } else {
-                user.setFirstName(contactName);
-                user.setLastName("-"); // Placeholder car le champ est  obligatoire au nniveau de la table users
-            }
-            
-            user.setPhone(phone);
-            user.setRole(UserRole.COMPANY);
-            user.setIsActive(false);
-            user.setRefUser(userReferenceGenerator.generateUniqueRefUser());
-            Users savedUser = userRepository.save(user);
-
-            // Créer l'entrée Employee pour le lien (le représentant de l'entreprise est considéré comme le "salarié n°1")
-            Employee representative = new Employee();
-            representative.setCompany(company);
-            representative.setUser(savedUser);
-            representative.setCreatedBy(commercial);
-            representative.setEmployeeCode(generateUniqueEmployeeCode());
-            employeeRepository.save(representative);
-
-            // Envoyer l'email d'activation seulement si l'entreprise est signée
-            if (company.getStatus() == CompanyStatus.PARTNER_SIGNED) {
-                sendCompanyActivationEmail(savedUser, company);
-            } else {
-                log.info("Compte créé pour {} mais email d'activation différé car statut = {}", email, company.getStatus());
-            }
-            
-            log.info("Nouveau compte Espace Entreprise créé pour {} (Entreprise: {})", email, company.getName());
-        } else {
-            // Si l'utilisateur existe déjà
-            log.warn("Un compte utilisateur existe déjà pour l'email {}, création ignorée.", email);
-            
-            // Si le statut est PARTNER_SIGNED, on vérifie s'il faut envoyer l'email (au cas où il n'aurait pas été envoyé)
-            if (company.getStatus() == CompanyStatus.PARTNER_SIGNED) {
-                Users user = existingUser.get();
-                if (user.getPassword() == null || user.getPassword().isBlank()) {
-                    sendCompanyActivationEmail(user, company);
-                }
-            }
-        }
-    }
-
-    private void sendCompanyActivationEmail(Users user, Company company) {
-        String code = activationCodeService.generateAndStoreCode(user.getEmail());
-        emailService.sendCompanyActivationLink(user.getEmail(), code, user.getFirstName(), company.getName());
-        log.info("Email d'activation envoyé à {} pour l'entreprise {}", user.getEmail(), company.getName());
     }
 
     @Override
@@ -445,17 +374,6 @@ public class CommercialServiceImpl implements CommercialService {
 
         // Sauvegarder les modifications
         companyRepository.save(company);
-
-        // Si le statut passe à PARTNER_SIGNED, on déclenche l'envoi de l'email d'activation
-        if (oldStatus != CompanyStatus.PARTNER_SIGNED && company.getStatus() == CompanyStatus.PARTNER_SIGNED) {
-            triggerActivationForCompany(company);
-        }
-
-        // Si l'email a été modifié ou ajouté, on s'assure que le compte utilisateur existe
-        if (updateCompanyDTO.getContactEmail() != null && !updateCompanyDTO.getContactEmail().trim().isEmpty()) {
-            createOrUpdateCompanyAccount(company, updateCompanyDTO.getContactEmail().trim(), 
-                    company.getContactName(), company.getContactPhone(), commercial);
-        }
 
         log.info("Entreprise {} modifiée avec succès par le commercial {}",
                 company.getName(), commercial.getEmail());
@@ -1799,20 +1717,4 @@ public class CommercialServiceImpl implements CommercialService {
         return CouponStatus.ACTIVE;//Sinon, le statut est ACTIVE
     }
 
-    private void triggerActivationForCompany(Company company) {
-        // Le représentant est le "salarié n°1" lié à cette entreprise
-        // On cherche l'utilisateur lié à cette entreprise avec le rôle COMPANY
-        List<Employee> employees = employeeRepository.findAllByCompany(company);
-        for (Employee emp : employees) {
-            Users user = emp.getUser();
-            if (user.getRole() == UserRole.COMPANY) {
-                // Si l'utilisateur n'a pas encore de mot de passe, on lui envoie le lien d'activation
-                if (user.getPassword() == null || user.getPassword().isBlank()) {
-                    sendCompanyActivationEmail(user, company);
-                    log.info("Activation déclenchée pour le représentant {} de l'entreprise {}", user.getEmail(), company.getName());
-                }
-                break;
-            }
-        }
-    }
 }

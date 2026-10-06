@@ -31,6 +31,9 @@ public class JwtServiceImpl implements JwtService {
     @Value("${jwt.expiration:86400000}")
     private long expiration;
 
+    @Value("${jwt.refresh-expiration:604800000}") // 7 jours par défaut
+    private long refreshExpiration;
+
     // ============================================================================
     // 🔑 GÉNÉRATION DE CLÉS
     // ============================================================================
@@ -59,18 +62,23 @@ public class JwtServiceImpl implements JwtService {
         claims.put("role", role);    // Rôle de l'utilisateur
         claims.put("id", id);        // ID unique en base de données
 
-        return createToken(claims, email);
+        return createToken(claims, email, expiration);
+    }
+
+    @Override
+    public String generateRefreshToken(String email) {
+        return createToken(new HashMap<>(), email, refreshExpiration);
     }
 
     /**
      * Construit le token JWT avec toutes ses composantes
      */
-    private String createToken(Map<String, Object> claims, String subject) {
+    private String createToken(Map<String, Object> claims, String subject, long expirationTime) {
         return Jwts.builder()
                 .setClaims(claims)                  // Données personnalisées
                 .setSubject(subject)                // Identifiant principal (email)
                 .setIssuedAt(new Date(System.currentTimeMillis())) // Date de création
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))        // Date d'expiration calculée
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))        // Date d'expiration calculée
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256) // Signature géré par .signWith en utilisant La clé sécréte et les autres valeurs (claims)
                 .compact();                         // Génération finale
     }

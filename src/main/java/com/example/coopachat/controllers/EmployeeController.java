@@ -19,6 +19,8 @@ import com.example.coopachat.services.Employee.EmployeeService;
 import com.example.coopachat.services.admin.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
@@ -27,6 +29,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -37,6 +40,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/employee")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('EMPLOYEE')")
 @Tag(name = "Employee", description = "API pour les actions du salarié")
 public class EmployeeController {
 
@@ -52,6 +56,12 @@ public class EmployeeController {
             description = "Sans filtre : 4 derniers produits, 4 catégories, promo. " +
                     "Avec search et/ou categoryId : produits filtrés avec pagination (page, size)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/home")
     public ResponseEntity<HomeResponseDTO> getHome(
             @RequestParam(required = false) String search,
@@ -70,6 +80,12 @@ public class EmployeeController {
             summary = "Lister les catégories (catalogue)",
             description = "Retourne la liste des catégories (id + name) pour le catalogue."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/categories")
     public ResponseEntity<List<CategoryListItemDTO>> getCatalogueCategories() {
         List<CategoryListItemDTO> categories = employeeService.getAllCategories();
@@ -80,6 +96,12 @@ public class EmployeeController {
             summary = "Lister les produits du catalogue",
             description = "Retourne la liste paginée des produits du catalogue avec possibilité de filtrer par recherche et catégorie."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/products")
     public ResponseEntity<ProductCatalogueListResponseDTO> getCatalogueProducts(
             @RequestParam(defaultValue = "0") int page,
@@ -94,6 +116,13 @@ public class EmployeeController {
             summary = "Récupérer les détails d'un produit",
             description = "Retourne les informations détaillées d'un produit spécifique par son ID."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/products/{productId}")
     public ResponseEntity<ProductMobileDetailsDTO> getProductDetails(
             @PathVariable Long productId) {
@@ -110,6 +139,13 @@ public class EmployeeController {
             description = "Ajoute un produit au panier de l'utilisateur connecté. " +
                     "Si le produit est déjà dans le panier, augmente sa quantité de 1."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Créé"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/cart/items/{productId}")
     public ResponseEntity<CartResponseDTO> addToCart(@PathVariable Long productId, @RequestParam Integer requestedQuantity ) {
         CartResponseDTO cart = employeeService.addProductToCart(productId, requestedQuantity);
@@ -120,6 +156,12 @@ public class EmployeeController {
             summary = "Récupérer le panier",
             description = "Retourne tous les articles du panier de l'utilisateur connecté"
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/cart")
     public ResponseEntity<CartResponseDTO> getCart() {
         CartResponseDTO cart = employeeService.getCart();
@@ -132,6 +174,13 @@ public class EmployeeController {
             description = "Diminue de 1 la quantité d'un produit déjà présent dans le panier. " +
                     "Si la quantité atteint 0, l'article est supprimé du panier."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Créé"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/cart/items/{productId}/decrease")
     public ResponseEntity<CartResponseDTO> decreaseProductQuantity(@PathVariable Long productId) {
         CartResponseDTO cart = employeeService.decreaseProductQuantity(productId);
@@ -142,6 +191,13 @@ public class EmployeeController {
             summary = "Supprimer un produit du panier",
             description = "Supprime complètement un produit du panier."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @DeleteMapping("/cart/items/{productId}")
     public ResponseEntity<CartResponseDTO> removeProductFromCart(@PathVariable Long productId) {
         CartResponseDTO cart = employeeService.removeProductFromCart(productId);
@@ -157,6 +213,13 @@ public class EmployeeController {
             description = "Crée ou met à jour les préférences de livraison de l'utilisateur connecté " +
                     "(jours Ex: [\"MONDAY\", \"TUESDAY\", \"WEDNESDAY\"], créneaux horaires, mode de réception)"
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Créé"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/delivery-preferences")
     public ResponseEntity<String> saveDeliveryPreference(@RequestBody DeliveryPreferenceDTO dto) {
         employeeService.saveDeliveryPreference(dto);
@@ -167,6 +230,12 @@ public class EmployeeController {
             summary = "Récupérer mes préférences de livraison",
             description = "Retourne les préférences de livraison de l'utilisateur connecté"
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/delivery-preferences")
     public ResponseEntity<DeliveryPreferenceDTO> getDeliveryPreference() {
         DeliveryPreferenceDTO preferences = employeeService.getDeliveryPreference();
@@ -182,6 +251,12 @@ public class EmployeeController {
             description = "Retourne les informations personnelles de l'employé connecté " +
                     "(nom, prénom, téléphone, email, entreprise)"
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/personal-info")
     public ResponseEntity<EmployeePersonalInfoDTO> getPersonalInfo() {
         EmployeePersonalInfoDTO info = employeeService.getPersonalInfo();
@@ -192,6 +267,14 @@ public class EmployeeController {
             summary = "Modifier mes informations personnelles",
             description = "Met à jour uniquement le nom, prénom et téléphone (les autres champs sont ignorés)"
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PutMapping("/personal-info")
     public ResponseEntity<String> updatePersonalInfo(@RequestBody EmployeePersonalInfoDTO dto) {
         employeeService.updatePersonalInfo(dto);
@@ -202,6 +285,13 @@ public class EmployeeController {
             summary = "Ajouter une adresse de livraison ",
             description = "Ajoute une nouvelle adresse de livraison  (max 3: Domicile/Bureau/Autre)"
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Créé"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/adresses")
     public ResponseEntity<String> createAddress(@RequestBody AddressDTO dto) {
        employeeService.createAddress(dto);
@@ -209,6 +299,14 @@ public class EmployeeController {
     }
 
     @Operation(summary = "Modifier une adresse de livraison", description = "Met à jour une adresse de livraison existante")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PutMapping("/adresses/{addressId}")
     public ResponseEntity<String> updateAddress(
             @PathVariable Long addressId,
@@ -218,6 +316,12 @@ public class EmployeeController {
     }
 
     @Operation(summary = "Mes adresses de livraison ", description = "Liste les différentes adresses du salarié")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/adresses")
     public ResponseEntity<List<AddressDTO>> getMyAddresses() {
         return ResponseEntity.ok(employeeService.getMyAddresses());
@@ -227,6 +331,12 @@ public class EmployeeController {
             summary = "Lister les options de livraison",
             description = "Retourne les options de livraison actives (fréquence : Hebdomadaire, etc.) à envoyer comme deliveryOptionId dans POST /orders."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/delivery-options")
     public ResponseEntity<List<DeliveryOptionDTO>> getDeliveryOptions() {
         return ResponseEntity.ok(employeeService.getActiveDeliveryOptions());
@@ -244,6 +354,13 @@ public class EmployeeController {
             summary = "Aperçu commande (étape 2)",
             description = "Retourne le récap de la commande (livraison, date estimée, adresse, total avec promo) sans rien enregistrer. À appeler avant POST /orders (étape 3)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Créé"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/orders/preview")
     public ResponseEntity<OrderPreviewDTO> previewOrder(@RequestBody CreateOrderDTO dto) {
         OrderPreviewDTO preview = employeeService.previewOrder(dto);
@@ -258,6 +375,13 @@ public class EmployeeController {
             summary = "Passer une commande (étape 3)",
             description = "Finalise la commande à partir du panier. Retourne un message de confirmation."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Créé"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/orders")
     public ResponseEntity<?> createOrder(@RequestBody CreateOrderDTO dto) {
         employeeService.createOrder(dto);
@@ -269,6 +393,12 @@ public class EmployeeController {
             description = "Liste les commandes du client avec pagination. Filtres optionnels : status (ex. LIVREE), search (numéro). " +
                     "Infos livreur si En cours/Arrivé, rating/canRate si Livrée."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/orders")
     public ResponseEntity<ClientOrderListResponseDTO> getMyOrders(
             @RequestParam(required = false) String status,
@@ -282,6 +412,13 @@ public class EmployeeController {
             summary = "Détail d'une commande",
             description = "Détails d'une commande (client clique sur une commande). Inclut timeline, infos livreur si En cours de livraison, rating/canRate si Livrée."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/orders/{orderId}")
     public ResponseEntity<ClientOrderDetailsDTO> getOrderDetails(@PathVariable Long orderId) {
         return ResponseEntity.ok(employeeService.getOrderDetails(orderId));
@@ -291,6 +428,13 @@ public class EmployeeController {
             summary = "Infos de paiement pour une commande",
             description = "Retourne sous-total, frais de service, total et statut de paiement pour l'écran \"Payer la facture\"."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/orders/{orderId}/payment-info")
     public ResponseEntity<PaymentInfoDTO> getPaymentInfo(@PathVariable Long orderId) {
         return ResponseEntity.ok(employeeService.getPaymentInfo(orderId));
@@ -300,6 +444,13 @@ public class EmployeeController {
             summary = "Initier le paiement d'une commande",
             description = "Crée/MAJ le Payment en statut PENDING + génère une transactionReference. Le mobile ouvre ensuite la WebView (touchpay-bridge.html) qui récupère les paramètres TouchPay via GET /api/payments/bridge/{orderId} et déclenche sendPaymentInfos. Le statut final (PAID/FAILED) est appliqué via le callback InTouch."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Créé"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/orders/{orderId}/pay")
     public ResponseEntity<PaymentResponseDTO> processPayment(
             @PathVariable Long orderId,
@@ -311,6 +462,12 @@ public class EmployeeController {
             summary = "Historique des paiements",
             description = "Retourne la liste des paiements du salarié connecté (commandes payées), triée par date de paiement décroissante."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/payment-history")
     public ResponseEntity<List<PaymentHistoryItemDTO>> getPaymentHistory() {
         return ResponseEntity.ok(employeeService.getPaymentHistory());
@@ -320,6 +477,13 @@ public class EmployeeController {
             summary = "Facture d'un paiement ",
             description = "Télécharge la facture d'un paiement d'une commande d'un salarié"
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/payment/{orderId}/download")
     public ResponseEntity<byte[]> downloadInvoice(@PathVariable Long orderId) {
 
@@ -338,6 +502,13 @@ public class EmployeeController {
             summary = "Noter le livreur",
             description = "Envoie une note pour une commande livrée (bouton \"Noter le livreur\"). Possible uniquement si statut = LIVREE, pas déjà noté, note 1 à 5."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Créé"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/orders/{orderId}/review")
     public ResponseEntity<String> submitReview(
             @PathVariable Long orderId,
@@ -347,12 +518,24 @@ public class EmployeeController {
     }
 
     @Operation(summary = "Types de problème pour réclamation", description = "Liste des types pour le dropdown du formulaire « Soumettre une réclamation » (id, name, description).")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/claim-problem-types")
     public ResponseEntity<List<ReferenceItemDTO>> getClaimProblemTypes() {
         return ResponseEntity.ok(employeeService.getClaimProblemTypes());
     }
 
     @Operation(summary = "Raisons problème livraison (salarié)", description = "Liste des raisons pour le dropdown du formulaire « Signaler un problème de livraison » (id, name, description).")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/employee-delivery-issue-reasons")
     public ResponseEntity<List<ReferenceItemDTO>> getEmployeeDeliveryIssueReasons() {
         return ResponseEntity.ok(employeeService.getEmployeeDeliveryIssueReasons());
@@ -362,6 +545,13 @@ public class EmployeeController {
             summary = "Soumettre une réclamation",
             description = "Soumet une réclamation sur une commande livrée. Multipart avec orderItemId (produit concerné), claimProblemTypeId (ID du type, voir GET /api/employee/claim-problem-types), comment (optionnel), images (optionnel, JPG/PNG max 5MB)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Créé"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping(value = "/orders/{orderId}/claims", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> submitClaim(
             @PathVariable Long orderId,
@@ -385,6 +575,12 @@ public class EmployeeController {
             summary = "Historique des réclamations",
             description = "Liste paginée des réclamations du salarié connecté (historique des retours). Filtre optionnel par statut."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/claims")
     public ResponseEntity<ClaimListResponseDTO> getMyClaims(
             @RequestParam(defaultValue = "0") int page,
@@ -398,6 +594,13 @@ public class EmployeeController {
             summary = "Détail d'une réclamation",
             description = "Détails d'une réclamation par id. Uniquement si elle appartient au salarié connecté."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/claims/{id}")
     public ResponseEntity<ClaimDetailDTO> getMyClaimById(@PathVariable Long id) {
         return ResponseEntity.ok(employeeService.getMyClaimById(id));
@@ -407,6 +610,13 @@ public class EmployeeController {
             summary = "Annuler une commande",
             description = "Annule une commande. Uniquement si elle appartient au salarié connecté et si son statut est En attente (pas encore validée / dans une tournée)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Créé"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/orders/{orderId}/cancel")
     public ResponseEntity<String> cancelOrder(@PathVariable Long orderId) {
         employeeService.cancelOrder(orderId);
@@ -417,6 +627,13 @@ public class EmployeeController {
             summary = "Signaler un problème de livraison",
             description = "Le salarié signale un souci sur sa commande (ex. absence, adresse incorrecte). Commande doit être en cours de livraison (EN_PREPARATION,EN_COURS ou ARRIVE)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Créé"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/orders/{orderId}/report-delivery-issue")
     public ResponseEntity<String> reportDeliveryIssue(
             @PathVariable Long orderId,
@@ -429,6 +646,14 @@ public class EmployeeController {
             summary = "Modifier ma photo de profil",
             description = "Met à jour la photo de profil du salarié connecté. Accepte multipart/form-data, partie 'file' (JPEG, PNG, GIF, WebP, max 5 Mo)."
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Succès"),
+        @ApiResponse(responseCode = "400", description = "Requête invalide"),
+        @ApiResponse(responseCode = "401", description = "Non authentifié"),
+        @ApiResponse(responseCode = "403", description = "Accès refusé"),
+        @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+        @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PutMapping(value = "/profile-photo", consumes = "multipart/form-data")
     public ResponseEntity<String> updateMyProfilePhoto(@RequestParam("file") MultipartFile file) {
         adminService.updateProfilePhotoForCurrentUser(file);

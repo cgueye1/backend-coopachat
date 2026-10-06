@@ -120,6 +120,7 @@ public class GlobalExceptionHandler {
         if (message != null && (
                 message.contains("Email ou mot de passe incorrect") ||
                         message.contains("compte n'est pas actif") ||
+                        message.contains("compte n'est pas encore actif") ||
                         message.contains("compte est inactif")
         )) {
             ErrorResponseDTO error = new ErrorResponseDTO(
@@ -141,6 +142,18 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    // Gérer les erreurs d'accès refusé (403 Forbidden - @PreAuthorize)
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ErrorResponseDTO> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
+        ErrorResponseDTO error = new ErrorResponseDTO(
+                "Accès refusé : permissions insuffisantes",
+                null,
+                LocalDateTime.now(),
+                HttpStatus.FORBIDDEN.value()
+        );
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 
     // Gérer toutes les autres exceptions (fallback)

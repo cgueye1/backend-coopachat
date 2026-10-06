@@ -1,8 +1,14 @@
 package com.example.coopachat.config;
 
+import com.example.coopachat.dtos.ErrorResponseDTO;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -15,6 +21,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 
 /**
@@ -22,6 +30,7 @@ import java.util.Arrays;
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -64,10 +73,10 @@ public class SecurityConfig {
                         // ==================================
                         // 🔒 PROFIL UTILISATEUR CONNECTÉ (avant permitAll /api/auth/**)
                         // ==================================
-                        // PUT /api/auth/me* : profil commercial / RL / Entreprise (JWT + rôle)
-                        .requestMatchers(HttpMethod.PUT, "/api/auth/me").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER", "COMPANY")
-                        .requestMatchers(HttpMethod.PUT, "/api/auth/me/profile-photo").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER", "COMPANY")
-                        .requestMatchers(HttpMethod.DELETE, "/api/auth/me/profile-photo").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER", "COMPANY")
+                        // PUT /api/auth/me* : profil commercial / RL / Admin (JWT + rôle)
+                        .requestMatchers(HttpMethod.PUT, "/api/auth/me").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER", "ADMINISTRATOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/auth/me/profile-photo").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER", "ADMINISTRATOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/auth/me/profile-photo").hasAnyRole("COMMERCIAL", "LOGISTICS_MANAGER", "ADMINISTRATOR")
 
                         // GET /api/auth/me : « Mon compte » — JWT obligatoire, tous les rôles (géré par AuthController + AuthService)
                         .requestMatchers("/api/auth/me").authenticated()
@@ -79,6 +88,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()                   // Inscription + Connexion + OTP…
                         .requestMatchers("/api/payments/intouch/callback").permitAll() // Callback provider de paiement (InTouch)
                         .requestMatchers("/api/payments/bridge/**").permitAll()        // Bridge TouchPay (Public pour TEST)
+                        .requestMatchers("/touchpay-bridge.html").permitAll()
                         .requestMatchers("/api/files/**").permitAll()                  // Images / fichiers (img src ne peut pas envoyer le token)
                         .requestMatchers("/swagger-ui/**").permitAll()                  // Documentation API
                         .requestMatchers("/v3/api-docs/**").permitAll()                 // Documentation API
@@ -87,23 +97,23 @@ public class SecurityConfig {
                         // ==================================
                         // 🔴 ZONES ADMIN UNIQUEMENT
                         // ==================================
+                        .requestMatchers(HttpMethod.GET, "/api/admin/categories").hasAnyRole("ADMINISTRATOR", "LOGISTICS_MANAGER")
                         .requestMatchers("/api/admin/**").hasRole("ADMINISTRATOR")
 
                         // ==================================
-                        // 🟡 ZONES AVEC RÔLES SPÉCIFIQUES
+                        // 🟡 ZONES AVEC RÔLES SPÉCIFIQUES (+ ADMIN)
                         // ==================================
-                        // Commercial + Admin
-                        .requestMatchers("/api/companies/**").hasAnyRole("COMMERCIAL", "ADMINISTRATOR")
-                        .requestMatchers("/api/employees/**").hasAnyRole("COMMERCIAL", "ADMINISTRATOR")
+                        // Commercial
+                        .requestMatchers("/api/commercial/**").hasRole("COMMERCIAL")
 
-                        // Responsable Logistique + Admin
-                        .requestMatchers("/api/logistics/**").hasAnyRole("LOGISTICS_MANAGER", "ADMINISTRATOR")
+                        // Responsable Logistique
+                        .requestMatchers("/api/logistics/**").hasRole("LOGISTICS_MANAGER")
 
-                        // Livreur + Admin
-                        .requestMatchers("/api/deliveries/**", "/api/driver/**").hasAnyRole("DELIVERY_DRIVER", "ADMINISTRATOR")
-                        
-                        // Responsable Entreprise
-                        .requestMatchers("/api/entreprise/**").hasRole("COMPANY")
+                        // Livreur
+                        .requestMatchers("/api/deliveries/**", "/api/driver/**").hasRole("DELIVERY_DRIVER")
+
+                        // Salarié
+                        .requestMatchers("/api/employee/**").hasRole("EMPLOYEE")
 
                         // ==================================
                         // 🔴 TOUT LE RESTE
@@ -111,14 +121,28 @@ public class SecurityConfig {
                         .anyRequest().authenticated()  // Toutes autres URLs nécessitent connexion
                 )
 
+                // GESTION DES ERREURS D'AUTHENTIFICATION ET D'AUTORISATION (401 et 403)
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, authException) ->
+                                writeErrorResponse(response, HttpStatus.UNAUTHORIZED, "Authentification requise"))
+                        .accessDeniedHandler((request, response, accessDeniedException) ->
+                                writeErrorResponse(response, HttpStatus.FORBIDDEN, "Accès refusé : permissions insuffisantes"))
+                )
+
                 /**
-                 * Ajouter le filtre JWT dans la chaîne avant le filtre d'authentification par défaut de spring security  pour que le token JWT soit validé en premier.
-                 * [mon filtre JWT] → Traite le token → Authentifie → [filtre login(UsernamePasswordAuthenticationFilter)] → Rien à faire
-                 * [mon filtre JWT] → Rien à faire → [filtre login] → Traite si c'est /login
+                 * Ajouter le filtre JWT dans la chaîne avant le filtre d'authentification par défaut de spring security pour que le token JWT soit validé en premier.
                  */
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    private void writeErrorResponse(HttpServletResponse response, HttpStatus status, String message) throws IOException {
+        ErrorResponseDTO error = new ErrorResponseDTO(message, null, LocalDateTime.now(), status.value());
+        response.setStatus(status.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+        new ObjectMapper().findAndRegisterModules().writeValue(response.getWriter(), error);
     }
 
     // ============================================================================

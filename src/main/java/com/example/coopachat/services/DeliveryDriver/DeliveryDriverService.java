@@ -3,6 +3,8 @@ package com.example.coopachat.services.DeliveryDriver;
 import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDashboardDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
+import com.example.coopachat.dtos.documentTypes.DriverDocumentListItemDTO;
+import com.example.coopachat.dtos.documentTypes.SubmitDriverDocumentDTO;
 import com.example.coopachat.dtos.driver.DriverDeliveredOrderDetailsDTO;
 import com.example.coopachat.dtos.driver.DeliveryDetailDTO;
 import com.example.coopachat.dtos.driver.DeliveryIssueDTO;
@@ -99,4 +101,16 @@ public interface DeliveryDriverService {
      * Performances : découpage du mois en cours uniquement (S1, S2, … par blocs de 7 jours).
      */
     DriverDashboardDTO getDashboard();
+
+    /**
+     * Récupère la liste des documents requis pour le livreur connecté avec leur statut.
+     * @return Liste de DriverDocumentListItemDTO
+     */
+    List<DriverDocumentListItemDTO> getRequiredDocuments();
+
+    /**
+     * Soumet un document pour validation.
+     * @param dto Contenant les fichiers et l'ID du type
+     */
+    void submitDocument(SubmitDriverDocumentDTO dto);
 }

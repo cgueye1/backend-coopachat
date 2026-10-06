@@ -14,6 +14,7 @@ public class LoginResponseDTO {
 
     // Tokens JWT
     private String accessToken;     // Token d’accès
+    private String refreshToken;    // Token de rafraîchissement (7 jours)
 
     // Gestion 2FA
     private boolean requiresOtp;    // Indique si un code OTP est demandé
@@ -52,7 +53,12 @@ public class LoginResponseDTO {
     }
 
     public LoginResponseDTO(String accessToken, String email, String role, Long id, String firstName, String lastName, String profilePhotoUrl) {
+        this(accessToken, null, email, role, id, firstName, lastName, profilePhotoUrl);
+    }
+
+    public LoginResponseDTO(String accessToken, String refreshToken, String email, String role, Long id, String firstName, String lastName, String profilePhotoUrl) {
         this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
         this.email = email;
         this.role = role;
         this.id = id;
