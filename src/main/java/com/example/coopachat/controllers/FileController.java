@@ -2,6 +2,8 @@ package com.example.coopachat.controllers;
 
 import com.example.coopachat.services.minio.MinioService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
@@ -26,12 +28,22 @@ public class FileController {
     private final MinioService minioService;
 
     @Operation(summary = "Récupérer un fichier (API)", description = "Stream le fichier depuis MinIO. URL : /api/files/{path}")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/api/files/{path:.+}")
     public ResponseEntity<InputStreamResource> getFileApi(@PathVariable String path) {
         return serveFile(path);
     }
 
     @Operation(summary = "Récupérer un fichier (uploads, mobile)", description = "Alias pour le mobile : /uploads/{path} → même contenu que /api/files/{path}")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/uploads/{path:.+}")
     public ResponseEntity<InputStreamResource> getFileUploads(@PathVariable String path) {
         return serveFile(path);

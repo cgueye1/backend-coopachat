@@ -35,6 +35,9 @@ import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.enums.UserRole;
 import com.example.coopachat.dtos.documentTypes.CreateDocumentTypeDTO;
 import com.example.coopachat.dtos.documentTypes.DocumentTypeDTO;
+import com.example.coopachat.dtos.documentTypes.DocumentTypeListResponseDTO;
+import com.example.coopachat.dtos.documentTypes.DocumentTypeStatsDTO;
+import com.example.coopachat.dtos.documentTypes.DriverDocumentSummaryListResponseDTO;
 import java.util.List;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.web.multipart.MultipartFile;
@@ -373,10 +376,48 @@ public interface AdminService {
     // ============================================================================
     // 📋 Documents Livreurs
     // ============================================================================
-    List<DocumentTypeDTO> getAllDocumentTypes();
+    DocumentTypeListResponseDTO getAllDocumentTypes(int page, int size, String search, Boolean status);
     DocumentTypeDTO getDocumentTypeById(Long id);
     void createDocumentType(CreateDocumentTypeDTO dto);
     void updateDocumentType(Long id, CreateDocumentTypeDTO dto);
-    void deleteDocumentType(Long id);
     void toggleDocumentTypeStatus(Long id);
+    DocumentTypeStatsDTO getDocumentTypeStats();
+    
+    /**
+     * Récupère la liste paginée des livreurs avec le statut global de leurs documents.
+     */
+    DriverDocumentSummaryListResponseDTO getDriverDocumentSummaries(int page, int size, String search, String status);
+
+    /**
+     * Liste les types de documents actifs et leur état pour un livreur spécifique.
+     * @param driverId L'ID du livreur
+     * @return Liste de DriverDocumentListItemDTO
+     */
+    List<com.example.coopachat.dtos.documentTypes.DriverDocumentListItemDTO> getDriverDocumentDetails(Long driverId);
+
+    /**
+     * Récupère les informations spécifiques d'un document soumis par un livreur.
+     */
+    com.example.coopachat.dtos.documentTypes.DriverDocumentDetailDTO getDriverDocumentDetail(Long driverId, Long documentTypeId);
+    /**
+     * Récupère les statistiques spécifiques aux documents des livreurs.
+     */
+    com.example.coopachat.dtos.documentTypes.DriverDocumentStatsDTO getDriverDocumentStats();
+
+    /**
+     * Envoie une demande de complément d'information au livreur par email.
+     * @param driverId L'ID du livreur concerné
+     * @param message Le message à envoyer
+     */
+    void requestDocumentComplement(Long driverId, String message);
+
+    /**
+     * Valide un document spécifique d'un livreur.
+     */
+    void validateDriverDocument(Long driverId, Long documentTypeId);
+
+    /**
+     * Rejette un document spécifique d'un livreur.
+     */
+    void rejectDriverDocument(Long driverId, Long documentTypeId, String reason);
 }

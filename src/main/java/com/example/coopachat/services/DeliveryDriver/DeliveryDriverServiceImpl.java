@@ -4,6 +4,8 @@ import com.example.coopachat.dtos.DeliveryDriver.DriverAddressDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverDashboardDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPerformanceItemDTO;
 import com.example.coopachat.dtos.DeliveryDriver.DriverPersonalInfoDTO;
+import com.example.coopachat.dtos.documentTypes.DriverDocumentListItemDTO;
+import com.example.coopachat.dtos.documentTypes.SubmitDriverDocumentDTO;
 import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.dtos.driver.DeliveryDetailDTO;
 import com.example.coopachat.dtos.driver.DeliveryIssueDTO;
@@ -12,16 +14,11 @@ import com.example.coopachat.dtos.driver.DriverDeliveryCardDTO;
 import com.example.coopachat.dtos.driver.DriverDeliveriesResponseDTO;
 import com.example.coopachat.dtos.order.ClientOrderItemDTO;
 import com.example.coopachat.entities.*;
-import com.example.coopachat.enums.DeliveryIssueReportSource;
-import com.example.coopachat.enums.DeliveryTourStatus;
-import com.example.coopachat.enums.OrderStatus;
-import com.example.coopachat.enums.PaymentMethodType;
-import com.example.coopachat.enums.PaymentStatus;
-import com.example.coopachat.enums.PaymentTimingType;
+import com.example.coopachat.enums.*;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.Employee.EmployeeNotificationService;
 import com.example.coopachat.services.fee.FeeService;
-import com.example.coopachat.repositories.DriverEarningRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -39,6 +36,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -65,6 +63,8 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     private final DeliveryIssueReasonRepository deliveryIssueReasonRepository;
     private final DriverEarningRepository driverEarningRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
+    private final DocumentTypeRepository documentTypeRepository;
+    private final DriverDocumentRepository driverDocumentRepository;
 
 
     // ========================================
@@ -142,7 +142,11 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     public DriverDeliveriesResponseDTO getMyDeliveries(String statusFilter, int page, int size) {
         // 1. Récupérer le livreur connecté
         Driver driver = getDriverOrThrow();
-        // 2. Créer la pagination (tri : date livraison, tournée, id commande)
+
+        // 2. Vérifier que le dossier est complet avant de permettre de voir les livraisons
+        checkDocumentsValidated(driver);
+
+        // 3. Créer la pagination (tri : date livraison, tournée, id commande)
         Pageable pageable = PageRequest.of(page, size, Sort.by("deliveryDate").ascending().and(Sort.by("deliveryTour.id").ascending()).and(Sort.by("id").ascending()));
 
         // 3. Récupérer les commandes selon le filtre (ALL, TO_CONFIRM, IN_PROGRESS, COMPLETED)
@@ -211,6 +215,9 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         // 2. Récupérer le livreur connecté
         Users currentUser = getCurrentUser();
         Driver driver = getDriverOrThrow();
+
+        // Vérifier que le dossier est complet
+        checkDocumentsValidated(driver);
 
         // 3. Vérifier que le livreur est bien assigné à cette tournée
         if (!tour.getDriver().getId().equals(driver.getId())) {
@@ -304,6 +311,9 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         Users currentUser = getCurrentUser();
         Driver driver = getDriverOrThrow();
 
+        // Vérifier que le dossier est complet
+        checkDocumentsValidated(driver);
+
         // 3. Vérifier que la commande appartient à une tournée assignée au livreur
         if (order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
             throw new RuntimeException("Vous n'êtes pas assigné à cette commande");
@@ -350,6 +360,9 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         Users currentUser = getCurrentUser();
         Driver driver = getDriverOrThrow();
 
+        // Vérifier que le dossier est complet
+        checkDocumentsValidated(driver);
+
         // 3. Vérifier que la commande appartient à une tournée assignée au livreur
         if (order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
             throw new RuntimeException("Vous n'êtes pas assigné à cette commande");
@@ -395,6 +408,9 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         // 2. Récupérer le livreur connecté
         Users currentUser = getCurrentUser();
         Driver driver = getDriverOrThrow();
+
+        // Vérifier que le dossier est complet
+        checkDocumentsValidated(driver);
 
         // 3. Vérifier que la commande appartient à une tournée assignée au livreur
         if (order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
@@ -447,6 +463,10 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     public void confirmCashPayment(Long orderId) {
         // 1. Récupérer le livreur connecté et charger la commande
         Driver driver = getDriverOrThrow();
+        
+        // Vérifier que le dossier est complet
+        checkDocumentsValidated(driver);
+
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
 
@@ -488,6 +508,10 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     public void confirmOnlinePayment(Long orderId) {
         // 1. Livreur connecté et commande
         Driver driver = getDriverOrThrow();
+
+        // Vérifier que le dossier est complet
+        checkDocumentsValidated(driver);
+
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
 
@@ -518,6 +542,10 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
 
         // 2. Vérifier que le livreur connecté est assigné à cette commande
         Driver driver = getDriverOrThrow();
+
+        // Vérifier que le dossier est complet
+        checkDocumentsValidated(driver);
+
         if (order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
             throw new RuntimeException("Vous n'êtes pas assigné à cette commande");
         }
@@ -562,6 +590,10 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     @Transactional(readOnly = true)
     public DriverDeliveredOrderDetailsDTO getDeliveredOrderDetails(Long orderId) {
         Driver driver = getDriverOrThrow();
+
+        // Vérifier que le dossier est complet
+        checkDocumentsValidated(driver);
+
         Order order = orderRepository.findDriverDeliveredOrderDetails(orderId, driver.getId())
                 .orElseThrow(() -> new RuntimeException("Commande introuvable"));
 
@@ -643,6 +675,9 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     @Override
     @Transactional(readOnly = true)
     public List<ReferenceItemDTO> getDeliveryIssueReasons() {
+        // Vérifier que le dossier est complet
+        checkDocumentsValidated(getDriverOrThrow());
+
         return deliveryIssueReasonRepository.findAll().stream()
                 .map(e -> new ReferenceItemDTO(e.getId(), e.getName(), e.getDescription()))
                 .collect(Collectors.toList());
@@ -659,6 +694,10 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         // 2. Vérifier que le livreur connecté est bien assigné à la tournée de cette commande
         Users currentUser = getCurrentUser();
         Driver driver = getDriverOrThrow();
+
+        // Vérifier que le dossier est complet
+        checkDocumentsValidated(driver);
+
         if (order.getDeliveryTour() == null || !order.getDeliveryTour().getDriver().getId().equals(driver.getId())) {
             throw new RuntimeException("Vous n'êtes pas assigné à cette commande");
         }
@@ -879,6 +918,100 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
     }
 
     // ========================================
+    // LES DOCUMENTS DU LIVREUR
+    // ========================================
+    @Override
+    @Transactional(readOnly = true)
+    public List<DriverDocumentListItemDTO> getRequiredDocuments() {
+
+        // 1. Récupérer le livreur connecté
+        Driver driver = getDriverOrThrow();
+
+        // 2. Récupérer tous les types de documents actifs
+        List<DocumentType> allTypes = documentTypeRepository.findAllByIsActiveTrue();
+
+        // 3. Récupérer les documents déjà soumis par ce livreur
+        List<DriverDocument> submissions = driverDocumentRepository.findByDriverId(driver.getId());
+
+        // 4. Mapper pour construire la liste finale
+        return allTypes.stream().map(type -> {
+            // Pour chaque type, on regarde dans la liste des documents déjà envoyés par le livreur (submissions) s'il y en a un dont l'ID du type correspond. On prend le premier trouvé (findFirst) ou null s'il n'y en a pas.
+            DriverDocument submission = submissions.stream()
+                    .filter(s -> s.getDocumentType().getId().equals(type.getId()))
+                    .findFirst()
+                    .orElse(null);
+
+           //On crée l'objet de retour (DriverDocumentListItemDTO) et on le remplit avec les informations de base du type de document
+           DriverDocumentListItemDTO dto = new DriverDocumentListItemDTO();
+            dto.setDocumentTypeId(type.getId());
+            dto.setName(type.getName());
+            dto.setHasExpiryDate(type.getHasExpiryDate());
+            dto.setIsIdentityVerification(type.getIsIdentityVerification());
+             
+            //Si la soumission existe, on met à jour les informations du DTO avec les informations de la soumission
+            if (submission != null) {
+                dto.setStatus(submission.getStatus().name());
+                dto.setStatusLabel(submission.getStatus().getLabel());
+                dto.setFileUrl(submission.getFileUrl());
+                dto.setFileVersoUrl(submission.getFileVersoUrl());
+                dto.setRejectionReason(submission.getRejectionReason());
+            }
+            //si la soumission n'existe pas , on met le statut et le label à "NON_SOUMIS" et "Non soumis" respectivement
+            else {
+                dto.setStatus("NON_SOUMIS");
+                dto.setStatusLabel("Non soumis");
+            }
+
+            return dto;
+        }).collect(Collectors.toList());// on retourne la liste finale contenant tous les documents
+    }
+
+    @Override
+    @Transactional
+    public void submitDocument(SubmitDriverDocumentDTO dto) {
+        // 1. Récupérer le livreur connecté
+        Driver driver = getDriverOrThrow();
+
+        // 2. Récupérer le type de document
+        DocumentType type = documentTypeRepository.findById(dto.getDocumentTypeId())
+                .orElseThrow(() -> new RuntimeException("Type de document introuvable"));
+
+        if (!Boolean.TRUE.equals(type.getIsActive())) {
+            throw new RuntimeException("Ce type de document n'est plus accepté");
+        }
+
+        // Validation de la date d'expiration si elle est obligatoire pour ce type
+        if (Boolean.TRUE.equals(type.getHasExpiryDate())) {
+            if (dto.getExpirationDate() == null) {
+                throw new RuntimeException("La date d'expiration est obligatoire pour le document : " + type.getName());
+            }
+            if (dto.getExpirationDate().isBefore(LocalDate.now())) {
+                throw new RuntimeException("Le document fourni est déjà expiré (" + dto.getExpirationDate() + ")");
+            }
+        }
+
+        // 3. Chercher si une soumission existe déjà pour ce type
+        //Si c'est la première fois (Pas de soumission)? findByDriverIdAndDocumentTypeId renvoie un Optional.empty().À la fin, driverDocumentRepository.save(submission) fera un INSERT dans la base de données.
+        //Si le livreur a déjà soumis ce document (ex: il a été rejeté ou il veut le mettre à jour) : findByDriverIdAndDocumentTypeId retrouve l'objet existant ET L'objet submission contient alors toutes les anciennes données. Les lignes suivantes (setFileUrl, setStatus, etc.) vont écraser les anciennes valeurs par les nouvelles.
+        DriverDocument submission = driverDocumentRepository.findByDriverIdAndDocumentTypeId(driver.getId(), type.getId())
+                .orElse(new DriverDocument());
+
+        // 4. Mettre à jour les informations
+        submission.setDriver(driver);
+        submission.setDocumentType(type);
+        submission.setFileUrl(dto.getFileUrl());
+        submission.setFileVersoUrl(dto.getFileVersoUrl());
+        submission.setIssueDate(dto.getIssueDate());
+        submission.setExpirationDate(dto.getExpirationDate());
+        submission.setStatus(DocumentStatus.PENDING);
+        submission.setRejectionReason(null); // On réinitialise la raison de rejet en cas de nouvelle soumission
+
+        // 5. Sauvegarder
+        driverDocumentRepository.save(submission);
+        log.info("Document {} soumis par le livreur {}", type.getName(), driver.getUser().getEmail());
+    }
+
+    // ========================================
     // MÉTHODES UTILITAIRES
     // ========================================
 
@@ -997,6 +1130,47 @@ public class DeliveryDriverServiceImpl implements DeliveryDriverService{
         Users user = getCurrentUser();
         return deliveryDriverRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Livreur non trouvé"));
+    }
+
+    // Vérifier la validité des documents du livreur (le statut / la date d'expiration )
+    private void checkDocumentsValidated(Driver driver) {
+        // 1. Récupère tous les types requis (actifs et bloquants pour l'identité)
+        List<DocumentType> requiredTypes = documentTypeRepository.findAllByIsActiveTrueAndIsIdentityVerificationTrue();
+
+        for (DocumentType type : requiredTypes) {
+            // 2. Récupère le document soumis par le livreur pour ce type
+            Optional<DriverDocument> optDoc = driverDocumentRepository.findByDriverIdAndDocumentTypeId(
+                    driver.getId(),
+                    type.getId()
+            );
+
+            // 3. Vérifie la présence et le statut
+            if (optDoc.isEmpty() || optDoc.get().getStatus() != DocumentStatus.VALIDATED) {
+                throw new RuntimeException(
+                        "Votre dossier est incomplet. Veuillez soumettre le document '" + type.getName() + "' " +
+                        "et attendre sa validation par l'administration avant d'accéder aux livraisons."
+                );
+            }
+
+            //si pas vide, on le recupére
+            DriverDocument doc = optDoc.get();
+
+            // 4. Vérification de la date d'expiration (si requise par le type)
+            if (type.getHasExpiryDate()) {
+                if (doc.getExpirationDate() == null) {
+                    throw new RuntimeException(
+                            "La date d'expiration est manquante pour le document '" + type.getName() + "'. " +
+                            "Veuillez le soumettre à nouveau avec sa date de validité."
+                    );
+                }
+                if (doc.getExpirationDate().isBefore(java.time.LocalDate.now())) {
+                    throw new RuntimeException(
+                            "Le document '" + type.getName() + "' a expiré le " + doc.getExpirationDate() + ". " +
+                            "Veuillez soumettre une version à jour pour continuer."
+                    );
+                }
+            }
+        }
     }
 
 }

@@ -7,6 +7,8 @@ import com.example.coopachat.dtos.auth.*;
 import com.example.coopachat.enums.PasswordResetChannel;
 import com.example.coopachat.services.auth.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,11 @@ public class AuthController {
         @Operation(summary = "Inscription publique (rôles restreints)", description = "Création de compte via l'API publique : les rôles Commercial et Responsable logistique ne sont pas autorisés (création par administrateur uniquement). "
                         +
                         "L'email et le téléphone doivent être uniques.")
+        @ApiResponses({
+                @ApiResponse(responseCode = "201", description = "Créé"),
+                @ApiResponse(responseCode = "400", description = "Requête invalide"),
+                @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+        })
         @PostMapping("/users")
         public ResponseEntity<String> addUser(@RequestBody @Valid UserDto userDto) {
                 authService.addUser(userDto);
@@ -50,6 +57,11 @@ public class AuthController {
         @Operation(summary = "Connexion d'un utilisateur", description = "Permet à un utilisateur de se connecter avec son email et son mot de passe. "
                         +
                         "Retourne un token JWT pour les requêtes authentifiées.")
+        @ApiResponses({
+                @ApiResponse(responseCode = "200", description = "Succès"),
+                @ApiResponse(responseCode = "400", description = "Requête invalide"),
+                @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+        })
         @PostMapping("/login")
         public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid LoginRequestDTO loginRequest) {
                 LoginResponseDTO response = authService.authenticateCredentialsUser(
@@ -59,7 +71,24 @@ public class AuthController {
                 return ResponseEntity.ok(response);
         }
 
+        @Operation(summary = "Rafraîchir le token d'accès (JWT)", description = "Permet de générer un nouvel access token et un nouveau refresh token à l'aide d'un refresh token valide (durée de validité : 7 jours).")
+        @ApiResponses({
+                @ApiResponse(responseCode = "200", description = "Token rafraîchi avec succès"),
+                @ApiResponse(responseCode = "400", description = "Refresh token manquant ou invalide"),
+                @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+        })
+        @PostMapping("/refresh-token")
+        public ResponseEntity<LoginResponseDTO> refreshToken(@RequestBody @Valid RefreshTokenRequestDTO request) {
+                return ResponseEntity.ok(authService.refreshToken(request.getRefreshToken()));
+        }
+
         @Operation(summary = "Déconnexion d'un utilisateur", description = "Invalide le token JWT de l'utilisateur et le déconnecte du système.")
+        @ApiResponses({
+                @ApiResponse(responseCode = "200", description = "Succès"),
+                @ApiResponse(responseCode = "400", description = "Requête invalide"),
+                @ApiResponse(responseCode = "401", description = "Non authentifié"),
+                @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+        })
         @PostMapping("/logout")
         public ResponseEntity<String> logout(@RequestParam("token") String token) {
                 authService.logout(token);
@@ -67,6 +96,12 @@ public class AuthController {
         }
 
         @Operation(summary = "Profil de l'utilisateur connecté", description = "Retourne les informations personnelles de l'utilisateur actuellement connecté (tous rôles).")
+        @ApiResponses({
+                @ApiResponse(responseCode = "200", description = "Succès"),
+                @ApiResponse(responseCode = "401", description = "Non authentifié"),
+                @ApiResponse(responseCode = "403", description = "Accès refusé"),
+                @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+        })
         @GetMapping("/me")
         public ResponseEntity<UserDetailsDTO> getCurrentUserProfile() {
                 return ResponseEntity.ok(authService.getCurrentUserProfile());
@@ -77,12 +112,28 @@ public class AuthController {
                         "Champs absents ou vides : inchangés. Un nouveau JWT est renvoyé (à utiliser si l'email a changé). "
                         +
                         "Email et téléphone doivent rester uniques.")
+        @ApiResponses({
+                @ApiResponse(responseCode = "200", description = "Succès"),
+                @ApiResponse(responseCode = "400", description = "Requête invalide"),
+                @ApiResponse(responseCode = "401", description = "Non authentifié"),
+                @ApiResponse(responseCode = "403", description = "Accès refusé"),
+                @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+                @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+        })
         @PutMapping("/me")
         public ResponseEntity<ProfileUpdateResponseDTO> updateMyProfile(@RequestBody UpdateMyProfileRequestDTO body) {
                 return ResponseEntity.ok(authService.updateMyProfile(body));
         }
 
         @Operation(summary = "Modifier ma photo de profil (commercial / responsable logistique)", description = "Upload multipart, partie 'file' (JPEG, PNG, GIF, WebP, max 5 Mo).")
+        @ApiResponses({
+                @ApiResponse(responseCode = "200", description = "Succès"),
+                @ApiResponse(responseCode = "400", description = "Requête invalide"),
+                @ApiResponse(responseCode = "401", description = "Non authentifié"),
+                @ApiResponse(responseCode = "403", description = "Accès refusé"),
+                @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+                @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+        })
         @PutMapping(value = "/me/profile-photo", consumes = "multipart/form-data")
         public ResponseEntity<String> updateMyProfilePhoto(@RequestParam("file") MultipartFile file) {
                 authService.updateMyProfilePhoto(file);
@@ -90,6 +141,13 @@ public class AuthController {
         }
 
         @Operation(summary = "Supprimer ma photo de profil (commercial / responsable logistique)", description = "Supprime le fichier stocké et remet profilePhotoUrl à null.")
+        @ApiResponses({
+                @ApiResponse(responseCode = "200", description = "Succès"),
+                @ApiResponse(responseCode = "401", description = "Non authentifié"),
+                @ApiResponse(responseCode = "403", description = "Accès refusé"),
+                @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+                @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+        })
         @DeleteMapping("/me/profile-photo")
         public ResponseEntity<String> removeMyProfilePhoto() {
                 authService.removeMyProfilePhoto();
@@ -101,6 +159,12 @@ public class AuthController {
         // ============================================================================
 
         @Operation(summary = "Vérifier le code OTP administrateur", description = "Vérifie le code OTP reçu par email et génère le token JWT pour finaliser la connexion administrateur.")
+        @ApiResponses({
+                @ApiResponse(responseCode = "200", description = "Succès"),
+                @ApiResponse(responseCode = "400", description = "Requête invalide"),
+                @ApiResponse(responseCode = "401", description = "Non authentifié"),
+                @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+        })
         @PostMapping("/admin/verify-otp")
         public ResponseEntity<LoginResponseDTO> verifyOtp(
                         @RequestBody @Valid VerifyActivationCodeRequestDTO requestDTO) {
@@ -111,6 +175,12 @@ public class AuthController {
         }
 
         @Operation(summary = "Renvoyer le code OTP Admin", description = "Génère un nouveau code OTP et le renvoie par email pour un administrateur en cours de connexion.")
+        @ApiResponses({
+                @ApiResponse(responseCode = "200", description = "Succès"),
+                @ApiResponse(responseCode = "400", description = "Requête invalide"),
+                @ApiResponse(responseCode = "401", description = "Non authentifié"),
+                @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+        })
         @PostMapping("/resend-otp")
         public ResponseEntity<String> resendOtp(@RequestBody @Valid ResendActivationRequestDTO requestDTO) {
                 authService.resendAdminOtp(requestDTO.getEmail());
@@ -123,6 +193,11 @@ public class AuthController {
 
         @Operation(summary = "Demander un nouveau lien d'activation", description = "Génère un nouveau code d'activation et le renvoie par email. " +
                     "Le format de l'email (WEB ou MOBILE) est géré automatiquement par le serveur en fonction du rôle.")
+        @ApiResponses({
+                @ApiResponse(responseCode = "200", description = "Succès"),
+                @ApiResponse(responseCode = "400", description = "Requête invalide"),
+                @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+        })
         @PostMapping("/resend-activation")
         public ResponseEntity<String> resendActivation(@RequestBody @Valid ResendActivationRequestDTO requestDTO) {
                 authService.resendActivationLink(requestDTO.getEmail());
@@ -132,6 +207,11 @@ public class AuthController {
         @Operation(summary = "Créer un mot de passe", description = "Crée le mot de passe d'un utilisateur après vérification du code d'activation. "
                         +
                         "Active automatiquement le compte.")
+        @ApiResponses({
+                @ApiResponse(responseCode = "200", description = "Succès"),
+                @ApiResponse(responseCode = "400", description = "Requête invalide"),
+                @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+        })
         @PostMapping("/set-password")
         public ResponseEntity<String> setPassword(@RequestBody @Valid SetPasswordRequestDTO requestDTO) {
                 authService.setPassword(requestDTO.getEmail(), requestDTO.getToken(), requestDTO.getPassword(),
@@ -143,6 +223,11 @@ public class AuthController {
                         +
                         "Le token expire dans 15 minutes. " +
                         "Champ optionnel channel : WEB (défaut, lien navigateur) ou MOBILE (deep link application).")
+        @ApiResponses({
+                @ApiResponse(responseCode = "200", description = "Succès"),
+                @ApiResponse(responseCode = "400", description = "Requête invalide"),
+                @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+        })
         @PostMapping("/forgot-password")
         public ResponseEntity<String> forgotPassword(@RequestBody @Valid ForgotPasswordRequestDTO requestDTO) {
                 PasswordResetChannel channel = requestDTO.getChannel() != null
@@ -155,6 +240,11 @@ public class AuthController {
         @Operation(summary = "Réinitialiser le mot de passe", description = "Réinitialise le mot de passe d'un utilisateur avec un token valide reçu par email. "
                         +
                         "Le token doit être valide et non expiré.")
+        @ApiResponses({
+                @ApiResponse(responseCode = "200", description = "Succès"),
+                @ApiResponse(responseCode = "400", description = "Requête invalide"),
+                @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+        })
         @PostMapping("/reset-password")
         public ResponseEntity<String> resetPassword(@RequestBody @Valid ResetPasswordRequestDTO requestDTO) {
                 authService.resetPassword(

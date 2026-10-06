@@ -134,16 +134,16 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Votre compte n'est pas actif");
         }
 
-        // Règle 3 : si salarié ou représentant d'entreprise, vérifier que l'entreprise est active
-        if (user.getRole() == UserRole.EMPLOYEE || user.getRole() == UserRole.COMPANY) {
+        // Règle 3 : si salarié, vérifier que l'entreprise est active
+        if (user.getRole() == UserRole.EMPLOYEE) {
             Employee employee = employeeRepository.findByUser(user)
-                    .orElseThrow(() -> new RuntimeException(user.getRole() == UserRole.COMPANY ? "Représentant introuvable" : "Salarié introuvable"));
+                    .orElseThrow(() -> new RuntimeException("Salarié introuvable"));
             if (employee.getCompany() == null || !Boolean.TRUE.equals(employee.getCompany().getIsActive())) {
                 throw new RuntimeException("Votre entreprise est inactive. Vous ne pouvez pas vous connecter.");
             }
         }
 
-        // Si l'utilisateur est admin, déclencher l'OTP (on envoie sur l’email du compte)
+        // Règle 4 : Authentification à deux facteurs (2FA) pour l'administrateur via code OTP par email
         if (user.getRole() == UserRole.ADMINISTRATOR) {
             String otpCode = activationCodeService.generateAndStoreCode(user.getEmail());
             emailService.sendOtpCode(user.getEmail(), otpCode, user.getFirstName());
@@ -152,9 +152,51 @@ public class AuthServiceImpl implements AuthService {
 
         // Pour les autres rôles : connexion directe avec JWT
         String accessToken = jwtService.generateToken(user.getEmail(), user.getRole().name(), user.getId());
+        String refreshToken = jwtService.generateRefreshToken(user.getEmail());
 
         return new LoginResponseDTO(
                 accessToken,
+                refreshToken,
+                user.getEmail(),
+                user.getRole().getLabel(),
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getProfilePhotoUrl()
+        );
+    }
+
+    /**
+     * Rafraîchit l'access token à l'aide d'un refresh token valide
+     */
+    @Override
+    public LoginResponseDTO refreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new RuntimeException("Refresh token manquant");
+        }
+
+        if (!jwtService.isTokenValid(refreshToken)) {
+            throw new RuntimeException("Refresh token invalide ou expiré");
+        }
+
+        String email = jwtService.extractEmail(refreshToken);
+        Users user = getUserByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable pour ce refresh token"));
+
+        if (Boolean.TRUE.equals(user.getDisabledByAdmin())) {
+            throw new RuntimeException("Votre compte a été désactivé par un administrateur.");
+        }
+
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new RuntimeException("Ce compte n'est pas actif.");
+        }
+
+        String newAccessToken = jwtService.generateToken(user.getEmail(), user.getRole().name(), user.getId());
+        String newRefreshToken = jwtService.generateRefreshToken(user.getEmail());
+
+        return new LoginResponseDTO(
+                newAccessToken,
+                newRefreshToken,
                 user.getEmail(),
                 user.getRole().getLabel(),
                 user.getId(),
@@ -191,6 +233,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Générer le token JWT
         String accessToken = jwtService.generateToken(user.getEmail(), user.getRole().name(), user.getId());
+        String refreshToken = jwtService.generateRefreshToken(user.getEmail());
 
         // Supprimer le code OTP utilisé (plus besoin de le garder)
         activationCodeRepository.deleteByEmail(email);
@@ -198,6 +241,7 @@ public class AuthServiceImpl implements AuthService {
         // Retourner le token JWT avec les informations utilisateur
         return new LoginResponseDTO(
                 accessToken,
+                refreshToken,
                 user.getEmail(),
                 user.getRole().getLabel(),
                 user.getId(),
@@ -299,7 +343,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Bloquer si le salarié ou l'entreprise a été désactivé par le commercial
-        if (user.getRole() == UserRole.EMPLOYEE || user.getRole() == UserRole.COMPANY) {
+        if (user.getRole() == UserRole.EMPLOYEE) {
             Employee employee = employeeRepository.findByUser(user).orElse(null);
             if (employee != null && employee.getCompany() != null && !Boolean.TRUE.equals(employee.getCompany().getIsActive())) {
                 throw new RuntimeException("Votre entreprise est inactive. Vous ne pouvez pas recevoir de lien d'activation.");
@@ -329,14 +373,6 @@ public class AuthServiceImpl implements AuthService {
                 }
             }
             emailService.sendEmployeeActivationLink(email, code, user.getFirstName(), commercialName, companyName);
-        } else if (user.getRole() == UserRole.COMPANY) {
-            String companyName = "";
-            Optional<Employee> empOpt = employeeRepository.findByUser(user);// le représentant est un salarié de son entreprise
-            if (empOpt.isPresent() && empOpt.get().getCompany() != null) {
-                companyName = empOpt.get().getCompany().getName();
-            }
-            String contactName = user.getFirstName() + " " + user.getLastName();
-            emailService.sendCompanyActivationLink(email, code, contactName, companyName);
         } else {
             // Pour les administrateurs , commerciaux etc, le lien d'activation générique est web
             emailService.sendActivationLink(email, code, user.getFirstName());
@@ -396,8 +432,8 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Ce compte n'est pas encore actif. Si votre lien a expiré, veuillez demander un nouveau lien d'activation.");
         }
 
-        // Bloquer si le salarié ou l'entreprise a été désactivé par le commercial
-        if (user.getRole() == UserRole.EMPLOYEE || user.getRole() == UserRole.COMPANY) {
+        // Bloquer si le salarié a été désactivé par le commercial
+        if (user.getRole() == UserRole.EMPLOYEE) {
             Employee employee = employeeRepository.findByUser(user).orElse(null);
             if (employee != null && employee.getCompany() != null && !Boolean.TRUE.equals(employee.getCompany().getIsActive())) {
                 throw new RuntimeException("Votre entreprise est inactive. Action non autorisée.");
@@ -585,15 +621,6 @@ public class AuthServiceImpl implements AuthService {
         dto.setIsActive(u.getIsActive());
         dto.setProfilePhotoUrl(u.getProfilePhotoUrl());
         dto.setCreatedAt(u.getCreatedAt());
-
-        // Si c'est un responsable entreprise, on récupère le nom de sa boîte
-        if (u.getRole() == UserRole.COMPANY) {
-            employeeRepository.findByUser(u).ifPresent(emp -> {
-                if (emp.getCompany() != null) {
-                    dto.setCompanyName(emp.getCompany().getName());
-                }
-            });
-        }
 
         return dto;
     }

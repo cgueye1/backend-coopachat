@@ -32,6 +32,8 @@ import com.example.coopachat.services.commercial.CommercialService;
 import com.example.coopachat.services.minio.MinioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +49,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,6 +60,7 @@ import java.util.regex.Pattern;
 @RestController
 @RequestMapping("/api/commercial")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('COMMERCIAL')")
 @Tag(name = "Commercial", description = "API pour la gestion des actions du commercial ")
 public class CommercialController {
 
@@ -68,6 +72,12 @@ public class CommercialController {
     // ============================================================================
 
     @Operation(summary = "Lister les secteurs d'activité", description = "Référentiel pour formulaires et filtres (lecture seule).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/company-sectors")
     public ResponseEntity<List<ReferenceItemDTO>> getCompanySectors() {
         return ResponseEntity.ok(commercialService.getCompanySectors());
@@ -77,6 +87,13 @@ public class CommercialController {
             summary = "Créer une entreprise",
             description = "Création via multipart/form-data. Tous les champs en request param. Logo optionnel (JPG, PNG, max 5MB)."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Créé avec succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping(value = "/companies", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> createCompany(
             @Parameter(description = "Nom de l'entreprise", required = true)
@@ -146,6 +163,12 @@ public class CommercialController {
             description = "Récupère les statistiques des entreprises du commercial connecté " +
                          "(total, actives, inactives)."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/companies/stats")
     public ResponseEntity<CompanyStatsDTO> getCompanyStats() {
         CompanyStatsDTO stats = commercialService.getCompanyStats();
@@ -156,6 +179,12 @@ public class CommercialController {
             summary = "Lister les prospects uniquement (paginé)",
             description = "Retourne uniquement les prospects (status != Partenaire signé). Filtres : search, sector, prospectionStatus."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/prospects")
     public ResponseEntity<CompanyListResponseDTO> getProspects(
             @RequestParam(defaultValue = "0") int page,
@@ -172,6 +201,12 @@ public class CommercialController {
             summary = "Statistiques prospections",
             description = "Total prospects + comptage par statut (En attente, Relancé, Intéressé, Signé)."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/prospects/stats")
     public ResponseEntity<ProspectStatsDTO> getProspectStats() {
         return ResponseEntity.ok(commercialService.getProspectStats());
@@ -181,6 +216,12 @@ public class CommercialController {
             summary = "Statistiques entreprises partenaires",
             description = "Total partenaires + actives + inactives (uniquement status = Partenaire signé)."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/partners/stats")
     public ResponseEntity<CompanyStatsDTO> getPartnerStats() {
         return ResponseEntity.ok(commercialService.getPartnerStats());
@@ -192,6 +233,12 @@ public class CommercialController {
                          "evolutionCommandesPct, ventesCeMois, evolutionVentesPct, promotionsActives. " +
                          "Données limitées au périmètre du commercial connecté."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/dashboard/kpis")
     public ResponseEntity<CommercialDashboardKpisDTO> getDashboardKpis() {
         return ResponseEntity.ok(commercialService.getDashboardKpis());
@@ -201,6 +248,12 @@ public class CommercialController {
             summary = "Coupons utilisés par jour (7 derniers jours)",
             description = "Pour le graphique « Tendance des coupons utilisés » du tableau de bord commercial."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/dashboard/coupons-utilises-par-jour")
     public ResponseEntity<List<CouponUsageParJourDTO>> getCouponsUtilisesParJour() {
         return ResponseEntity.ok(commercialService.getCouponsUtilisesParJour());
@@ -210,6 +263,12 @@ public class CommercialController {
             summary = "Lister les entreprises partenaires uniquement (paginé)",
             description = "Retourne uniquement les entreprises partenaires (status = Partenaire signé). Filtres : search, sector, isActive."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/companies")
     public ResponseEntity<CompanyListResponseDTO> getCompanies(
             @RequestParam(defaultValue = "0") int page,
@@ -223,6 +282,12 @@ public class CommercialController {
     }
 
     @Operation(summary = "Derniers prospects", description = "Récupère les N derniers prospects (entreprises non partenaires).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/companies/last-prospects")
     public ResponseEntity<java.util.List<com.example.coopachat.dtos.companies.CompanyListItemDTO>> getLastProspects(
             @RequestParam(defaultValue = "3") int limit) {
@@ -234,6 +299,13 @@ public class CommercialController {
             description = "Récupère les détails complets d'une entreprise spécifique par son ID. " +
                          "Tout commercial connecté peut consulter l'entreprise."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/companies/{id}")
     public ResponseEntity<CompanyDetailsDTO> getCompanyById(@PathVariable Long id) {
         CompanyDetailsDTO companyDetails = commercialService.getCompanyById(id);
@@ -246,6 +318,14 @@ public class CommercialController {
                          "Vivier partagé : tout commercial connecté peut modifier l'entreprise. " +
                          "Les champs id, companyCode, createdAt et commercial ne peuvent pas être modifiés."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PutMapping("/companies/{id}")
     public ResponseEntity<String> updateCompany(
             @PathVariable Long id,
@@ -261,6 +341,14 @@ public class CommercialController {
                          "Vivier partagé : tout commercial connecté peut agir sur l'entreprise. " +
                          "Le body doit contenir 'isActive' (true pour activer, false pour désactiver)."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PatchMapping("/companies/{id}/status")
     public ResponseEntity<String> updateCompanyStatus(
             @PathVariable Long id,
@@ -280,6 +368,13 @@ public class CommercialController {
             summary = "Téléverser le logo d'une entreprise",
             description = "Enregistre ou remplace le logo d'une entreprise. Formats acceptés: JPG, PNG. Taille max 5 Mo."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/companies/{id}/logo")
     public ResponseEntity<String> uploadCompanyLogo(
             @PathVariable Long id,
@@ -293,6 +388,13 @@ public class CommercialController {
             summary = "Supprimer le logo d'une entreprise",
             description = "Retire le logo associé à l'entreprise."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @DeleteMapping("/companies/{id}/logo")
     public ResponseEntity<String> deleteCompanyLogo(@PathVariable Long id) {
         commercialService.deleteCompanyLogo(id);
@@ -308,6 +410,13 @@ public class CommercialController {
             description = "Permet à un commercial d'ajouter un nouveau salarié à une entreprise. " +
                     "Le salarié pourra ensuite activer son compte via le flux mobile."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Créé avec succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/employees")
     public ResponseEntity<String> createEmployee(@RequestBody @Valid CreateEmployeeDTO createEmployeeDTO) {
         commercialService.createEmployee(createEmployeeDTO);
@@ -320,6 +429,13 @@ public class CommercialController {
             description = "Multipart : partie 'file' (.xlsx) et paramètre 'companyId' (entreprise cible). " +
                          "Colonnes attendues : prénom, nom, email, téléphone, adresse."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping(value = "/employees/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> importEmployeesFromExcel(
             @Parameter(description = "Fichier Excel (.xlsx)")
@@ -396,6 +512,12 @@ public class CommercialController {
             description = "Récupère les statistiques des salariés du commercial connecté " +
                          "(total, actifs, en attente d'activation)."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/employees/stats")
     public ResponseEntity<EmployeeStatsDTO> getEmployeeStats() {
         EmployeeStatsDTO stats = commercialService.getEmployeeStats();
@@ -408,6 +530,12 @@ public class CommercialController {
                          "Les paramètres 'page' (défaut: 0) et 'size' (défaut: 6) contrôlent la pagination. " +
                          "'companyId' est obligatoire. 'search' (prénom ou nom) et 'isActive' (true/false) sont optionnels."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/employees")
     public ResponseEntity<EmployeeListResponseDTO> getAllEmployees(
             @RequestParam(defaultValue = "0") int page,
@@ -424,6 +552,12 @@ public class CommercialController {
             summary = "Exporter les salariés d'une entreprise en Excel",
             description = "Mêmes filtres que GET /employees : companyId obligatoire, search (prénom/nom) et isActive optionnels."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/employees/export")
     public ResponseEntity<Resource> exportEmployees(
             @RequestParam Long companyId,
@@ -447,6 +581,13 @@ public class CommercialController {
             summary = "Récupérer les détails d'un salarié",
             description = "Récupère les détails complets d'un salarié par son ID (vivier partagé entre commerciaux)."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/employees/{id}")
     public ResponseEntity<EmployeeDetailsDTO> getEmployeeById(@PathVariable Long id) {
         EmployeeDetailsDTO employeeDetails = commercialService.getEmployeeById(id);
@@ -459,6 +600,14 @@ public class CommercialController {
                          "Les champs id, employeeCode, createdAt et createdBy ne peuvent pas être modifiés. " +
                          "Si l'email ou le téléphone est modifié, il sera vérifié qu'il n'existe pas déjà."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PutMapping("/employees/{id}")
     public ResponseEntity<String> updateEmployee(
             @PathVariable Long id,
@@ -473,6 +622,14 @@ public class CommercialController {
             description = "Active ou désactive un salarié (vivier partagé entre commerciaux). " +
                          "Le body doit contenir 'isActive' (true pour activer, false pour désactiver)."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PatchMapping("/employees/{id}/status")
     public ResponseEntity<String> updateEmployeeStatus(
             @PathVariable Long id,
@@ -490,6 +647,13 @@ public class CommercialController {
     // ============================================================================
 
     @Operation(summary = "Créer un coupon", description = "Code promo panier (réduction sur le total). Nom, code, type % ou F CFA, valeur, dates.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Créé avec succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/coupons")
     public ResponseEntity<String> createCoupon(@RequestBody @Valid CreateCouponDTO createCouponDTO) {
         commercialService.addCoupon(createCouponDTO);
@@ -502,6 +666,14 @@ public class CommercialController {
             summary = "Activer/Désactiver un coupon",
             description = "Active ou désactive un coupon. Le body doit contenir 'isActive' (true/false)."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PatchMapping("/coupons/{id}/status")
     public ResponseEntity<String> updateCouponStatus(
             @PathVariable Long id,
@@ -518,6 +690,12 @@ public class CommercialController {
             summary = "Statistiques coupons panier (CART_TOTAL)",
             description = "Retourne le nombre de coupons actifs (scope CART_TOTAL) et le nombre total d'utilisations. Utilisé pour les cartes « Coupons actives » et « Utilisations totales »."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/coupons/cart-total-stats")
     public ResponseEntity<CartTotalCouponStatsDTO> getCartTotalCouponStats() {
         CartTotalCouponStatsDTO stats = commercialService.getCartTotalCouponStats();
@@ -525,12 +703,24 @@ public class CommercialController {
     }
 
     @Operation(summary = "Liste des produits actifs pour création de coupon", description = "Retourne id et nom des produits actifs, triés par nom.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/coupons/products")
     public ResponseEntity<List<IdNameDTO>> getActiveProductsForCoupon() {
         return ResponseEntity.ok(commercialService.getActiveProductsForCoupon());
     }
 
     @Operation(summary = "Liste des catégories pour création de coupon", description = "Retourne id et nom des catégories.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/coupons/categories")
     public ResponseEntity<List<IdNameDTO>> getCategoriesForCoupon() {
         return ResponseEntity.ok(commercialService.getCategoriesForCoupon());
@@ -540,6 +730,12 @@ public class CommercialController {
             summary = "Lister les coupons (paginé avec recherche et filtres)",
             description = "Filtres optionnels: search, status, isActive. Coupons = codes promo panier."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/coupons")
     public ResponseEntity<CouponListResponseDTO> getAllCoupons(
             @RequestParam(defaultValue = "0") int page,
@@ -557,6 +753,13 @@ public class CommercialController {
             description = " Inclut les produits/catégories liés selon le scope\n" +
                     " Pour CART_TOTAL : inclut le nombre d'utilisations"
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/coupons/{id}")
     public ResponseEntity<CouponDetailsDTO> getCouponById(@PathVariable Long id) {
         CouponDetailsDTO details = commercialService.getCouponById(id);
@@ -567,6 +770,13 @@ public class CommercialController {
             summary = "Supprimer un coupon",
             description = "Supprime un coupon après avoir délié les produits et catégories associés."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @DeleteMapping("/coupons/{id}")
     public ResponseEntity<String> deleteCoupon(@PathVariable Long id) {
         commercialService.deleteCoupon(id);
@@ -581,6 +791,12 @@ public class CommercialController {
             summary = "Lister les promotions (paginé avec recherche et filtre)",
             description = "Promotions = réductions en % sur des produits. Filtres optionnels: search (nom), status (PLANNED, ACTIVE, EXPIRED, DISABLED)."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/promotions")
     public ResponseEntity<PromotionListResponseDTO> getAllPromotions(
             @RequestParam(defaultValue = "0") int page,
@@ -591,18 +807,39 @@ public class CommercialController {
     }
 
     @Operation(summary = "Statistiques des promotions", description = "Total, actives, planifiées, expirées, désactivées, nombre de produits concernés.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/promotions/stats")
     public ResponseEntity<PromotionStatsDTO> getPromotionStats() {
         return ResponseEntity.ok(commercialService.getPromotionStats());
     }
 
     @Operation(summary = "Détails d'une promotion", description = "Nom, dates, statut, liste des produits avec réduction %.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/promotions/{id}")
     public ResponseEntity<PromotionDetailsDTO> getPromotionById(@PathVariable Long id) {
         return ResponseEntity.ok(commercialService.getPromotionById(id));
     }
 
     @Operation(summary = "Activer/Désactiver une promotion", description = "Comme pour les coupons. Body: { \"isActive\": true/false }.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "404", description = "Ressource introuvable"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PatchMapping("/promotions/{id}/status")
     public ResponseEntity<String> updatePromotionStatus(
             @PathVariable Long id,
@@ -615,6 +852,12 @@ public class CommercialController {
     }
 
     @Operation(summary = "Liste des produits pour création de promotion", description = "Produits actifs (id, name). Optionnel : categoryId pour filtrer par catégorie.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Succès"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @GetMapping("/promotions/products")
     public ResponseEntity<List<IdNameDTO>> getProductsForPromotion(@RequestParam(required = false) Long categoryId) {
         return ResponseEntity.ok(commercialService.getProductsForPromotion(categoryId));
@@ -624,6 +867,13 @@ public class CommercialController {
             summary = "Créer une promotion",
             description = "Promotion = réductions en % sur une liste de produits. Nom, dates, productItems (productId, discountValue en %). Au moins un produit obligatoire."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Créé avec succès"),
+            @ApiResponse(responseCode = "400", description = "Requête invalide"),
+            @ApiResponse(responseCode = "401", description = "Non authentifié"),
+            @ApiResponse(responseCode = "403", description = "Accès refusé"),
+            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur")
+    })
     @PostMapping("/promotions")
     public ResponseEntity<String> createPromotion(@RequestBody @Valid CreatePromotionDTO createPromotionDTO) {
         try {

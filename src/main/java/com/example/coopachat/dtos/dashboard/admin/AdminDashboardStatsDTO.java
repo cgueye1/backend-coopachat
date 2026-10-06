@@ -26,4 +26,9 @@ public class AdminDashboardStatsDTO {
 
     /** Paiements par statut (Payé, En attente, Échoué). */
     private List<PaymentStatusItemDTO> paiementsParStatut;
+
+    // Statistiques des types de documents
+    private long totalDocumentTypes;
+    private long requiredDocumentTypes;
+    private long optionalDocumentTypes;
 }

@@ -36,6 +36,14 @@ public interface AuthService {
      */
     LoginResponseDTO authenticateCredentialsUser(String email, String phone, String password);
 
+    /**
+     * Rafraîchit l'access token avec un refresh token valide
+     *
+     * @param refreshToken Le refresh token (valide 7 jours)
+     * @return LoginResponseDTO avec un nouvel accessToken et un nouveau refreshToken
+     */
+    LoginResponseDTO refreshToken(String refreshToken);
+
 
     /**
      * Vérifie le code OTP et génère le token JWT pour un administrateur

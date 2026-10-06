@@ -22,9 +22,9 @@ public class DocumentTypeDTO {
 
     private Set<String> synonyms;
 
-    private Boolean hasExpiryDate;
+    private Boolean hasExpiryDate = false;
 
-    private Boolean isIdentityVerification;
+    private Boolean isIdentityVerification = false;
 
-    private Boolean isActive;
+    private Boolean isActive = true;
 }

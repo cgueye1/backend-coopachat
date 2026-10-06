@@ -1,7 +1,6 @@
 package com.example.coopachat.services.admin;
 
-import com.example.coopachat.dtos.documentTypes.CreateDocumentTypeDTO;
-import com.example.coopachat.dtos.documentTypes.DocumentTypeDTO;
+import com.example.coopachat.dtos.documentTypes.*;
 import com.example.coopachat.dtos.user.SaveUserDTO;
 import com.example.coopachat.dtos.user.UpdateUserStatusDTO;
 import com.example.coopachat.dtos.user.UserDetailsDTO;
@@ -44,13 +43,7 @@ import com.example.coopachat.dtos.dashboard.logisticsManager.StatusCountDTO;
 import com.example.coopachat.dtos.reference.CreateReferenceItemDTO;
 import com.example.coopachat.dtos.reference.ReferenceItemDTO;
 import com.example.coopachat.entities.*;
-import com.example.coopachat.enums.ClaimStatus;
-import com.example.coopachat.enums.EtatStock;
-import com.example.coopachat.enums.OrderStatus;
-import com.example.coopachat.enums.PaymentStatus;
-import com.example.coopachat.enums.DeliveryTourStatus;
-import com.example.coopachat.enums.SupplierType;
-import com.example.coopachat.enums.UserRole;
+import com.example.coopachat.enums.*;
 import com.example.coopachat.exceptions.BadRequestBusinessException;
 import com.example.coopachat.repositories.*;
 import com.example.coopachat.services.DeliveryDriver.DriverNotificationService;
@@ -78,14 +71,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.Set;
-import java.util.HashSet;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import java.util.ArrayList;
@@ -125,6 +111,7 @@ public class AdminServiceImpl implements AdminService {
     private final DeliveryTourRepository deliveryTourRepository;
     private final SupplierRepository supplierRepository;
     private final DocumentTypeRepository documentTypeRepository;
+    private final DriverDocumentRepository driverDocumentRepository;
 
     // ============================================================================
     // 📁 GESTION DES CATÉGORIES
@@ -1221,7 +1208,7 @@ public class AdminServiceImpl implements AdminService {
         List<UserStatsByRoleItemDTO> result = new ArrayList<>();
         long totalForStats = 0;
 
-        // 1. Calculer d'abord les effectifs pour chaque rôle (hors COMPANY)
+        // 1. Calculer d'abord les effectifs pour chaque rôle (hors EMPLOYEE et SUPPLIER)
         Map<UserRole, Long> counts = new LinkedHashMap<>();
         for (UserRole role : UserRole.values()) {
             if (role == UserRole.COMPANY || role == UserRole.EMPLOYEE || role == UserRole.SUPPLIER)
@@ -1757,11 +1744,16 @@ public class AdminServiceImpl implements AdminService {
         long echoues = paymentRepository.countByStatus(PaymentStatus.FAILED);
         paiementsParStatut.add(new PaymentStatusItemDTO(PaymentStatus.FAILED.getLabel(), echoues));
 
+        long totalDocs = documentTypeRepository.count();
+
         return new AdminDashboardStatsDTO(
                 commandesEnAttente,
                 paiementsEchoues,
                 reclamationsOuvertes,
-                paiementsParStatut);
+                paiementsParStatut,
+                totalDocs,
+                0L,
+                0L);
     }
 
     @Override
@@ -1872,11 +1864,23 @@ public class AdminServiceImpl implements AdminService {
     // ============================================================================
 
     @Override
-    public List<DocumentTypeDTO> getAllDocumentTypes() {
-        return documentTypeRepository.findAll(Sort.by(Sort.Direction.DESC, "id"))
-                .stream()
+    public DocumentTypeListResponseDTO getAllDocumentTypes(int page, int size, String search, Boolean status) {
+        // Normaliser le terme à rechercher
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+
+        Page<DocumentType> docPage = documentTypeRepository.findAllWithFilters(searchTerm, status, pageable);
+
+        DocumentTypeListResponseDTO response = new DocumentTypeListResponseDTO();
+        response.setContent(docPage.getContent().stream()
                 .map(this::mapToDocumentTypeDTO)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()));
+        response.setTotalElements(docPage.getTotalElements());
+        response.setTotalPages(docPage.getTotalPages());
+        response.setCurrentPage(docPage.getNumber());
+        response.setSize(docPage.getSize());
+
+        return response;
     }
 
     @Override
@@ -1932,18 +1936,19 @@ public class AdminServiceImpl implements AdminService {
                 .orElseThrow(() -> new RuntimeException("Type de document introuvable"));
 
         if (dto.getName() != null && !dto.getName().trim().equalsIgnoreCase(doc.getName())) {
-            if (documentTypeRepository.existsByNameOrSynonym(dto.getName())) {
-                throw new RuntimeException("Ce nom de document existe déjà");
+            if (documentTypeRepository.existsByNameOrSynonymExcludingId(dto.getName().trim(), id)) {
+                throw new RuntimeException("Ce nom de document (ou un synonyme) est déjà utilisé par un autre document");
             }
             doc.setName(dto.getName().trim());
         }
 
         if (dto.getSynonyms() != null) {
-            // Pour chaque nouveau synonyme, vérifier s'il n'existe pas ailleurs (exclure le
-            // document actuel est plus complexe en SQL, on fait simple ici)
-            // Note: Cette logique simplifiée pourrait bloquer si on renvoie un synonyme
-            // déjà présent sur CE document.
-            // Une version plus robuste filtrerait les synonymes actuels du document.
+            // Valider chaque synonyme pour s'assurer qu'il n'est pas utilisé ailleurs
+            for (String synonym : dto.getSynonyms()) {
+                if (documentTypeRepository.existsByNameOrSynonymExcludingId(synonym.trim(), id)) {
+                    throw new RuntimeException("Le synonyme '" + synonym + "' est déjà utilisé par un autre document");
+                }
+            }
             doc.setSynonyms(dto.getSynonyms());
         }
 
@@ -1960,23 +1965,91 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    public void deleteDocumentType(Long id) {
-        Users admin = getCurrentUser();
-        if (admin.getRole() != UserRole.ADMINISTRATOR) {
-            throw new RuntimeException("Seul un administrateur peut supprimer un type de document");
-        }
-        documentTypeRepository.deleteById(id);
-        log.info("Type de document ID {} supprimé par l'admin {}", id, admin.getEmail());
-    }
-
-    @Override
-    @Transactional
     public void toggleDocumentTypeStatus(Long id) {
         DocumentType doc = documentTypeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Type de document introuvable"));
         doc.setIsActive(!doc.getIsActive());
         documentTypeRepository.save(doc);
     }
+
+    @Override
+    public DocumentTypeStatsDTO getDocumentTypeStats() {
+        long total = documentTypeRepository.count();
+        long required = documentTypeRepository.countByIsIdentityVerificationTrue();
+        long optional = documentTypeRepository.countByIsIdentityVerificationFalse();
+        
+        log.info("Stats Documents - Total: {}, Actifs: {}, Inactifs: {}", total, required, optional);
+        
+        return DocumentTypeStatsDTO.builder()
+                .total(total)
+                .required(required)
+                .optional(optional)
+                .build();
+    }
+
+    @Override
+    public DriverDocumentSummaryListResponseDTO getDriverDocumentSummaries(int page, int size, String search, String status) {
+        
+        Users admin = getCurrentUser();
+        if (admin.getRole() != UserRole.ADMINISTRATOR) {
+            throw new RuntimeException("Seul un administrateur peut lister les documents des livreurs");
+        }
+
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+
+        // On récupère la liste de tous les types de documents actifs
+        List<DocumentType> requiredTypes = documentTypeRepository.findAllByIsActiveTrue();
+        int requiredCount = requiredTypes.size();
+
+        // 1. Récupérer TOUS les livreurs correspondant à la recherche (car le statut est calculé en mémoire)
+        // Note: Pour de très gros volumes, il faudrait stocker le statut en base.
+        List<Driver> allDrivers = searchTerm != null 
+            ? deliveryDriverRepository.findAll().stream()
+                .filter(d -> d.getUser().getFirstName().toLowerCase().contains(searchTerm.toLowerCase()) 
+                          || d.getUser().getLastName().toLowerCase().contains(searchTerm.toLowerCase())
+                          || d.getUser().getEmail().toLowerCase().contains(searchTerm.toLowerCase()))
+                .collect(Collectors.toList())
+            : deliveryDriverRepository.findAll();
+
+        // 2. Mapper et Calculer les statuts
+        List<DriverDocumentSummaryDTO> allDtos = allDrivers.stream()
+                .map(driver -> mapToDriverDocumentSummaryDTO(driver, requiredTypes, requiredCount))
+                .collect(Collectors.toList());
+
+        // 3. Filtrer par statut si demandé
+        if (status != null && !status.isEmpty() && !status.equals("Tous les statuts")) {
+            allDtos = allDtos.stream()
+                    .filter(dto -> dto.getGlobalStatus().equalsIgnoreCase(status))
+                    .collect(Collectors.toList());
+        }
+
+        // 4. Appliquer la pagination manuellement
+        int totalElements = allDtos.size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+        int start = page * size;
+        int end = Math.min(start + size, totalElements);
+        
+        List<DriverDocumentSummaryDTO> pagedContent = (start < totalElements) 
+                ? allDtos.subList(start, end) 
+                : new ArrayList<>();
+
+        DriverDocumentSummaryListResponseDTO response = new DriverDocumentSummaryListResponseDTO();
+        response.setContent(pagedContent);
+        response.setTotalElements((long) totalElements);
+        response.setTotalPages(totalPages);
+        response.setCurrentPage(page);
+        response.setSize(size);
+        response.setHasNext(page < totalPages - 1);
+        response.setHasPrevious(page > 0);
+
+        return response;
+    }
+
+
+
+    // ----------------------------------------------------------------------------
+    // 🔧 MÉTHODES UTILITAIRES
+    // ----------------------------------------------------------------------------
 
     private DocumentTypeDTO mapToDocumentTypeDTO(DocumentType d) {
         DocumentTypeDTO dto = new DocumentTypeDTO();
@@ -1988,10 +2061,6 @@ public class AdminServiceImpl implements AdminService {
         dto.setIsActive(d.getIsActive());
         return dto;
     }
-
-    // ----------------------------------------------------------------------------
-    // 🔧 MÉTHODES UTILITAIRES
-    // ----------------------------------------------------------------------------
     private FeeDTO mapToFeeDTO(Fee fee) {
         return new FeeDTO(
                 fee.getId(),
@@ -2126,4 +2195,267 @@ public class AdminServiceImpl implements AdminService {
         return dto;
     }
 
+
+    private DriverDocumentSummaryDTO mapToDriverDocumentSummaryDTO(Driver driver, List<DocumentType> activeTypes, int totalActiveCount) {
+        Users user = driver.getUser();
+        
+        // 1. Récupération de tous les documents soumis par le livreur
+        List<DriverDocument> docs = driverDocumentRepository.findByDriverId(driver.getId());
+
+        int totalMandatoryCount = 0; // Total des documents obligatoires configurés
+        
+        int submittedTotalCount = 0; // Total des documents soumis (obligatoires + optionnels)
+        
+        int validatedMandatoryCount = 0;//Nombre de documents obligatoires validés
+        boolean hasRejectedMandatory = false;//Indique si un document obligatoire a été rejeté
+        boolean hasPendingMandatory = false;//Indique si un document obligatoire est en attente
+        int submittedMandatoryCount = 0;//Nombre de documents obligatoires soumis
+        
+        // 2. Analyse des documents du livreur par rapport à tous les types actifs
+        for (DocumentType type : activeTypes) {
+            // pour chaque type de document, on vérifie si c'est un document obligatoire (isIdentityVerification = true) ?
+            boolean isMandatory = Boolean.TRUE.equals(type.getIsIdentityVerification());
+            // si c'est un document obligatoire, on incrémente le compteur de documents obligatoires
+            if (isMandatory) {
+                totalMandatoryCount++;
+            }
+
+            // on cherche si le livreur a soumis ce type de document
+            DriverDocument doc = docs.stream()
+                .filter(d -> d.getDocumentType().getId().equals(type.getId()))
+                .findFirst()
+                .orElse(null);
+              
+            // si le livreur a soumis ce type de document, on incrémente le compteur de documents soumis
+            if (doc != null) {
+                // Compte global pour la progression UI ("X/Y documents soumis")
+                submittedTotalCount++; 
+                
+                // on vérifie si le document soumis est obligatoire
+                if (isMandatory) {
+                    submittedMandatoryCount++; //On incrémente le compteur de documents obligatoires soumis
+                    
+                    // Mémoriser l'état UNIQUEMENT pour les documents obligatoires
+                    // Si un document optionnel est rejeté ou en attente, ça ne bloque pas le livreur.
+                    if (doc.getStatus() == DocumentStatus.REJECTED) {
+                        hasRejectedMandatory = true; // Un document OBLIGATOIRE est rejeté
+                    } else if (doc.getStatus() == DocumentStatus.PENDING) {
+                        hasPendingMandatory = true;  // Un document OBLIGATOIRE est en attente
+                    } else if (doc.getStatus() == DocumentStatus.VALIDATED) {
+                        validatedMandatoryCount++;   // Un document OBLIGATOIRE est validé
+                    }
+                }
+            }
+        }
+        
+        String globalStatus; // La valeur du statut global du livreur (ex: "REJETE")
+        String globalStatusLabel; // L'étiquette du statut global du livreur (ex: "Rejeté")
+        
+        // 3. Calcul du statut global UNIQUEMENT basé sur les documents obligatoires
+        // La priorité des statuts est gérée ici :
+        if (hasRejectedMandatory) {
+            // Priorité 1 : S'il y a au moins un document obligatoire rejeté, le dossier complet est REJETÉ
+            globalStatus = "REJETE";
+            globalStatusLabel = "Rejeté";
+        } else if (totalMandatoryCount > 0 && submittedMandatoryCount == 0) {
+            // Priorité 2 : Aucun document obligatoire n'a été soumis
+            globalStatus = "NON_SOUMIS";
+            globalStatusLabel = "Non soumis";
+        } else if (submittedMandatoryCount < totalMandatoryCount) {
+            // Priorité 3 : Le dossier est commencé mais il manque des documents obligatoires
+            globalStatus = "INCOMPLET";
+            globalStatusLabel = "Incomplet";
+        } else if (hasPendingMandatory) {
+            // Priorité 4 : Tous les documents obligatoires sont là, mais certains n'ont pas encore été vérifiés
+            globalStatus = "EN_ATTENTE";
+            globalStatusLabel = "En attente";
+        } else if (validatedMandatoryCount == totalMandatoryCount && totalMandatoryCount > 0) {
+            // Priorité 4 : Tous les documents obligatoires exigés ont été validés par l'admin
+            globalStatus = "VALIDE";
+            globalStatusLabel = "Validé";
+        } else if (totalMandatoryCount == 0) {
+            // Priorité 5 : Aucun document obligatoire n'est configuré dans le système, le livreur est donc Validé d'office
+            globalStatus = "VALIDE";
+            globalStatusLabel = "Validé";
+        } else {
+            // Cas par défaut de sécurité
+            globalStatus = "NON_SOUMIS";
+            globalStatusLabel = "Non soumis";
+        }
+        
+        // 4. Calcul de la date de dernière soumission (la plus récente parmi tous les documents)
+        LocalDateTime lastSubmissionDate = docs.stream()
+                    .map(DriverDocument::getSubmittedAt)//on extrait uniquement les dates de soumission
+                .filter(java.util.Objects::nonNull)//On ignore les docs qui n'ont pas de date de soumission
+                .max(LocalDateTime::compareTo)//on prend la date la plus récente, la plus grande valeur
+                .orElse(null);//Si aucun document n'a été soumis, on retourne null
+
+        return DriverDocumentSummaryDTO.builder()
+            .driverId(driver.getId())
+            .driverRef(user.getRefUser())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .profilePhotoUrl(user.getProfilePhotoUrl())
+            .globalStatus(globalStatus)
+            .globalStatusLabel(globalStatusLabel)
+            .submittedCount(submittedTotalCount)
+            .requiredCount(totalActiveCount)
+            .lastSubmissionDate(lastSubmissionDate)
+            .build();
+    }
+
+    @Override
+    public List<DriverDocumentListItemDTO> getDriverDocumentDetails(Long driverId) {
+        // Récupérer tous les types de documents actifs
+        List<DocumentType> activeTypes = documentTypeRepository.findAllByIsActiveTrue();
+        
+        // Récupérer tous les documents soumis par ce livreur
+        List<DriverDocument> driverDocs = driverDocumentRepository.findByDriverId(driverId);
+        
+        List<DriverDocumentListItemDTO> result = new ArrayList<>();
+        
+        for (DocumentType type : activeTypes) {
+            DriverDocumentListItemDTO dto = new DriverDocumentListItemDTO();
+            dto.setDocumentTypeId(type.getId());
+            dto.setName(type.getName());
+            dto.setHasExpiryDate(type.getHasExpiryDate());
+            dto.setIsIdentityVerification(type.getIsIdentityVerification());
+            
+            DriverDocument submittedDoc = driverDocs.stream()
+                .filter(d -> d.getDocumentType().getId().equals(type.getId()))
+                .findFirst()
+                .orElse(null);
+                
+            if (submittedDoc != null) {
+                dto.setStatus(submittedDoc.getStatus().name());
+                
+                String label;
+                switch (submittedDoc.getStatus().name()) {
+                    case "VALIDATED": label = "Validé"; break;
+                    case "REJECTED": label = "Rejeté"; break;
+                    case "PENDING": label = "En attente"; break;
+                    case "EXPIRED": label = "Expiré"; break;
+                    default: label = submittedDoc.getStatus().getLabel();
+                }
+                dto.setStatusLabel(label);
+                dto.setFileUrl(submittedDoc.getFileUrl());
+                dto.setFileVersoUrl(submittedDoc.getFileVersoUrl());
+                dto.setRejectionReason(submittedDoc.getRejectionReason());
+                java.time.LocalDateTime subAt = submittedDoc.getSubmittedAt() != null ? submittedDoc.getSubmittedAt() : submittedDoc.getUpdatedAt();
+                dto.setSubmittedAt(subAt != null ? subAt.toString() : null);
+                dto.setIssueDate(submittedDoc.getIssueDate() != null ? submittedDoc.getIssueDate().toString() : null);
+                dto.setExpirationDate(submittedDoc.getExpirationDate() != null ? submittedDoc.getExpirationDate().toString() : null);
+            } else {
+                dto.setStatus("NON_SOUMIS");
+                dto.setStatusLabel("Non soumis");
+            }
+            
+            result.add(dto);
+        }
+        
+        return result;
+    }
+
+    @Override
+    public DriverDocumentDetailDTO getDriverDocumentDetail(Long driverId, Long documentTypeId) {
+       Optional<DriverDocument> docOpt = driverDocumentRepository.findByDriverIdAndDocumentTypeId(driverId, documentTypeId);
+        
+        if (docOpt.isPresent()) {
+            DriverDocument doc = docOpt.get();
+            String label;
+            switch (doc.getStatus().name()) {
+                case "VALIDATED": label = "Validé"; break;
+                case "REJECTED": label = "Rejeté"; break;
+                case "PENDING": label = "En attente"; break;
+                case "EXPIRED": label = "Expiré"; break;
+                default: label = doc.getStatus().getLabel();
+            }
+
+            return DriverDocumentDetailDTO.builder()
+                    .documentTypeId(doc.getDocumentType().getId())
+                    .name(doc.getDocumentType().getName())
+                    .submittedAt(doc.getSubmittedAt())
+                    .issueDate(doc.getIssueDate())
+                    .expirationDate(doc.getExpirationDate())
+                    .status(doc.getStatus().name())
+                    .statusLabel(label)
+                    .rejectionReason(doc.getRejectionReason())
+                    .fileUrl(doc.getFileUrl())
+                    .fileVersoUrl(doc.getFileVersoUrl())
+                    .providerRef(doc.getDriver().getUser().getRefUser())
+                    .providerFullName(doc.getDriver().getUser().getFirstName() + " " + doc.getDriver().getUser().getLastName())
+                    .build();
+        } else {
+            // Document non soumis : on renvoie un DTO "vide" avec les infos de base
+            DocumentType type = documentTypeRepository.findById(documentTypeId)
+                    .orElseThrow(() -> new RuntimeException("Type de document introuvable"));
+            
+            Driver driver = deliveryDriverRepository.findById(driverId)
+                    .orElseThrow(() -> new RuntimeException("Livreur introuvable"));
+
+            return DriverDocumentDetailDTO.builder()
+                    .documentTypeId(type.getId())
+                    .name(type.getName())
+                    .status("NON_SOUMIS")
+                    .statusLabel("Non soumis")
+                    .providerRef(driver.getUser().getRefUser())
+                    .providerFullName(driver.getUser().getFirstName() + " " + driver.getUser().getLastName())
+                    .build();
+        }
+    }
+
+    @Override
+    public DriverDocumentStatsDTO getDriverDocumentStats() {
+        long totalDrivers = deliveryDriverRepository.count();
+        long totalDriversWithDocs = driverDocumentRepository.countDistinctDriver();
+        long pending = driverDocumentRepository.countByStatus(DocumentStatus.PENDING);
+        long validated = driverDocumentRepository.countByStatus(DocumentStatus.VALIDATED);
+        long rejected = driverDocumentRepository.countByStatus(DocumentStatus.REJECTED);
+
+        return  DriverDocumentStatsDTO.builder()
+            .totalDrivers(totalDrivers)
+            .totalDriversWithDocuments(totalDriversWithDocs)
+            .pendingDocuments(pending)
+            .validatedDocuments(validated)
+            .rejectedDocuments(rejected)
+            .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void requestDocumentComplement(Long driverId, String message) {
+        Driver driver = deliveryDriverRepository.findById(driverId)
+                .orElseThrow(() -> new RuntimeException("Livreur introuvable"));
+        
+        driverNotificationService.notifyDriverDocumentComplementRequired(driver.getUser(), message);
+    }
+
+    @Override
+    @Transactional
+    public void validateDriverDocument(Long driverId, Long documentTypeId) {
+        DriverDocument doc = driverDocumentRepository.findByDriverIdAndDocumentTypeId(driverId, documentTypeId)
+                .orElseThrow(() -> new RuntimeException("Document introuvable"));
+        
+        doc.setStatus(DocumentStatus.VALIDATED);
+        doc.setRejectionReason(null);
+        driverDocumentRepository.save(doc);
+    }
+
+    @Override
+    @Transactional
+    public void rejectDriverDocument(Long driverId, Long documentTypeId, String reason) {
+        DriverDocument doc = driverDocumentRepository.findByDriverIdAndDocumentTypeId(driverId, documentTypeId)
+                .orElseThrow(() -> new RuntimeException("Document introuvable"));
+        
+        doc.setStatus(DocumentStatus.REJECTED);
+        doc.setRejectionReason(reason);
+        driverDocumentRepository.save(doc);
+
+        // Envoyer la notification par email
+        driverNotificationService.notifyDriverDocumentRejected(
+            doc.getDriver().getUser(), 
+            doc.getDocumentType().getName(), 
+            reason
+        );
+    }
 }

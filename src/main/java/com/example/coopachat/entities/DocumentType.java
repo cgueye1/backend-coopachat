@@ -13,7 +13,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Entity représentant un type de document prérequis (ex: CNI, RIB, etc.)
+ * Entity représentant un type de document prérequis (ex: CNI, permis, etc.)
  */
 @Entity
 @Table(name = "document_types")

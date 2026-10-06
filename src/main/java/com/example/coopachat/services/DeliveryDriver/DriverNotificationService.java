@@ -269,4 +269,60 @@ public class DriverNotificationService {
             log.error("Erreur envoi notification échec livraison au RL {}: {}", rlEmail, e.getMessage());
         }
     }
+
+    /**
+     * Notifie le livreur qu'un complément d'information ou de document est requis pour son dossier.
+     */
+    public void notifyDriverDocumentComplementRequired(Users driverUser, String message) {
+        if (driverUser == null || driverUser.getEmail() == null || driverUser.getEmail().isBlank()) {
+            return;
+        }
+        String firstName = Optional.ofNullable(driverUser.getFirstName()).orElse("Livreur");
+        String subject = "Complément de document requis - CoopAchat";
+        
+        StringBuilder body = new StringBuilder();
+        body.append(String.format("Bonjour %s,\n\n", firstName));
+        body.append("Un administrateur a examiné votre dossier de documents et demande un complément d'information ou de nouveaux documents.\n\n");
+        
+        if (message != null && !message.isBlank()) {
+            body.append(String.format("Message de l'administrateur :\n\"%s\"\n\n", message));
+        }
+        
+        body.append("Veuillez vous connecter à l'application pour mettre à jour votre dossier.\n\n");
+        body.append("L'équipe CoopAchat");
+
+        try {
+            emailService.sendEmail(driverUser.getEmail(), subject, body.toString());
+        } catch (Exception e) {
+            log.error("Erreur envoi notification 'complément document' à {}: {}", driverUser.getEmail(), e.getMessage());
+        }
+    }
+
+    /**
+     * Notifie le livreur qu'un de ses documents a été rejeté.
+     */
+    public void notifyDriverDocumentRejected(Users driverUser, String documentName, String reason) {
+        if (driverUser == null || driverUser.getEmail() == null || driverUser.getEmail().isBlank()) {
+            return;
+        }
+        String firstName = Optional.ofNullable(driverUser.getFirstName()).orElse("Livreur");
+        String subject = "Document rejeté - CoopAchat";
+        
+        StringBuilder body = new StringBuilder();
+        body.append(String.format("Bonjour %s,\n\n", firstName));
+        body.append(String.format("Nous vous informons que votre document \"%s\" a été rejeté par l'administration.\n\n", documentName));
+        
+        if (reason != null && !reason.isBlank()) {
+            body.append(String.format("Motif du rejet :\n\"%s\"\n\n", reason));
+        }
+        
+        body.append("Veuillez vous connecter à l'application pour soumettre un nouveau document conforme.\n\n");
+        body.append("L'équipe CoopAchat");
+
+        try {
+            emailService.sendEmail(driverUser.getEmail(), subject, body.toString());
+        } catch (Exception e) {
+            log.error("Erreur envoi notification 'document rejeté' à {}: {}", driverUser.getEmail(), e.getMessage());
+        }
+    }
 }
